@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/28 14:13:28 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/28 14:27:30 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/10/30 09:43:42 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -23,12 +23,13 @@ typedef struct	s_cmdlink
 void	uci_debug(const char *args);
 void	uci_go(const char *args);
 void	uci_isready(const char *args);
-void	uci_ponderhit(const char *args);
 void	uci_position(const char *args);
 void	uci_quit(const char *args);
 void	uci_setoption(const char *args);
 void	uci_stop(const char *args);
 void	uci_uci(const char *args);
 void	uci_ucinewgame(const char *args);
+
+void	*uci_thread(void *nothing);
 
 #endif

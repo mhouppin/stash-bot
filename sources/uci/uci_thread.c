@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/28 14:22:56 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/28 16:03:15 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/10/30 09:49:57 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -43,7 +43,7 @@ void	*uci_thread(void *nothing __attribute__((unused)))
 
 		for (size_t i = 0; commands[i].cmd_name != NULL; i++)
 		{
-			if (strcmp(commands[i].cmd_name, cmd))
+			if (strcmp(commands[i].cmd_name, cmd) == 0)
 			{
 				commands[i].call(strtok(NULL, ""));
 				break ;

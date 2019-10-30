@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/28 15:26:41 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/28 16:02:56 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/10/30 09:57:26 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -20,8 +20,10 @@ void	uci_setoption(const char *args)
 	char	*copy = strdup(args);
 	char	*token;
 
-	// Skip first token, as this should be the "name" token.
 	token = strtok(copy, " \t\n");
+
+	if (!token || strcmp(token, "name"))
+		goto __end;
 
 	token = strtok(NULL, " \t\n");
 
@@ -29,6 +31,10 @@ void	uci_setoption(const char *args)
 	{
 		// Skip value token.
 		token = strtok(NULL, " \t\n");
+
+		if (!token || strcmp(token, "value"))
+			goto __end;
+
 		token = strtok(NULL, " \t\n");
 
 		if (token)
@@ -42,6 +48,10 @@ void	uci_setoption(const char *args)
 	{
 		// Skip value token.
 		token = strtok(NULL, " \t\n");
+
+		if (!token || strcmp(token, "value"))
+			goto __end;
+
 		token = strtok(NULL, " \t\n");
 		if (token)
 		{
@@ -58,6 +68,10 @@ void	uci_setoption(const char *args)
 	{
 		// Skip value token.
 		token = strtok(NULL, " \t\n");
+
+		if (!token || strcmp(token, "value"))
+			goto __end;
+
 		token = strtok(NULL, " \t\n");
 
 		if (token)
@@ -71,8 +85,20 @@ void	uci_setoption(const char *args)
 	{
 		// Skip Thinking, Time, and value tokens.
 		token = strtok(NULL, " \t\n");
+
+		if (!token || strcmp(token, "Thinking"))
+			goto __end;
+
 		token = strtok(NULL, " \t\n");
+
+		if (!token || strcmp(token, "Time"))
+			goto __end;
+
 		token = strtok(NULL, " \t\n");
+
+		if (!token || strcmp(token, "value"))
+			goto __end;
+
 		token = strtok(NULL, " \t\n");
 
 		if (token)
@@ -83,5 +109,6 @@ void	uci_setoption(const char *args)
 		}
 	}
 
+__end:
 	free(copy);
 }

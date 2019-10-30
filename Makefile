@@ -6,7 +6,7 @@
 #    By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+      #
 #                                                  #+#   #+    #+    #+#       #
 #    Created: 2019/10/28 13:18:56 by mhouppin     #+#   ##    ##    #+#        #
-#    Updated: 2019/10/28 13:28:37 by mhouppin    ###    #+. /#+    ###.fr      #
+#    Updated: 2019/10/30 09:48:47 by mhouppin    ###    #+. /#+    ###.fr      #
 #                                                          /                   #
 #                                                         /                    #
 # **************************************************************************** #
@@ -19,15 +19,15 @@ DEPENDS	:= $(patsubst sources/%.c,objects/%.d,$(SOURCES))
 
 WFLAGS	:= -Wall -Wextra -Wpedantic
 OFLAGS	:= -O2
-DFLAGS	:=
+DFLAGS	:= -g3 -fsanitize=address
 LFLAGS	:= -lpthread -lm
 
 all: $(NAME)
 
 $(NAME): $(OBJECTS)
-	$(CC) -o $@ $^ $(LFLAGS)
+	$(CC) -o $@ $^ $(DFLAGS) $(LFLAGS)
 
-objects/%.o: sources/%.c
+objects/%.o: sources/%.c Makefile
 	@if test ! -d $(dir $@); then mkdir -p $(dir $@); fi
 	$(CC) $(WFLAGS) $(OFLAGS) $(DFLAGS) -c -MMD -I include -o $@ $<
 
