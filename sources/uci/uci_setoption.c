@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/28 15:26:41 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/30 09:57:26 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/10/30 10:29:12 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -29,7 +29,6 @@ void	uci_setoption(const char *args)
 
 	if (!strcmp(token, "Threads"))
 	{
-		// Skip value token.
 		token = strtok(NULL, " \t\n");
 
 		if (!token || strcmp(token, "value"))
@@ -46,7 +45,6 @@ void	uci_setoption(const char *args)
 	}
 	else if (!strcmp(token, "Hash"))
 	{
-		// Skip value token.
 		token = strtok(NULL, " \t\n");
 
 		if (!token || strcmp(token, "value"))
@@ -66,7 +64,6 @@ void	uci_setoption(const char *args)
 	}
 	else if (!strcmp(token, "MultiPV"))
 	{
-		// Skip value token.
 		token = strtok(NULL, " \t\n");
 
 		if (!token || strcmp(token, "value"))
@@ -83,7 +80,6 @@ void	uci_setoption(const char *args)
 	}
 	else if (!strcmp(token, "Minimum"))
 	{
-		// Skip Thinking, Time, and value tokens.
 		token = strtok(NULL, " \t\n");
 
 		if (!token || strcmp(token, "Thinking"))
