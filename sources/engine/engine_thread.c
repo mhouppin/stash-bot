@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/30 23:30:34 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/31 06:35:44 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/10/31 20:24:44 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -28,6 +28,7 @@ void	*engine_thread(void *nothing __attribute__((unused)))
 			launch_analyse();
 			pthread_mutex_lock(&mtx_engine);
 			g_engine_mode = WAITING;
+			g_engine_send = DO_NOTHING;
 			pthread_mutex_unlock(&mtx_engine);
 		}
 		else

@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 00:05:31 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/31 07:55:10 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/10/31 20:32:46 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -54,6 +54,25 @@ void		launch_analyse(void)
 	int			i;
 	int16_t		value;
 	char		*move;
+
+	if (!g_movetime)
+	{
+		if (g_real_board.player == PLAYER_WHITE && (g_wtime || g_winc))
+		{
+			g_movetime = g_wtime / 50 + g_winc;
+			if (g_movetime > 60000)
+				g_movetime = 60000;
+		}
+		else if (g_real_board.player == PLAYER_BLACK && (g_btime || g_binc))
+		{
+			g_movetime = g_btime / 50 + g_binc;
+			if (g_movetime > 60000)
+				g_movetime = 60000;
+		}
+		g_movetime *= CLOCKS_PER_SEC;
+		g_movetime /= 1000;
+	}
+
 	clock_t		limit = ((g_mintime > g_movetime) ? g_mintime : g_movetime);
 
 	g_start = clock();
@@ -136,6 +155,7 @@ void		launch_analyse(void)
 		move = move_to_str(g_searchmoves->moves[0]);
 
 	printf("bestmove %s\n", move);
+	fflush(stdout);
 	free(move);
 	pthread_mutex_unlock(&mtx_engine);
 }

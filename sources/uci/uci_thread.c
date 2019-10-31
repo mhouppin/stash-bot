@@ -6,15 +6,17 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/28 14:22:56 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/30 23:14:44 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/10/31 20:23:12 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
 #include "uci.h"
+#include "engine.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 const t_cmdlink	commands[] =
 {
@@ -50,10 +52,20 @@ void	*uci_thread(void *nothing __attribute__((unused)))
 			if (strcmp(commands[i].cmd_name, cmd) == 0)
 			{
 				commands[i].call(strtok(NULL, ""));
+				fflush(stdout);
 				break ;
 			}
 		}
 	}
+
+	pthread_mutex_lock(&mtx_engine);
+	while (g_engine_mode != WAITING)
+	{
+		pthread_mutex_unlock(&mtx_engine);
+		usleep(60);
+		pthread_mutex_lock(&mtx_engine);
+	}
+	pthread_mutex_unlock(&mtx_engine);
 
 	free(line);
 	return (NULL);
