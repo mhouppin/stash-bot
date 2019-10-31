@@ -1,32 +1,24 @@
 /* ************************************************************************** */
 /*                                                          LE - /            */
 /*                                                              /             */
-/*   uci_isready.c                                    .::    .:/ .      .::   */
+/*   movelist_quit.c                                  .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2019/10/28 15:25:12 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/31 06:25:47 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Created: 2019/10/30 22:12:52 by mhouppin     #+#   ##    ##    #+#       */
+/*   Updated: 2019/10/30 22:17:38 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#include <stdio.h>
-#include <unistd.h>
 #include "engine.h"
+#include <stdlib.h>
 
-void	uci_isready(const char *args)
+void	movelist_quit(movelist_t *mlist)
 {
-	(void)args;
-
-	pthread_mutex_lock(&mtx_engine);
-	while (g_engine_mode == THINKING)
+	if (mlist)
 	{
-		pthread_mutex_unlock(&mtx_engine);
-		usleep(60);
-		pthread_mutex_lock(&mtx_engine);
+		free(mlist->moves);
+		free(mlist);
 	}
-
-	pthread_mutex_unlock(&mtx_engine);
-	puts("readyok");
 }

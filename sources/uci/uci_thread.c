@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/28 14:22:56 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/30 10:30:17 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/10/30 23:14:44 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -18,6 +18,7 @@
 
 const t_cmdlink	commands[] =
 {
+	{"d", &uci_d},
 	{"debug", &uci_debug},
 	{"go", &uci_go},
 	{"isready", &uci_isready},

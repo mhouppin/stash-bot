@@ -1,32 +1,23 @@
 /* ************************************************************************** */
 /*                                                          LE - /            */
 /*                                                              /             */
-/*   uci_isready.c                                    .::    .:/ .      .::   */
+/*   pop_move.c                                       .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2019/10/28 15:25:12 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/31 06:25:47 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Created: 2019/10/31 01:28:08 by mhouppin     #+#   ##    ##    #+#       */
+/*   Updated: 2019/10/31 06:42:28 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#include <stdio.h>
-#include <unistd.h>
 #include "engine.h"
+#include <string.h>
 
-void	uci_isready(const char *args)
+void	pop_move(movelist_t *mlist, size_t index)
 {
-	(void)args;
-
-	pthread_mutex_lock(&mtx_engine);
-	while (g_engine_mode == THINKING)
-	{
-		pthread_mutex_unlock(&mtx_engine);
-		usleep(60);
-		pthread_mutex_lock(&mtx_engine);
-	}
-
-	pthread_mutex_unlock(&mtx_engine);
-	puts("readyok");
+	mlist->size -= 1;
+	memmove(mlist->moves + index,
+			mlist->moves + index + 1,
+			(mlist->size - index) * sizeof(move_t));
 }

@@ -1,32 +1,32 @@
 /* ************************************************************************** */
 /*                                                          LE - /            */
 /*                                                              /             */
-/*   uci_isready.c                                    .::    .:/ .      .::   */
+/*   movelist_init.c                                  .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2019/10/28 15:25:12 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/31 06:25:47 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Created: 2019/10/30 22:11:05 by mhouppin     #+#   ##    ##    #+#       */
+/*   Updated: 2019/10/30 22:17:27 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#include <stdio.h>
-#include <unistd.h>
 #include "engine.h"
+#include <stdlib.h>
 
-void	uci_isready(const char *args)
+movelist_t	*movelist_init(void)
 {
-	(void)args;
+	movelist_t	*m;
 
-	pthread_mutex_lock(&mtx_engine);
-	while (g_engine_mode == THINKING)
+	m = (movelist_t *)malloc(sizeof(movelist_t));
+	if (m == NULL)
+		return (NULL);
+	m->moves = (move_t *)malloc(sizeof(move_t) * 256);
+	if (m->moves == NULL)
 	{
-		pthread_mutex_unlock(&mtx_engine);
-		usleep(60);
-		pthread_mutex_lock(&mtx_engine);
+		free(m);
+		return (NULL);
 	}
-
-	pthread_mutex_unlock(&mtx_engine);
-	puts("readyok");
+	m->size = 0;
+	return (m);
 }

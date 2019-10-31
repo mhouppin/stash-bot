@@ -6,7 +6,7 @@
 #    By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+      #
 #                                                  #+#   #+    #+    #+#       #
 #    Created: 2019/10/28 13:18:56 by mhouppin     #+#   ##    ##    #+#        #
-#    Updated: 2019/10/30 10:29:24 by mhouppin    ###    #+. /#+    ###.fr      #
+#    Updated: 2019/10/31 07:41:31 by mhouppin    ###    #+. /#+    ###.fr      #
 #                                                          /                   #
 #                                                         /                    #
 # **************************************************************************** #
@@ -19,7 +19,7 @@ DEPENDS	:= $(patsubst sources/%.c,objects/%.d,$(SOURCES))
 
 WFLAGS	:= -Wall -Wextra -Wpedantic
 OFLAGS	:= -O2
-DFLAGS	:= -g3 #-fsanitize=address
+DFLAGS	:= -g3 -fsanitize=address
 LFLAGS	:= -lpthread -lm
 
 all: $(NAME)

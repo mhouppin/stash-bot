@@ -1,32 +1,43 @@
 /* ************************************************************************** */
 /*                                                          LE - /            */
 /*                                                              /             */
-/*   uci_isready.c                                    .::    .:/ .      .::   */
+/*   engine_thread.c                                  .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2019/10/28 15:25:12 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/31 06:25:47 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Created: 2019/10/30 23:30:34 by mhouppin     #+#   ##    ##    #+#       */
+/*   Updated: 2019/10/31 06:35:44 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#include <stdio.h>
-#include <unistd.h>
 #include "engine.h"
+#include <unistd.h>
 
-void	uci_isready(const char *args)
+void	*engine_thread(void *nothing __attribute__((unused)))
 {
-	(void)args;
-
 	pthread_mutex_lock(&mtx_engine);
-	while (g_engine_mode == THINKING)
+
+	while (g_engine_send != DO_ABORT)
 	{
-		pthread_mutex_unlock(&mtx_engine);
-		usleep(60);
+		if (g_engine_send == DO_THINK)
+		{
+			g_engine_mode = THINKING;
+			g_engine_send = DO_NOTHING;
+			pthread_mutex_unlock(&mtx_engine);
+			launch_analyse();
+			pthread_mutex_lock(&mtx_engine);
+			g_engine_mode = WAITING;
+			pthread_mutex_unlock(&mtx_engine);
+		}
+		else
+		{
+			pthread_mutex_unlock(&mtx_engine);
+			usleep(60);
+		}
 		pthread_mutex_lock(&mtx_engine);
 	}
 
 	pthread_mutex_unlock(&mtx_engine);
-	puts("readyok");
+	return (NULL);
 }

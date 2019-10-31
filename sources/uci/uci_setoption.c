@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/28 15:26:41 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/30 10:29:12 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/10/31 06:22:22 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -101,7 +101,7 @@ void	uci_setoption(const char *args)
 		{
 			clock_t value = (clock_t)atol(token);
 			if (value < 30000)
-				g_mintime = (value * 1000ul / CLOCKS_PER_SEC);
+				g_mintime = (value * CLOCKS_PER_SEC / 1000);
 		}
 	}
 

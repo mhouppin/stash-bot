@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/28 15:11:00 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/28 15:58:27 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/10/31 03:57:57 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -25,7 +25,6 @@ enum	e_debug
 };
 
 extern int				g_debug;
-extern pthread_mutex_t	mtx_debug;
 
 extern int				g_threads;
 extern size_t			g_hash;

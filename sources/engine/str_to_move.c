@@ -1,32 +1,40 @@
 /* ************************************************************************** */
 /*                                                          LE - /            */
 /*                                                              /             */
-/*   uci_isready.c                                    .::    .:/ .      .::   */
+/*   str_to_move.c                                    .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2019/10/28 15:25:12 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/31 06:25:47 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Created: 2019/10/30 21:20:44 by mhouppin     #+#   ##    ##    #+#       */
+/*   Updated: 2019/10/30 23:13:44 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#include <stdio.h>
-#include <unistd.h>
 #include "engine.h"
 
-void	uci_isready(const char *args)
+move_t	str_to_move(const char *str)
 {
-	(void)args;
+	int16_t	from;
+	int16_t	to;
 
-	pthread_mutex_lock(&mtx_engine);
-	while (g_engine_mode == THINKING)
+	from = ((str[1] - '1') << 3) | (str[0] - 'a');
+	to = ((str[3] - '1') << 3) | (str[2] - 'a');
+	switch (str[4])
 	{
-		pthread_mutex_unlock(&mtx_engine);
-		usleep(60);
-		pthread_mutex_lock(&mtx_engine);
-	}
+		case 'n':
+			return (get_move(from, to) | PROMOTION | TO_KNIGHT);
 
-	pthread_mutex_unlock(&mtx_engine);
-	puts("readyok");
+		case 'b':
+			return (get_move(from, to) | PROMOTION | TO_BISHOP);
+
+		case 'r':
+			return (get_move(from, to) | PROMOTION | TO_ROOK);
+
+		case 'q':
+			return (get_move(from, to) | PROMOTION | TO_QUEEN);
+
+		default:
+			return (get_move(from, to));
+	}
 }
