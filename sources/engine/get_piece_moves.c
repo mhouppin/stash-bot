@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 02:17:22 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/31 05:58:29 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/10/31 08:52:45 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -283,4 +283,90 @@ void		get_king_moves(movelist_t *mlist, int8_t sq, board_t *board)
 			if (empty(board, sq + NORTH_EAST) || opponent(board, sq + NORTH_EAST))
 				push_move(mlist, get_move(sq, sq + NORTH_EAST));
 	}
+
+	if (board->player == PLAYER_WHITE)
+	{
+		if (board->special_moves & WHITE_OO)
+		{
+			if (!empty(board, SQ_F1) || !empty(board, SQ_G1))
+				goto __end;
+			board->player ^= 1;
+			if (is_checked(board))
+			{
+				board->player ^= 1;
+				goto __end;
+			}
+			board->table[SQ_F1] = WHITE_KING;
+			board->table[SQ_E1] = PIECE_NONE;
+			int c = is_checked(board);
+			board->table[SQ_E1] = WHITE_KING;
+			board->table[SQ_F1] = PIECE_NONE;
+			board->player ^= 1;
+			if (!c)
+				push_move(mlist, get_move(SQ_E1, SQ_G1));
+		}
+		if (board->special_moves & WHITE_OOO)
+		{
+			if (!empty(board, SQ_D1) || !empty(board, SQ_C1) || !empty(board, SQ_B1))
+				goto __end;
+			board->player ^= 1;
+			if (is_checked(board))
+			{
+				board->player ^= 1;
+				goto __end;
+			}
+			board->table[SQ_D1] = WHITE_KING;
+			board->table[SQ_E1] = PIECE_NONE;
+			int c = is_checked(board);
+			board->table[SQ_E1] = WHITE_KING;
+			board->table[SQ_D1] = PIECE_NONE;
+			board->player ^= 1;
+			if (!c)
+				push_move(mlist, get_move(SQ_E1, SQ_C1));
+		}
+	}
+	else
+	{
+		if (board->special_moves & BLACK_OO)
+		{
+			if (!empty(board, SQ_F8) || !empty(board, SQ_G8))
+				goto __end;
+			board->player ^= 1;
+			if (is_checked(board))
+			{
+				board->player ^= 1;
+				goto __end;
+			}
+			board->table[SQ_F8] = BLACK_KING;
+			board->table[SQ_E8] = PIECE_NONE;
+			int c = is_checked(board);
+			board->table[SQ_E8] = BLACK_KING;
+			board->table[SQ_F8] = PIECE_NONE;
+			board->player ^= 1;
+			if (!c)
+				push_move(mlist, get_move(SQ_E8, SQ_G8));
+		}
+		if (board->special_moves & BLACK_OOO)
+		{
+			if (!empty(board, SQ_D8) || !empty(board, SQ_C8) || !empty(board, SQ_B8))
+				goto __end;
+			board->player ^= 1;
+			if (is_checked(board))
+			{
+				board->player ^= 1;
+				goto __end;
+			}
+			board->table[SQ_D8] = BLACK_KING;
+			board->table[SQ_E8] = PIECE_NONE;
+			int c = is_checked(board);
+			board->table[SQ_E8] = BLACK_KING;
+			board->table[SQ_D8] = PIECE_NONE;
+			board->player ^= 1;
+			if (!c)
+				push_move(mlist, get_move(SQ_E8, SQ_C8));
+		}
+	}
+
+__end:
+	return ;
 }

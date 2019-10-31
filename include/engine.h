@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/30 12:51:36 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/31 08:17:17 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/10/31 08:42:39 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -97,7 +97,7 @@ enum	e_special_moves
 	BLACK_OOO = 8,
 
 	KING_SIDE = 5,
-	QUEE_NSIDE = 10,
+	QUEEN_SIDE = 10,
 	WHITE_CASTLING = 3,
 	BLACK_CASTLING = 12,
 	ANY_CASTLING = 15,
