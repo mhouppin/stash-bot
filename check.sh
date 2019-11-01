@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/zsh
 
 if [ $# -eq 0 ]
 then
@@ -12,7 +12,6 @@ SCORE=0
 MAX_SCORE=0
 
 check_e() {
-
 	let "MAX_SCORE += 1"
 
 	position="$1"
@@ -32,7 +31,7 @@ check_e() {
 	printf "position %71s - received $engine_output - expected $expected\n" \
 		"$position"
 
-	if test x$engine_output == x$expected
+	if test x$engine_output = x$expected
 	then
 		let "SCORE += 1"
 	fi

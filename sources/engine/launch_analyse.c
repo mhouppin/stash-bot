@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 00:05:31 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/01 15:31:06 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/01 18:04:22 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -175,7 +175,7 @@ void		launch_analyse(void)
 					free(move);
 					pop_move(g_searchmoves, k);
 					memcpy(g_valuemoves + k, g_valuemoves + k + 1,
-							g_searchmoves->size - k);
+							(g_searchmoves->size - k) * 2);
 				}
 				else
 					k++;
@@ -194,7 +194,7 @@ void		launch_analyse(void)
 					free(move);
 					pop_move(g_searchmoves, k);
 					memcpy(g_valuemoves + k, g_valuemoves + k + 1,
-							g_searchmoves->size - k);
+							(g_searchmoves->size - k) * 2);
 				}
 				else
 					k++;
