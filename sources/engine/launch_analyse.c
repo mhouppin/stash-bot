@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 00:05:31 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/31 20:32:46 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/01 13:10:46 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -15,6 +15,7 @@
 #include "settings.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 
 static void	sort_moves(void)
 {
@@ -69,7 +70,7 @@ void		launch_analyse(void)
 			if (g_movetime > 60000)
 				g_movetime = 60000;
 		}
-		g_movetime *= CLOCKS_PER_SEC;
+		g_movetime *= CLOCKS_PER_SEC * sqrt(g_threads);
 		g_movetime /= 1000;
 	}
 
@@ -81,6 +82,21 @@ void		launch_analyse(void)
 
 	if (g_searchmoves == NULL)
 		g_searchmoves = get_simple_moves(&g_real_board);
+
+	if (g_searchmoves->size == 0)
+	{
+		fprintf(stderr, "Error, already mated\n");
+		fflush(stderr);
+		return ;
+	}
+	if (g_searchmoves->size == 1)
+	{
+		move = move_to_str(g_searchmoves->moves[0]);
+		printf("bestmove %s\n", move);
+		fflush(stdout);
+		free(move);
+		return ;
+	}
 
 	g_valuemoves = (int16_t *)malloc(2 * g_searchmoves->size);
 
@@ -119,19 +135,21 @@ void		launch_analyse(void)
 			move = move_to_str(g_searchmoves->moves[0]);
 		}
 
-		if (value <= -16000)
+		if (value <= -15000)
 		{
 			printf("info depth %d time %lu score mate %d pv %s\n", i,
 				(clock() - g_start) * 1000 / CLOCKS_PER_SEC,
-				(g_real_board.player == PLAYER_WHITE) ? value + 16000
-				: -(value + 16000), move);
+				(g_real_board.player == PLAYER_WHITE) ? -(value + 16000)
+				: value + 16000, move);
+			break ;
 		}
-		else if (value >= 16000)
+		else if (value >= 15000)
 		{
 			printf("info depth %d time %lu score mate %d pv %s\n", i,
 				(clock() - g_start) * 1000 / CLOCKS_PER_SEC,
-				(g_real_board.player == PLAYER_WHITE) ? value - 16000
-				: 16000 - value, move);
+				(g_real_board.player == PLAYER_WHITE) ? 16000 - value
+				: value - 16000, move);
+			break ;
 		}
 		else
 		{
@@ -157,5 +175,7 @@ void		launch_analyse(void)
 	printf("bestmove %s\n", move);
 	fflush(stdout);
 	free(move);
+	free(g_valuemoves);
+	movelist_quit(g_searchmoves);
 	pthread_mutex_unlock(&mtx_engine);
 }

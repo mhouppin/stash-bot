@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/30 21:26:33 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/31 03:47:11 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/01 11:44:29 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -117,6 +117,22 @@ __standard:
 		}
 		else
 			board->special_moves &= ~(240);
+
+		if (board->table[to] == BLACK_ROOK)
+		{
+			if (to == SQ_A8)
+				board->special_moves &= ~(BLACK_OOO);
+			else if (to == SQ_H8)
+				board->special_moves &= ~(BLACK_OO);
+		}
+		else if (board->table[to] == WHITE_ROOK)
+		{
+			if (to == SQ_A1)
+				board->special_moves &= ~(WHITE_OOO);
+			else if (to == SQ_H1)
+				board->special_moves &= ~(WHITE_OO);
+		}
+
 		board->table[from] = PIECE_NONE;
 		board->table[to] = start_piece;
 		board->player = !(board->player);

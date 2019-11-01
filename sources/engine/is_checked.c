@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 01:31:51 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/31 02:07:09 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/01 13:02:52 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -36,7 +36,7 @@ int		is_checked(board_t *board)
 
 	const int8_t pw_side_attack = (board->player == PLAYER_WHITE) ? NORTH : SOUTH;
 
-	for (int8_t square = SQ_A1; square < SQ_H8; square++)
+	for (int8_t square = SQ_A1; square <= SQ_H8; square++)
 	{
 		int8_t	file = (square & 7);
 		int8_t	rank = (square >> 3);

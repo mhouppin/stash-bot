@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 03:55:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/31 07:54:28 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/01 11:18:22 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -170,8 +170,8 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 		if (is_checked(&tmp))
 		{
 			tmp.player ^= 1;
-			return ((tmp.player == PLAYER_WHITE) ? -16000 - ((cur_depth + 1) / 2)
-					: 16000 + ((cur_depth + 1) / 2));
+			return ((tmp.player == PLAYER_WHITE) ? -16000 + ((cur_depth + 1) / 2)
+					: 16000 - ((cur_depth + 1) / 2));
 		}
 		else
 			return (0);
