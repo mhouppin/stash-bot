@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/28 14:22:56 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/31 20:23:12 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/01 15:49:53 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -58,6 +58,7 @@ void	*uci_thread(void *nothing __attribute__((unused)))
 		}
 	}
 
+	usleep(60);
 	pthread_mutex_lock(&mtx_engine);
 	while (g_engine_mode != WAITING)
 	{

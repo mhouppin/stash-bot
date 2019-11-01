@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 00:05:31 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/01 13:10:46 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/01 15:31:06 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -16,6 +16,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
+
+#define BLUNDER_MAX		300
+#define BLUNDER_GAP		1200
 
 static void	sort_moves(void)
 {
@@ -70,7 +74,7 @@ void		launch_analyse(void)
 			if (g_movetime > 60000)
 				g_movetime = 60000;
 		}
-		g_movetime *= CLOCKS_PER_SEC * sqrt(g_threads);
+		g_movetime *= (clock_t)((double)CLOCKS_PER_SEC * sqrt(g_threads));
 		g_movetime /= 1000;
 	}
 
@@ -89,14 +93,6 @@ void		launch_analyse(void)
 		fflush(stderr);
 		return ;
 	}
-	if (g_searchmoves->size == 1)
-	{
-		move = move_to_str(g_searchmoves->moves[0]);
-		printf("bestmove %s\n", move);
-		fflush(stdout);
-		free(move);
-		return ;
-	}
 
 	g_valuemoves = (int16_t *)malloc(2 * g_searchmoves->size);
 
@@ -109,6 +105,9 @@ void		launch_analyse(void)
 	while (i < g_depth && (g_infinite || clock() - g_start <= limit))
 	{
 		pthread_mutex_unlock(&mtx_engine);
+
+		if (g_searchmoves->size == 1)
+			break ;
 
 		g_curdepth = i;
 
@@ -160,6 +159,47 @@ void		launch_analyse(void)
 		}
 
 		free(move);
+
+		int16_t		max_diff = (BLUNDER_MAX + (double)BLUNDER_GAP / sqrt(i + 1));
+
+		if (g_real_board.player == PLAYER_WHITE)
+		{
+			size_t	k = 0;
+			while (k < g_searchmoves->size)
+			{
+				if (g_valuemoves[k] < value - max_diff)
+				{
+					move = move_to_str(g_searchmoves->moves[k]);
+					printf("Popped move %s (value was %hd)\n", move,
+							g_valuemoves[k]);
+					free(move);
+					pop_move(g_searchmoves, k);
+					memcpy(g_valuemoves + k, g_valuemoves + k + 1,
+							g_searchmoves->size - k);
+				}
+				else
+					k++;
+			}
+		}
+		else
+		{
+			size_t	k = 0;
+			while (k < g_searchmoves->size)
+			{
+				if (g_valuemoves[k] > value + max_diff)
+				{
+					move = move_to_str(g_searchmoves->moves[k]);
+					printf("Popped move %s (value was %hd)\n", move,
+							g_valuemoves[k]);
+					free(move);
+					pop_move(g_searchmoves, k);
+					memcpy(g_valuemoves + k, g_valuemoves + k + 1,
+							g_searchmoves->size - k);
+				}
+				else
+					k++;
+			}
+		}
 
 		pthread_mutex_lock(&mtx_engine);
 		if (g_engine_send == DO_EXIT)
