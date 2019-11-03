@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 03:55:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/01 17:52:13 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/02 17:23:54 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -74,7 +74,7 @@ int16_t	evaluate(board_t *board)
 
 			case WHITE_QUEEN:
 				ret += 900;
-				ret += table_score[i];
+				ret += table_score[i] / 5;
 				p++;
 				break ;
 
@@ -109,7 +109,7 @@ int16_t	evaluate(board_t *board)
 
 			case BLACK_QUEEN:
 				ret -= 900;
-				ret -= table_score[(i & 7) + (7 - (i >> 3)) * 8];
+				ret -= table_score[(i & 7) + (7 - (i >> 3)) * 8] / 5;
 				p++;
 				break ;
 
@@ -241,7 +241,7 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 	return (value);
 }
 
-int16_t	alpha_beta(move_t move, clock_t start, size_t *max_nodes)
+int16_t	alpha_beta(move_t move, clock_t start, size_t *max_nodes, int16_t alpha, int16_t beta)
 {
 	board_t		start_board = g_real_board;
 
@@ -253,7 +253,7 @@ int16_t	alpha_beta(move_t move, clock_t start, size_t *max_nodes)
 	free(str);
 
 	return (_alpha_beta(&start_board, g_curdepth,
-				INT16_MIN + 1, INT16_MAX - 1,
+				alpha, beta,
 				max_nodes, (g_mintime > g_movetime) ? g_mintime : g_movetime,
 				start, 0));
 }
@@ -261,6 +261,8 @@ int16_t	alpha_beta(move_t move, clock_t start, size_t *max_nodes)
 void	*analysis_thread(void *tid)
 {
 	size_t		max_nodes = g_nodes / g_threads;
+	int16_t		alpha = INT16_MIN + 1;
+	int16_t		beta = INT16_MAX - 1;
 
 	for (size_t i = (size_t)*(int *)tid; i < g_searchmoves->size; i += g_threads)
 	{
@@ -273,10 +275,19 @@ void	*analysis_thread(void *tid)
 		}
 		pthread_mutex_unlock(&mtx_engine);
 
-		int16_t	value = alpha_beta(g_searchmoves->moves[i], g_start, &max_nodes);
+		int16_t	value = alpha_beta(g_searchmoves->moves[i], g_start, &max_nodes, alpha, beta);
+		g_valuemoves[i] = value;
 
-		if (value != INT16_MIN)
-			g_valuemoves[i] = value;
+		if (g_real_board.player == PLAYER_WHITE)
+		{
+			if (alpha < value)
+				alpha = value;
+		}
+		else
+		{
+			if (beta > value)
+				beta = value;
+		}
 	}
 	return (NULL);
 }

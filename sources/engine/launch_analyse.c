@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 00:05:31 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/01 18:04:22 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/02 15:55:10 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -17,9 +17,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
-
-#define BLUNDER_MAX		300
-#define BLUNDER_GAP		1200
 
 static void	sort_moves(void)
 {
@@ -32,7 +29,9 @@ static void	sort_moves(void)
 		{
 			for (i = (ssize_t)(start - gap); i >= 0; i = i - gap)
 			{
-				if (g_valuemoves[i + gap] <= g_valuemoves[i])
+				if (g_real_board.player == PLAYER_WHITE && g_valuemoves[i + gap] <= g_valuemoves[i])
+					break ;
+				else if (g_real_board.player == PLAYER_BLACK && g_valuemoves[i + gap] >= g_valuemoves[i])
 					break ;
 				else
 				{
@@ -58,6 +57,7 @@ void		launch_analyse(void)
 	int			*tindex;
 	int			i;
 	int16_t		value;
+	int16_t		*g_valuebackup;
 	char		*move;
 
 	if (!g_movetime)
@@ -95,9 +95,13 @@ void		launch_analyse(void)
 	}
 
 	g_valuemoves = (int16_t *)malloc(2 * g_searchmoves->size);
+	g_valuebackup = (int16_t *)malloc(2 * g_searchmoves->size);
 
 	for (i = 0; i < g_threads; i++)
 		tindex[i] = i;
+
+	for (i = 0; i < (int)g_searchmoves->size; i++)
+		g_valuemoves[i] = g_valuebackup[i] = INT16_MIN;
 
 	i = 0;
 
@@ -121,18 +125,18 @@ void		launch_analyse(void)
 		for (int k = 0; k < g_threads; k++)
 			pthread_join(*(threads + k), NULL);
 
-		sort_moves();
+		for (size_t k = 0; k < g_searchmoves->size; k++)
+			if (g_valuemoves[k] == INT16_MIN)
+			{
+				memcpy(g_valuemoves, g_valuebackup, 2 * g_searchmoves->size);
+				break ;
+			}
 
-		if (g_real_board.player == PLAYER_BLACK)
-		{
-			value = g_valuemoves[g_searchmoves->size - 1];
-			move = move_to_str(g_searchmoves->moves[g_searchmoves->size - 1]);
-		}
-		else
-		{
-			value = g_valuemoves[0];
-			move = move_to_str(g_searchmoves->moves[0]);
-		}
+		sort_moves();
+		memcpy(g_valuebackup, g_valuemoves, 2 * g_searchmoves->size);
+
+		value = g_valuemoves[0];
+		move = move_to_str(g_searchmoves->moves[0]);
 
 		if (value <= -15000)
 		{
@@ -160,62 +164,19 @@ void		launch_analyse(void)
 
 		free(move);
 
-		int16_t		max_diff = (BLUNDER_MAX + (double)BLUNDER_GAP / sqrt(i + 1));
-
-		if (g_real_board.player == PLAYER_WHITE)
-		{
-			size_t	k = 0;
-			while (k < g_searchmoves->size)
-			{
-				if (g_valuemoves[k] < value - max_diff)
-				{
-					move = move_to_str(g_searchmoves->moves[k]);
-					printf("Popped move %s (value was %hd)\n", move,
-							g_valuemoves[k]);
-					free(move);
-					pop_move(g_searchmoves, k);
-					memcpy(g_valuemoves + k, g_valuemoves + k + 1,
-							(g_searchmoves->size - k) * 2);
-				}
-				else
-					k++;
-			}
-		}
-		else
-		{
-			size_t	k = 0;
-			while (k < g_searchmoves->size)
-			{
-				if (g_valuemoves[k] > value + max_diff)
-				{
-					move = move_to_str(g_searchmoves->moves[k]);
-					printf("Popped move %s (value was %hd)\n", move,
-							g_valuemoves[k]);
-					free(move);
-					pop_move(g_searchmoves, k);
-					memcpy(g_valuemoves + k, g_valuemoves + k + 1,
-							(g_searchmoves->size - k) * 2);
-				}
-				else
-					k++;
-			}
-		}
-
 		pthread_mutex_lock(&mtx_engine);
 		if (g_engine_send == DO_EXIT)
 			break ;
 		i++;
 	}
 
-	if (g_real_board.player == PLAYER_BLACK)
-		move = move_to_str(g_searchmoves->moves[g_searchmoves->size - 1]);
-	else
-		move = move_to_str(g_searchmoves->moves[0]);
+	move = move_to_str(g_searchmoves->moves[0]);
 
 	printf("bestmove %s\n", move);
 	fflush(stdout);
 	free(move);
 	free(g_valuemoves);
+	free(g_valuebackup);
 	movelist_quit(g_searchmoves);
 	pthread_mutex_unlock(&mtx_engine);
 }
