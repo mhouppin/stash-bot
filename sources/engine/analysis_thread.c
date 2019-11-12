@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 03:55:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/10 15:50:24 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/05 10:55:07 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -255,8 +255,8 @@ int16_t	alpha_beta(move_t move, clock_t start, size_t *max_nodes, int16_t alpha,
 void	*analysis_thread(void *tid)
 {
 	size_t		max_nodes = g_nodes / g_threads;
-	int16_t		alpha = INT16_MIN + 1;
-	int16_t		beta = INT16_MAX - 1;
+	int16_t		alpha = -15000;
+	int16_t		beta = 15000;
 
 	for (size_t i = (size_t)*(int *)tid; i < g_searchmoves->size; i += g_threads)
 	{

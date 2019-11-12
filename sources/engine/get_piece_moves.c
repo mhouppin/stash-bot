@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 02:17:22 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/31 08:52:45 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/05 12:02:06 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -30,46 +30,68 @@ void		get_pawn_moves(movelist_t *mlist, int8_t sq, board_t *board)
 	const int8_t	file = (sq & 7);
 	const int8_t	rank = (sq >> 3);
 
-	if (empty(board, sq + pw_side_attack))
+	if (rank == (board->player == PLAYER_WHITE ? RANK_7 : RANK_2))
 	{
-		move_t	move = get_move(sq, sq + pw_side_attack);
-		if (rank == (board->player == PLAYER_WHITE ? RANK_7 : RANK_2))
+		if (empty(board, sq + pw_side_attack))
 		{
+			move_t	move = get_move(sq, sq + pw_side_attack);
+
 			push_move(mlist, move | PROMOTION | TO_KNIGHT);
 			push_move(mlist, move | PROMOTION | TO_BISHOP);
 			push_move(mlist, move | PROMOTION | TO_ROOK);
 			push_move(mlist, move | PROMOTION | TO_QUEEN);
 		}
-		else
+
+		if (file != FILE_A && opponent(board, sq + pw_side_attack + WEST))
 		{
-			push_move(mlist, move);
+			move_t	move = get_move(sq, sq + pw_side_attack + WEST);
+			push_move(mlist, move | PROMOTION | TO_KNIGHT);
+			push_move(mlist, move | PROMOTION | TO_BISHOP);
+			push_move(mlist, move | PROMOTION | TO_ROOK);
+			push_move(mlist, move | PROMOTION | TO_QUEEN);
+		}
+
+		if (file != FILE_H && opponent(board, sq + pw_side_attack + EAST))
+		{
+			move_t	move = get_move(sq, sq + pw_side_attack + EAST);
+			push_move(mlist, move | PROMOTION | TO_KNIGHT);
+			push_move(mlist, move | PROMOTION | TO_BISHOP);
+			push_move(mlist, move | PROMOTION | TO_ROOK);
+			push_move(mlist, move | PROMOTION | TO_QUEEN);
+		}
+	}
+	else
+	{
+		if (empty(board, sq + pw_side_attack))
+		{
+			push_move(mlist, get_move(sq, sq + pw_side_attack));
 			if (rank == (board->player == PLAYER_WHITE ? RANK_2 : RANK_7))
 				if (empty(board, sq + pw_side_attack * 2))
 					push_move(mlist, get_move(sq, sq + pw_side_attack * 2));
 		}
-	}
 
-	if (file != FILE_A)
-	{
-		if (opponent(board, sq + pw_side_attack + WEST))
-			push_move(mlist, get_move(sq, sq + pw_side_attack + WEST));
-		else if (rank == (board->player == PLAYER_WHITE ? RANK_5 : RANK_4)
-				&& (board->special_moves & EN_PASSANT_OK)
-				&& ((board->special_moves >> 4) & 7) == file - 1)
+		if (file != FILE_A)
 		{
-			push_move(mlist, get_move(sq, sq + pw_side_attack + WEST));
+			if (opponent(board, sq + pw_side_attack + WEST))
+				push_move(mlist, get_move(sq, sq + pw_side_attack + WEST));
+			else if (rank == (board->player == PLAYER_WHITE ? RANK_5 : RANK_4)
+					&& (board->special_moves & EN_PASSANT_OK)
+					&& ((board->special_moves >> 4) & 7) == file - 1)
+			{
+				push_move(mlist, get_move(sq, sq + pw_side_attack + WEST));
+			}
 		}
-	}
 
-	if (file != FILE_H)
-	{
-		if (opponent(board, sq + pw_side_attack + EAST))
-			push_move(mlist, get_move(sq, sq + pw_side_attack + EAST));
-		else if (rank == (board->player == PLAYER_WHITE ? RANK_5 : RANK_4)
-				&& (board->special_moves & EN_PASSANT_OK)
-				&& ((board->special_moves >> 4) & 7) == file + 1)
+		if (file != FILE_H)
 		{
-			push_move(mlist, get_move(sq, sq + pw_side_attack + EAST));
+			if (opponent(board, sq + pw_side_attack + EAST))
+				push_move(mlist, get_move(sq, sq + pw_side_attack + EAST));
+			else if (rank == (board->player == PLAYER_WHITE ? RANK_5 : RANK_4)
+					&& (board->special_moves & EN_PASSANT_OK)
+					&& ((board->special_moves >> 4) & 7) == file + 1)
+			{
+				push_move(mlist, get_move(sq, sq + pw_side_attack + EAST));
+			}
 		}
 	}
 }
