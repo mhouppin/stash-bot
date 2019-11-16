@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/30 09:38:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/31 08:17:33 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/09 17:55:29 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -151,6 +151,8 @@ void	uci_position(const char *args)
 		token = strtok(NULL, " \t\n");
 
 		g_init_board.last_active_move = atoi(token);
+
+		token = strtok(NULL, " \t\n");
 	}
 	else if (strcmp(token, "startpos") == 0)
 	{

@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 03:55:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/02 17:23:54 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/10 15:50:24 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -46,76 +46,70 @@ int16_t	evaluate(board_t *board)
 
 	for (int8_t i = 0; i < 64; i++)
 	{
+		p++;
+
 		switch (board->table[i])
 		{
+			case PIECE_NONE:
+				p--;
+				break ;
+
 			case WHITE_PAWN:
 				ret += 100;
 				ret += pawn_score[i];
-				p++;
 				break ;
 
 			case WHITE_BISHOP:
 				ret += 330;
 				ret += table_score[i];
-				p++;
 				break ;
 
 			case WHITE_KNIGHT:
 				ret += 300;
 				ret += table_score[i];
-				p++;
 				break ;
 
 			case WHITE_ROOK:
 				ret += 500;
 				ret += table_score[i];
-				p++;
 				break ;
 
 			case WHITE_QUEEN:
 				ret += 900;
-				ret += table_score[i] / 5;
-				p++;
+				ret += table_score[i];
 				break ;
 
 			case WHITE_KING:
 				kval += table_score[i];
-				p++;
 				break ;
 
 			case BLACK_PAWN:
 				ret -= 100;
-				ret -= pawn_score[(i & 7) + (7 - (i >> 3)) * 8];
-				p++;
+				ret -= pawn_score[i ^ SQ_A8];
 				break ;
 
 			case BLACK_BISHOP:
 				ret -= 330;
-				ret -= table_score[(i & 7) + (7 - (i >> 3)) * 8];
-				p++;
+				ret -= table_score[i ^ SQ_A8];
 				break ;
 
 			case BLACK_KNIGHT:
 				ret -= 300;
-				ret -= table_score[(i & 7) + (7 - (i >> 3)) * 8];
-				p++;
+				ret -= table_score[i ^ SQ_A8];
 				break ;
 
 			case BLACK_ROOK:
 				ret -= 500;
-				ret -= table_score[(i & 7) + (7 - (i >> 3)) * 8];
-				p++;
+				ret -= table_score[i ^ SQ_A8];
 				break ;
 
 			case BLACK_QUEEN:
 				ret -= 900;
-				ret -= table_score[(i & 7) + (7 - (i >> 3)) * 8] / 5;
-				p++;
+				ret -= table_score[i ^ SQ_A8];
 				break ;
 
 			case BLACK_KING:
-				kval -= table_score[(i & 7) + (7 - (i >> 3)) * 8];
-				p++;
+				kval -= table_score[i ^ SQ_A8];
 				break ;
 		}
 	}

@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 01:31:51 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/01 13:02:52 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/10 15:46:29 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -15,8 +15,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-int		is_checked(board_t *board)
+int		is_checked(const board_t *board)
 {
+
 	int8_t	kingpos;
 
 	{
@@ -29,8 +30,9 @@ int		is_checked(board_t *board)
 		kingpos = (int8_t)(kp - board->table);
 	}
 
-	int8_t	kfile = (kingpos & 7);
-	int8_t	krank = (kingpos >> 3);
+	const int8_t	kfile = (kingpos & 7);
+	const int8_t	krank = (kingpos >> 3);
+	const int8_t	plxor = board->player << 3;
 	int8_t	delta;
 	int8_t	sqi;
 
@@ -38,10 +40,13 @@ int		is_checked(board_t *board)
 
 	for (int8_t square = SQ_A1; square <= SQ_H8; square++)
 	{
+		if (board->table[square] == PIECE_NONE)
+			continue ;
+
 		int8_t	file = (square & 7);
 		int8_t	rank = (square >> 3);
 
-		switch (board->table[square] ^ (board->player << 3))
+		switch (board->table[square] ^ plxor)
 		{
 			case WHITE_PAWN:
 				if (file > FILE_A)
@@ -154,9 +159,11 @@ int		is_checked(board_t *board)
 				break ;
 
 			case WHITE_KING:
-				if (abs(file - kfile) <= 1 && abs(rank - krank) <= 1)
-					return (1);
-				break ;
+				if (file - kfile > 1 || file - kfile < -1)
+					break ;
+				if (rank - krank > 1 || rank - krank < -1)
+					break ;
+				return (1);
 		}
 	}
 	return (0);

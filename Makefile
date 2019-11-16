@@ -6,7 +6,7 @@
 #    By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+      #
 #                                                  #+#   #+    #+    #+#       #
 #    Created: 2019/10/28 13:18:56 by mhouppin     #+#   ##    ##    #+#        #
-#    Updated: 2019/10/31 08:38:41 by mhouppin    ###    #+. /#+    ###.fr      #
+#    Updated: 2019/11/10 15:33:56 by stash       ###    #+. /#+    ###.fr      #
 #                                                          /                   #
 #                                                         /                    #
 # **************************************************************************** #
@@ -18,8 +18,8 @@ OBJECTS	:= $(patsubst sources/%.c,objects/%.o,$(SOURCES))
 DEPENDS	:= $(patsubst sources/%.c,objects/%.d,$(SOURCES))
 
 WFLAGS	:= -Wall -Wextra -Wpedantic
-OFLAGS	:= -O3 -march=native
-DFLAGS	:= #-g3 -fsanitize=address
+OFLAGS	:= -O3 -march=native -mstringop-strategy=rep_byte
+DFLAGS	:= -g3 #-fsanitize=address
 LFLAGS	:= -lpthread -lm
 
 all: $(NAME)

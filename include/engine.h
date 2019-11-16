@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/30 12:51:36 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/31 08:42:39 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/10 15:38:30 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -228,6 +228,6 @@ void		get_bishop_moves(movelist_t *mlist, int8_t sq, board_t *board);
 void		get_rook_moves(movelist_t *mlist, int8_t sq, board_t *board);
 void		get_king_moves(movelist_t *mlist, int8_t sq, board_t *board);
 
-int			is_checked(board_t *board);
+int			is_checked(const board_t *board);
 
 #endif
