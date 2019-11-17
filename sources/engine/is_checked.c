@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 01:31:51 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/10 15:46:29 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/17 10:09:40 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -159,9 +159,9 @@ int		is_checked(const board_t *board)
 				break ;
 
 			case WHITE_KING:
-				if (file - kfile > 1 || file - kfile < -1)
-					break ;
 				if (rank - krank > 1 || rank - krank < -1)
+					break ;
+				if (file - kfile > 1 || file - kfile < -1)
 					break ;
 				return (1);
 		}

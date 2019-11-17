@@ -41,7 +41,7 @@ check_e() {
 
 check_e "8/8/p7/1pP1k2p/1P6/P3K3/8/8 w - - 0 1"		19600	e3f3
 check_e "8/8/p7/1pP2k1p/1P6/P4K2/8/8 w - - 2 2"		16900	f3g3
-check_e "8/8/p7/1pP1k2p/1P6/P3K3/8/8 w - - 4 3"		14400	g3h4
+check_e "8/8/p7/1pP1k2p/1P6/P5K1/8/8 w - - 4 3"		14400	g3h4
 check_e "8/8/p7/1pPk3p/1P5K/P7/8/8 w - - 6 4"		12100	h4h5
 check_e	"8/8/p1k5/1pP4K/1P6/P7/8/8 w - - 1 5"		10000	h5g5
 check_e "8/8/p7/1pPk2K1/1P6/P7/8/8 w - - 3 6"		8100	g5f5

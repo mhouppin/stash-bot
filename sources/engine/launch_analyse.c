@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 00:05:31 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/02 15:55:10 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/16 10:58:33 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -138,20 +138,20 @@ void		launch_analyse(void)
 		value = g_valuemoves[0];
 		move = move_to_str(g_searchmoves->moves[0]);
 
-		if (value <= -15000)
+		if (value <= -30000)
 		{
 			printf("info depth %d time %lu score mate %d pv %s\n", i,
 				(clock() - g_start) * 1000 / CLOCKS_PER_SEC,
-				(g_real_board.player == PLAYER_WHITE) ? -(value + 16000)
-				: value + 16000, move);
+				(g_real_board.player == PLAYER_WHITE) ? -(value + 32000)
+				: value + 32000, move);
 			break ;
 		}
-		else if (value >= 15000)
+		else if (value >= 30000)
 		{
 			printf("info depth %d time %lu score mate %d pv %s\n", i,
 				(clock() - g_start) * 1000 / CLOCKS_PER_SEC,
-				(g_real_board.player == PLAYER_WHITE) ? 16000 - value
-				: value - 16000, move);
+				(g_real_board.player == PLAYER_WHITE) ? 32000 - value
+				: value - 32000, move);
 			break ;
 		}
 		else
