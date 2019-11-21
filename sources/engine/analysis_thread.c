@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 03:55:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/16 11:57:51 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/17 12:43:54 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -200,7 +200,7 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 
 	(*max_nodes)--;
 
-	if (cur_depth < 2)
+	if (*max_nodes % 32768 == 0)
 	{
 		if (!g_infinite && clock() - start > movetime)
 			return (INT16_MIN);
