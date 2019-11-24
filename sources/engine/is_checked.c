@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 01:31:51 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/17 10:09:40 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/23 14:05:15 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -33,138 +33,171 @@ int		is_checked(const board_t *board)
 	const int8_t	kfile = (kingpos & 7);
 	const int8_t	krank = (kingpos >> 3);
 	const int8_t	plxor = board->player << 3;
-	int8_t	delta;
-	int8_t	sqi;
 
-	const int8_t pw_side_attack = (board->player == PLAYER_WHITE) ? NORTH : SOUTH;
+	// Check for pawn attacks
 
-	for (int8_t square = SQ_A1; square <= SQ_H8; square++)
 	{
-		if (board->table[square] == PIECE_NONE)
-			continue ;
+		int8_t pw_attack_from = (board->player == PLAYER_WHITE) ? SOUTH : NORTH;
 
-		int8_t	file = (square & 7);
-		int8_t	rank = (square >> 3);
-
-		switch (board->table[square] ^ plxor)
+		if (kingpos + pw_attack_from >= SQ_A1 && kingpos + pw_attack_from <= SQ_H8)
 		{
-			case WHITE_PAWN:
-				if (file > FILE_A)
-					if (square + pw_side_attack + WEST == kingpos)
-						return (1);
-				if (file < FILE_H)
-					if (square + pw_side_attack + EAST == kingpos)
-						return (1);
-				break ;
-
-			case WHITE_KNIGHT:
-				if (file > FILE_A)
-				{
-					if (rank > RANK_2)
-						if (square + SOUTH * 2 + WEST == kingpos)
-							return (1);
-					if (rank < RANK_7)
-						if (square + NORTH * 2 + WEST == kingpos)
-							return (1);
-				}
-				if (file > FILE_B)
-				{
-					if (rank > RANK_1)
-						if (square + SOUTH + WEST * 2 == kingpos)
-							return (1);
-					if (rank < RANK_8)
-						if (square + NORTH + WEST * 2 == kingpos)
-							return (1);
-				}
-				if (file < FILE_H)
-				{
-					if (rank > RANK_2)
-						if (square + SOUTH * 2 + EAST == kingpos)
-							return (1);
-					if (rank < RANK_7)
-						if (square + NORTH * 2 + EAST == kingpos)
-							return (1);
-				}
-				if (file < FILE_G)
-				{
-					if (rank > RANK_1)
-						if (square + SOUTH + EAST * 2 == kingpos)
-							return (1);
-					if (rank < RANK_8)
-						if (square + NORTH + EAST * 2 == kingpos)
-							return (1);
-				}
-				break ;
-
-			case WHITE_BISHOP:
-				if (file - kfile != rank - krank && file - kfile != krank - rank)
-					break ;
-				if (file < kfile)
-					delta = (rank < krank) ? NORTH_EAST : SOUTH_EAST;
-				else
-					delta = (rank < krank) ? NORTH_WEST : SOUTH_WEST;
-
-				sqi = square;
-
-				do
-				{
-					sqi += delta;
-					if (sqi == kingpos)
-						return (1);
-				}
-				while (board->table[sqi] == PIECE_NONE);
-				break ;
-
-			case WHITE_ROOK:
-				if (file != kfile && rank != krank)
-					break ;
-				if (file == kfile)
-					delta = (rank < krank) ? NORTH : SOUTH;
-				else
-					delta = (file < kfile) ? EAST : WEST;
-
-				sqi = square;
-
-				do
-				{
-					sqi += delta;
-					if (sqi == kingpos)
-						return (1);
-				}
-				while (board->table[sqi] == PIECE_NONE);
-				break ;
-
-			case WHITE_QUEEN:
-				if (file != kfile && rank != krank
-					&& file - kfile != rank - krank && file - kfile != krank - rank)
-					break ;
-				if (file == kfile)
-					delta = (rank < krank) ? NORTH : SOUTH;
-				else if (rank == krank)
-					delta = (file < kfile) ? EAST : WEST;
-				else if (file < kfile)
-					delta = (rank < krank) ? NORTH_EAST : SOUTH_EAST;
-				else
-					delta = (rank < krank) ? NORTH_WEST : SOUTH_WEST;
-
-				sqi = square;
-
-				do
-				{
-					sqi += delta;
-					if (sqi == kingpos)
-						return (1);
-				}
-				while (board->table[sqi] == PIECE_NONE);
-				break ;
-
-			case WHITE_KING:
-				if (rank - krank > 1 || rank - krank < -1)
-					break ;
-				if (file - kfile > 1 || file - kfile < -1)
-					break ;
-				return (1);
+			if (kfile > FILE_A)
+				if ((board->table[kingpos + pw_attack_from + WEST] ^ plxor) == WHITE_PAWN)
+					return (1);
+			if (kfile < FILE_H)
+				if ((board->table[kingpos + pw_attack_from + EAST] ^ plxor) == WHITE_PAWN)
+					return (1);
 		}
 	}
+
+	// Check for knight attacks
+
+	{
+		if (kfile > FILE_A)
+		{
+			if (krank > RANK_2)
+				if ((board->table[kingpos + SOUTH * 2 + WEST] ^ plxor) == WHITE_KNIGHT)
+					return (1);
+			if (krank < RANK_7)
+				if ((board->table[kingpos + NORTH * 2 + WEST] ^ plxor) == WHITE_KNIGHT)
+					return (1);
+
+			if (kfile > FILE_B)
+			{
+				if (krank > RANK_1)
+					if ((board->table[kingpos + SOUTH + WEST * 2] ^ plxor) == WHITE_KNIGHT)
+						return (1);
+
+				if (krank < RANK_8)
+					if ((board->table[kingpos + NORTH + WEST * 2] ^ plxor) == WHITE_KNIGHT)
+						return (1);
+			}
+		}
+		if (kfile < FILE_H)
+		{
+			if (krank > RANK_2)
+				if ((board->table[kingpos + SOUTH * 2 + EAST] ^ plxor) == WHITE_KNIGHT)
+					return (1);
+			if (krank < RANK_7)
+				if ((board->table[kingpos + NORTH * 2 + EAST] ^ plxor) == WHITE_KNIGHT)
+					return (1);
+
+			if (kfile < FILE_G)
+			{
+				if (krank > RANK_1)
+					if ((board->table[kingpos + SOUTH + EAST * 2] ^ plxor) == WHITE_KNIGHT)
+						return (1);
+
+				if (krank < RANK_8)
+					if ((board->table[kingpos + NORTH + EAST * 2] ^ plxor) == WHITE_KNIGHT)
+						return (1);
+			}
+		}
+	}
+
+	// Check for linear attacks (rook/queen)
+
+	{
+		int8_t next = kingpos;
+
+		while ((next & 7) > FILE_A)
+		{
+			next += WEST;
+			int8_t piece = board->table[next];
+			if ((piece ^ plxor) == WHITE_ROOK || (piece ^ plxor) == WHITE_QUEEN)
+				return (1);
+			else if (piece)
+				break ;
+		}
+
+		next = kingpos;
+
+		while ((next & 7) < FILE_H)
+		{
+			next += EAST;
+			int8_t piece = board->table[next];
+			if ((piece ^ plxor) == WHITE_ROOK || (piece ^ plxor) == WHITE_QUEEN)
+				return (1);
+			else if (piece)
+				break ;
+		}
+
+		next = kingpos;
+
+		while (next < SQ_A8)
+		{
+			next += NORTH;
+			int8_t piece = board->table[next];
+			if ((piece ^ plxor) == WHITE_ROOK || (piece ^ plxor) == WHITE_QUEEN)
+				return (1);
+			else if (piece)
+				break ;
+		}
+
+		next = kingpos;
+
+		while (next > SQ_H1)
+		{
+			next += SOUTH;
+			int8_t piece = board->table[next];
+			if ((piece ^ plxor) == WHITE_ROOK || (piece ^ plxor) == WHITE_QUEEN)
+				return (1);
+			else if (piece)
+				break ;
+		}
+	}
+
+	// Check for diagonal attacks (bishop/queen)
+
+	{
+		int8_t	next = kingpos;
+
+		while ((next & 7) > FILE_A && next < SQ_A8)
+		{
+			next += NORTH_WEST;
+			int8_t piece = board->table[next];
+			if ((piece ^ plxor) == WHITE_BISHOP || (piece ^ plxor) == WHITE_QUEEN)
+				return (1);
+			else if (piece)
+				break ;
+		}
+		
+		next = kingpos;
+
+		while ((next & 7) < FILE_H && next < SQ_A8)
+		{
+			next += NORTH_EAST;
+			int8_t piece = board->table[next];
+			if ((piece ^ plxor) == WHITE_BISHOP || (piece ^ plxor) == WHITE_QUEEN)
+				return (1);
+			else if (piece)
+				break ;
+		}
+		
+		next = kingpos;
+
+		while ((next & 7) > FILE_A && next > SQ_H1)
+		{
+			next += SOUTH_WEST;
+			int8_t piece = board->table[next];
+			if ((piece ^ plxor) == WHITE_BISHOP || (piece ^ plxor) == WHITE_QUEEN)
+				return (1);
+			else if (piece)
+				break ;
+		}
+		
+		next = kingpos;
+
+		while ((next & 7) < FILE_H && next > SQ_H1)
+		{
+			next += SOUTH_EAST;
+			int8_t piece = board->table[next];
+			if ((piece ^ plxor) == WHITE_BISHOP || (piece ^ plxor) == WHITE_QUEEN)
+				return (1);
+			else if (piece)
+				break ;
+		}
+	}
+
 	return (0);
 }

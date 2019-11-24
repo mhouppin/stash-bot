@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/30 13:59:36 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/31 06:22:03 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/22 17:11:59 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -22,7 +22,7 @@ pthread_mutex_t	mtx_debug = PTHREAD_MUTEX_INITIALIZER;
 int				g_threads = 1;
 size_t			g_hash = 16ul * 1048576ul;
 int				g_multipv = 1;
-clock_t			g_mintime = 20ul * CLOCKS_PER_SEC / 1000ul;
+clock_t			g_mintime = 20ul;
 
 // Begin mtx_engine
 pthread_mutex_t	mtx_engine = PTHREAD_MUTEX_INITIALIZER;
@@ -38,6 +38,7 @@ int				g_movestogo = NO_MOVESTOGO;
 int				g_depth = NO_DEPTH;
 int				g_curdepth = NO_DEPTH;
 size_t			g_nodes = SIZE_MAX;
+_Atomic size_t	g_curnodes = 0;
 int				g_mate = NO_MATE;
 clock_t			g_start = 0;
 clock_t			g_movetime = NO_MOVETIME;

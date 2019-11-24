@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/30 09:36:18 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/31 19:56:08 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/22 17:06:40 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -115,7 +115,7 @@ void	uci_go(const char *args)
 		{
 			token = strtok(NULL, " \t\n");
 			if (token)
-				g_movetime = (clock_t)atoll(token) * CLOCKS_PER_SEC / 1000;
+				g_movetime = (clock_t)atoll(token);
 		}
 		else if (strcmp(token, "infinite") == 0)
 			g_infinite = OK_INFINITE;

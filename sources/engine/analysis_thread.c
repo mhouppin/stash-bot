@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 03:55:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/17 12:43:54 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/24 10:35:33 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -17,33 +17,34 @@
 #include <stdlib.h>
 
 const int16_t	mpiece_score[8] = {
-	0, 130, 780, 825, 1275, 2540, 0, 0
+	0, 100, 300, 330, 500, 900, 0, 0,
 };
 
 const int16_t	epiece_score[8] = {
-	0, 215, 855, 915, 1380, 2680, 0, 0
+	0, 200, 600, 660, 1000, 1800, 0, 0
 };
 
 const int16_t	mtable_score[8][64] = {
 	{0},
 	{
 		0,		0,		0,		0,		0,		0,		0,		0,
-		5,		5,		10,		20,		15,		20,		5,		-5,
-		-10,	-15,	10,		15,		30,		20,		5,		-20,
-		-10,	-25,	5,		20,		40,		15,		5,		-10,
-		15,		0,		-15,	0,		10,		0,		-15,	5,
-		-5,		-10,	-5,		20,		-10,	-5,		-15,	-20,
-		-5,		5,		-5,		-15,	5,		-15,	10,		-10
+		0,		0,		0,		-10,	-15,	0,		0,		0,
+		5,		10,		5,		10,		15,		10,		10,		5,
+		5,		5,		10,		30,		40,		15,		5,		5,
+		10,		10,		10,		35,		45,		15,		10,		10,
+		20,		15,		20,		40,		45,		25,		15,		20,
+		35,		30,		35,		45,		50,		35,		30,		35,
+		0,		0,		0,		0,		0,		0,		0,		0
 	},
 	{
-		-175,	-90,	-75,	-75,	-75,	-75,	-90,	-175,
-		-75,	-40,	-25,	-15,	-15,	-25,	-40,	-75,
-		-60,	-15,	5,		10,		10,		5,		-15,	-60,
-		-35,	10,		40,		50,		50,		40,		10,		-35,
-		-35,	15,		45,		50,		50,		45,		15,		-35,
-		-10,	20,		60,		55,		55,		60,		20,		-10,
-		-65,	-25,	5,		35,		35,		5,		-25,	-65,
-		-200,	-85,	-55,	-25,	-25,	-55,	-85,	-200
+		-60,	-20,	-10,	0,		0,		-10,	-20,	-60,
+		-45,	-25,	10,		15,		15,		10,		-25,	-45,
+		-5,		15,		20,		20,		20,		20,		15,		-5,
+		5,		20,		25,		30,		30,		25,		20,		5,
+		0,		10,		20,		35,		35,		20,		10,		0,
+		10,		15,		20,		40,		40,		20,		15,		10,
+		-5,		5,		10,		25,		25,		10,		5,		-5,
+		-30,	-10,	-5,		0,		0,		-5,		-10,	-30
 	},
 	{
 		-55,	-5,		-10,	-25,	-25,	-10,	-5,		-55,
@@ -155,13 +156,14 @@ const int16_t	etable_score[8][64] = {
 
 int16_t	evaluate(const board_t *board)
 {
-	int			p = 0;
-	int16_t		endval = 0;
-	int16_t		midval = 0;
+	int				p = 0;
+	int16_t			endval = 0;
+	int16_t			midval = 0;
+	const int8_t	*table = board->table;
 
 	for (int8_t i = 0; i < 64; ++i)
 	{
-		int8_t	piece = board->table[i];
+		int8_t	piece = table[i];
 
 		if (piece == PIECE_NONE)
 			continue ;
@@ -182,6 +184,10 @@ int16_t	evaluate(const board_t *board)
 			endval += etable_score[piece][i];
 		}
 	}
+	if (board->special_moves & WHITE_CASTLING)
+		midval += 100;
+	if (board->special_moves & BLACK_CASTLING)
+		midval -= 100;
 	if (p <= 16)
 		return (endval);
 	else
@@ -189,20 +195,18 @@ int16_t	evaluate(const board_t *board)
 }
 
 int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
-		size_t *max_nodes, clock_t movetime, clock_t start, int cur_depth)
+		clock_t movetime, clock_t start, int cur_depth)
 {
 	int16_t		value;
 	movelist_t	*moves;
 	board_t		tmp;
 
-	if (*max_nodes == 0)
+	if (g_curnodes >= g_nodes)
 		return (INT16_MIN);
 
-	(*max_nodes)--;
-
-	if (*max_nodes % 32768 == 0)
+	if (g_curnodes % 16384 == 0)
 	{
-		if (!g_infinite && clock() - start > movetime)
+		if (!g_infinite && chess_clock() - start > movetime)
 			return (INT16_MIN);
 		else
 		{
@@ -216,6 +220,8 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 			pthread_mutex_unlock(&mtx_engine);
 		}
 	}
+
+	g_curnodes++;
 
 	tmp = *board;
 
@@ -250,7 +256,7 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 			do_move(&tmp, moves->moves[i]);
 
 			int16_t	next = _alpha_beta(&tmp, max_depth - 1, alpha, beta,
-					max_nodes, movetime, start, cur_depth + 1);
+					movetime, start, cur_depth + 1);
 
 			if (next == INT16_MIN)
 			{
@@ -280,7 +286,7 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 			do_move(&tmp, moves->moves[i]);
 
 			int16_t next = _alpha_beta(&tmp, max_depth - 1, alpha, beta,
-					max_nodes, movetime, start, cur_depth + 1);
+					movetime, start, cur_depth + 1);
 
 			if (next == INT16_MIN)
 			{
@@ -304,26 +310,24 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 	return (value);
 }
 
-int16_t	alpha_beta(move_t move, clock_t start, size_t *max_nodes, int16_t alpha, int16_t beta)
+int16_t	alpha_beta(move_t move, clock_t start, int16_t alpha, int16_t beta)
 {
 	board_t		start_board = g_real_board;
 
 	do_move(&start_board, move);
 
 	char *str = move_to_str(move);
-	printf("info depth %d nodes %zu currmove %s\n", g_curdepth,
-			(g_nodes / g_threads) - *max_nodes, str);
+	printf("info depth %d nodes %zu currmove %s\n", g_curdepth, g_curnodes, str);
 	free(str);
 
 	return (_alpha_beta(&start_board, g_curdepth,
 				alpha, beta,
-				max_nodes, (g_mintime > g_movetime) ? g_mintime : g_movetime,
+				(g_mintime > g_movetime) ? g_mintime : g_movetime,
 				start, 0));
 }
 
 void	*analysis_thread(void *tid)
 {
-	size_t		max_nodes = g_nodes / g_threads;
 	int16_t		alpha = -30000;
 	int16_t		beta = 30000;
 
@@ -338,7 +342,7 @@ void	*analysis_thread(void *tid)
 		}
 		pthread_mutex_unlock(&mtx_engine);
 
-		int16_t	value = alpha_beta(g_searchmoves->moves[i], g_start, &max_nodes, alpha, beta);
+		int16_t	value = alpha_beta(g_searchmoves->moves[i], g_start, alpha, beta);
 		g_valuemoves[i] = value;
 
 		if (g_real_board.player == PLAYER_WHITE)

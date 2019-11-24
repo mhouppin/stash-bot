@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/30 12:51:36 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/10 15:38:30 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/22 17:11:34 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -15,9 +15,10 @@
 # define ENGINE_H
 
 # include <stddef.h>
-# include <time.h>
 # include <pthread.h>
+# include <time.h>
 # include <stdint.h>
+# include <stdatomic.h>
 
 enum	e_egn_mode
 {
@@ -171,6 +172,7 @@ extern int			g_movestogo;
 extern int			g_depth;
 extern int			g_curdepth;
 extern size_t		g_nodes;
+extern _Atomic size_t	g_curnodes;
 extern int			g_mate;
 extern clock_t		g_movetime;
 extern clock_t		g_start;
@@ -205,6 +207,15 @@ inline int16_t	move_from(move_t move)
 inline int16_t	move_to(move_t move)
 {
 	return (move & 63);
+}
+
+inline clock_t	chess_clock(void)
+{
+	struct timespec	tp;
+
+	clock_gettime(CLOCK_REALTIME, &tp);
+	return ((clock_t)tp.tv_sec * 1000 +
+			(clock_t)tp.tv_nsec / 1000000);
 }
 
 move_t		str_to_move(const char *str);

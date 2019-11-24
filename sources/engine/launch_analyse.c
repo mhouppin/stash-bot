@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 00:05:31 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/21 20:37:08 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/22 17:45:48 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -74,13 +74,11 @@ void		launch_analyse(void)
 			if (g_movetime > 60000)
 				g_movetime = 60000;
 		}
-		g_movetime *= (clock_t)((double)CLOCKS_PER_SEC * sqrt(g_threads));
-		g_movetime /= 1000;
 	}
 
 	clock_t		limit = ((g_mintime > g_movetime) ? g_mintime : g_movetime);
 
-	g_start = clock();
+	g_start = chess_clock();
 	threads = (pthread_t *)malloc(sizeof(pthread_t) * g_threads);
 	tindex = (int *)malloc(sizeof(int) * g_threads);
 
@@ -105,8 +103,10 @@ void		launch_analyse(void)
 
 	i = 0;
 
+	g_curnodes = 0;
+
 	pthread_mutex_lock(&mtx_engine);
-	while (i < g_depth && (g_infinite || clock() - g_start <= limit))
+	while (i < g_depth && (g_infinite || chess_clock() - g_start <= limit))
 	{
 		pthread_mutex_unlock(&mtx_engine);
 
@@ -156,34 +156,40 @@ void		launch_analyse(void)
 		value = g_valuemoves[0];
 		move = move_to_str(g_searchmoves->moves[0]);
 
-		if (value <= -30000)
 		{
-			printf("info depth %d time %lu score mate %d pv %s\n", i,
-				(clock() - g_start) * 1000 / CLOCKS_PER_SEC,
-				(g_real_board.player == PLAYER_WHITE) ? -(value + 32000)
-				: value + 32000, move);
-			break ;
-		}
-		else if (value >= 30000)
-		{
-			printf("info depth %d time %lu score mate %d pv %s\n", i,
-				(clock() - g_start) * 1000 / CLOCKS_PER_SEC,
-				(g_real_board.player == PLAYER_WHITE) ? 32000 - value
-				: value - 32000, move);
-			break ;
-		}
-		else
-		{
-			printf("info depth %d time %lu score cp %d pv %s\n", i,
-				(clock() - g_start) * 1000 / CLOCKS_PER_SEC,
-				(g_real_board.player == PLAYER_WHITE) ? value : -value,
-				move);
+			clock_t	chess_time = chess_clock() - g_start;
+			size_t	chess_nodes = g_curnodes;
+			size_t	chess_nps = (!chess_time) ? 0 : (chess_nodes * 1000) / chess_time;
+
+			if (value <= -30000)
+			{
+				printf("info depth %d nodes %zu nps %zu time %lu score mate %d pv %s\n", i,
+						chess_nodes, chess_nps, chess_time,
+						(g_real_board.player == PLAYER_WHITE) ? -(value + 32000)
+						: value + 32000, move);
+				break ;
+			}
+			else if (value >= 30000)
+			{
+				printf("info depth %d nodes %zu nps %zu time %lu score mate %d pv %s\n", i,
+						chess_nodes, chess_nps, chess_time,
+						(g_real_board.player == PLAYER_WHITE) ? 32000 - value
+						: value - 32000, move);
+				break ;
+			}
+			else
+			{
+				printf("info depth %d nodes %zu nps %zu time %lu score cp %d pv %s\n", i,
+						chess_nodes, chess_nps, chess_time,
+						(g_real_board.player == PLAYER_WHITE) ? value : -value,
+						move);
+			}
 		}
 
 		free(move);
 
 		pthread_mutex_lock(&mtx_engine);
-		if (g_engine_send == DO_EXIT)
+		if (g_engine_send == DO_EXIT || g_curnodes >= g_nodes)
 			break ;
 		i++;
 	}
