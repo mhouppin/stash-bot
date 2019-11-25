@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 01:31:51 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/23 14:05:15 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/11/25 10:07:16 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -50,45 +50,124 @@ int		is_checked(const board_t *board)
 		}
 	}
 
-	// Check for knight attacks
+	// Check for knight/king attacks
 
 	{
+		enum {
+			UP = 1,
+			UP_UP = 2,
+			DOWN = 4,
+			DOWN_DOWN = 8,
+			LEFT = 16,
+			LEFT_LEFT = 32,
+			RIGHT = 64,
+			RIGHT_RIGHT = 128
+		};
+
+		uint8_t	access_mask = 0;
+
 		if (kfile > FILE_A)
 		{
+			access_mask |= LEFT;
+			if (kfile > FILE_B)
+				access_mask |= LEFT_LEFT;
+		}
+		if (kfile < FILE_H)
+		{
+			access_mask |= RIGHT;
+			if (kfile < FILE_G)
+				access_mask |= RIGHT_RIGHT;
+		}
+		if (krank > RANK_1)
+		{
+			access_mask |= DOWN;
 			if (krank > RANK_2)
-				if ((board->table[kingpos + SOUTH * 2 + WEST] ^ plxor) == WHITE_KNIGHT)
-					return (1);
+				access_mask |= DOWN_DOWN;
+		}
+		if (krank < RANK_8)
+		{
+			access_mask |= UP;
 			if (krank < RANK_7)
-				if ((board->table[kingpos + NORTH * 2 + WEST] ^ plxor) == WHITE_KNIGHT)
+				access_mask |= UP_UP;
+		}
+
+		if (access_mask & LEFT)
+		{
+			if (access_mask & DOWN)
+			{
+				if ((board->table[kingpos + SOUTH + WEST] ^ plxor) == WHITE_KING)
 					return (1);
 
-			if (kfile > FILE_B)
+				if (access_mask & DOWN_DOWN)
+					if ((board->table[kingpos + SOUTH * 2 + WEST] ^ plxor) == WHITE_KNIGHT)
+						return (1);
+			}
+
+			if ((board->table[kingpos + WEST] ^ plxor) == WHITE_KING)
+				return (1);
+
+			if (access_mask & UP)
 			{
-				if (krank > RANK_1)
+				if ((board->table[kingpos + NORTH + WEST] ^ plxor) == WHITE_KING)
+					return (1);
+
+				if (access_mask & UP_UP)
+					if ((board->table[kingpos + NORTH * 2 + WEST] ^ plxor) == WHITE_KNIGHT)
+						return (1);
+			}
+
+			if (access_mask & LEFT_LEFT)
+			{
+				if (access_mask & DOWN)
 					if ((board->table[kingpos + SOUTH + WEST * 2] ^ plxor) == WHITE_KNIGHT)
 						return (1);
 
-				if (krank < RANK_8)
+				if (access_mask & UP)
 					if ((board->table[kingpos + NORTH + WEST * 2] ^ plxor) == WHITE_KNIGHT)
 						return (1);
 			}
 		}
-		if (kfile < FILE_H)
+
+		if (access_mask & DOWN)
+			if ((board->table[kingpos + SOUTH] ^ plxor) == WHITE_KING)
+				return (1);
+
+		if (access_mask & UP)
+			if ((board->table[kingpos + NORTH] ^ plxor) == WHITE_KING)
+				return (1);
+
+		if (access_mask & RIGHT)
 		{
-			if (krank > RANK_2)
-				if ((board->table[kingpos + SOUTH * 2 + EAST] ^ plxor) == WHITE_KNIGHT)
-					return (1);
-			if (krank < RANK_7)
-				if ((board->table[kingpos + NORTH * 2 + EAST] ^ plxor) == WHITE_KNIGHT)
+			if (access_mask & DOWN)
+			{
+				if ((board->table[kingpos + SOUTH + EAST] ^ plxor) == WHITE_KING)
 					return (1);
 
-			if (kfile < FILE_G)
+				if (access_mask & DOWN_DOWN)
+					if ((board->table[kingpos + SOUTH * 2 + EAST] ^ plxor) == WHITE_KNIGHT)
+						return (1);
+			}
+
+			if ((board->table[kingpos + EAST] ^ plxor) == WHITE_KING)
+				return (1);
+
+			if (access_mask & UP)
 			{
-				if (krank > RANK_1)
+				if ((board->table[kingpos + NORTH + EAST] ^ plxor) == WHITE_KING)
+					return (1);
+
+				if (access_mask & UP_UP)
+					if ((board->table[kingpos + NORTH * 2 + EAST] ^ plxor) == WHITE_KNIGHT)
+						return (1);
+			}
+
+			if (access_mask & RIGHT_RIGHT)
+			{
+				if (access_mask & DOWN)
 					if ((board->table[kingpos + SOUTH + EAST * 2] ^ plxor) == WHITE_KNIGHT)
 						return (1);
 
-				if (krank < RANK_8)
+				if (access_mask & UP)
 					if ((board->table[kingpos + NORTH + EAST * 2] ^ plxor) == WHITE_KNIGHT)
 						return (1);
 			}
