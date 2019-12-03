@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/30 21:26:33 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/01 11:44:29 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/12/03 11:37:05 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -95,6 +95,7 @@ __standard:
 					board->table[to + NORTH] = PIECE_NONE;
 			}
 		}
+		board->special_moves &= ~(EN_PASSANT_OK);
 		if (start_piece == WHITE_ROOK)
 		{
 			if (from == SQ_A1)
