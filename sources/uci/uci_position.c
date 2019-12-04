@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/30 09:38:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/09 17:55:29 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/12/04 20:46:53 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -28,7 +28,7 @@ void	uci_position(const char *args)
 
 		token = strtok(NULL, " \t\n");
 
-		memset(&g_init_board.table, '\0', sizeof(board_t));
+		memset(&g_init_board.table, '\0', 64);
 
 		for (int8_t i = 0; token[i]; i++)
 		{
