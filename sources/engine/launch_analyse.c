@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 00:05:31 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/22 17:45:48 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/12/05 10:53:04 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -51,6 +51,26 @@ static void	sort_moves(void)
 	}
 }
 
+clock_t		calc_movetime(clock_t time, clock_t increment)
+{
+	// if we're already out of time (e.g 0 + 1 matches), only use 2% of timer.
+
+	if (time < increment)
+		return (time / 50);
+	else
+	{
+		// Manage our time so that we use either part of the increment, or
+		// all the increment if we're early enough.
+
+		clock_t		time_diff = time - increment;
+
+		if (time_diff > increment)
+			time_diff = increment;
+
+		return (time / 50 + time_diff);
+	}
+}
+
 void		launch_analyse(void)
 {
 	pthread_t	*threads;
@@ -63,17 +83,9 @@ void		launch_analyse(void)
 	if (!g_movetime)
 	{
 		if (g_real_board.player == PLAYER_WHITE && (g_wtime || g_winc))
-		{
-			g_movetime = g_wtime / 50 + g_winc;
-			if (g_movetime > 60000)
-				g_movetime = 60000;
-		}
+			g_movetime = calc_movetime(g_wtime, g_winc);
 		else if (g_real_board.player == PLAYER_BLACK && (g_btime || g_binc))
-		{
-			g_movetime = g_btime / 50 + g_binc;
-			if (g_movetime > 60000)
-				g_movetime = 60000;
-		}
+			g_movetime = calc_movetime(g_btime, g_binc);
 	}
 
 	clock_t		limit = ((g_mintime > g_movetime) ? g_mintime : g_movetime);
