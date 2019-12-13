@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/30 12:51:36 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/22 17:11:34 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/12/13 14:38:11 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -52,8 +52,10 @@ typedef struct	board_s
 	int		special_moves;
 	int		last_active_move;
 	int		player;
+	int		mscore;
+	int		escore;
+	int		pcount;
 	int		evaluation;
-	int		depth;
 }				board_t;
 
 typedef struct	zboard_s

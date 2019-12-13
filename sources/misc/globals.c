@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/30 13:59:36 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/22 17:11:59 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/12/13 15:11:39 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -44,9 +44,9 @@ clock_t			g_start = 0;
 clock_t			g_movetime = NO_MOVETIME;
 int				g_infinite = NO_INFINITE;
 
-board_t			g_init_board = {{0}, 0, 0, 0, 0, 0};
+board_t			g_init_board = {{0}, 0, 0, 0, 0, 0, 0, 0};
 movelist_t		*g_inter_moves = NULL;
-board_t			g_real_board = {{0}, 0, 0, 0, 0, 0};
+board_t			g_real_board = {{0}, 0, 0, 0, 0, 0, 0, 0};
 movelist_t		*g_searchmoves = NULL;
 int16_t			*g_valuemoves = NULL;
 // End mtx_engine

@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 03:55:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/24 10:35:33 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/12/13 15:09:53 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -154,6 +154,7 @@ const int16_t	etable_score[8][64] = {
 	{0}
 };
 
+/*
 int16_t	evaluate(const board_t *board)
 {
 	int				p = 0;
@@ -193,6 +194,7 @@ int16_t	evaluate(const board_t *board)
 	else
 		return ((endval * (32 - p) + midval * (p - 16)) / 16);
 }
+*/
 
 int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 		clock_t movetime, clock_t start, int cur_depth)
@@ -223,14 +225,23 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 
 	g_curnodes++;
 
-	tmp = *board;
-
 	if (max_depth == 0)
 	{
-		return (evaluate(&tmp));
+		int		midval = 0;
+
+		if (board->special_moves & WHITE_CASTLING)
+			midval += 100;
+		if (board->special_moves & BLACK_CASTLING)
+			midval -= 100;
+		if (board->pcount <= 16)
+			return (board->escore);
+		else
+			return ((board->escore * (32 - board->pcount)) + (board->mscore + midval) * (board->pcount - 16) / 16);
 	}
 
 	moves = get_simple_moves(board);
+
+	tmp = *board;
 
 	if (moves->size == 0)
 	{

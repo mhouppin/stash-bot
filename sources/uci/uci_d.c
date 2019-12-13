@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/30 23:14:52 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/30 23:21:08 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/12/13 15:14:15 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -31,4 +31,5 @@ void	uci_d(const char *args)
 		puts("|");
 		puts(pretty);
 	}
+	printf("Eval: %d on midgame, %d on endgame\n", g_real_board.mscore, g_real_board.escore);
 }
