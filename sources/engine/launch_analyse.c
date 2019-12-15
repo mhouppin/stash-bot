@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 00:05:31 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/12/05 10:53:04 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/12/15 10:51:13 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -122,9 +122,6 @@ void		launch_analyse(void)
 	{
 		pthread_mutex_unlock(&mtx_engine);
 
-		if (g_searchmoves->size == 1)
-			break ;
-
 		g_curdepth = i;
 
 		for (int k = 0; k < g_threads; k++)
@@ -145,23 +142,6 @@ void		launch_analyse(void)
 			}
 
 		sort_moves();
-
-		if (i > 3)
-		{
-			size_t	k = 1;
-			while (k < g_searchmoves->size)
-			{
-				if (abs(g_valuemoves[k] - g_valuemoves[0]) >
-					1000 + (int)(1500.0 / sqrt((double)(i - 3))))
-				{
-					pop_move(g_searchmoves, k);
-					memcpy(g_valuemoves + k, g_valuemoves + k + 1,
-						(g_searchmoves->size - k) * sizeof(int16_t));
-				}
-				else
-					k++;
-			}
-		}
 
 		memcpy(g_valuebackup, g_valuemoves, 2 * g_searchmoves->size);
 

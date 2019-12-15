@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 03:55:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/12/13 15:09:53 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/12/13 18:42:04 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -236,7 +236,7 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 		if (board->pcount <= 16)
 			return (board->escore);
 		else
-			return ((board->escore * (32 - board->pcount)) + (board->mscore + midval) * (board->pcount - 16) / 16);
+			return ((board->escore * (32 - board->pcount) + (board->mscore + midval) * (board->pcount - 16)) / 16);
 	}
 
 	moves = get_simple_moves(board);

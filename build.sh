@@ -9,5 +9,5 @@ EOF
 
 rm $(find objects \( -name "*.o" \) )
 
-make EXT_OFLAGS="-fprofile-use -fno-peel-loops -fno-tracer" \
-	EXT_LFLAGS="-lgcov"
+make EXT_OFLAGS="-fprofile-use -fno-peel-loops -fno-tracer -flto" \
+	EXT_LFLAGS="-lgcov -flto"
