@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 00:05:31 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/12/15 10:51:13 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2019/12/16 20:55:43 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -83,9 +83,19 @@ void		launch_analyse(void)
 	if (!g_movetime)
 	{
 		if (g_real_board.player == PLAYER_WHITE && (g_wtime || g_winc))
+		{
 			g_movetime = calc_movetime(g_wtime, g_winc);
+
+			if (g_movetime > 60000)
+				g_movetime = 60000;
+		}
 		else if (g_real_board.player == PLAYER_BLACK && (g_btime || g_binc))
+		{
 			g_movetime = calc_movetime(g_btime, g_binc);
+
+			if (g_movetime > 60000)
+				g_movetime = 60000;
+		}
 	}
 
 	clock_t		limit = ((g_mintime > g_movetime) ? g_mintime : g_movetime);
