@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 03:55:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/12/13 18:42:04 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/01/28 16:59:31 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -196,6 +196,15 @@ int16_t	evaluate(const board_t *board)
 }
 */
 
+int move_priority(const void *l, const void *r, void *b)
+{
+	const move_t	*lm = l;
+	const move_t	*rm = r;
+	const board_t	*board = b;
+
+	return ((int)(board->table[move_to(*rm)] - board->table[move_to(*lm)]));
+}
+
 int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 		clock_t movetime, clock_t start, int cur_depth)
 {
@@ -255,6 +264,8 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 		else
 			return (0);
 	}
+
+	qsort_r(moves->moves, moves->size, sizeof(move_t), &move_priority, board);
 
 	if (tmp.player == PLAYER_WHITE)
 	{
