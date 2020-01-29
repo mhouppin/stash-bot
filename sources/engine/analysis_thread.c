@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 03:55:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/01/28 16:59:31 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/01/29 07:49:14 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -265,7 +265,8 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 			return (0);
 	}
 
-	qsort_r(moves->moves, moves->size, sizeof(move_t), &move_priority, board);
+	if (max_depth > 1)
+		qsort_r(moves->moves, moves->size, sizeof(move_t), &move_priority, board);
 
 	if (tmp.player == PLAYER_WHITE)
 	{
@@ -340,6 +341,7 @@ int16_t	alpha_beta(move_t move, clock_t start, int16_t alpha, int16_t beta)
 
 	char *str = move_to_str(move);
 	printf("info depth %d nodes %zu currmove %s\n", g_curdepth, g_curnodes, str);
+	fflush(stdout);
 	free(str);
 
 	return (_alpha_beta(&start_board, g_curdepth,
