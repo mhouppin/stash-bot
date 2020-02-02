@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 03:55:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/01/29 07:49:14 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/02 10:59:57 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -339,10 +339,13 @@ int16_t	alpha_beta(move_t move, clock_t start, int16_t alpha, int16_t beta)
 
 	do_move(&start_board, move);
 
-	char *str = move_to_str(move);
-	printf("info depth %d nodes %zu currmove %s\n", g_curdepth, g_curnodes, str);
-	fflush(stdout);
-	free(str);
+	if (chess_clock() - start > 3000)
+	{
+		char *str = move_to_str(move);
+		printf("info depth %d nodes %zu currmove %s\n", g_curdepth + 1, g_curnodes, str);
+		fflush(stdout);
+		free(str);
+	}
 
 	return (_alpha_beta(&start_board, g_curdepth,
 				alpha, beta,
