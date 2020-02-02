@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 00:05:31 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/12/16 20:55:43 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/01/31 18:45:53 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -17,8 +17,9 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#include <stdbool.h>
 
-static void	sort_moves(void)
+static void	sort_moves(int16_t *g_valuebackup)
 {
 	size_t	gap, start;
 	ssize_t	i;
@@ -45,6 +46,10 @@ static void	sort_moves(void)
 					vtmp = g_valuemoves[i];
 					g_valuemoves[i] = g_valuemoves[i + gap];
 					g_valuemoves[i + gap] = vtmp;
+
+					vtmp = g_valuebackup[i];
+					g_valuebackup[i] = g_valuebackup[i + gap];
+					g_valuebackup[i + gap] = vtmp;
 				}
 			}
 		}
@@ -76,9 +81,10 @@ void		launch_analyse(void)
 	pthread_t	*threads;
 	int			*tindex;
 	int			i;
-	int16_t		value;
+	int16_t		value = INT16_MIN;
 	int16_t		*g_valuebackup;
 	char		*move;
+	bool		has_search_aborted;
 
 	if (!g_movetime)
 	{
@@ -144,20 +150,31 @@ void		launch_analyse(void)
 		for (int k = 0; k < g_threads; k++)
 			pthread_join(*(threads + k), NULL);
 
+		has_search_aborted = false;
+
 		for (size_t k = 0; k < g_searchmoves->size; k++)
 			if (g_valuemoves[k] == INT16_MIN)
 			{
-				memcpy(g_valuemoves, g_valuebackup, 2 * g_searchmoves->size);
+				has_search_aborted = true;
 				break ;
 			}
 
-		sort_moves();
+		if (has_search_aborted)
+		{
+			memcpy(g_valuemoves, g_valuebackup, 2 * g_searchmoves->size);
+		}
+		else
+		{
+			sort_moves(g_valuebackup);
 
-		memcpy(g_valuebackup, g_valuemoves, 2 * g_searchmoves->size);
+			value = g_valuemoves[0];
 
-		value = g_valuemoves[0];
+			if (value > -30000 && value < 30000 && i > 0)
+				value = (value + g_valuebackup[0]) / 2;
+			memcpy(g_valuebackup, g_valuemoves, 2 * g_searchmoves->size);
+		}
+
 		move = move_to_str(g_searchmoves->moves[0]);
-
 		{
 			clock_t	chess_time = chess_clock() - g_start;
 			size_t	chess_nodes = g_curnodes;
@@ -165,7 +182,8 @@ void		launch_analyse(void)
 
 			if (value <= -30000)
 			{
-				printf("info depth %d nodes %zu nps %zu time %lu score mate %d pv %s\n", i,
+				printf("info depth %d nodes %zu nps %zu time %lu score mate %d pv %s\n",
+						i - has_search_aborted + 1,
 						chess_nodes, chess_nps, chess_time,
 						(g_real_board.player == PLAYER_WHITE) ? -(value + 32000)
 						: value + 32000, move);
@@ -173,7 +191,8 @@ void		launch_analyse(void)
 			}
 			else if (value >= 30000)
 			{
-				printf("info depth %d nodes %zu nps %zu time %lu score mate %d pv %s\n", i,
+				printf("info depth %d nodes %zu nps %zu time %lu score mate %d pv %s\n",
+						i - has_search_aborted + 1,
 						chess_nodes, chess_nps, chess_time,
 						(g_real_board.player == PLAYER_WHITE) ? 32000 - value
 						: value - 32000, move);
@@ -181,7 +200,8 @@ void		launch_analyse(void)
 			}
 			else
 			{
-				printf("info depth %d nodes %zu nps %zu time %lu score cp %d pv %s\n", i,
+				printf("info depth %d nodes %zu nps %zu time %lu score cp %d pv %s\n",
+						i - has_search_aborted + 1,
 						chess_nodes, chess_nps, chess_time,
 						(g_real_board.player == PLAYER_WHITE) ? value : -value,
 						move);
