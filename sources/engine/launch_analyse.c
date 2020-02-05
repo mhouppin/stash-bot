@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 00:05:31 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/02 10:58:41 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/03 13:05:47 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -187,6 +187,7 @@ void		launch_analyse(void)
 						chess_nodes, chess_nps, chess_time,
 						(g_real_board.player == PLAYER_WHITE) ? -(value + 32000)
 						: value + 32000, move);
+				fflush(stdout);
 				break ;
 			}
 			else if (value >= 30000)
@@ -196,6 +197,7 @@ void		launch_analyse(void)
 						chess_nodes, chess_nps, chess_time,
 						(g_real_board.player == PLAYER_WHITE) ? 32000 - value
 						: value - 32000, move);
+				fflush(stdout);
 				break ;
 			}
 			else
@@ -205,6 +207,7 @@ void		launch_analyse(void)
 						chess_nodes, chess_nps, chess_time,
 						(g_real_board.player == PLAYER_WHITE) ? value : -value,
 						move);
+				fflush(stdout);
 			}
 		}
 

@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 03:55:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/02 10:59:57 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/03 13:05:14 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -333,7 +333,7 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 	return (value);
 }
 
-int16_t	alpha_beta(move_t move, clock_t start, int16_t alpha, int16_t beta)
+int16_t	alpha_beta(move_t move, clock_t start, int16_t alpha, int16_t beta, size_t num)
 {
 	board_t		start_board = g_real_board;
 
@@ -342,7 +342,8 @@ int16_t	alpha_beta(move_t move, clock_t start, int16_t alpha, int16_t beta)
 	if (chess_clock() - start > 3000)
 	{
 		char *str = move_to_str(move);
-		printf("info depth %d nodes %zu currmove %s\n", g_curdepth + 1, g_curnodes, str);
+		printf("info depth %d nodes %zu currmove %s currmovenumber %zu\n",
+			g_curdepth + 1, g_curnodes, str, num);
 		fflush(stdout);
 		free(str);
 	}
@@ -369,7 +370,7 @@ void	*analysis_thread(void *tid)
 		}
 		pthread_mutex_unlock(&mtx_engine);
 
-		int16_t	value = alpha_beta(g_searchmoves->moves[i], g_start, alpha, beta);
+		int16_t	value = alpha_beta(g_searchmoves->moves[i], g_start, alpha, beta, i + 1);
 		g_valuemoves[i] = value;
 
 		if (g_real_board.player == PLAYER_WHITE)
