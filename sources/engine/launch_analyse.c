@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 00:05:31 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/03 13:05:47 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/06 14:54:31 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -30,9 +30,7 @@ static void	sort_moves(int16_t *g_valuebackup)
 		{
 			for (i = (ssize_t)(start - gap); i >= 0; i = i - gap)
 			{
-				if (g_real_board.player == PLAYER_WHITE && g_valuemoves[i + gap] <= g_valuemoves[i])
-					break ;
-				else if (g_real_board.player == PLAYER_BLACK && g_valuemoves[i + gap] >= g_valuemoves[i])
+				if (g_valuemoves[i + gap] <= g_valuemoves[i])
 					break ;
 				else
 				{
@@ -104,7 +102,12 @@ void		launch_analyse(void)
 		}
 	}
 
-	clock_t		limit = ((g_mintime > g_movetime) ? g_mintime : g_movetime);
+	clock_t		limit;
+
+	if (g_mintime + g_overhead > g_movetime)
+		limit = g_mintime;
+	else
+		limit = g_movetime - g_overhead;
 
 	g_start = chess_clock();
 	threads = (pthread_t *)malloc(sizeof(pthread_t) * g_threads);
@@ -185,8 +188,7 @@ void		launch_analyse(void)
 				printf("info depth %d nodes %zu nps %zu time %lu score mate %d pv %s\n",
 						i - has_search_aborted + 1,
 						chess_nodes, chess_nps, chess_time,
-						(g_real_board.player == PLAYER_WHITE) ? -(value + 32000)
-						: value + 32000, move);
+						-(value + 32000), move);
 				fflush(stdout);
 				break ;
 			}
@@ -195,8 +197,7 @@ void		launch_analyse(void)
 				printf("info depth %d nodes %zu nps %zu time %lu score mate %d pv %s\n",
 						i - has_search_aborted + 1,
 						chess_nodes, chess_nps, chess_time,
-						(g_real_board.player == PLAYER_WHITE) ? 32000 - value
-						: value - 32000, move);
+						32000 - value, move);
 				fflush(stdout);
 				break ;
 			}
@@ -205,8 +206,7 @@ void		launch_analyse(void)
 				printf("info depth %d nodes %zu nps %zu time %lu score cp %d pv %s\n",
 						i - has_search_aborted + 1,
 						chess_nodes, chess_nps, chess_time,
-						(g_real_board.player == PLAYER_WHITE) ? value : -value,
-						move);
+						value, move);
 				fflush(stdout);
 			}
 		}

@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/30 13:59:36 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/12/13 15:11:39 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/06 14:44:25 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -23,6 +23,7 @@ int				g_threads = 1;
 size_t			g_hash = 16ul * 1048576ul;
 int				g_multipv = 1;
 clock_t			g_mintime = 20ul;
+clock_t			g_overhead = 20ul;
 
 // Begin mtx_engine
 pthread_mutex_t	mtx_engine = PTHREAD_MUTEX_INITIALIZER;

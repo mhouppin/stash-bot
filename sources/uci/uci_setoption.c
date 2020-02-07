@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/28 15:26:41 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/22 17:08:00 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/06 14:42:34 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -61,6 +61,27 @@ void	uci_setoption(const char *args)
 	else if (!strcmp(token, "Clear"))
 	{
 		//clear_hash();
+	}
+	else if (!strcmp(token, "Move"))
+	{
+		token = strtok(NULL, " \t\n");
+
+		if (!token || strcmp(token, "Overhead"))
+			goto __end;
+
+		token = strtok(NULL, " \t\n");
+
+		if (!token || strcmp(token, "value"))
+			goto __end;
+
+		token = strtok(NULL, " \t\n");
+
+		if (token)
+		{
+			clock_t value = (clock_t)atol(token);
+			if (value < 1000)
+				g_overhead = value;
+		}
 	}
 	else if (!strcmp(token, "MultiPV"))
 	{

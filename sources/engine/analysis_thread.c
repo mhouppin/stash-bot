@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 03:55:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/03 13:05:14 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/06 14:51:48 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -154,49 +154,7 @@ const int16_t	etable_score[8][64] = {
 	{0}
 };
 
-/*
-int16_t	evaluate(const board_t *board)
-{
-	int				p = 0;
-	int16_t			endval = 0;
-	int16_t			midval = 0;
-	const int8_t	*table = board->table;
-
-	for (int8_t i = 0; i < 64; ++i)
-	{
-		int8_t	piece = table[i];
-
-		if (piece == PIECE_NONE)
-			continue ;
-		p++;
-		if (piece >= BLACK_PAWN)
-		{
-			piece ^= 8;
-			midval -= mpiece_score[piece];
-			midval -= mtable_score[piece][i ^ SQ_A8];
-			endval -= epiece_score[piece];
-			endval -= etable_score[piece][i ^ SQ_A8];
-		}
-		else
-		{
-			midval += mpiece_score[piece];
-			midval += mtable_score[piece][i];
-			endval += epiece_score[piece];
-			endval += etable_score[piece][i];
-		}
-	}
-	if (board->special_moves & WHITE_CASTLING)
-		midval += 100;
-	if (board->special_moves & BLACK_CASTLING)
-		midval -= 100;
-	if (p <= 16)
-		return (endval);
-	else
-		return ((endval * (32 - p) + midval * (p - 16)) / 16);
-}
-*/
-
-int move_priority(const void *l, const void *r, void *b)
+int move_priority(void *b, const void *l, const void *r)
 {
 	const move_t	*lm = l;
 	const move_t	*rm = r;
@@ -206,7 +164,7 @@ int move_priority(const void *l, const void *r, void *b)
 }
 
 int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
-		clock_t movetime, clock_t start, int cur_depth)
+		clock_t end, int cur_depth)
 {
 	int16_t		value;
 	movelist_t	*moves;
@@ -217,7 +175,7 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 
 	if (g_curnodes % 16384 == 0)
 	{
-		if (!g_infinite && chess_clock() - start > movetime)
+		if (!g_infinite && chess_clock() > end)
 			return (INT16_MIN);
 		else
 		{
@@ -226,7 +184,7 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 			if (g_engine_send == DO_ABORT || g_engine_send == DO_EXIT)
 			{
 				pthread_mutex_unlock(&mtx_engine);
-				return (INT16_MIN);
+			return (INT16_MIN);
 			}
 			pthread_mutex_unlock(&mtx_engine);
 		}
@@ -237,15 +195,18 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 	if (max_depth == 0)
 	{
 		int		midval = 0;
+		int		score;
 
 		if (board->special_moves & WHITE_CASTLING)
 			midval += 100;
 		if (board->special_moves & BLACK_CASTLING)
 			midval -= 100;
 		if (board->pcount <= 16)
-			return (board->escore);
+			score = board->escore;
 		else
-			return ((board->escore * (32 - board->pcount) + (board->mscore + midval) * (board->pcount - 16)) / 16);
+			score = ((board->escore * (32 - board->pcount) + (board->mscore + midval) * (board->pcount - 16)) / 16);
+
+		return (board->player == PLAYER_WHITE ? score : -score);
 	}
 
 	moves = get_simple_moves(board);
@@ -256,76 +217,39 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 	{
 		tmp.player ^= 1;
 		if (is_checked(&tmp))
-		{
-			tmp.player ^= 1;
-			return ((tmp.player == PLAYER_WHITE) ? -32000 + ((cur_depth + 1) / 2)
-					: 32000 - ((cur_depth + 1) / 2));
-		}
+			return (-32000 + ((cur_depth + 1) / 2));
 		else
 			return (0);
 	}
 
 	if (max_depth > 1)
-		qsort_r(moves->moves, moves->size, sizeof(move_t), &move_priority, board);
+		qsort_r(moves->moves, moves->size, sizeof(move_t), board, &move_priority);
 
-	if (tmp.player == PLAYER_WHITE)
+	value = INT16_MIN + 1;
+
+	for (size_t i = 0; i < moves->size; i++)
 	{
-		value = INT16_MIN + 1;
+		tmp = *board;
 
-		for (size_t i = 0; i < moves->size; i++)
+		do_move(&tmp, moves->moves[i]);
+
+		int16_t next = -_alpha_beta(&tmp, max_depth - 1, -beta, -alpha,
+				end, cur_depth + 1);
+
+		if (next == INT16_MIN)
 		{
-			tmp = *board;
-
-			do_move(&tmp, moves->moves[i]);
-
-			int16_t	next = _alpha_beta(&tmp, max_depth - 1, alpha, beta,
-					movetime, start, cur_depth + 1);
-
-			if (next == INT16_MIN)
-			{
-				value = INT16_MIN;
-				break ;
-			}
-
-			if (value < next)
-				value = next;
-
-			if (alpha < value)
-			{
-				if (alpha >= beta)
-					break ;
-				alpha = value;
-			}
+			value = INT16_MIN;
+			break ;
 		}
-	}
-	else
-	{
-		value = INT16_MAX - 1;
 
-		for (size_t i = 0; i < moves->size; i++)
+		if (value < next)
+			value = next;
+
+		if (alpha < value)
 		{
-			tmp = *board;
-
-			do_move(&tmp, moves->moves[i]);
-
-			int16_t next = _alpha_beta(&tmp, max_depth - 1, alpha, beta,
-					movetime, start, cur_depth + 1);
-
-			if (next == INT16_MIN)
-			{
-				value = INT16_MIN;
+			if (alpha >= beta)
 				break ;
-			}
-
-			if (value > next)
-				value = next;
-
-			if (beta > value)
-			{
-				if (beta <= alpha)
-					break ;
-				beta = value;
-			}
+			alpha = value;
 		}
 	}
 
@@ -348,10 +272,9 @@ int16_t	alpha_beta(move_t move, clock_t start, int16_t alpha, int16_t beta, size
 		free(str);
 	}
 
-	return (_alpha_beta(&start_board, g_curdepth,
-				alpha, beta,
-				(g_mintime > g_movetime) ? g_mintime : g_movetime,
-				start, 0));
+	return (-_alpha_beta(&start_board, g_curdepth,
+				-beta, -alpha,
+				start + ((g_mintime > g_movetime) ? g_mintime : g_movetime), 0));
 }
 
 void	*analysis_thread(void *tid)
@@ -373,16 +296,8 @@ void	*analysis_thread(void *tid)
 		int16_t	value = alpha_beta(g_searchmoves->moves[i], g_start, alpha, beta, i + 1);
 		g_valuemoves[i] = value;
 
-		if (g_real_board.player == PLAYER_WHITE)
-		{
-			if (alpha < value)
-				alpha = value;
-		}
-		else
-		{
-			if (beta > value)
-				beta = value;
-		}
+		if (alpha < value)
+			alpha = value;
 	}
 	return (NULL);
 }

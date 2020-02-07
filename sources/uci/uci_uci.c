@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/28 14:48:28 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/12/14 09:55:48 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/06 14:44:48 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -24,6 +24,7 @@ void	uci_uci(const char *args)
 	puts("option name Clear Hash type button");
 //	puts("option name MultiPV type spin default 1 min 1 max 16");
 	puts("option name Minimum Thinking Time type spin default 20 min 0 max 30000");
+	puts("option name Move Overhead type spin default 20 min 0 max 1000");
 	puts("uciok");
 	fflush(stdout);
 }
