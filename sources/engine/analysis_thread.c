@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 03:55:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/06 14:51:48 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/09 20:09:11 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -154,7 +154,7 @@ const int16_t	etable_score[8][64] = {
 	{0}
 };
 
-int move_priority(void *b, const void *l, const void *r)
+int move_priority(const void *l, const void *r, void *b)
 {
 	const move_t	*lm = l;
 	const move_t	*rm = r;
@@ -223,7 +223,7 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 	}
 
 	if (max_depth > 1)
-		qsort_r(moves->moves, moves->size, sizeof(move_t), board, &move_priority);
+		qsort_r(moves->moves, moves->size, sizeof(move_t), &move_priority, board);
 
 	value = INT16_MIN + 1;
 
@@ -246,18 +246,17 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 			value = next;
 
 		if (alpha < value)
-		{
-			if (alpha >= beta)
-				break ;
 			alpha = value;
-		}
+
+		if (alpha >= beta)
+			break ;
 	}
 
 	movelist_quit(moves);
 	return (value);
 }
 
-int16_t	alpha_beta(move_t move, clock_t start, int16_t alpha, int16_t beta, size_t num)
+int16_t	alpha_beta(move_t move, clock_t start, int16_t top_score, size_t num)
 {
 	board_t		start_board = g_real_board;
 
@@ -273,14 +272,13 @@ int16_t	alpha_beta(move_t move, clock_t start, int16_t alpha, int16_t beta, size
 	}
 
 	return (-_alpha_beta(&start_board, g_curdepth,
-				-beta, -alpha,
+				-30000, -top_score + 1,
 				start + ((g_mintime > g_movetime) ? g_mintime : g_movetime), 0));
 }
 
 void	*analysis_thread(void *tid)
 {
-	int16_t		alpha = -30000;
-	int16_t		beta = 30000;
+	int16_t		top_score = -30000;
 
 	for (size_t i = (size_t)*(int *)tid; i < g_searchmoves->size; i += g_threads)
 	{
@@ -293,11 +291,10 @@ void	*analysis_thread(void *tid)
 		}
 		pthread_mutex_unlock(&mtx_engine);
 
-		int16_t	value = alpha_beta(g_searchmoves->moves[i], g_start, alpha, beta, i + 1);
-		g_valuemoves[i] = value;
+		g_valuemoves[i] = alpha_beta(g_searchmoves->moves[i], g_start, top_score, i + 1);
 
-		if (alpha < value)
-			alpha = value;
+		if (g_valuemoves[i] > top_score)
+			top_score = g_valuemoves[i];
 	}
 	return (NULL);
 }
