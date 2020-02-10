@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 00:05:31 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/06 14:54:31 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/10 08:09:23 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -197,7 +197,7 @@ void		launch_analyse(void)
 				printf("info depth %d nodes %zu nps %zu time %lu score mate %d pv %s\n",
 						i - has_search_aborted + 1,
 						chess_nodes, chess_nps, chess_time,
-						32000 - value, move);
+						32001 - value, move);
 				fflush(stdout);
 				break ;
 			}
