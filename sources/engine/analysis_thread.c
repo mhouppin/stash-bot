@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 03:55:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/09 20:09:11 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/10 13:34:15 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -215,6 +215,7 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 
 	if (moves->size == 0)
 	{
+		movelist_quit(moves);
 		tmp.player ^= 1;
 		if (is_checked(&tmp))
 			return (-32000 + ((cur_depth + 1) / 2));
