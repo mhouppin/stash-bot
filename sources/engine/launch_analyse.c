@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 00:05:31 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/10 08:09:23 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/12 16:18:05 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -54,12 +54,13 @@ static void	sort_moves(int16_t *g_valuebackup)
 	}
 }
 
-clock_t		calc_movetime(clock_t time, clock_t increment)
+clock_t		calc_movetime(clock_t time, clock_t increment, clock_t movestogo)
 {
-	// if we're already out of time (e.g 0 + 1 matches), only use 2% of timer.
+	// if we're already out of time (e.g 0 + 1 matches), only use part of 
+	// available time.
 
 	if (time < increment)
-		return (time / 50);
+		return (time / movestogo);
 	else
 	{
 		// Manage our time so that we use either part of the increment, or
@@ -70,7 +71,7 @@ clock_t		calc_movetime(clock_t time, clock_t increment)
 		if (time_diff > increment)
 			time_diff = increment;
 
-		return (time / 50 + time_diff);
+		return (time / movestogo + time_diff);
 	}
 }
 
@@ -86,16 +87,19 @@ void		launch_analyse(void)
 
 	if (!g_movetime)
 	{
+		if (g_movestogo == NO_MOVESTOGO)
+			g_movestogo = 50;
+
 		if (g_real_board.player == PLAYER_WHITE && (g_wtime || g_winc))
 		{
-			g_movetime = calc_movetime(g_wtime, g_winc);
+			g_movetime = calc_movetime(g_wtime, g_winc, g_movestogo);
 
 			if (g_movetime > 3600000)
 				g_movetime = 3600000;
 		}
 		else if (g_real_board.player == PLAYER_BLACK && (g_btime || g_binc))
 		{
-			g_movetime = calc_movetime(g_btime, g_binc);
+			g_movetime = calc_movetime(g_btime, g_binc, g_movestogo);
 
 			if (g_movetime > 3600000)
 				g_movetime = 3600000;
