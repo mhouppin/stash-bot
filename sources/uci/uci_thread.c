@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/28 14:22:56 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/01 18:01:02 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/12 20:47:29 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -35,10 +35,9 @@ const t_cmdlink	commands[] =
 
 void	*uci_thread(void *nothing __attribute__((unused)))
 {
-	char	*line = NULL;
-	size_t	size = 0;
+	char	*line = malloc(8192);
 
-	while (getline(&line, &size, stdin) > 0)
+	while (fgets(line, 8192, stdin) != NULL)
 	{
 		char	*cmd;
 

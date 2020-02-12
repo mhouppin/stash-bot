@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 03:55:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/12 16:27:41 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/12 20:46:09 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -154,6 +154,36 @@ const int16_t	etable_score[8][64] = {
 	{0}
 };
 
+void	order_moves(movelist_t *moves, const board_t *board)
+{
+	size_t	gap, start;
+	ssize_t	i;
+
+	for (gap = moves->size / 2; gap > 0; gap /= 2)
+	{
+		for (start = gap; start < moves->size; ++start)
+		{
+			for (i = (ssize_t)(start - gap); i >= 0; i = i - gap)
+			{
+				int		value =
+					board->table[move_to(moves->moves[i + gap])] -
+					board->table[move_to(moves->moves[i])];
+
+				if (value <= 0)
+					break ;
+				else
+				{
+					move_t	tmp;
+
+					tmp = moves->moves[i + gap];
+					moves->moves[i + gap] = moves->moves[i];
+					moves->moves[i] = tmp;
+				}
+			}
+		}
+	}
+}
+
 int move_priority(const void *l, const void *r, void *b)
 {
 	const move_t	*lm = l;
@@ -224,7 +254,7 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 	}
 
 	if (max_depth > 1)
-		qsort_r(moves->moves, moves->size, sizeof(move_t), &move_priority, board);
+		order_moves(moves, board);
 
 	value = INT16_MIN + 1;
 
