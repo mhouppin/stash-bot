@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 00:05:31 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/12 16:18:05 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/12 16:29:59 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -106,12 +106,10 @@ void		launch_analyse(void)
 		}
 	}
 
-	clock_t		limit;
-
 	if (g_mintime + g_overhead > g_movetime)
-		limit = g_mintime;
+		g_movetime = g_mintime;
 	else
-		limit = g_movetime - g_overhead;
+		g_movetime -= g_overhead;
 
 	g_start = chess_clock();
 	threads = (pthread_t *)malloc(sizeof(pthread_t) * g_threads);
@@ -141,7 +139,7 @@ void		launch_analyse(void)
 	g_curnodes = 0;
 
 	pthread_mutex_lock(&mtx_engine);
-	while (i < g_depth && (g_infinite || chess_clock() - g_start <= limit))
+	while (i < g_depth && (g_infinite || chess_clock() - g_start <= g_movetime))
 	{
 		pthread_mutex_unlock(&mtx_engine);
 

@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 03:55:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/12 15:44:44 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/12 16:27:41 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -154,7 +154,7 @@ const int16_t	etable_score[8][64] = {
 	{0}
 };
 
-int move_priority(void *b, const void *l, const void *r)
+int move_priority(const void *l, const void *r, void *b)
 {
 	const move_t	*lm = l;
 	const move_t	*rm = r;
@@ -184,7 +184,7 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 			if (g_engine_send == DO_ABORT || g_engine_send == DO_EXIT)
 			{
 				pthread_mutex_unlock(&mtx_engine);
-			return (INT16_MIN);
+				return (INT16_MIN);
 			}
 			pthread_mutex_unlock(&mtx_engine);
 		}
@@ -224,7 +224,7 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 	}
 
 	if (max_depth > 1)
-		qsort_r(moves->moves, moves->size, sizeof(move_t), board, &move_priority);
+		qsort_r(moves->moves, moves->size, sizeof(move_t), &move_priority, board);
 
 	value = INT16_MIN + 1;
 
