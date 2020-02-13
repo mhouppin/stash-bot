@@ -1,9 +1,0 @@
-# Benchmark parameters: startpos, one thread, 15-second analysis
-
-Date			Version		Nodes/second
-December, 13	3.0			8.555.000
-December, 04	2.1			4.365.000
-November, 24	2.0			4.730.000
-November, 21	1.2			2.265.000
-November, 16	1.1			2.560.000
-November, 01	1.0			3.735.000
