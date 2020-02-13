@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 03:55:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/12 20:46:09 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/13 16:11:20 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -193,10 +193,9 @@ int move_priority(const void *l, const void *r, void *b)
 	return ((int)(board->table[move_to(*rm)] - board->table[move_to(*lm)]));
 }
 
-int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
+int16_t	alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 		clock_t end, int cur_depth)
 {
-	int16_t		value;
 	movelist_t	*moves;
 	board_t		tmp;
 
@@ -256,60 +255,47 @@ int16_t	_alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 	if (max_depth > 1)
 		order_moves(moves, board);
 
-	value = INT16_MIN + 1;
-
 	for (size_t i = 0; i < moves->size; i++)
 	{
 		tmp = *board;
 
 		do_move(&tmp, moves->moves[i]);
 
-		int16_t next = -_alpha_beta(&tmp, max_depth - 1, -beta, -alpha,
+		int16_t next;
+		
+		if (i == 0)
+			next = -alpha_beta(&tmp, max_depth - 1, -beta, -alpha,
 				end, cur_depth + 1);
+		else
+		{
+			next = -alpha_beta(&tmp, max_depth - 1, -alpha - 1,
+				-alpha, end, cur_depth + 1);
+
+			if (alpha < next && next < beta)
+				next = -alpha_beta(&tmp, max_depth - 1, -beta,
+					-next, end, cur_depth + 1);
+		}
 
 		if (next == INT16_MIN)
 		{
-			value = INT16_MIN;
+			alpha = INT16_MIN;
 			break ;
 		}
 
-		if (value < next)
-			value = next;
-
-		if (alpha < value)
-			alpha = value;
+		if (alpha < next)
+			alpha = next;
 
 		if (alpha >= beta)
 			break ;
 	}
 
 	movelist_quit(moves);
-	return (value);
-}
-
-int16_t	alpha_beta(move_t move, clock_t start, int16_t top_score, size_t num)
-{
-	board_t		start_board = g_real_board;
-
-	do_move(&start_board, move);
-
-	if (chess_clock() - start > 3000)
-	{
-		char *str = move_to_str(move);
-		printf("info depth %d nodes %zu currmove %s currmovenumber %zu\n",
-			g_curdepth + 1, g_curnodes, str, num);
-		fflush(stdout);
-		free(str);
-	}
-
-	return (-_alpha_beta(&start_board, g_curdepth,
-				-30000, -top_score + 1,
-				start + ((g_mintime > g_movetime) ? g_mintime : g_movetime), 0));
+	return (alpha);
 }
 
 void	*analysis_thread(void *tid)
 {
-	int16_t		top_score = -30000;
+	int16_t		alpha = -30000;
 
 	for (size_t i = (size_t)*(int *)tid; i < g_searchmoves->size; i += g_threads)
 	{
@@ -322,10 +308,35 @@ void	*analysis_thread(void *tid)
 		}
 		pthread_mutex_unlock(&mtx_engine);
 
-		g_valuemoves[i] = alpha_beta(g_searchmoves->moves[i], g_start, top_score, i + 1);
+		board_t		start_board = g_real_board;
 
-		if (g_valuemoves[i] > top_score)
-			top_score = g_valuemoves[i];
+		do_move(&start_board, g_searchmoves->moves[i]);
+
+		if (chess_clock() - g_start > 3000)
+		{
+			char	*str = move_to_str(g_searchmoves->moves[i]);
+			printf("info depth %d nodes %zu currmove %s currmovenumber %zu\n",
+					g_curdepth + 1, g_curnodes, str, i + 1);
+			fflush(stdout);
+			free(str);
+		}
+
+		clock_t		end = g_start + (g_mintime > g_movetime ? g_mintime : g_movetime);
+
+		if (i == (size_t)*(int *)tid)
+			g_valuemoves[i] = -alpha_beta(&start_board, g_curdepth, -30000, -alpha, end, 0);
+		else
+		{
+			g_valuemoves[i] = -alpha_beta(&start_board, g_curdepth, -alpha - 1, -alpha, end, 0);
+
+			if (alpha < g_valuemoves[i])
+				g_valuemoves[i] = -alpha_beta(&start_board, g_curdepth, -30000, -g_valuemoves[i], end, 0);
+		}
+
+		if (g_valuemoves[i] > alpha)
+			alpha = g_valuemoves[i];
+		else if (g_valuemoves[i] == alpha)
+			g_valuemoves[i] = alpha - 1;
 	}
 	return (NULL);
 }
