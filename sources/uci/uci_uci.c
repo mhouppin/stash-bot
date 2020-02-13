@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/28 14:48:28 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/12 15:53:33 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/13 16:26:22 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -17,7 +17,7 @@
 void	uci_uci(const char *args)
 {
 	(void)args;
-	puts("id name Stash v7.0");
+	puts("id name Stash v8.0");
 	puts("id author Morgan Houppin (@mhouppin)");
 	puts("option name Threads type spin default 1 min 1 max 32");
 	puts("option name Hash type spin default 16 min 1 max 4096");
