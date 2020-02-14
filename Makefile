@@ -13,9 +13,36 @@
 
 NAME	:= stash-bot
 
-SOURCES	:= $(wildcard sources/*/*.c)
-OBJECTS	:= $(patsubst sources/%.c,objects/%.o,$(SOURCES))
-DEPENDS	:= $(patsubst sources/%.c,objects/%.d,$(SOURCES))
+SOURCES	:= \
+	sources/misc/globals.c \
+	sources/main/main.c \
+	sources/engine/movelist_init.c \
+	sources/engine/analysis_thread.c \
+	sources/engine/engine_thread.c \
+	sources/engine/str_to_move.c \
+	sources/engine/movelist_quit.c \
+	sources/engine/move_to_str.c \
+	sources/engine/launch_analyse.c \
+	sources/engine/is_checked.c \
+	sources/engine/do_move.c \
+	sources/engine/get_simple_moves.c \
+	sources/engine/get_piece_moves.c \
+	sources/engine/push_move.c \
+	sources/engine/pop_move.c \
+	sources/uci/uci_thread.c \
+	sources/uci/uci_position.c \
+	sources/uci/uci_isready.c \
+	sources/uci/uci_ucinewgame.c \
+	sources/uci/uci_go.c \
+	sources/uci/uci_d.c \
+	sources/uci/uci_quit.c \
+	sources/uci/uci_uci.c \
+	sources/uci/uci_setoption.c \
+	sources/uci/uci_stop.c \
+	sources/uci/uci_debug.c
+
+OBJECTS	:= $(SOURCES:sources/%.c=objects/%.o)
+DEPENDS	:= $(SOURCES:sources/%.c=objects/%.d)
 
 WFLAGS	:= -Wall -Wextra
 OFLAGS	:= -O3 -march=native
@@ -45,3 +72,4 @@ fclean: clean
 re: fclean all
 
 .PHONY: all clean fclean re
+
