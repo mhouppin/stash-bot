@@ -27,6 +27,7 @@ clock_t			g_overhead = 20ul;
 
 // Begin mtx_engine
 pthread_mutex_t	mtx_engine = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t	cv_engine = PTHREAD_COND_INITIALIZER;
 
 enum e_egn_mode	g_engine_mode = WAITING;
 enum e_egn_send	g_engine_send = DO_NOTHING;

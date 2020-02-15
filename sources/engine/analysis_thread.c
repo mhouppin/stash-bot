@@ -268,7 +268,7 @@ int16_t	alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 			if (nm_score >= beta)
 			{
 				movelist_quit(moves);
-				return (beta);
+				return (nm_score);
 			}
 		}
 	}
@@ -313,7 +313,7 @@ int16_t	alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 
 void	*analysis_thread(void *tid)
 {
-	int16_t		alpha = -30000;
+	int16_t		alpha = -32001;
 
 	for (size_t i = (size_t)*(int *)tid; i < g_searchmoves->size; i += g_threads)
 	{
@@ -343,13 +343,13 @@ void	*analysis_thread(void *tid)
 		clock_t		end = g_start + (g_mintime > g_movetime ? g_mintime : g_movetime);
 
 		if (i == (size_t)*(int *)tid)
-			g_valuemoves[i] = -alpha_beta(&start_board, g_curdepth, -30000, -alpha, end, 0, false);
+			g_valuemoves[i] = -alpha_beta(&start_board, g_curdepth, -32001, -alpha, end, 0, false);
 		else
 		{
 			g_valuemoves[i] = -alpha_beta(&start_board, g_curdepth, -alpha - 1, -alpha, end, 0, false);
 
 			if (alpha < g_valuemoves[i])
-				g_valuemoves[i] = -alpha_beta(&start_board, g_curdepth, -30000, -g_valuemoves[i], end, 0, false);
+				g_valuemoves[i] = -alpha_beta(&start_board, g_curdepth, -32001, -g_valuemoves[i], end, 0, false);
 		}
 
 		if (g_valuemoves[i] > alpha)

@@ -124,5 +124,6 @@ void	uci_go(const char *args)
 	}
 
 	pthread_mutex_unlock(&mtx_engine);
+	pthread_cond_signal(&cv_engine);
 	free(copy);
 }

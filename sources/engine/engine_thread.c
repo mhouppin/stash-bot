@@ -20,6 +20,8 @@ void	*engine_thread(void *nothing __attribute__((unused)))
 
 	while (g_engine_send != DO_ABORT)
 	{
+		pthread_cond_wait(&cv_engine, &mtx_engine);
+
 		if (g_engine_send == DO_THINK)
 		{
 			g_engine_mode = THINKING;
@@ -31,14 +33,10 @@ void	*engine_thread(void *nothing __attribute__((unused)))
 			g_engine_send = DO_NOTHING;
 			pthread_mutex_unlock(&mtx_engine);
 		}
-		else
-		{
-			pthread_mutex_unlock(&mtx_engine);
-			usleep(60);
-		}
-		pthread_mutex_lock(&mtx_engine);
 	}
 
 	pthread_mutex_unlock(&mtx_engine);
+	pthread_cond_destroy(&cv_engine);
+
 	return (NULL);
 }

@@ -162,6 +162,7 @@ typedef struct	movelist_s
 }				movelist_t;
 
 extern pthread_mutex_t	mtx_engine;
+extern pthread_cond_t	cv_engine;
 
 extern enum e_egn_mode	g_engine_mode;
 extern enum e_egn_send	g_engine_send;
