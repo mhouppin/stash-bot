@@ -14,6 +14,7 @@
 #include "engine.h"
 #include "settings.h"
 #include "formatting.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -195,7 +196,7 @@ int move_priority(const void *l, const void *r, void *b)
 }
 
 int16_t	alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
-		clock_t end, int cur_depth)
+		clock_t end, int cur_depth, bool in_nms)
 {
 	movelist_t	*moves;
 	board_t		tmp;
@@ -241,11 +242,10 @@ int16_t	alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 
 	moves = get_simple_moves(board);
 
-	tmp = *board;
-
 	if (moves->size == 0)
 	{
 		movelist_quit(moves);
+		tmp = *board;
 		tmp.player ^= 1;
 		if (is_checked(&tmp))
 			return (-32000 + ((cur_depth + 1) / 2));
@@ -255,6 +255,23 @@ int16_t	alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 
 	if (max_depth > 1)
 		order_moves(moves, board);
+
+	if (max_depth > 3 && !in_nms)
+	{
+		tmp = *board;
+		tmp.player ^= 1;
+
+		if (!is_checked(&tmp))
+		{
+			int16_t	nm_score = -alpha_beta(&tmp, max_depth - 3, -beta, -alpha, end, cur_depth + 1, true);
+
+			if (nm_score >= beta)
+			{
+				movelist_quit(moves);
+				return (beta);
+			}
+		}
+	}
 
 	for (size_t i = 0; i < moves->size; i++)
 	{
@@ -266,15 +283,15 @@ int16_t	alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 		
 		if (i == 0)
 			next = -alpha_beta(&tmp, max_depth - 1, -beta, -alpha,
-				end, cur_depth + 1);
+				end, cur_depth + 1, in_nms);
 		else
 		{
 			next = -alpha_beta(&tmp, max_depth - 1, -alpha - 1,
-				-alpha, end, cur_depth + 1);
+				-alpha, end, cur_depth + 1, in_nms);
 
 			if (alpha < next && next < beta)
 				next = -alpha_beta(&tmp, max_depth - 1, -beta,
-					-next, end, cur_depth + 1);
+					-next, end, cur_depth + 1, in_nms);
 		}
 
 		if (next == INT16_MIN)
@@ -326,13 +343,13 @@ void	*analysis_thread(void *tid)
 		clock_t		end = g_start + (g_mintime > g_movetime ? g_mintime : g_movetime);
 
 		if (i == (size_t)*(int *)tid)
-			g_valuemoves[i] = -alpha_beta(&start_board, g_curdepth, -30000, -alpha, end, 0);
+			g_valuemoves[i] = -alpha_beta(&start_board, g_curdepth, -30000, -alpha, end, 0, false);
 		else
 		{
-			g_valuemoves[i] = -alpha_beta(&start_board, g_curdepth, -alpha - 1, -alpha, end, 0);
+			g_valuemoves[i] = -alpha_beta(&start_board, g_curdepth, -alpha - 1, -alpha, end, 0, false);
 
 			if (alpha < g_valuemoves[i])
-				g_valuemoves[i] = -alpha_beta(&start_board, g_curdepth, -30000, -g_valuemoves[i], end, 0);
+				g_valuemoves[i] = -alpha_beta(&start_board, g_curdepth, -30000, -g_valuemoves[i], end, 0, false);
 		}
 
 		if (g_valuemoves[i] > alpha)
