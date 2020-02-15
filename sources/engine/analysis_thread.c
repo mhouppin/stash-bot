@@ -186,26 +186,20 @@ void	order_moves(movelist_t *moves, const board_t *board)
 	}
 }
 
-int move_priority(const void *l, const void *r, void *b)
-{
-	const move_t	*lm = l;
-	const move_t	*rm = r;
-	const board_t	*board = b;
-
-	return ((int)(board->table[move_to(*rm)] - board->table[move_to(*lm)]));
-}
-
 int16_t	alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 		clock_t end, int cur_depth, bool in_nms)
 {
 	movelist_t	*moves;
 	board_t		tmp;
 
+	// We consumed all our nodes, so stop searching.
 	if (g_curnodes >= g_nodes)
 		return (INT16_MIN);
 
 	if (g_curnodes % 16384 == 0)
 	{
+		// Regularly check for clock consuming or search exiting.
+
 		if (!g_infinite && chess_clock() > end)
 			return (INT16_MIN);
 		else
@@ -225,6 +219,9 @@ int16_t	alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 
 	if (max_depth == 0)
 	{
+		// Tapered evaluation of the position, with endgame point at
+		// piece_count == 16.
+
 		int		midval = 0;
 		int		score;
 
@@ -244,6 +241,8 @@ int16_t	alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 
 	if (moves->size == 0)
 	{
+		// Checkmate or stalemate position
+
 		movelist_quit(moves);
 		tmp = *board;
 		tmp.player ^= 1;
@@ -252,18 +251,30 @@ int16_t	alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 		else
 			return (0);
 	}
+	
+	// Sorting moves by most valuable capture, will probably do
+	// some history checking later. I don't do it for depth == 1 though,
+	// because sorting slows down the program.
 
 	if (max_depth > 1)
 		order_moves(moves, board);
 
-	if (max_depth > 3 && !in_nms)
+	// If we can do a reduction of at least 3 depths, that we're not already in
+	// Null Move Search, and that the piece count on the board is sufficiently big
+	// (avoid endgame regular zugzwangs), then we can try a Null Move Search.
+
+	if (max_depth > 3 && !in_nms && board->pcount > 16)
 	{
 		tmp = *board;
 		tmp.player ^= 1;
 
+		// Don't do it if in check, you wanna avoid losing your king ^^
+
 		if (!is_checked(&tmp))
 		{
 			int16_t	nm_score = -alpha_beta(&tmp, max_depth - 3, -beta, -alpha, end, cur_depth + 1, true);
+
+			// If the reduced search value is still above beta, return it.
 
 			if (nm_score >= beta)
 			{
@@ -280,7 +291,12 @@ int16_t	alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 		do_move(&tmp, moves->moves[i]);
 
 		int16_t next;
-		
+
+		// pv line: analyse as usual.
+		// non-pv line: reduce bound values and check if the search value
+		// is undetermined (i.e. still between alpha and beta): if yes,
+		// redo a non-reduced search.
+
 		if (i == 0)
 			next = -alpha_beta(&tmp, max_depth - 1, -beta, -alpha,
 				end, cur_depth + 1, in_nms);
@@ -293,6 +309,8 @@ int16_t	alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 				next = -alpha_beta(&tmp, max_depth - 1, -beta,
 					-next, end, cur_depth + 1, in_nms);
 		}
+
+		// The search aborted: don't return a value
 
 		if (next == INT16_MIN)
 		{
@@ -315,9 +333,17 @@ void	*analysis_thread(void *tid)
 {
 	int16_t		alpha = -32001;
 
+	// Lazy multithreading implementation: split all searchmoves between threads
+	// (if x threads, then the first thread will search move 0, then x, then 2x,
+	// the second thread 1, then (x + 1), then (2x + 1)...)
+	// Not optimal at all, should not be used until I find
+	// a better implementation.
+
 	for (size_t i = (size_t)*(int *)tid; i < g_searchmoves->size; i += g_threads)
 	{
 		pthread_mutex_lock(&mtx_engine);
+
+		// Did search aborted ?
 
 		if (g_engine_send == DO_ABORT || g_engine_send == DO_EXIT)
 		{
@@ -329,6 +355,8 @@ void	*analysis_thread(void *tid)
 		board_t		start_board = g_real_board;
 
 		do_move(&start_board, g_searchmoves->moves[i]);
+
+		// If succifient elapsed time, start printing move information.
 
 		if (chess_clock() - g_start > 3000)
 		{
