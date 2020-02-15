@@ -232,6 +232,8 @@ void		launch_analyse(void)
 	free(move);
 	free(g_valuemoves);
 	free(g_valuebackup);
+	free(threads);
+	free(tindex);
 	movelist_quit(g_searchmoves);
 	pthread_mutex_unlock(&mtx_engine);
 }
