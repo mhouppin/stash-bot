@@ -17,7 +17,7 @@
 void	uci_uci(const char *args)
 {
 	(void)args;
-	puts("id name Stash v8.0.1");
+	puts("id name Stash v8.1.1");
 	puts("id author Morgan Houppin (@mhouppin)");
 	puts("option name Threads type spin default 1 min 1 max 32");
 	puts("option name Hash type spin default 16 min 1 max 4096");
