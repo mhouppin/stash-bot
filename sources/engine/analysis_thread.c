@@ -13,6 +13,7 @@
 
 #include "engine.h"
 #include "settings.h"
+#include "formatting.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -315,7 +316,8 @@ void	*analysis_thread(void *tid)
 		if (chess_clock() - g_start > 3000)
 		{
 			char	*str = move_to_str(g_searchmoves->moves[i]);
-			printf("info depth %d nodes %zu currmove %s currmovenumber %zu\n",
+			printf("info depth %d nodes " SIZE_FORMAT
+					" currmove %s currmovenumber " SIZE_FORMAT "\n",
 					g_curdepth + 1, g_curnodes, str, i + 1);
 			fflush(stdout);
 			free(str);

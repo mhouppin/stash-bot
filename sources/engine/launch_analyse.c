@@ -12,6 +12,7 @@
 /* ************************************************************************** */
 
 #include "engine.h"
+#include "formatting.h"
 #include "settings.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -187,7 +188,8 @@ void		launch_analyse(void)
 
 			if (value <= -30000)
 			{
-				printf("info depth %d nodes %zu nps %zu time %lu score mate %d pv %s\n",
+				printf("info depth %d nodes " SIZE_FORMAT " nps " SIZE_FORMAT
+						" time %lu score mate %d pv %s\n",
 						i - has_search_aborted + 1,
 						chess_nodes, chess_nps, chess_time,
 						-(value + 32000), move);
@@ -196,7 +198,8 @@ void		launch_analyse(void)
 			}
 			else if (value >= 30000)
 			{
-				printf("info depth %d nodes %zu nps %zu time %lu score mate %d pv %s\n",
+				printf("info depth %d nodes " SIZE_FORMAT " nps " SIZE_FORMAT
+						" time %lu score mate %d pv %s\n",
 						i - has_search_aborted + 1,
 						chess_nodes, chess_nps, chess_time,
 						32001 - value, move);
@@ -205,7 +208,8 @@ void		launch_analyse(void)
 			}
 			else
 			{
-				printf("info depth %d nodes %zu nps %zu time %lu score cp %d pv %s\n",
+				printf("info depth %d nodes " SIZE_FORMAT " nps " SIZE_FORMAT
+						" time %lu score cp %d pv %s\n",
 						i - has_search_aborted + 1,
 						chess_nodes, chess_nps, chess_time,
 						value, move);
