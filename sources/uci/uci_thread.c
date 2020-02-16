@@ -55,6 +55,9 @@ void	*uci_thread(void *nothing __attribute__((unused)))
 				break ;
 			}
 		}
+
+		if (strcmp(cmd, "quit") == 0)
+			break ;
 	}
 
 	usleep(1000);

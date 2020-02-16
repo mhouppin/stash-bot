@@ -220,7 +220,7 @@ void		launch_analyse(void)
 		free(move);
 
 		pthread_mutex_lock(&mtx_engine);
-		if (g_engine_send == DO_EXIT || g_curnodes >= g_nodes)
+		if (g_engine_send == DO_EXIT || g_engine_send == DO_ABORT || g_curnodes >= g_nodes)
 			break ;
 		i++;
 	}

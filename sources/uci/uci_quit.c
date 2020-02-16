@@ -11,12 +11,12 @@
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#include "uci.h"
-#include <pthread.h>
+#include "engine.h"
 
 void	uci_quit(const char *args)
 {
 	(void)args;
-//	engine_exit(1);
-	pthread_exit(NULL);
+	pthread_mutex_lock(&mtx_engine);
+	g_engine_send = DO_ABORT;
+	pthread_mutex_unlock(&mtx_engine);
 }
