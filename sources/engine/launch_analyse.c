@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 00:05:31 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/17 08:40:57 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/17 12:00:51 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -67,7 +67,7 @@ clock_t		calc_movetime(clock_t time, clock_t increment, clock_t movestogo)
 		// Manage our time so that we use either part of the increment, or
 		// all the increment if we're early enough.
 
-		clock_t		time_calc = (time + increment) / movestogo;
+		clock_t		time_calc = time / movestogo + increment;
 
 		if (time_calc > time)
 			time_calc = time;
