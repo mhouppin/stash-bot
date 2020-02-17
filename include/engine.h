@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/30 12:51:36 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/12/13 14:38:11 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/17 08:32:14 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -57,17 +57,6 @@ typedef struct	board_s
 	int		pcount;
 	int		evaluation;
 }				board_t;
-
-typedef struct	zboard_s
-{
-	int8_t			tab[32];
-	int8_t			spm;
-	int8_t			ply;
-	int16_t			lam;
-	int16_t			dph;
-	int16_t			val;
-	struct zboard_s	*next;
-}				zboard_t;
 
 enum	e_moves
 {
@@ -154,11 +143,21 @@ enum	e_player
 };
 
 typedef int16_t	move_t;
+typedef int16_t	value_t;
+
+enum
+{
+	VALUE_MATE_FOUND = 30000,
+	VALUE_MATE = 32000,
+	VALUE_INFINITE = 32001,
+	NO_VALUE = INT16_MIN
+};
 
 typedef struct	movelist_s
 {
 	size_t	size;
 	move_t	*moves;
+	value_t	*values;
 }				movelist_t;
 
 extern pthread_mutex_t	mtx_engine;

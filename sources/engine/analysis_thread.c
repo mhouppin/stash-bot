@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 03:55:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/13 16:11:20 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/17 08:34:48 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -158,6 +158,29 @@ const int16_t	etable_score[8][64] = {
 
 void	order_moves(movelist_t *moves, const board_t *board)
 {
+	// Compute move values acording to what is done
+
+	for (size_t i = 0; i < moves->size; ++i)
+	{
+		int8_t		from = move_from(moves->moves[i]);
+		int8_t		to = move_to(moves->moves[i]);
+
+		int8_t		moved_piece = board->table[from] & 7;
+		int8_t		captured_piece = board->table[to] & 7;
+
+		// If the move is a capture, score it with the MVV/LVA strategy
+		// (Most Valuable Victim / Least Valuable Attacker).
+		// For quiet moves, use the mtable_score difference between
+		// the moved piece placements.
+
+		if (captured_piece != PIECE_NONE)
+			moves->values[i] = mpiece_score[captured_piece] * 8
+				- mpiece_score[moved_piece];
+		else
+			moves->values[i] = mtable_score[moved_piece][to]
+				- mtable_score[moved_piece][from];
+	}
+
 	size_t	gap, start;
 	ssize_t	i;
 
@@ -167,9 +190,7 @@ void	order_moves(movelist_t *moves, const board_t *board)
 		{
 			for (i = (ssize_t)(start - gap); i >= 0; i = i - gap)
 			{
-				int		value =
-					board->table[move_to(moves->moves[i + gap])] -
-					board->table[move_to(moves->moves[i])];
+				int		value = moves->values[i + gap] - moves->values[i];
 
 				if (value <= 0)
 					break ;
@@ -187,21 +208,21 @@ void	order_moves(movelist_t *moves, const board_t *board)
 }
 
 int16_t	alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
-		clock_t end, int cur_depth, bool in_nms)
+		clock_t end, int cur_depth)
 {
 	movelist_t	*moves;
 	board_t		tmp;
 
 	// We consumed all our nodes, so stop searching.
 	if (g_curnodes >= g_nodes)
-		return (INT16_MIN);
+		return (NO_VALUE);
 
 	if (g_curnodes % 16384 == 0)
 	{
 		// Regularly check for clock consuming or search exiting.
 
 		if (!g_infinite && chess_clock() > end)
-			return (INT16_MIN);
+			return (NO_VALUE);
 		else
 		{
 			pthread_mutex_lock(&mtx_engine);
@@ -209,7 +230,7 @@ int16_t	alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 			if (g_engine_send == DO_ABORT || g_engine_send == DO_EXIT)
 			{
 				pthread_mutex_unlock(&mtx_engine);
-				return (INT16_MIN);
+				return (NO_VALUE);
 			}
 			pthread_mutex_unlock(&mtx_engine);
 		}
@@ -247,7 +268,7 @@ int16_t	alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 		tmp = *board;
 		tmp.player ^= 1;
 		if (is_checked(&tmp))
-			return (-32000 + ((cur_depth + 1) / 2));
+			return (-VALUE_MATE + ((cur_depth + 1) / 2));
 		else
 			return (0);
 	}
@@ -259,30 +280,9 @@ int16_t	alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 	if (max_depth > 1)
 		order_moves(moves, board);
 
-	// If we can do a reduction of at least 3 depths, that we're not already in
-	// Null Move Search, and that the piece count on the board is sufficiently big
-	// (avoid endgame regular zugzwangs), then we can try a Null Move Search.
-
-	if (max_depth > 3 && !in_nms && board->pcount > 16)
-	{
-		tmp = *board;
-		tmp.player ^= 1;
-
-		// Don't do it if in check, you wanna avoid losing your king ^^
-
-		if (!is_checked(&tmp))
-		{
-			int16_t	nm_score = -alpha_beta(&tmp, max_depth - 3, -beta, -alpha, end, cur_depth + 1, true);
-
-			// If the reduced search value is still above beta, return it.
-
-			if (nm_score >= beta)
-			{
-				movelist_quit(moves);
-				return (nm_score);
-			}
-		}
-	}
+	// Null Move Pruning should go here, but as long as I don't have a
+	// reliable quiescence search, I cannot trust the scores returned by a
+	// reduced depth analyse.
 
 	for (size_t i = 0; i < moves->size; i++)
 	{
@@ -299,22 +299,22 @@ int16_t	alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 
 		if (i == 0)
 			next = -alpha_beta(&tmp, max_depth - 1, -beta, -alpha,
-				end, cur_depth + 1, in_nms);
+				end, cur_depth + 1);
 		else
 		{
 			next = -alpha_beta(&tmp, max_depth - 1, -alpha - 1,
-				-alpha, end, cur_depth + 1, in_nms);
+				-alpha, end, cur_depth + 1);
 
 			if (alpha < next && next < beta)
 				next = -alpha_beta(&tmp, max_depth - 1, -beta,
-					-next, end, cur_depth + 1, in_nms);
+					-next, end, cur_depth + 1);
 		}
 
 		// The search aborted: don't return a value
 
-		if (next == INT16_MIN)
+		if (next == NO_VALUE)
 		{
-			alpha = INT16_MIN;
+			alpha = NO_VALUE;
 			break ;
 		}
 
@@ -331,7 +331,7 @@ int16_t	alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 
 void	*analysis_thread(void *tid)
 {
-	int16_t		alpha = -32001;
+	int16_t		alpha = -VALUE_INFINITE;
 
 	// Lazy multithreading implementation: split all searchmoves between threads
 	// (if x threads, then the first thread will search move 0, then x, then 2x,
@@ -356,7 +356,7 @@ void	*analysis_thread(void *tid)
 
 		do_move(&start_board, g_searchmoves->moves[i]);
 
-		// If succifient elapsed time, start printing move information.
+		// If succifient elapsed time (3 seconds), print move information.
 
 		if (chess_clock() - g_start > 3000)
 		{
@@ -371,13 +371,13 @@ void	*analysis_thread(void *tid)
 		clock_t		end = g_start + (g_mintime > g_movetime ? g_mintime : g_movetime);
 
 		if (i == (size_t)*(int *)tid)
-			g_valuemoves[i] = -alpha_beta(&start_board, g_curdepth, -32001, -alpha, end, 0, false);
+			g_valuemoves[i] = -alpha_beta(&start_board, g_curdepth, -VALUE_INFINITE, -alpha, end, 0);
 		else
 		{
-			g_valuemoves[i] = -alpha_beta(&start_board, g_curdepth, -alpha - 1, -alpha, end, 0, false);
+			g_valuemoves[i] = -alpha_beta(&start_board, g_curdepth, -alpha - 1, -alpha, end, 0);
 
 			if (alpha < g_valuemoves[i])
-				g_valuemoves[i] = -alpha_beta(&start_board, g_curdepth, -32001, -g_valuemoves[i], end, 0, false);
+				g_valuemoves[i] = -alpha_beta(&start_board, g_curdepth, -VALUE_INFINITE, -g_valuemoves[i], end, 0);
 		}
 
 		if (g_valuemoves[i] > alpha)

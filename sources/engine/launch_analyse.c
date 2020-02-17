@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 00:05:31 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/12 16:29:59 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/17 08:40:57 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -67,12 +67,12 @@ clock_t		calc_movetime(clock_t time, clock_t increment, clock_t movestogo)
 		// Manage our time so that we use either part of the increment, or
 		// all the increment if we're early enough.
 
-		clock_t		time_diff = time - increment;
+		clock_t		time_calc = (time + increment) / movestogo;
 
-		if (time_diff > increment)
-			time_diff = increment;
+		if (time_calc > time)
+			time_calc = time;
 
-		return (time / movestogo + time_diff);
+		return (time_calc);
 	}
 }
 
@@ -88,12 +88,18 @@ void		launch_analyse(void)
 
 	if (!g_movetime)
 	{
+		// If playing in x seconds + y seconds/move,
+		// use 2% of remaining time for each move.
+
 		if (g_movestogo == NO_MOVESTOGO)
 			g_movestogo = 50;
 
 		if (g_real_board.player == PLAYER_WHITE && (g_wtime || g_winc))
 		{
 			g_movetime = calc_movetime(g_wtime, g_winc, g_movestogo);
+
+			// Thinking above an hour is disabled for now
+			// (weird times thrown by Lichess in correspondence).
 
 			if (g_movetime > 3600000)
 				g_movetime = 3600000;
@@ -175,7 +181,11 @@ void		launch_analyse(void)
 
 			value = g_valuemoves[0];
 
-			if (value > -30000 && value < 30000 && i > 0)
+			// If no mate found, use (last_value + actual_value) / 2 as
+			// the cp score, because of heavy score fluctuations
+			// (I do really need a quiescence search on this...)
+
+			if (abs(value) < VALUE_MATE_FOUND && i > 0)
 				value = (value + g_valuebackup[0]) / 2;
 			memcpy(g_valuebackup, g_valuemoves, 2 * g_searchmoves->size);
 		}
@@ -186,23 +196,23 @@ void		launch_analyse(void)
 			size_t	chess_nodes = g_curnodes;
 			size_t	chess_nps = (!chess_time) ? 0 : (chess_nodes * 1000) / chess_time;
 
-			if (value <= -30000)
+			if (value <= -VALUE_MATE_FOUND)
 			{
 				printf("info depth %d nodes " SIZE_FORMAT " nps " SIZE_FORMAT
 						" time %lu score mate %d pv %s\n",
 						i - has_search_aborted + 1,
 						chess_nodes, chess_nps, chess_time,
-						-(value + 32000), move);
+						-(value + VALUE_MATE), move);
 				fflush(stdout);
 				break ;
 			}
-			else if (value >= 30000)
+			else if (value >= VALUE_MATE_FOUND)
 			{
 				printf("info depth %d nodes " SIZE_FORMAT " nps " SIZE_FORMAT
 						" time %lu score mate %d pv %s\n",
 						i - has_search_aborted + 1,
 						chess_nodes, chess_nps, chess_time,
-						32001 - value, move);
+						VALUE_MATE + 1 - value, move);
 				fflush(stdout);
 				break ;
 			}
