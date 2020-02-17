@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 03:55:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/17 08:34:48 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/17 16:20:02 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -329,17 +329,11 @@ int16_t	alpha_beta(board_t *board, int max_depth, int16_t alpha, int16_t beta,
 	return (alpha);
 }
 
-void	*analysis_thread(void *tid)
+void	search_bestmove(void)
 {
 	int16_t		alpha = -VALUE_INFINITE;
 
-	// Lazy multithreading implementation: split all searchmoves between threads
-	// (if x threads, then the first thread will search move 0, then x, then 2x,
-	// the second thread 1, then (x + 1), then (2x + 1)...)
-	// Not optimal at all, should not be used until I find
-	// a better implementation.
-
-	for (size_t i = (size_t)*(int *)tid; i < g_searchmoves->size; i += g_threads)
+	for (size_t i = 0; i < g_searchmoves->size; ++i)
 	{
 		pthread_mutex_lock(&mtx_engine);
 
@@ -348,7 +342,7 @@ void	*analysis_thread(void *tid)
 		if (g_engine_send == DO_ABORT || g_engine_send == DO_EXIT)
 		{
 			pthread_mutex_unlock(&mtx_engine);
-			return (NULL);
+			return ;
 		}
 		pthread_mutex_unlock(&mtx_engine);
 
@@ -370,7 +364,7 @@ void	*analysis_thread(void *tid)
 
 		clock_t		end = g_start + (g_mintime > g_movetime ? g_mintime : g_movetime);
 
-		if (i == (size_t)*(int *)tid)
+		if (i == 0)
 			g_valuemoves[i] = -alpha_beta(&start_board, g_curdepth, -VALUE_INFINITE, -alpha, end, 0);
 		else
 		{
@@ -385,5 +379,5 @@ void	*analysis_thread(void *tid)
 		else if (g_valuemoves[i] == alpha)
 			g_valuemoves[i] = alpha - 1;
 	}
-	return (NULL);
+	return ;
 }

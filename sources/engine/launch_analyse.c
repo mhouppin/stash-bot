@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 00:05:31 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/17 12:00:51 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/17 16:21:15 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -78,8 +78,6 @@ clock_t		calc_movetime(clock_t time, clock_t increment, clock_t movestogo)
 
 void		launch_analyse(void)
 {
-	pthread_t	*threads;
-	int			*tindex;
 	int			i;
 	int16_t		value = INT16_MIN;
 	int16_t		*g_valuebackup;
@@ -119,8 +117,6 @@ void		launch_analyse(void)
 		g_movetime -= g_overhead;
 
 	g_start = chess_clock();
-	threads = (pthread_t *)malloc(sizeof(pthread_t) * g_threads);
-	tindex = (int *)malloc(sizeof(int) * g_threads);
 
 	if (g_searchmoves == NULL)
 		g_searchmoves = get_simple_moves(&g_real_board);
@@ -134,9 +130,6 @@ void		launch_analyse(void)
 
 	g_valuemoves = (int16_t *)malloc(2 * g_searchmoves->size);
 	g_valuebackup = (int16_t *)malloc(2 * g_searchmoves->size);
-
-	for (i = 0; i < g_threads; i++)
-		tindex[i] = i;
 
 	for (i = 0; i < (int)g_searchmoves->size; i++)
 		g_valuemoves[i] = g_valuebackup[i] = INT16_MIN;
@@ -152,15 +145,7 @@ void		launch_analyse(void)
 
 		g_curdepth = i;
 
-		for (int k = 0; k < g_threads; k++)
-			if (pthread_create(threads + k, NULL, &analysis_thread, tindex + k))
-			{
-				perror("Unable to initialize engine analysis threads");
-				abort();
-			}
-
-		for (int k = 0; k < g_threads; k++)
-			pthread_join(*(threads + k), NULL);
+		search_bestmove();
 
 		has_search_aborted = false;
 
@@ -242,8 +227,6 @@ void		launch_analyse(void)
 	free(move);
 	free(g_valuemoves);
 	free(g_valuebackup);
-	free(threads);
-	free(tindex);
 	movelist_quit(g_searchmoves);
 	pthread_mutex_unlock(&mtx_engine);
 }

@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/30 13:59:36 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/06 14:44:25 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/17 16:18:55 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -14,12 +14,6 @@
 #include "settings.h"
 #include "engine.h"
 
-// Begin mtx_debug
-int				g_debug = DEBUG_OFF;
-pthread_mutex_t	mtx_debug = PTHREAD_MUTEX_INITIALIZER;
-// End mtx_debug
-
-int				g_threads = 1;
 size_t			g_hash = 16ul * 1048576ul;
 int				g_multipv = 1;
 clock_t			g_mintime = 20ul;

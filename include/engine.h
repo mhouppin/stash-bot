@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/30 12:51:36 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/17 08:32:14 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/17 16:21:37 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -229,7 +229,7 @@ void		pop_move(movelist_t *mlist, size_t index);
 void		movelist_quit(movelist_t *mlist);
 
 void		launch_analyse(void);
-void		*analysis_thread(void *index);
+void		search_bestmove(void);
 
 int16_t		eval_board(board_t *board, int depth);
 

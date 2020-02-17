@@ -6,7 +6,7 @@
 #    By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+      #
 #                                                  #+#   #+    #+    #+#       #
 #    Created: 2019/10/28 13:18:56 by mhouppin     #+#   ##    ##    #+#        #
-#    Updated: 2019/11/30 14:11:09 by stash       ###    #+. /#+    ###.fr      #
+#    Updated: 2020/02/17 16:22:53 by stash       ###    #+. /#+    ###.fr      #
 #                                                          /                   #
 #                                                         /                    #
 # **************************************************************************** #
@@ -38,8 +38,7 @@ SOURCES	:= \
 	sources/uci/uci_quit.c \
 	sources/uci/uci_uci.c \
 	sources/uci/uci_setoption.c \
-	sources/uci/uci_stop.c \
-	sources/uci/uci_debug.c
+	sources/uci/uci_stop.c
 
 OBJECTS	:= $(SOURCES:sources/%.c=objects/%.o)
 DEPENDS	:= $(SOURCES:sources/%.c=objects/%.d)

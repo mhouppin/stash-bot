@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/28 15:26:41 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/06 14:42:34 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/17 16:21:58 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -27,23 +27,7 @@ void	uci_setoption(const char *args)
 
 	token = strtok(NULL, " \t\n");
 
-	if (!strcmp(token, "Threads"))
-	{
-		token = strtok(NULL, " \t\n");
-
-		if (!token || strcmp(token, "value"))
-			goto __end;
-
-		token = strtok(NULL, " \t\n");
-
-		if (token)
-		{
-			int value = atoi(token);
-			if (value >= 1 && value <= 32)
-				g_threads = value;
-		}
-	}
-	else if (!strcmp(token, "Hash"))
+	if (!strcmp(token, "Hash"))
 	{
 		token = strtok(NULL, " \t\n");
 
