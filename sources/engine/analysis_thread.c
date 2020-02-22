@@ -6,7 +6,7 @@
 /*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2019/10/31 03:55:19 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/17 16:20:02 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/22 17:49:00 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -352,12 +352,16 @@ void	search_bestmove(void)
 
 		// If succifient elapsed time (3 seconds), print move information.
 
-		if (chess_clock() - g_start > 3000)
+		clock_t		elapsed = chess_clock() - g_start;
+
+		if (elapsed > 3000)
 		{
+			size_t	nps = g_curnodes * 1000ul / (size_t)elapsed;
 			char	*str = move_to_str(g_searchmoves->moves[i]);
 			printf("info depth %d nodes " SIZE_FORMAT
+					" nps " SIZE_FORMAT " time %lu"
 					" currmove %s currmovenumber " SIZE_FORMAT "\n",
-					g_curdepth + 1, g_curnodes, str, i + 1);
+					g_curdepth + 1, g_curnodes, nps, elapsed, str, i + 1);
 			fflush(stdout);
 			free(str);
 		}
