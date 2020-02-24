@@ -1,23 +1,39 @@
 /* ************************************************************************** */
 /*                                                          LE - /            */
 /*                                                              /             */
-/*   uci_quit.c                                       .::    .:/ .      .::   */
+/*   psq_score.h                                      .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2020/02/23 19:45:45 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/23 20:19:52 by stash       ###    #+. /#+    ###.fr     */
+/*   Created: 2020/02/18 15:01:58 by stash        #+#   ##    ##    #+#       */
+/*   Updated: 2020/02/19 16:52:53 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#include "uci.h"
+#ifndef PSQ_SCORE_H
+# define PSQ_SCORE_H
 
-void	uci_quit(const char *args)
+# include "piece.h"
+# include "score.h"
+# include "square.h"
+
+enum
 {
-	(void)args;
-	pthread_mutex_lock(&g_engine_mutex);
-	g_engine_send = DO_ABORT;
-	pthread_mutex_unlock(&g_engine_mutex);
-	pthread_cond_signal(&g_engine_condvar);
-}
+	PAWN_MG_SCORE = 100,
+	KNIGHT_MG_SCORE = 300,
+	BISHOP_MG_SCORE = 330,
+	ROOK_MG_SCORE = 500,
+	QUEEN_MG_SCORE = 900,
+
+	PAWN_EG_SCORE = 200,
+	KNIGHT_EG_SCORE = 600,
+	BISHOP_EG_SCORE = 660,
+	ROOK_EG_SCORE = 1000,
+	QUEEN_EG_SCORE = 1800
+};
+
+extern score_t		PieceScores[PHASE_NB][PIECE_NB];
+extern scorepair_t	PsqScore[PIECE_NB][SQUARE_NB];
+
+#endif

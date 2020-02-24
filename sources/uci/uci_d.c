@@ -3,33 +3,38 @@
 /*                                                              /             */
 /*   uci_d.c                                          .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
-/*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
+/*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2019/10/30 23:14:52 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/12/13 15:14:15 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Created: 2020/02/22 18:27:38 by stash        #+#   ##    ##    #+#       */
+/*   Updated: 2020/02/23 20:19:05 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#include "engine.h"
 #include <stdio.h>
+#include "board.h"
 
 void	uci_d(const char *args)
 {
 	(void)args;
-	const char	*pretty = "+---+---+---+---+---+---+---+---+";
-	const char	*pmagic = " PNBRQK\0\0pnbrqk";
+	extern const board_t	g_board;
+	const char				*grid = "+---+---+---+---+---+---+---+---+";
+	const char				*piece_to_char = " PNBRQK  pnbrqk";
 
-	puts(pretty);
+	puts(grid);
 
-	for (int8_t rank = RANK_8; rank >= RANK_1; --rank)
+	for (file_t rank = RANK_8; rank >= RANK_1; --rank)
 	{
-		for (int8_t file = FILE_A; file <= FILE_H; ++file)
-		{
-			printf("| %c ", pmagic[g_real_board.table[(rank << 3) + file]]);
-		}
+		for (file_t file = FILE_A; file <= FILE_H; ++file)
+			printf("| %c ", piece_to_char[piece_on(&g_board,
+				create_square(file, rank))]);
+
 		puts("|");
-		puts(pretty);
+		puts(grid);
 	}
-	printf("Eval: %d on midgame, %d on endgame\n", g_real_board.mscore, g_real_board.escore);
+	printf("Eval: %d on midgame, %d on endgame\n",
+		(int)midgame_score(g_board.psq_scorepair),
+		(int)endgame_score(g_board.psq_scorepair));
+
+	fflush(stdout);
 }

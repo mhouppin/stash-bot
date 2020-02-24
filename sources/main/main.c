@@ -3,38 +3,47 @@
 /*                                                              /             */
 /*   main.c                                           .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
-/*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
+/*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2019/10/28 14:24:59 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/30 23:41:57 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Created: 2020/02/19 18:55:11 by stash        #+#   ##    ##    #+#       */
+/*   Updated: 2020/02/24 08:20:50 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#include "uci.h"
+#include "init.h"
 #include <pthread.h>
 #include <stdio.h>
 
 int		main(void)
 {
+	bitboard_init();
+	psq_score_init();
+	zobrist_init();
+
 	pthread_t	uci_pt;
 	pthread_t	engine_pt;
 
 	if (pthread_create(&uci_pt, NULL, &uci_thread, NULL))
 	{
 		perror("Failed to boot UCI thread");
-		return (2);
+		return (1);
 	}
 	if (pthread_create(&engine_pt, NULL, &engine_thread, NULL))
 	{
 		perror("Failed to boot engine thread");
-		return (2);
+		return (1);
 	}
 	if (pthread_join(uci_pt, NULL))
 	{
 		perror("Failed to wait for UCI thread");
-		return (2);
+		return (1);
 	}
-	pthread_cancel(engine_pt);
+	if (pthread_join(engine_pt, NULL))
+	{
+		perror("Failed to wait for engine thread");
+		return (1);
+	}
+
 	return (0);
 }

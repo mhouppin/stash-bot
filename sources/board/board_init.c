@@ -1,26 +1,14 @@
 /* ************************************************************************** */
 /*                                                          LE - /            */
 /*                                                              /             */
-/*   settings.h                                       .::    .:/ .      .::   */
+/*   board_init.c                                     .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
-/*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
+/*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2019/10/28 15:11:00 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/17 16:18:34 by stash       ###    #+. /#+    ###.fr     */
+/*   Created: 2020/02/19 19:46:56 by stash        #+#   ##    ##    #+#       */
+/*   Updated: 2020/02/19 19:55:51 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#ifndef SETTINGS_H
-# define SETTINGS_H
-
-# include <pthread.h>
-# include <time.h>
-# include <stddef.h>
-
-extern size_t			g_hash;
-extern int				g_multipv;
-extern clock_t			g_mintime;
-extern clock_t			g_overhead;
-
-#endif
+void	board_init(void){}

@@ -1,23 +1,39 @@
 /* ************************************************************************** */
 /*                                                          LE - /            */
 /*                                                              /             */
-/*   uci_quit.c                                       .::    .:/ .      .::   */
+/*   castling.h                                       .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2020/02/23 19:45:45 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/23 20:19:52 by stash       ###    #+. /#+    ###.fr     */
+/*   Created: 2020/02/18 15:39:31 by stash        #+#   ##    ##    #+#       */
+/*   Updated: 2020/02/18 15:43:15 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#include "uci.h"
+#ifndef CASTLING_H
+# define CASTLING_H
 
-void	uci_quit(const char *args)
+# include "color.h"
+# include "inlining.h"
+
+enum
 {
-	(void)args;
-	pthread_mutex_lock(&g_engine_mutex);
-	g_engine_send = DO_ABORT;
-	pthread_mutex_unlock(&g_engine_mutex);
-	pthread_cond_signal(&g_engine_condvar);
+	WHITE_OO = 1,
+	WHITE_OOO = 2,
+	WHITE_CASTLING = 3,
+	BLACK_OO = 4,
+	KINGSIDE_CASTLING = 5,
+	BLACK_OOO = 8,
+	QUEENSIDE_CASTLING = 10,
+	BLACK_CASTLING = 12,
+	ANY_CASTLING = 15,
+	CASTLING_NB = 16
+};
+
+INLINED int	has_castling(color_t color, int castlings)
+{
+	return (castlings & (color == WHITE ? WHITE_CASTLING : BLACK_CASTLING));
 }
+
+#endif

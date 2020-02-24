@@ -3,20 +3,21 @@
 /*                                                              /             */
 /*   uci_stop.c                                       .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
-/*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
+/*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2019/10/30 09:40:35 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/31 19:49:42 by stash       ###    #+. /#+    ###.fr     */
+/*   Created: 2020/02/23 19:46:37 by stash        #+#   ##    ##    #+#       */
+/*   Updated: 2020/02/23 20:20:07 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#include "engine.h"
+#include "uci.h"
 
 void	uci_stop(const char *args)
 {
 	(void)args;
-	pthread_mutex_lock(&mtx_engine);
+	pthread_mutex_lock(&g_engine_mutex);
 	g_engine_send = DO_EXIT;
-	pthread_mutex_unlock(&mtx_engine);
+	pthread_mutex_unlock(&g_engine_mutex);
+	pthread_cond_signal(&g_engine_condvar);
 }

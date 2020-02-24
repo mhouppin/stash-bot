@@ -1,29 +1,24 @@
 /* ************************************************************************** */
 /*                                                          LE - /            */
 /*                                                              /             */
-/*   formatting.h                                     .::    .:/ .      .::   */
+/*   init.h                                           .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
-/*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
+/*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2019/10/28 14:13:28 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/30 23:41:35 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Created: 2020/02/19 16:48:52 by stash        #+#   ##    ##    #+#       */
+/*   Updated: 2020/02/22 18:17:53 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#ifndef FORMATTING_H
-# define FORMATTING_H
+#ifndef INIT_H
+# define INIT_H
 
-# if defined(_WIN32) || defined(_WIN64)
+void	*uci_thread(void *nothing);
+void	*engine_thread(void *nothing);
 
-// Windows has some weird format strings for size_t
-
-#  define SIZE_FORMAT "%I64u"
-
-# else // Assume standard size_t format
-
-#  define SIZE_FORMAT "%zu"
-
-# endif
+void	bitboard_init(void);
+void	psq_score_init(void);
+void	zobrist_init(void);
 
 #endif

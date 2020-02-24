@@ -1,24 +1,23 @@
 /* ************************************************************************** */
 /*                                                          LE - /            */
 /*                                                              /             */
-/*   uci_thread.c                                     .::    .:/ .      .::   */
+/*   uci.c                                            .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
-/*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
+/*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2019/10/28 14:22:56 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/17 16:22:16 by stash       ###    #+. /#+    ###.fr     */
+/*   Created: 2020/02/22 18:19:46 by stash        #+#   ##    ##    #+#       */
+/*   Updated: 2020/02/24 13:33:50 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
 #include "uci.h"
-#include "engine.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-const t_cmdlink	commands[] =
+const cmdlink_t	commands[] =
 {
 	{"d", &uci_d},
 	{"go", &uci_go},
@@ -50,7 +49,6 @@ void	*uci_thread(void *nothing __attribute__((unused)))
 			if (strcmp(commands[i].cmd_name, cmd) == 0)
 			{
 				commands[i].call(strtok(NULL, ""));
-				fflush(stdout);
 				break ;
 			}
 		}
@@ -59,16 +57,9 @@ void	*uci_thread(void *nothing __attribute__((unused)))
 			break ;
 	}
 
-	usleep(1000);
-	pthread_mutex_lock(&mtx_engine);
-	while (g_engine_mode != WAITING)
-	{
-		pthread_mutex_unlock(&mtx_engine);
-		usleep(1000);
-		pthread_mutex_lock(&mtx_engine);
-	}
-	pthread_mutex_unlock(&mtx_engine);
+	uci_quit(NULL);
 
 	free(line);
 	return (NULL);
 }
+

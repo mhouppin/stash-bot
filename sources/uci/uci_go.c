@@ -3,127 +3,128 @@
 /*                                                              /             */
 /*   uci_go.c                                         .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
-/*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
+/*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2019/10/30 09:36:18 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/11/22 17:06:40 by stash       ###    #+. /#+    ###.fr     */
+/*   Created: 2020/02/22 18:32:36 by stash        #+#   ##    ##    #+#       */
+/*   Updated: 2020/02/24 10:36:47 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#include "engine.h"
-#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include "info.h"
+#include "movelist.h"
+#include "uci.h"
 
 void	uci_go(const char *args)
 {
-	if (pthread_mutex_lock(&mtx_engine))
+	const char	*delim = " \t\n";
+
+	if (pthread_mutex_lock(&g_engine_mutex))
 	{
 		perror("Unable to launch engine");
+		fflush(stderr);
 		return ;
 	}
 
 	if (g_engine_mode == THINKING)
 	{
-		pthread_mutex_unlock(&mtx_engine);
-		fputs("Engine is already thinking: please send 'stop' command before"
-				" sending 'go' command", stderr);
+		pthread_mutex_unlock(&g_engine_mutex);
+		fputs("Engine already thinking", stderr);
+		fflush(stderr);
 		return ;
 	}
 
+	extern movelist_t	g_searchmoves;
+	extern board_t		g_board;
+
 	g_engine_send = DO_THINK;
-	g_wtime = NO_TIME;
-	g_btime = NO_TIME;
-	g_winc = NO_INCREMENT;
-	g_binc = NO_INCREMENT;
-	g_movestogo = NO_MOVESTOGO;
-	g_depth = NO_DEPTH;
-	g_nodes = SIZE_MAX;
-	g_mate = NO_MATE;
-	g_movetime = NO_MOVETIME;
-	g_infinite = NO_INFINITE;
-	g_searchmoves = NULL;
+	memset(&g_goparams, 0, sizeof(goparams_t));
+	list_all(&g_searchmoves, &g_board);
+
+	for (size_t i = 0; i < movelist_size(&g_searchmoves); ++i)
+		printf("%s ", move_to_str(g_searchmoves.moves[i].move, false));
+	puts("");
 
 	char	*copy = strdup(args ? args : "");
-	char	*token;
-
-	token = strtok(copy, " \t\n");
+	char	*token = strtok(copy, delim);
 
 	while (token)
 	{
 		if (strcmp(token, "searchmoves") == 0)
 		{
-			token = strtok(NULL, " \t\n");
-			g_searchmoves = movelist_init();
+			token = strtok(NULL, delim);
+			extmove_t	*m = g_searchmoves.moves;
 			while (token)
 			{
-				push_move(g_searchmoves, str_to_move(token));
-				token = strtok(NULL, " \t\n");
+				(m++)->move = str_to_move(&g_board, token);
+				token = strtok(NULL, delim);
 			}
 			break ;
 		}
 		else if (strcmp(token, "wtime") == 0)
 		{
-			token = strtok(NULL, " \t\n");
+			token = strtok(NULL, delim);
 			if (token)
-				g_wtime = (clock_t)atoll(token);
+				g_goparams.wtime = (clock_t)atoll(token);
 		}
 		else if (strcmp(token, "btime") == 0)
 		{
-			token = strtok(NULL, " \t\n");
+			token = strtok(NULL, delim);
 			if (token)
-				g_btime = (clock_t)atoll(token);
+				g_goparams.btime = (clock_t)atoll(token);
 		}
 		else if (strcmp(token, "winc") == 0)
 		{
-			token = strtok(NULL, " \t\n");
+			token = strtok(NULL, delim);
 			if (token)
-				g_winc = (clock_t)atoll(token);
+				g_goparams.winc = (clock_t)atoll(token);
 		}
 		else if (strcmp(token, "binc") == 0)
 		{
-			token = strtok(NULL, " \t\n");
+			token = strtok(NULL, delim);
 			if (token)
-				g_binc = (clock_t)atoll(token);
+				g_goparams.binc = (clock_t)atoll(token);
 		}
 		else if (strcmp(token, "movestogo") == 0)
 		{
-			token = strtok(NULL, " \t\n");
+			token = strtok(NULL, delim);
 			if (token)
-				g_movestogo = atoi(token);
+				g_goparams.movestogo = atoi(token);
 		}
 		else if (strcmp(token, "depth") == 0)
 		{
-			token = strtok(NULL, " \t\n");
+			token = strtok(NULL, delim);
 			if (token)
-				g_depth = atoi(token);
+				g_goparams.depth = atoi(token);
 		}
 		else if (strcmp(token, "nodes") == 0)
 		{
-			token = strtok(NULL, " \t\n");
+			token = strtok(NULL, delim);
 			if (token)
-				g_nodes = (size_t)atoll(token);
+				g_goparams.nodes = (size_t)atoll(token);
 		}
 		else if (strcmp(token, "mate") == 0)
 		{
-			token = strtok(NULL, " \t\n");
+			token = strtok(NULL, delim);
 			if (token)
-				g_mate = atoi(token);
+				g_goparams.mate = atoi(token);
 		}
 		else if (strcmp(token, "movetime") == 0)
 		{
-			token = strtok(NULL, " \t\n");
+			token = strtok(NULL, delim);
 			if (token)
-				g_movetime = (clock_t)atoll(token);
+				g_goparams.movetime = (clock_t)atoll(token);
 		}
 		else if (strcmp(token, "infinite") == 0)
-			g_infinite = OK_INFINITE;
+			g_goparams.infinite = 1;
 
-		token = strtok(NULL, " \t\n");
+		token = strtok(NULL, delim);
 	}
 
-	pthread_mutex_unlock(&mtx_engine);
-	pthread_cond_signal(&cv_engine);
+	pthread_mutex_unlock(&g_engine_mutex);
+	pthread_cond_signal(&g_engine_condvar);
 	free(copy);
 }

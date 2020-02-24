@@ -1,23 +1,28 @@
 /* ************************************************************************** */
 /*                                                          LE - /            */
 /*                                                              /             */
-/*   uci_quit.c                                       .::    .:/ .      .::   */
+/*   hashkey.h                                        .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2020/02/23 19:45:45 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/23 20:19:52 by stash       ###    #+. /#+    ###.fr     */
+/*   Created: 2020/02/18 15:54:21 by stash        #+#   ##    ##    #+#       */
+/*   Updated: 2020/02/19 18:18:19 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#include "uci.h"
+#ifndef HASHKEY_H
+# define HASHKEY_H
 
-void	uci_quit(const char *args)
-{
-	(void)args;
-	pthread_mutex_lock(&g_engine_mutex);
-	g_engine_send = DO_ABORT;
-	pthread_mutex_unlock(&g_engine_mutex);
-	pthread_cond_signal(&g_engine_condvar);
-}
+# include "castling.h"
+# include "piece.h"
+# include "square.h"
+
+typedef uint64_t	hashkey_t;
+
+extern hashkey_t	ZobristPsq[PIECE_NB][SQUARE_NB];
+extern hashkey_t	ZobristEnPassant[FILE_NB];
+extern hashkey_t	ZobristCastling[CASTLING_NB];
+extern hashkey_t	ZobristBlackToMove;
+
+#endif

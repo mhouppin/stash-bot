@@ -3,53 +3,39 @@
 /*                                                              /             */
 /*   globals.c                                        .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
-/*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
+/*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2019/10/30 13:59:36 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/17 16:18:55 by stash       ###    #+. /#+    ###.fr     */
+/*   Created: 2020/02/21 18:36:25 by stash        #+#   ##    ##    #+#       */
+/*   Updated: 2020/02/23 20:11:15 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#include "settings.h"
-#include "engine.h"
+#include "info.h"
+#include "uci.h"
 
-size_t			g_hash = 16ul * 1048576ul;
-int				g_multipv = 1;
-clock_t			g_mintime = 20ul;
-clock_t			g_overhead = 20ul;
+board_t				g_board;
+pthread_cond_t		g_engine_condvar;
+enum e_egn_mode		g_engine_mode;
+pthread_mutex_t		g_engine_mutex;
+enum e_egn_send		g_engine_send;
+goparams_t			g_goparams;
+uint64_t			g_nodes;
+ucioptions_t		g_options;
+movelist_t			g_searchmoves;
 
-// Begin mtx_engine
-pthread_mutex_t	mtx_engine = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t	cv_engine = PTHREAD_COND_INITIALIZER;
+void __attribute__((constructor))	init_globals(void)
+{
+	pthread_cond_init(&g_engine_condvar, NULL);
+	pthread_mutex_init(&g_engine_mutex, NULL);
 
-enum e_egn_mode	g_engine_mode = WAITING;
-enum e_egn_send	g_engine_send = DO_NOTHING;
-//move_t		*g_searchmoves = NULL;
-clock_t			g_wtime = NO_TIME;
-clock_t			g_btime = NO_TIME;
-clock_t			g_winc = NO_INCREMENT;
-clock_t			g_binc = NO_INCREMENT;
-int				g_movestogo = NO_MOVESTOGO;
-int				g_depth = NO_DEPTH;
-int				g_curdepth = NO_DEPTH;
-size_t			g_nodes = SIZE_MAX;
-_Atomic size_t	g_curnodes = 0;
-int				g_mate = NO_MATE;
-clock_t			g_start = 0;
-clock_t			g_movetime = NO_MOVETIME;
-int				g_infinite = NO_INFINITE;
+	g_engine_mode = WAITING;
+	g_engine_send = DO_NOTHING;
 
-board_t			g_init_board = {{0}, 0, 0, 0, 0, 0, 0, 0};
-movelist_t		*g_inter_moves = NULL;
-board_t			g_real_board = {{0}, 0, 0, 0, 0, 0, 0, 0};
-movelist_t		*g_searchmoves = NULL;
-int16_t			*g_valuemoves = NULL;
-// End mtx_engine
+	g_nodes = 0;
 
-// Begin mtx_hashtable
-pthread_mutex_t	mtx_hashtable = PTHREAD_MUTEX_INITIALIZER;
-void			**g_hashtable = NULL;
-size_t			g_hash_memory = 0;
-size_t			g_hash_size = 0;
-// End mtx_hashtable
+	g_options.hash = 16 * 1048576ul;
+	g_options.move_overhead = 20;
+	g_options.multi_pv = 1;
+	g_options.min_think_time = 20;
+}

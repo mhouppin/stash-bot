@@ -1,23 +1,34 @@
 /* ************************************************************************** */
 /*                                                          LE - /            */
 /*                                                              /             */
-/*   uci_quit.c                                       .::    .:/ .      .::   */
+/*   sort_moves.c                                     .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2020/02/23 19:45:45 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/23 20:19:52 by stash       ###    #+. /#+    ###.fr     */
+/*   Created: 2020/02/23 21:56:34 by stash        #+#   ##    ##    #+#       */
+/*   Updated: 2020/02/23 22:00:53 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#include "uci.h"
+#include "movelist.h"
+#include <unistd.h>
 
-void	uci_quit(const char *args)
+void	sort_moves(extmove_t *begin, extmove_t *end)
 {
-	(void)args;
-	pthread_mutex_lock(&g_engine_mutex);
-	g_engine_send = DO_ABORT;
-	pthread_mutex_unlock(&g_engine_mutex);
-	pthread_cond_signal(&g_engine_condvar);
+	const size_t	size = (size_t)(end - begin);
+
+	for (size_t gap = size / 2; gap > 0; gap /= 2)
+		for (size_t start = gap; start < size; ++start)
+			for (ssize_t i = (ssize_t)(start - gap); i >= 0; i -= gap)
+			{
+				if (begin[i + gap].score <= begin[i].score)
+					break ;
+				else
+				{
+					extmove_t	tmp = begin[i + gap];
+					begin[i + gap] = begin[i];
+					begin[i] = tmp;
+				}
+			}
 }

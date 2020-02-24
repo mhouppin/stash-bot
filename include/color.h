@@ -1,23 +1,34 @@
 /* ************************************************************************** */
 /*                                                          LE - /            */
 /*                                                              /             */
-/*   uci_quit.c                                       .::    .:/ .      .::   */
+/*   color.h                                          .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2020/02/23 19:45:45 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/23 20:19:52 by stash       ###    #+. /#+    ###.fr     */
+/*   Created: 2020/02/18 14:38:16 by stash        #+#   ##    ##    #+#       */
+/*   Updated: 2020/02/19 13:49:18 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#include "uci.h"
+#ifndef COLOR_H
+# define COLOR_H
 
-void	uci_quit(const char *args)
+# include <stdint.h>
+# include "inlining.h"
+
+typedef int8_t	color_t;
+
+enum
 {
-	(void)args;
-	pthread_mutex_lock(&g_engine_mutex);
-	g_engine_send = DO_ABORT;
-	pthread_mutex_unlock(&g_engine_mutex);
-	pthread_cond_signal(&g_engine_condvar);
+	WHITE,
+	BLACK,
+	COLOR_NB = 2
+};
+
+INLINED color_t		opposite_color(color_t color)
+{
+	return (color ^ BLACK);
 }
+
+#endif

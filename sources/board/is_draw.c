@@ -1,23 +1,36 @@
 /* ************************************************************************** */
 /*                                                          LE - /            */
 /*                                                              /             */
-/*   uci_quit.c                                       .::    .:/ .      .::   */
+/*   is_draw.c                                        .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2020/02/23 19:45:45 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/23 20:19:52 by stash       ###    #+. /#+    ###.fr     */
+/*   Created: 2020/02/22 17:32:49 by stash        #+#   ##    ##    #+#       */
+/*   Updated: 2020/02/22 17:38:53 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#include "uci.h"
+#include "board.h"
+#include "movelist.h"
 
-void	uci_quit(const char *args)
+bool	is_draw(const board_t *board, int ply)
 {
-	(void)args;
-	pthread_mutex_lock(&g_engine_mutex);
-	g_engine_send = DO_ABORT;
-	pthread_mutex_unlock(&g_engine_mutex);
-	pthread_cond_signal(&g_engine_condvar);
+	if (board->stack->rule50 > 99)
+	{
+		if (!board->stack->checkers)
+			return (true);
+
+		movelist_t	movelist;
+
+		list_all(&movelist, board);
+
+		if (movelist_size(&movelist) != 0)
+			return (true);
+	}
+
+	if (board->stack->repetition && board->stack->repetition < ply)
+		return (true);
+
+	return (false);
 }

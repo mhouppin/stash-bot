@@ -1,19 +1,22 @@
 /* ************************************************************************** */
 /*                                                          LE - /            */
 /*                                                              /             */
-/*   push_move.c                                      .::    .:/ .      .::   */
+/*   inlining.h                                       .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
-/*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
+/*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2019/10/30 22:09:46 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/31 05:59:47 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Created: 2020/02/18 14:34:29 by stash        #+#   ##    ##    #+#       */
+/*   Updated: 2020/02/18 14:36:33 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#include "engine.h"
+#ifndef INLINING_H
+# define INLINING_H
 
-void	push_move(movelist_t *mlist, move_t move)
-{
-	mlist->moves[mlist->size++] = move;
-}
+// Workaround to avoid problems with duplicated function symbols,
+// when -finline is disabled or when a function inlining fails.
+
+# define INLINED	static inline
+
+#endif

@@ -1,23 +1,27 @@
 /* ************************************************************************** */
 /*                                                          LE - /            */
 /*                                                              /             */
-/*   pop_move.c                                       .::    .:/ .      .::   */
+/*   random.h                                         .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
-/*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
+/*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2019/10/31 01:28:08 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2019/10/31 06:42:28 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Created: 2020/02/21 16:40:36 by stash        #+#   ##    ##    #+#       */
+/*   Updated: 2020/02/21 16:42:08 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#include "engine.h"
-#include <string.h>
+#ifndef RANDOM_H
+# define RANDOM_H
 
-void	pop_move(movelist_t *mlist, size_t index)
+# include <stdint.h>
+# include <stdlib.h>
+
+uint64_t	qrandom(void)
 {
-	mlist->size -= 1;
-	memmove(mlist->moves + index,
-			mlist->moves + index + 1,
-			(mlist->size - index) * sizeof(move_t));
+	return (((uint64_t)random() << 43)
+		^ ((uint64_t)random() << 21)
+		^ (uint64_t)random());
 }
+
+#endif

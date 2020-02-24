@@ -3,72 +3,58 @@
 #                                                               /              #
 #    Makefile                                         .::    .:/ .      .::    #
 #                                                  +:+:+   +:    +:  +:+:+     #
-#    By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+      #
+#    By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+      #
 #                                                  #+#   #+    #+    #+#       #
-#    Created: 2019/10/28 13:18:56 by mhouppin     #+#   ##    ##    #+#        #
-#    Updated: 2020/02/17 16:22:53 by stash       ###    #+. /#+    ###.fr      #
+#    Created: 2020/02/19 11:07:40 by stash        #+#   ##    ##    #+#        #
+#    Updated: 2020/02/24 13:30:18 by stash       ###    #+. /#+    ###.fr      #
 #                                                          /                   #
 #                                                         /                    #
 # **************************************************************************** #
 
-NAME	:= stash-bot
+NAME := stash-bot
 
-SOURCES	:= \
-	sources/misc/globals.c \
-	sources/main/main.c \
-	sources/engine/movelist_init.c \
-	sources/engine/analysis_thread.c \
-	sources/engine/engine_thread.c \
-	sources/engine/str_to_move.c \
-	sources/engine/movelist_quit.c \
-	sources/engine/move_to_str.c \
-	sources/engine/launch_analyse.c \
-	sources/engine/is_checked.c \
-	sources/engine/do_move.c \
-	sources/engine/get_simple_moves.c \
-	sources/engine/get_piece_moves.c \
-	sources/engine/push_move.c \
-	sources/engine/pop_move.c \
-	sources/uci/uci_thread.c \
-	sources/uci/uci_position.c \
-	sources/uci/uci_isready.c \
-	sources/uci/uci_ucinewgame.c \
-	sources/uci/uci_go.c \
-	sources/uci/uci_d.c \
-	sources/uci/uci_quit.c \
-	sources/uci/uci_uci.c \
-	sources/uci/uci_setoption.c \
-	sources/uci/uci_stop.c
-
+SOURCES	:= $(wildcard sources/*/*.c)
 OBJECTS	:= $(SOURCES:sources/%.c=objects/%.o)
-DEPENDS	:= $(SOURCES:sources/%.c=objects/%.d)
+DEPENDS := $(SOURCES:sources/%.c=objects/%.d)
 
-WFLAGS	:= -Wall -Wextra
-OFLAGS	:= -O3 -march=native
-EXT_OFLAGS?=
-DFLAGS	:= #-g3 #-fsanitize=address
-LFLAGS	:= -lpthread -lm
-EXT_LFLAGS?=
+OFLAGS	:= -O3
+
+EXT_OFLAGS	?=
+EXT_LFLAGS	?=
+
+ifeq ($(ARCH),x86-64)
+	OFLAGS += -DUSE_PREFETCH -msse
+endif
+
+ifeq ($(ARCH),x86-64-modern)
+	OFLAGS += -DUSE_PREFETCH -msse
+	OFLAGS += -DUSE_POPCNT -msse3 -mpopcnt
+endif
+
+ifeq ($(ARCH),x86-64-bmi2)
+	OFLAGS += -DUSE_PREFETCH -msse
+	OFLAGS += -DUSE_POPCNT -msse3 -mpopcnt
+	OFLAGS += -DUSE_PEXT -msse4 -mbmi2
+endif
 
 all: $(NAME)
 
 $(NAME): $(OBJECTS)
-	$(CC) -o $@ $^ $(DFLAGS) $(LFLAGS) $(EXT_LFLAGS)
+	$(CC) $(OFLAGS) -o $@ $^ -lpthread -lm $(EXT_OFLAGS) $(EXT_LFLAGS)
 
-objects/%.o: sources/%.c Makefile
+objects/%.o: sources/%.c
 	@if test ! -d $(dir $@); then mkdir -p $(dir $@); fi
-	$(CC) $(WFLAGS) $(OFLAGS) $(EXT_OFLAGS) $(DFLAGS) \
-		-c -MMD -I include -o $@ $<
+	$(CC) $(OFLAGS) $(EXT_OFLAGS) -Wall -Wextra -Werror -c -MMD -I include \
+		-o $@ $<
 
 -include $(DEPENDS)
 
 clean:
+	rm -f $(OBJECTS)
+	rm -f $(DEPENDS)
 	rm -rf objects
 
 fclean: clean
 	rm -f $(NAME)
 
 re: fclean all
-
-.PHONY: all clean fclean re
-

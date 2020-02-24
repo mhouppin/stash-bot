@@ -1,23 +1,30 @@
 /* ************************************************************************** */
 /*                                                          LE - /            */
 /*                                                              /             */
-/*   uci_quit.c                                       .::    .:/ .      .::   */
+/*   generate_queen_moves.c                           .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2020/02/23 19:45:45 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/23 20:19:52 by stash       ###    #+. /#+    ###.fr     */
+/*   Created: 2020/02/19 14:39:14 by stash        #+#   ##    ##    #+#       */
+/*   Updated: 2020/02/19 14:41:35 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#include "uci.h"
+#include "movelist.h"
 
-void	uci_quit(const char *args)
+extmove_t	*generate_queen_moves(extmove_t *movelist, const board_t *board,
+			color_t us, bitboard_t target)
 {
-	(void)args;
-	pthread_mutex_lock(&g_engine_mutex);
-	g_engine_send = DO_ABORT;
-	pthread_mutex_unlock(&g_engine_mutex);
-	pthread_cond_signal(&g_engine_condvar);
+	const square_t	*piecelist = board->piece_list[create_piece(us, QUEEN)];
+
+	for (square_t from = *piecelist; from != SQ_NONE; from = *++piecelist)
+	{
+		bitboard_t	b = queen_moves(board, from) & target;
+
+		while (b)
+			(movelist++)->move = create_move(from, pop_first_square(&b));
+	}
+
+	return (movelist);
 }

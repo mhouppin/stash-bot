@@ -1,25 +1,29 @@
 /* ************************************************************************** */
 /*                                                          LE - /            */
 /*                                                              /             */
-/*   movelist_quit.c                                  .::    .:/ .      .::   */
+/*   score.c                                          .::    .:/ .      .::   */
 /*                                                 +:+:+   +:    +:  +:+:+    */
-/*   By: mhouppin <mhouppin@student.le-101.>        +:+   +:    +:    +:+     */
+/*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2019/10/30 22:12:52 by mhouppin     #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/17 08:15:16 by stash       ###    #+. /#+    ###.fr     */
+/*   Created: 2020/02/23 21:53:03 by stash        #+#   ##    ##    #+#       */
+/*   Updated: 2020/02/23 21:56:24 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#include "engine.h"
+#include <stdio.h>
 #include <stdlib.h>
+#include "score.h"
 
-void	movelist_quit(movelist_t *mlist)
+const char	*score_to_str(score_t score)
 {
-	if (mlist)
-	{
-		free(mlist->moves);
-		free(mlist->values);
-		free(mlist);
-	}
+	static char	buf[12];
+
+	if (abs(score) >= MATE_FOUND)
+		sprintf(buf, "mate %d", (score > 0 ? MATE - score + 1 : -MATE - score)
+			/ 2);
+	else
+		sprintf(buf, "cp %d", score);
+
+	return (buf);
 }
