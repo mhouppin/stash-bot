@@ -44,10 +44,6 @@ void	uci_go(const char *args)
 	memset(&g_goparams, 0, sizeof(goparams_t));
 	list_all(&g_searchmoves, &g_board);
 
-	for (size_t i = 0; i < movelist_size(&g_searchmoves); ++i)
-		printf("%s ", move_to_str(g_searchmoves.moves[i].move, false));
-	puts("");
-
 	char	*copy = strdup(args ? args : "");
 	char	*token = strtok(copy, delim);
 

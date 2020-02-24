@@ -57,6 +57,15 @@ void	*uci_thread(void *nothing __attribute__((unused)))
 			break ;
 	}
 
+	usleep(10000);
+	pthread_mutex_lock(&g_engine_mutex);
+	while (g_engine_mode != WAITING)
+	{
+		pthread_mutex_unlock(&g_engine_mutex);
+		usleep(1000);
+		pthread_mutex_lock(&g_engine_mutex);
+	}
+	pthread_mutex_unlock(&g_engine_mutex);
 	uci_quit(NULL);
 
 	free(line);

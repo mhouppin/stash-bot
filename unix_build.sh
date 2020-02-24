@@ -10,4 +10,5 @@ EOF
 rm $(find objects \( -name "*.o" \) )
 
 make EXT_OFLAGS="-fprofile-use -fno-peel-loops -fno-tracer -flto" \
-	EXT_LFLAGS="-fprofile-use -fno-peel-loops -fno-tracer -lgcov -flto"
+	EXT_LFLAGS="-fprofile-use -fno-peel-loops -fno-tracer -lgcov -flto" \
+	ARCH="$ARCH"
