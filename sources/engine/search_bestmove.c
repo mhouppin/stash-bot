@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/23 22:01:23 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/24 13:40:48 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/24 14:14:46 by mhouppin         ###   ########lyon.fr   */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -136,7 +136,7 @@ void	search_bestmove(board_t *board, int depth, size_t pv_line,
 
 			printf("info depth %d nodes " SIZE_FORMAT " nps " SIZE_FORMAT
 				" time %lu currmove %s currmovenumber " SIZE_FORMAT "\n",
-				depth + 1, g_nodes, nps, elapsed,
+				depth + 1, (size_t)g_nodes, nps, elapsed,
 				move_to_str(g_searchmoves.moves[i].move, board->chess960),
 				i + 1);
 			fflush(stdout);
