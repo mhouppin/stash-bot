@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/19 13:48:02 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/24 10:57:26 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/24 16:49:05 by mhouppin    ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -88,7 +88,7 @@ void	magic_init(bitboard_t *table, magic_t *magics,
 
 #ifndef USE_PEXT
 
-		srandom(17);
+		srand(17);
 
 		for (int i = 0; i < size; )
 		{
