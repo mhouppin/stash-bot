@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/22 18:32:36 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/24 10:36:47 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/27 13:50:17 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -58,6 +58,7 @@ void	uci_go(const char *args)
 				(m++)->move = str_to_move(&g_board, token);
 				token = strtok(NULL, delim);
 			}
+			g_searchmoves.last = m;
 			break ;
 		}
 		else if (strcmp(token, "wtime") == 0)

@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/18 14:47:33 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/19 16:52:43 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/02/27 13:45:50 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -47,11 +47,11 @@ INLINED score_t		endgame_score(scorepair_t pair)
 	return ((score_t)(uint16_t)(uint32_t)pair);
 }
 
-#define SPAIR(mg, eg) ((scorepair_t)((uint32_t)(eg) << 16) + (mg))
+#define SPAIR(mg, eg) ((scorepair_t)((uint32_t)(mg) << 16) + (eg))
 
 INLINED scorepair_t	create_scorepair(score_t midgame, score_t endgame)
 {
-	return ((scorepair_t)((uint32_t)endgame << 16) + midgame);
+	return ((scorepair_t)((uint32_t)midgame << 16) + endgame);
 }
 
 INLINED scorepair_t	scorepair_multiply(scorepair_t s, int i)
