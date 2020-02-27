@@ -18,11 +18,13 @@
 
 uint64_t	qrandom(void)
 {
-	return (((uint64_t)rand() << 51)
-		^ ((uint64_t)rand() << 38)
-		^ ((uint64_t)rand() << 25)
-		^ ((uint64_t)rand() << 12)
-		^ (uint64_t)rand());
+	static uint64_t	seed = 1048592;
+
+	seed ^= seed << 13;
+	seed ^= seed >> 7;
+	seed ^= seed << 17;
+
+	return (seed);
 }
 
 #endif
