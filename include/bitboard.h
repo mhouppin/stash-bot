@@ -14,7 +14,12 @@
 #ifndef BITBOARD_H
 # define BITBOARD_H
 
-# include <immintrin.h>
+# if (defined(USE_PREFETCH) || defined(USE_POPCNT) || defined(USE_PEXT))
+// Do not include the header if unspecified, because some compilers might
+// not have it.
+#  include <immintrin.h>
+# endif
+
 # include <stdbool.h>
 # include <stdint.h>
 # include "inlining.h"
