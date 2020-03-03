@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/23 22:28:26 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/23 22:33:03 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/03/02 12:04:06 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -15,7 +15,8 @@
 
 enum
 {
-	CastlingBonus = SPAIR(100, 0)
+	CastlingBonus = SPAIR(100, 0),
+	Initiative = 15
 };
 
 score_t		evaluate(const board_t *board)
@@ -37,5 +38,5 @@ score_t		evaluate(const board_t *board)
 	else
 		score = (eg * (32 - piece_count) + mg * (piece_count - 16)) / 16;
 
-	return (board->side_to_move == WHITE ? score : -score);
+	return (Initiative + (board->side_to_move == WHITE ? score : -score));
 }

@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/23 22:01:23 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/24 14:14:46 by mhouppin         ###   ########lyon.fr   */
+/*   Updated: 2020/03/02 15:46:40 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -18,7 +18,9 @@
 #include "movelist.h"
 #include "uci.h"
 
-score_t	alpha_beta(board_t *board, int max_depth, score_t alpha, score_t beta,
+int		g_seldepth;
+
+score_t	qsearch(board_t *board, int max_depth, score_t alpha, score_t beta,
 		clock_t end, int cur_depth)
 {
 	extern goparams_t	g_goparams;
@@ -44,8 +46,93 @@ score_t	alpha_beta(board_t *board, int max_depth, score_t alpha, score_t beta,
 		}
 	}
 
-	if (max_depth == 0)
-		return (evaluate(board));
+	if (g_seldepth < cur_depth + 1)
+		g_seldepth = cur_depth + 1;
+
+	list_instable(&list, board);
+
+	score_t	next = evaluate(board);
+
+	if (alpha < next)
+		alpha = next;
+
+	if (movelist_size(&list) == 0)
+	{
+		if (board->stack->checkers)
+			return (mated_in(cur_depth + 1));
+		else
+			return (alpha);
+	}
+
+	if (is_draw(board, cur_depth + 1))
+		return (0);
+
+	if (alpha >= beta)
+		return (alpha);
+
+	generate_move_values(&list, board);
+	sort_moves((extmove_t *)movelist_begin(&list),
+		(extmove_t *)movelist_end(&list));
+
+	for (const extmove_t *extmove = movelist_begin(&list);
+		extmove < movelist_end(&list); ++extmove)
+	{
+		boardstack_t	stack;
+
+		do_move(board, extmove->move, &stack);
+
+		score_t		next = -qsearch(board, max_depth - 1, -beta, -alpha,
+			end, cur_depth + 1);
+
+		undo_move(board, extmove->move);
+
+		if (abs(next) > INF_SCORE)
+		{
+			alpha = NO_SCORE;
+			break ;
+		}
+
+		if (alpha < next)
+			alpha = next;
+
+		if (alpha >= beta)
+			break ;
+	}
+	return (alpha);
+
+}
+
+score_t	alpha_beta(board_t *board, int max_depth, score_t alpha, score_t beta,
+		clock_t end, int cur_depth)
+{
+	if (max_depth <= 0)
+		return (qsearch(board, max_depth, alpha, beta, end, cur_depth));
+
+	extern goparams_t	g_goparams;
+	movelist_t			list;
+
+	if (g_nodes >= g_goparams.nodes)
+		return (NO_SCORE);
+
+	if (g_nodes % 16384 == 0)
+	{
+		if (!g_goparams.infinite && chess_clock() > end)
+			return (NO_SCORE);
+		else
+		{
+			pthread_mutex_lock(&g_engine_mutex);
+
+			if (g_engine_send == DO_ABORT || g_engine_send == DO_EXIT)
+			{
+				pthread_mutex_unlock(&g_engine_mutex);
+				return (NO_SCORE);
+			}
+			pthread_mutex_unlock(&g_engine_mutex);
+		}
+	}
+
+	if (g_seldepth < cur_depth + 1)
+		g_seldepth = cur_depth + 1;
 
 	list_all(&list, board);
 
@@ -60,12 +147,9 @@ score_t	alpha_beta(board_t *board, int max_depth, score_t alpha, score_t beta,
 	if (is_draw(board, cur_depth + 1))
 		return (0);
 
-	if (max_depth > 1)
-	{
-		generate_move_values(&list, board);
-		sort_moves((extmove_t *)movelist_begin(&list),
-			(extmove_t *)movelist_end(&list));
-	}
+	generate_move_values(&list, board);
+	sort_moves((extmove_t *)movelist_begin(&list),
+		(extmove_t *)movelist_end(&list));
 
 	for (const extmove_t *extmove = movelist_begin(&list);
 		extmove < movelist_end(&list); ++extmove)
@@ -112,6 +196,8 @@ void	search_bestmove(board_t *board, int depth, size_t pv_line,
 	extern movelist_t	g_searchmoves;
 	extern goparams_t	g_goparams;
 	score_t				alpha = -INF_SCORE;
+
+	g_seldepth = 0;
 
 	for (size_t i = pv_line; i < movelist_size(&g_searchmoves); ++i)
 	{

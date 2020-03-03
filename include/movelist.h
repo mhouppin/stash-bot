@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/18 16:02:56 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/23 22:02:17 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/03/02 15:26:29 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -34,9 +34,11 @@ typedef struct	movelist_s
 }				movelist_t;
 
 extmove_t	*generate_all(extmove_t *movelist, const board_t *board);
+extmove_t	*generate_instable(extmove_t *movelist, const board_t *board);
 
 extmove_t	*generate_classic(extmove_t *movelist, const board_t *board);
 extmove_t	*generate_evasions(extmove_t *movelist, const board_t *board);
+extmove_t	*generate_captures(extmove_t *movelist, const board_t *board);
 
 extmove_t	*generate_knight_moves(extmove_t *movelist, const board_t *board,
 			color_t us, bitboard_t target_squares);
@@ -53,6 +55,11 @@ void		generate_move_values(movelist_t *movelist, const board_t *board);
 INLINED void	list_all(movelist_t *movelist, const board_t *board)
 {
 	movelist->last = generate_all(movelist->moves, board);
+}
+
+INLINED void	list_instable(movelist_t *movelist, const board_t *board)
+{
+	movelist->last = generate_instable(movelist->moves, board);
 }
 
 INLINED size_t	movelist_size(const movelist_t *movelist)

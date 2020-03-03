@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/23 21:05:04 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/23 22:43:49 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/03/02 12:09:13 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -128,9 +128,12 @@ void		engine_go(void)
 			size_t	chess_nps = (!chess_time) ? 0 : (chess_nodes * 1000)
 				/ chess_time;
 
-			printf("info depth %d multipv " SIZE_FORMAT " nodes " SIZE_FORMAT
-				" nps " SIZE_FORMAT " time %lu score %s pv %s\n",
-				iter_depth - has_search_aborted + 1, pv_line + 1,
+			extern int	g_seldepth;
+
+			printf("info depth %d seldepth %d multipv " SIZE_FORMAT
+				" nodes " SIZE_FORMAT " nps " SIZE_FORMAT
+				" time %lu score %s pv %s\n",
+				iter_depth - has_search_aborted + 1, g_seldepth, pv_line + 1,
 				chess_nodes, chess_nps, chess_time,
 				score_to_str(g_searchmoves.moves[pv_line].score),
 				move_to_str(g_searchmoves.moves[pv_line].move,
