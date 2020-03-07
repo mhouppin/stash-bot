@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/18 14:47:33 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/27 13:45:50 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/03/06 11:37:11 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -32,9 +32,24 @@ enum
 
 enum
 {
+	NO_BOUND = 0,
+	UPPER_BOUND,
+	LOWER_BOUND,
+	EXACT_BOUND
+};
+
+enum
+{
 	MIDGAME,
 	ENDGAME,
 	PHASE_NB
+};
+
+enum
+{
+	// Represents the maximal depth reduction that can occur in normal search
+
+	DEPTH_OFFSET = -3
 };
 
 INLINED score_t		midgame_score(scorepair_t pair)

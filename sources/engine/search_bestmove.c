@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/23 22:01:23 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/03/02 15:46:40 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/03/06 13:55:28 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -16,6 +16,7 @@
 #include "engine.h"
 #include "info.h"
 #include "movelist.h"
+#include "tt.h"
 #include "uci.h"
 
 int		g_seldepth;
@@ -70,7 +71,7 @@ score_t	qsearch(board_t *board, int max_depth, score_t alpha, score_t beta,
 	if (alpha >= beta)
 		return (alpha);
 
-	generate_move_values(&list, board);
+	generate_move_values(&list, board, NO_MOVE);
 	sort_moves((extmove_t *)movelist_begin(&list),
 		(extmove_t *)movelist_end(&list));
 
@@ -147,9 +148,41 @@ score_t	alpha_beta(board_t *board, int max_depth, score_t alpha, score_t beta,
 	if (is_draw(board, cur_depth + 1))
 		return (0);
 
-	generate_move_values(&list, board);
+	// Check for interesting tt values
+
+	move_t		tt_move = NO_MOVE;
+	bool		found;
+	tt_entry_t	*entry = tt_probe(board->stack->board_key, &found);
+
+	if (found)
+	{
+		if (entry->depth >= max_depth - DEPTH_OFFSET)
+		{
+			int	bound = entry->genbound & 3;
+
+			if (bound == EXACT_BOUND)
+				return (entry->score);
+			else if (bound == LOWER_BOUND && entry->score > alpha)
+			{
+				alpha = entry->score;
+				if (alpha >= beta)
+					return (alpha);
+			}
+			else if (bound == UPPER_BOUND && entry->score < beta)
+			{
+				beta = entry->score;
+				if (alpha >= beta)
+					return (alpha);
+			}
+		}
+		tt_move = entry->bestmove;
+	}
+
+	generate_move_values(&list, board, tt_move);
 	sort_moves((extmove_t *)movelist_begin(&list),
 		(extmove_t *)movelist_end(&list));
+
+	move_t	bestmove = NO_MOVE;
 
 	for (const extmove_t *extmove = movelist_begin(&list);
 		extmove < movelist_end(&list); ++extmove)
@@ -182,11 +215,23 @@ score_t	alpha_beta(board_t *board, int max_depth, score_t alpha, score_t beta,
 		}
 
 		if (alpha < next)
+		{
+			bestmove = extmove->move;
 			alpha = next;
+		}
 
 		if (alpha >= beta)
 			break ;
 	}
+
+	if (alpha != NO_SCORE)
+	{
+		int bound = (bestmove == NO_MOVE) ? UPPER_BOUND
+			: (alpha >= beta) ? LOWER_BOUND : EXACT_BOUND;
+
+		tt_save(entry, board->stack->board_key, alpha, max_depth, bound, bestmove);
+	}
+
 	return (alpha);
 }
 

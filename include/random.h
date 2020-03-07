@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/21 16:40:36 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/24 16:48:23 by mhouppin    ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/03/06 12:06:38 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -15,16 +15,22 @@
 # define RANDOM_H
 
 # include <stdint.h>
+# include "inlining.h"
 
-uint64_t	qrandom(void)
+extern uint64_t		g_seed;
+
+INLINED void		qseed(uint64_t value)
 {
-	static uint64_t	seed = 1048592;
+	g_seed = value;
+}
 
-	seed ^= seed << 13;
-	seed ^= seed >> 7;
-	seed ^= seed << 17;
+INLINED uint64_t	qrandom(void)
+{
+	g_seed ^= g_seed << 13;
+	g_seed ^= g_seed >> 7;
+	g_seed ^= g_seed << 17;
 
-	return (seed);
+	return (g_seed);
 }
 
 #endif

@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/18 16:02:56 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/03/02 15:26:29 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/03/06 11:55:31 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -50,7 +50,8 @@ extmove_t	*generate_queen_moves(extmove_t *movelist, const board_t *board,
 			color_t us, bitboard_t target_squares);
 
 void		sort_moves(extmove_t *begin, extmove_t *end);
-void		generate_move_values(movelist_t *movelist, const board_t *board);
+void		generate_move_values(movelist_t *movelist, const board_t *board,
+			move_t tt_move);
 
 INLINED void	list_all(movelist_t *movelist, const board_t *board)
 {

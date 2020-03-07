@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/21 18:36:25 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/23 20:11:15 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/03/06 12:04:38 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -23,6 +23,7 @@ goparams_t			g_goparams;
 uint64_t			g_nodes;
 ucioptions_t		g_options;
 movelist_t			g_searchmoves;
+uint64_t			g_seed;
 
 void __attribute__((constructor))	init_globals(void)
 {
@@ -34,8 +35,9 @@ void __attribute__((constructor))	init_globals(void)
 
 	g_nodes = 0;
 
-	g_options.hash = 16 * 1048576ul;
 	g_options.move_overhead = 20;
 	g_options.multi_pv = 1;
 	g_options.min_think_time = 20;
+
+	g_seed = 1048592ul;
 }

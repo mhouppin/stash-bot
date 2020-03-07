@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/21 17:39:28 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/24 12:46:22 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/03/06 11:55:07 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -14,6 +14,7 @@
 #include <assert.h>
 #include "board.h"
 #include "info.h"
+#include "tt.h"
 
 void	do_move_gc(board_t *board, move_t move, boardstack_t *next,
 		bool gives_check)
@@ -118,6 +119,9 @@ void	do_move_gc(board_t *board, move_t move, boardstack_t *next,
 
 	board->stack->captured_piece = captured_piece;
 	board->stack->board_key = key;
+
+	prefetch(tt_entry_at(key));
+
 	board->stack->checkers = gives_check ? attackers_to(board,
 		board->piece_list[create_piece(them, KING)][0]) & board->color_bits[us]
 		: 0;

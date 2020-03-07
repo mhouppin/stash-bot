@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/23 21:05:04 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/03/02 12:09:13 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/03/06 12:01:42 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include "engine.h"
 #include "info.h"
+#include "tt.h"
 #include "uci.h"
 
 clock_t		compute_movetime(clock_t time, clock_t increment, clock_t movestogo)
@@ -43,6 +44,8 @@ void		engine_go(void)
 		fflush(stdout);
 		return ;
 	}
+
+	tt_clear();
 
 	if (!g_goparams.movetime)
 	{
@@ -131,10 +134,10 @@ void		engine_go(void)
 			extern int	g_seldepth;
 
 			printf("info depth %d seldepth %d multipv " SIZE_FORMAT
-				" nodes " SIZE_FORMAT " nps " SIZE_FORMAT
+				" nodes " SIZE_FORMAT " nps " SIZE_FORMAT " hashfull %d"
 				" time %lu score %s pv %s\n",
 				iter_depth - has_search_aborted + 1, g_seldepth, pv_line + 1,
-				chess_nodes, chess_nps, chess_time,
+				chess_nodes, chess_nps, tt_hashfull(), chess_time,
 				score_to_str(g_searchmoves.moves[pv_line].score),
 				move_to_str(g_searchmoves.moves[pv_line].move,
 					g_board.chess960));

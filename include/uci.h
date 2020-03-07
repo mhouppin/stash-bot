@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/22 18:18:59 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/23 21:48:28 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/03/06 11:41:22 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -49,7 +49,6 @@ typedef struct	goparams_s
 
 typedef struct	ucioptions_s
 {
-	size_t		hash;
 	clock_t		move_overhead;
 	int			multi_pv;
 	clock_t		min_think_time;

@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/18 15:10:31 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/24 08:14:35 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/03/06 12:09:24 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -225,6 +225,15 @@ INLINED square_t	pop_first_square(bitboard_t *b)
 INLINED square_t	relative_last_square(color_t c, bitboard_t b)
 {
 	return (c == WHITE ? last_square(b) : first_square(b));
+}
+
+INLINED void		prefetch(void *ptr)
+{
+#ifdef USE_POPCNT
+	_mm_prefetch(ptr, _MM_HINT_T0);
+#else
+	(void)ptr;
+#endif
 }
 
 #endif

@@ -6,11 +6,12 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/23 19:58:11 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/23 20:33:50 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/03/07 09:55:25 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
 
+#include "tt.h"
 #include "uci.h"
 #include <string.h>
 #include <stdlib.h>
@@ -42,12 +43,12 @@ void	uci_setoption(const char *args)
 		{
 			size_t	value = (size_t)atol(token);
 			if (value >= 1 && value <= 4096)
-				g_options.hash = value * 1048576ul;
+				tt_resize(value);
 		}
 	}
 	else if (!strcmp(token, "Clear"))
 	{
-		// No transposition table for now, will add stuff here when neccesary
+		tt_bzero();
 	}
 	else if (!strcmp(token, "Move"))
 	{
