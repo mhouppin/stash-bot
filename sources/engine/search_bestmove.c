@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/23 22:01:23 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/03/06 13:55:28 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/03/10 17:03:08 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -156,7 +156,13 @@ score_t	alpha_beta(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 	if (found)
 	{
-		if (entry->depth >= max_depth - DEPTH_OFFSET)
+		extern transposition_t	g_hashtable;
+
+		// Do not trust past entries, because of possible TT collisions
+		// or 3-fold blindness
+
+		if (entry->depth >= max_depth - DEPTH_OFFSET
+			&& (entry->genbound & 0xFC) == g_hashtable.generation)
 		{
 			int	bound = entry->genbound & 3;
 

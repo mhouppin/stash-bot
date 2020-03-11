@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/03/06 11:21:50 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/03/06 11:27:13 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/03/10 16:52:09 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -22,7 +22,6 @@ tt_entry_t	*tt_probe(hashkey_t key, bool *found)
 	for (int i = 0; i < ClusterSize; ++i)
 		if (!entry[i].key || entry[i].key == key)
 		{
-			entry[i].genbound = (g_hashtable.generation | (entry[i].genbound & 3));
 			*found = (bool)entry[i].key;
 			return (entry + i);
 		}
