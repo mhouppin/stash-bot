@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/23 19:47:11 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/03/11 10:39:43 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/03/11 15:04:08 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -17,7 +17,7 @@
 void	uci_uci(const char *args)
 {
 	(void)args;
-	puts("id name Stash v11.0.1");
+	puts("id name Stash v11.1b");
 	puts("id author Morgan Houppin (@mhouppin)");
 	puts("option name Hash type spin default 16 min 1 max 4096");
 	puts("option name Clear Hash type button");

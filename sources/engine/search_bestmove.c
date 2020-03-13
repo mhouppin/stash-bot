@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/23 22:01:23 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/03/10 17:03:08 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/03/11 12:25:01 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -182,6 +182,26 @@ score_t	alpha_beta(board_t *board, int max_depth, score_t alpha, score_t beta,
 			}
 		}
 		tt_move = entry->bestmove;
+	}
+
+	// Null move pruning.
+
+	if (!board->stack->checkers && board->stack->plies_from_null_move * 2 >= cur_depth)
+	{
+		boardstack_t	stack;
+
+		do_null_move(board, &stack);
+
+		score_t			score = -alpha_beta(board, max_depth - 3, -beta, -alpha,
+			end, cur_depth + 1);
+
+		undo_null_move(board);
+
+		if (abs(score) > INF_SCORE)
+			return (NO_SCORE);
+
+		if (score >= beta)
+			return (score);
 	}
 
 	generate_move_values(&list, board, tt_move);

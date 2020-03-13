@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/18 15:13:19 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/23 20:58:47 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/03/11 11:26:57 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -89,7 +89,7 @@ void			do_castling(board_t *board, color_t us, square_t king_from,
 void			undo_castling(board_t *board, color_t us, square_t king_from,
 				square_t *king_to, square_t *rook_from, square_t *rook_to);
 
-void			do_null_move(board_t *board);
+void			do_null_move(board_t *board, boardstack_t *stack);
 void			undo_null_move(board_t *board);
 
 bool			is_draw(const board_t *board, int ply);
