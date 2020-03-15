@@ -186,7 +186,8 @@ score_t	alpha_beta(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 	// Null move pruning.
 
-	if (!board->stack->checkers && board->stack->plies_from_null_move * 2 >= cur_depth)
+	if (max_depth >= 2 && !board->stack->checkers
+		&& board->stack->plies_from_null_move * 2 >= cur_depth)
 	{
 		boardstack_t	stack;
 
@@ -200,7 +201,10 @@ score_t	alpha_beta(board_t *board, int max_depth, score_t alpha, score_t beta,
 		if (abs(score) > INF_SCORE)
 			return (NO_SCORE);
 
-		if (score >= beta)
+		// Do not trust mate claims, as a lot of zugzwang positions would lead
+		// to a false distance-to-mate estimation.
+
+		if (abs(score) < MATE_FOUND && score >= beta)
 			return (score);
 	}
 

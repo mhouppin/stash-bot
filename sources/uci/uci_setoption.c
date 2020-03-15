@@ -42,7 +42,7 @@ void	uci_setoption(const char *args)
 		if (token)
 		{
 			size_t	value = (size_t)atol(token);
-			if (value >= 1 && value <= 4096)
+			if (value >= 1 && value <= 131072ul)
 				tt_resize(value);
 		}
 	}
