@@ -103,7 +103,7 @@ score_t	qsearch(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 }
 
-score_t	alpha_beta(board_t *board, int max_depth, score_t alpha, score_t beta,
+score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 		clock_t end, int cur_depth)
 {
 	if (max_depth <= 0)
@@ -193,7 +193,7 @@ score_t	alpha_beta(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 		do_null_move(board, &stack);
 
-		score_t			score = -alpha_beta(board, max_depth - 3, -beta, -alpha,
+		score_t			score = -search(board, max_depth - 3, -beta, -beta + 1,
 			end, cur_depth + 1);
 
 		undo_null_move(board);
@@ -201,11 +201,26 @@ score_t	alpha_beta(board_t *board, int max_depth, score_t alpha, score_t beta,
 		if (abs(score) > INF_SCORE)
 			return (NO_SCORE);
 
-		// Do not trust mate claims, as a lot of zugzwang positions would lead
-		// to a false distance-to-mate estimation.
+		if (score >= beta)
+		{
+			// Do not trust mate claims.
 
-		if (abs(score) < MATE_FOUND && score >= beta)
-			return (score);
+			if (score > MATE_FOUND)
+				score = beta;
+
+			// Don't do zugzwang checking at low depths.
+
+			if (max_depth < 9)
+				return (score);
+
+			// Zugzwang checking.
+
+			score_t		zzscore = search(board, max_depth - 3, beta - 1, beta,
+				end, cur_depth + 1);
+
+			if (zzscore >= beta)
+				return (score);
+		}
 	}
 
 	generate_move_values(&list, board, tt_move);
@@ -224,15 +239,15 @@ score_t	alpha_beta(board_t *board, int max_depth, score_t alpha, score_t beta,
 		score_t		next;
 
 		if (extmove == movelist_begin(&list))
-			next = -alpha_beta(board, max_depth - 1, -beta, -alpha,
+			next = -search(board, max_depth - 1, -beta, -alpha,
 				end, cur_depth + 1);
 		else
 		{
-			next = -alpha_beta(board, max_depth - 1, -alpha - 1, -alpha,
+			next = -search(board, max_depth - 1, -alpha - 1, -alpha,
 				end, cur_depth + 1);
 
 			if (alpha < next && next < beta)
-				next = -alpha_beta(board, max_depth - 1, -beta, -next,
+				next = -search(board, max_depth - 1, -beta, -next,
 					end, cur_depth + 1);
 		}
 
@@ -307,15 +322,15 @@ void	search_bestmove(board_t *board, int depth, size_t pv_line,
 		clock_t		end = start + (g_goparams.movetime);
 
 		if (i == 0)
-			g_searchmoves.moves[i].score = -alpha_beta(board, depth, -INF_SCORE,
+			g_searchmoves.moves[i].score = -search(board, depth, -INF_SCORE,
 				INF_SCORE, end, 0);
 		else
 		{
-			g_searchmoves.moves[i].score = -alpha_beta(board, depth, -alpha - 1,
+			g_searchmoves.moves[i].score = -search(board, depth, -alpha - 1,
 				-alpha, end, 0);
 
 			if (alpha < g_searchmoves.moves[i].score)
-				g_searchmoves.moves[i].score = -alpha_beta(board, depth,
+				g_searchmoves.moves[i].score = -search(board, depth,
 					-INF_SCORE, -g_searchmoves.moves[i].score, end, 0);
 		}
 
