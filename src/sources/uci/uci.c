@@ -19,6 +19,7 @@
 
 const cmdlink_t	commands[] =
 {
+	{"bench", &uci_bench},
 	{"d", &uci_d},
 	{"go", &uci_go},
 	{"isready", &uci_isready},
@@ -31,30 +32,51 @@ const cmdlink_t	commands[] =
 	{NULL, NULL}
 };
 
-void	*uci_thread(void *nothing __attribute__((unused)))
+int		execute_uci_cmd(const char *command)
 {
-	char	*line = malloc(8192);
+	char	*dup = strdup(command);
 
-	while (fgets(line, 8192, stdin) != NULL)
+	char	*cmd = strtok(dup, " \t\n");
+
+	if (!cmd)
 	{
-		char	*cmd;
+		free(dup);
+		return (1);
+	}
 
-		cmd = strtok(line, " \t\n");
-
-		if (!cmd)
-			continue ;
-
-		for (size_t i = 0; commands[i].cmd_name != NULL; i++)
+	for (size_t i = 0; commands[i].cmd_name != NULL; ++i)
+	{
+		if (strcmp(commands[i].cmd_name, cmd) == 0)
 		{
-			if (strcmp(commands[i].cmd_name, cmd) == 0)
-			{
-				commands[i].call(strtok(NULL, ""));
-				break ;
-			}
-		}
-
-		if (strcmp(cmd, "quit") == 0)
+			commands[i].call(strtok(NULL, ""));
 			break ;
+		}
+	}
+
+	if (strcmp(cmd, "quit") == 0)
+		return (0);
+
+	return (1);
+}
+
+void	uci_loop(int argc, char **argv)
+{
+	// Small hack to allow the engine thread to be ready before us
+
+	usleep(1000);
+
+	if (argc > 1)
+		for (int i = 1; i < argc; ++i)
+			execute_uci_cmd(argv[i]);
+	else
+	{
+		char	*line = malloc(8192);
+
+		while (fgets(line, 8192, stdin) != NULL)
+			if (execute_uci_cmd(line) == 0)
+				break ;
+
+		free(line);
 	}
 
 	usleep(10000);
@@ -67,8 +89,5 @@ void	*uci_thread(void *nothing __attribute__((unused)))
 	}
 	pthread_mutex_unlock(&g_engine_mutex);
 	uci_quit(NULL);
-
-	free(line);
-	return (NULL);
 }
 

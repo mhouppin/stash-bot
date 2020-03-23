@@ -1,11 +1,10 @@
 #!/bin/sh
 
+cd src
+
 make re EXT_OFLAGS="-fprofile-generate" EXT_LFLAGS="-lgcov" ARCH="$ARCH"
 
-./stash-bot << EOF
-position startpos moves e2e4 e7e5 g1f3 b8c6
-go movetime 15000
-EOF
+./stash-bot bench
 
 rm $(find objects \( -name "*.o" \) )
 

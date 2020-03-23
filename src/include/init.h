@@ -14,7 +14,7 @@
 #ifndef INIT_H
 # define INIT_H
 
-void	*uci_thread(void *nothing);
+void	uci_loop(int argc, char **argv);
 void	*engine_thread(void *nothing);
 
 void	bitboard_init(void);

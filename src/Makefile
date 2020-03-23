@@ -11,7 +11,9 @@
 #                                                         /                    #
 # **************************************************************************** #
 
-NAME := stash-bot
+ifeq ($(EXE),)
+EXE=stash-bot
+endif
 
 SOURCES	:= $(wildcard sources/*/*.c)
 OBJECTS	:= $(SOURCES:sources/%.c=objects/%.o)
@@ -37,9 +39,9 @@ ifeq ($(ARCH),x86-64-bmi2)
 	OFLAGS += -DUSE_PEXT -msse4 -mbmi2
 endif
 
-all: $(NAME)
+all: $(EXE)
 
-$(NAME): $(OBJECTS)
+$(EXE): $(OBJECTS)
 	$(CC) $(OFLAGS) -o $@ $^ -lpthread -lm $(EXT_OFLAGS) $(EXT_LFLAGS)
 
 objects/%.o: sources/%.c
@@ -53,8 +55,6 @@ clean:
 	rm -f $(OBJECTS)
 	rm -f $(DEPENDS)
 	rm -rf objects
+	rm -f $(EXE)
 
-fclean: clean
-	rm -f $(NAME)
-
-re: fclean all
+re: clean all

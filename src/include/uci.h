@@ -76,6 +76,7 @@ INLINED clock_t	chess_clock(void)
 			(clock_t)tp.tv_nsec / 1000000);
 }
 
+void	uci_bench(const char *args);
 void	uci_d(const char *args);
 void	uci_debug(const char *args);
 void	uci_go(const char *args);
