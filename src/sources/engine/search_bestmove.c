@@ -135,12 +135,27 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 	if (g_seldepth < cur_depth + 1)
 		g_seldepth = cur_depth + 1;
 
+	// Mate pruning.
+
+	{
+		score_t		mate_alpha = mated_in(cur_depth);
+		score_t		mate_beta = mate_in(cur_depth + 1);
+
+		if (alpha < mate_alpha)
+			alpha = mate_alpha;
+		if (beta > mate_beta)
+			beta = mate_beta;
+
+		if (alpha >= beta)
+			return (alpha);
+	}
+
 	list_all(&list, board);
 
 	if (movelist_size(&list) == 0)
 	{
 		if (board->stack->checkers)
-			return (mated_in(cur_depth + 1));
+			return (mated_in(cur_depth));
 		else
 			return (0);
 	}
@@ -187,14 +202,14 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 	// Null move pruning.
 
 	if (max_depth >= 2 && !board->stack->checkers
-		&& board->stack->plies_from_null_move * 2 >= cur_depth)
+		&& board->stack->plies_from_null_move >= 3)
 	{
 		boardstack_t	stack;
 
 		do_null_move(board, &stack);
 
-		score_t			score = -search(board, max_depth - 3, -beta, -beta + 1,
-			end, cur_depth + 1);
+		score_t			score = -search(board, max_depth - 3 - (max_depth / 4), -beta, -beta + 1,
+			end, cur_depth);
 
 		undo_null_move(board);
 
@@ -208,15 +223,20 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 			if (score > MATE_FOUND)
 				score = beta;
 
-			// Don't do zugzwang checking at low depths.
+			// Do not trust win claims.
 
-			if (max_depth < 9)
+			if (max_depth < 11 && beta < 5000)
 				return (score);
 
 			// Zugzwang checking.
 
-			score_t		zzscore = search(board, max_depth - 3, beta - 1, beta,
-				end, cur_depth + 1);
+			int nmp_depth = board->stack->plies_from_null_move;
+			board->stack->plies_from_null_move = 0;
+
+			score_t		zzscore = search(board, max_depth - 3 - (max_depth / 4), beta - 1, beta,
+				end, cur_depth);
+
+			board->stack->plies_from_null_move = nmp_depth;
 
 			if (zzscore >= beta)
 				return (score);
@@ -329,15 +349,15 @@ void	search_bestmove(board_t *board, int depth, size_t pv_line,
 
 		if (i == 0)
 			g_searchmoves.moves[i].score = -search(board, depth, -INF_SCORE,
-				INF_SCORE, end, 0);
+				INF_SCORE, end, 1);
 		else
 		{
 			g_searchmoves.moves[i].score = -search(board, depth, -alpha - 1,
-				-alpha, end, 0);
+				-alpha, end, 1);
 
 			if (alpha < g_searchmoves.moves[i].score)
 				g_searchmoves.moves[i].score = -search(board, depth,
-					-INF_SCORE, -g_searchmoves.moves[i].score, end, 0);
+					-INF_SCORE, -g_searchmoves.moves[i].score, end, 1);
 		}
 
 		undo_move(board, g_searchmoves.moves[i].move);
