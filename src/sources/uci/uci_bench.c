@@ -40,7 +40,7 @@ void	uci_bench(const char *args)
 	};
 
 	clock_t		bench_time = chess_clock();
-	uint64_t	total_nodes = 0;
+	size_t		total_nodes = 0;
 
 	for (size_t i = 0; positions[i]; ++i)
 	{
@@ -69,7 +69,7 @@ void	uci_bench(const char *args)
 
 	printf("Benchmark report:\n");
 	printf("Total time:   %lu milliseconds\n", bench_time);
-	printf("Total nodes:  %lu\n", total_nodes);
-	printf("Nodes/second: %lu\n", (total_nodes * 1000) / bench_time);
+	printf("Total nodes:  " SIZE_FORMAT "\n", total_nodes);
+	printf("Nodes/second: " SIZE_FORMAT "\n", (total_nodes * 1000) / (size_t)bench_time);
 	fflush(stdout);
 }
