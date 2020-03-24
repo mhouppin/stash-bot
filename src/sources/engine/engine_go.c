@@ -103,7 +103,9 @@ void		engine_go(void)
 
 		for (size_t pv_line = 0; pv_line < multi_pv; ++pv_line)
 		{
-			search_bestmove(&g_board, iter_depth, pv_line, start);
+			move_t	pv_list[512];
+
+			search_bestmove(&g_board, iter_depth, pv_line, start, pv_list);
 
 			for (size_t k = 0; k < movelist_size(&g_searchmoves); ++k)
 				if (abs(g_searchmoves.moves[k].score) > INF_SCORE)
@@ -135,12 +137,21 @@ void		engine_go(void)
 
 			printf("info depth %d seldepth %d multipv " SIZE_FORMAT
 				" nodes " SIZE_FORMAT " nps " SIZE_FORMAT " hashfull %d"
-				" time %lu score %s pv %s\n",
+				" time %lu score %s pv",
 				iter_depth - has_search_aborted + 1, g_seldepth, pv_line + 1,
 				chess_nodes, chess_nps, tt_hashfull(), chess_time,
-				score_to_str(g_searchmoves.moves[pv_line].score),
-				move_to_str(g_searchmoves.moves[pv_line].move,
+				score_to_str(g_searchmoves.moves[pv_line].score));
+
+			if (has_search_aborted)
+				printf(" %s\n", move_to_str(g_searchmoves.moves[pv_line].move,
 					g_board.chess960));
+			else
+			{
+				for (size_t i = 0; pv_list[i] != NO_MOVE; ++i)
+					printf(" %s", move_to_str(pv_list[i], g_board.chess960));
+
+				puts("");
+			}
 
 			fflush(stdout);
 

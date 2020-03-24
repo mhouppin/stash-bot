@@ -17,9 +17,16 @@
 # include <time.h>
 # include "board.h"
 
+typedef struct
+{
+	int		plies;
+	move_t	*pv;
+}
+searchstack_t;
+
 void	engine_go(void);
 void	search_bestmove(board_t *board, int depth, size_t pv_line,
-		clock_t start);
+		clock_t start, move_t *display_pv);
 
 score_t	evaluate(const board_t *board);
 
