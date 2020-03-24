@@ -28,12 +28,54 @@ clock_t		compute_movetime(clock_t time, clock_t increment, clock_t movestogo)
 	return (time_estimation);
 }
 
+uint64_t	perft(board_t *board, unsigned int depth)
+{
+	if (depth == 0)
+		return (1);
+	else
+	{
+		movelist_t	list;
+		list_all(&list, board);
+		if (depth == 1)
+			return (movelist_size(&list));
+
+		uint64_t		sum = 0;
+
+		boardstack_t	stack;
+
+		for (const extmove_t *extmove = movelist_begin(&list);
+			extmove < movelist_end(&list); ++extmove)
+		{
+			do_move(board, extmove->move, &stack);
+			sum += perft(board, depth - 1);
+			undo_move(board, extmove->move);
+		}
+		return (sum);
+	}
+}
+
 void		engine_go(void)
 {
 	extern board_t		g_board;
 	extern goparams_t	g_goparams;
 	extern ucioptions_t	g_options;
 	extern movelist_t	g_searchmoves;
+
+	if (g_goparams.perft)
+	{
+		clock_t		time = chess_clock();
+
+		uint64_t	nodes = perft(&g_board, (unsigned int)g_goparams.perft);
+
+		time = chess_clock() - time;
+
+		size_t		nps = (!time) ? 0 : (nodes * 1000) / time;
+
+		printf("info nodes " SIZE_FORMAT " nps " SIZE_FORMAT " time %lu\n",
+			(size_t)nodes, nps, time);
+
+		return ;
+	}
 
 	if (movelist_size(&g_searchmoves) == 0)
 	{

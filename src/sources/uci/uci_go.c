@@ -109,6 +109,12 @@ void	uci_go(const char *args)
 			if (token)
 				g_goparams.mate = atoi(token);
 		}
+		else if (strcmp(token, "perft") == 0)
+		{
+			token = strtok(NULL, delim);
+			if (token)
+				g_goparams.perft = atoi(token);
+		}
 		else if (strcmp(token, "movetime") == 0)
 		{
 			token = strtok(NULL, delim);
