@@ -202,44 +202,54 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 	// Null move pruning.
 
 	if (max_depth >= 2 && !board->stack->checkers
-		&& board->stack->plies_from_null_move >= 3)
+		&& board->stack->plies_from_null_move > 1)
 	{
-		boardstack_t	stack;
+		score_t		eval = evaluate(board);
 
-		do_null_move(board, &stack);
-
-		score_t			score = -search(board, max_depth - 3 - (max_depth / 4), -beta, -beta + 1,
-			end, cur_depth);
-
-		undo_null_move(board);
-
-		if (abs(score) > INF_SCORE)
-			return (NO_SCORE);
-
-		if (score >= beta)
+		if (eval >= beta)
 		{
-			// Do not trust mate claims.
+			boardstack_t	stack;
 
-			if (score > MATE_FOUND)
-				score = beta;
+			int		nmp_reduction = 3 + (eval - beta) / 256;
 
-			// Do not trust win claims.
+			if (nmp_reduction > 6)
+				nmp_reduction = 6;
 
-			if (max_depth < 11 && beta < 5000)
-				return (score);
+			do_null_move(board, &stack);
 
-			// Zugzwang checking.
-
-			int nmp_depth = board->stack->plies_from_null_move;
-			board->stack->plies_from_null_move = 0;
-
-			score_t		zzscore = search(board, max_depth - 3 - (max_depth / 4), beta - 1, beta,
+			score_t			score = -search(board, max_depth - nmp_reduction, -beta, -beta + 1,
 				end, cur_depth);
 
-			board->stack->plies_from_null_move = nmp_depth;
+			undo_null_move(board);
 
-			if (zzscore >= beta)
-				return (score);
+			if (abs(score) > INF_SCORE)
+				return (NO_SCORE);
+
+			if (score >= beta)
+			{
+				// Do not trust mate claims.
+
+				if (score > MATE_FOUND)
+					score = beta;
+
+				// Do not trust win claims.
+
+				if (max_depth < 10 && beta < 5000)
+					return (score);
+
+				// Zugzwang checking.
+
+				int nmp_depth = board->stack->plies_from_null_move;
+				board->stack->plies_from_null_move = 0;
+
+				score_t		zzscore = search(board, max_depth - nmp_reduction, beta - 1, beta,
+						end, cur_depth);
+
+				board->stack->plies_from_null_move = nmp_depth;
+
+				if (zzscore >= beta)
+					return (score);
+			}
 		}
 	}
 
