@@ -22,7 +22,7 @@ void	generate_move_values(movelist_t *movelist, const board_t *board,
 
 		if (move == tt_move)
 		{
-			movelist->moves[i].score = 20000;
+			movelist->moves[i].score = 8192;
 			continue ;
 		}
 
@@ -33,20 +33,21 @@ void	generate_move_values(movelist_t *movelist, const board_t *board,
 		piece_t		captured_piece = piece_on(board, to);
 
 		if (type_of_move(move) == PROMOTION)
-			movelist->moves[i].score =
-				PieceScores[ENDGAME][promotion_type(move)] * 8;
+			movelist->moves[i].score = 4096 + PieceScores[ENDGAME][promotion_type(move)];
 
 		else if (type_of_move(move) == CASTLING)
-			movelist->moves[i].score = 300;
+			movelist->moves[i].score = 512;
 
 		else if (type_of_move(move) == EN_PASSANT)
-			movelist->moves[i].score = 200;
+			movelist->moves[i].score = 2048 + PAWN * 8 - PAWN;
 
 		else if (captured_piece != NO_PIECE)
-			movelist->moves[i].score =
-				PieceScores[MIDGAME][type_of_piece(captured_piece)] * 8
-				- PieceScores[ENDGAME][type_of_piece(moved_piece)];
+		{
+			movelist->moves[i].score = see_greater_than(board, move, 0) ? 2048 : 1024;
 
+			movelist->moves[i].score += type_of_piece(captured_piece) * 8
+				- type_of_piece(moved_piece);
+		}
 		else
 		{
 			movelist->moves[i].score =

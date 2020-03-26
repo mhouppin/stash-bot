@@ -94,6 +94,8 @@ void			undo_null_move(board_t *board);
 
 bool			is_draw(const board_t *board, int ply);
 
+bool			see_greater_than(const board_t *board, move_t move, score_t threshold);
+
 INLINED	bool	empty_square(const board_t *board, square_t square)
 {
 	return (board->table[square] == NO_PIECE);
