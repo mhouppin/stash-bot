@@ -47,7 +47,7 @@ void	uci_bench(const char *args)
 		printf("Position " SIZE_FORMAT "/25\n", i + 1);
 		fflush(stdout);
 		uci_position(positions[i]);
-		uci_go("infinite depth 8");
+		uci_go("infinite depth 9");
 
 		usleep(1000);
 		pthread_mutex_lock(&g_engine_mutex);

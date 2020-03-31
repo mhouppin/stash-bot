@@ -289,22 +289,34 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 				end, ss + 1);
 		else
 		{
-			int		new_depth = max_depth - 1;
-
 			// Late Move Reductions.
 
-			if (max_depth < 3 && extmove >= movelist_begin(&list) + 4
+			bool	need_full_depth_search = true;
+
+			if (max_depth >= 3 && extmove >= movelist_begin(&list) + 4
 				&& !board->stack->checkers)
-				new_depth -= 1;
+			{
+				int		lmr_depth = max_depth - 2;
 
-			next = -search(board, new_depth, -alpha - 1, -alpha,
-				end, ss + 1);
+				next = -search(board, lmr_depth, -alpha - 1, -alpha,
+					end, ss + 1);
 
-			if (alpha < next && next < beta)
+				need_full_depth_search = (alpha < next);
+			}
+
+			if (need_full_depth_search)
 			{
 				pv[0] = NO_MOVE;
-				next = -search(board, max_depth - 1, -beta, -next,
+
+				next = -search(board, max_depth - 1, -alpha - 1, -alpha,
 					end, ss + 1);
+
+				if (alpha < next && next < beta)
+				{
+					pv[0] = NO_MOVE;
+					next = -search(board, max_depth - 1, -beta, -next,
+						end, ss + 1);
+				}
 			}
 		}
 
