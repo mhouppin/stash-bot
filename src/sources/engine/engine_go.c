@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/23 21:05:04 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/04/01 13:22:42 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/04/01 13:28:43 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -118,8 +118,6 @@ void		engine_go(void)
 		g_goparams.initial_max_time -= g_options.move_overhead;
 
 	g_goparams.max_time = g_goparams.initial_max_time;
-
-	printf("Thinking for at most %d ms\n", (int)g_goparams.max_time);
 
 	score_t		*g_backupscore = (score_t *)malloc(sizeof(score_t)
 		* movelist_size(&g_searchmoves));
