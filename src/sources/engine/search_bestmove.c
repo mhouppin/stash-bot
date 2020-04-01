@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/23 22:01:23 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/03/11 12:25:01 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/04/01 13:18:20 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -23,30 +23,12 @@
 int		g_seldepth;
 
 score_t	qsearch(board_t *board, int max_depth, score_t alpha, score_t beta,
-		clock_t end, searchstack_t *ss)
+		searchstack_t *ss)
 {
-	extern goparams_t	g_goparams;
 	movelist_t			list;
 
-	if (g_nodes >= g_goparams.nodes)
+	if (g_nodes % 4096 == 0 && out_of_time())
 		return (NO_SCORE);
-
-	if (g_nodes % 4096 == 0)
-	{
-		if (!g_goparams.infinite && chess_clock() > end)
-			return (NO_SCORE);
-		else
-		{
-			pthread_mutex_lock(&g_engine_mutex);
-
-			if (g_engine_send == DO_ABORT || g_engine_send == DO_EXIT)
-			{
-				pthread_mutex_unlock(&g_engine_mutex);
-				return (NO_SCORE);
-			}
-			pthread_mutex_unlock(&g_engine_mutex);
-		}
-	}
 
 	if (g_seldepth < ss->plies + 1)
 		g_seldepth = ss->plies + 1;
@@ -89,7 +71,7 @@ score_t	qsearch(board_t *board, int max_depth, score_t alpha, score_t beta,
 		do_move(board, extmove->move, &stack);
 
 		score_t		next = -qsearch(board, max_depth - 1, -beta, -alpha,
-			end, ss + 1);
+			ss + 1);
 
 		undo_move(board, extmove->move);
 
@@ -110,34 +92,16 @@ score_t	qsearch(board_t *board, int max_depth, score_t alpha, score_t beta,
 }
 
 score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
-		clock_t end, searchstack_t *ss)
+		searchstack_t *ss)
 {
 	if (max_depth <= 0)
-		return (qsearch(board, max_depth, alpha, beta, end, ss));
+		return (qsearch(board, max_depth, alpha, beta, ss));
 
-	extern goparams_t	g_goparams;
 	movelist_t			list;
 	move_t				pv[512];
 
-	if (g_nodes >= g_goparams.nodes)
+	if (g_nodes % 4096 == 0 && out_of_time())
 		return (NO_SCORE);
-
-	if (g_nodes % 4096 == 0)
-	{
-		if (!g_goparams.infinite && chess_clock() > end)
-			return (NO_SCORE);
-		else
-		{
-			pthread_mutex_lock(&g_engine_mutex);
-
-			if (g_engine_send == DO_ABORT || g_engine_send == DO_EXIT)
-			{
-				pthread_mutex_unlock(&g_engine_mutex);
-				return (NO_SCORE);
-			}
-			pthread_mutex_unlock(&g_engine_mutex);
-		}
-	}
 
 	if (g_seldepth < ss->plies + 1)
 		g_seldepth = ss->plies + 1;
@@ -230,7 +194,7 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 			(ss + 1)->plies = ss->plies;
 
 			score_t			score = -search(board, max_depth - nmp_reduction, -beta, -beta + 1,
-				end, ss + 1);
+				ss + 1);
 
 			undo_null_move(board);
 
@@ -255,7 +219,7 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 				board->stack->plies_from_null_move = 0;
 			
 				score_t		zzscore = search(board, max_depth - nmp_reduction, beta - 1, beta,
-						end, ss + 1);
+						ss + 1);
 
 				board->stack->plies_from_null_move = nmp_depth;
 
@@ -286,7 +250,7 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 		if (extmove == movelist_begin(&list))
 			next = -search(board, max_depth - 1, -beta, -alpha,
-				end, ss + 1);
+				ss + 1);
 		else
 		{
 			// Late Move Reductions.
@@ -299,7 +263,7 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 				int		lmr_depth = max_depth - 2;
 
 				next = -search(board, lmr_depth, -alpha - 1, -alpha,
-					end, ss + 1);
+					ss + 1);
 
 				need_full_depth_search = (alpha < next);
 			}
@@ -309,13 +273,13 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 				pv[0] = NO_MOVE;
 
 				next = -search(board, max_depth - 1, -alpha - 1, -alpha,
-					end, ss + 1);
+					ss + 1);
 
 				if (alpha < next && next < beta)
 				{
 					pv[0] = NO_MOVE;
 					next = -search(board, max_depth - 1, -beta, -next,
-						end, ss + 1);
+						ss + 1);
 				}
 			}
 		}
@@ -362,7 +326,7 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 }
 
 void	search_bestmove(board_t *board, int depth, size_t pv_line,
-		clock_t start, move_t *display_pv)
+		move_t *display_pv)
 {
 	extern movelist_t	g_searchmoves;
 	extern goparams_t	g_goparams;
@@ -390,7 +354,7 @@ void	search_bestmove(board_t *board, int depth, size_t pv_line,
 
 		do_move(board, g_searchmoves.moves[i].move, &stack);
 
-		clock_t			elapsed = chess_clock() - start;
+		clock_t			elapsed = chess_clock() - g_goparams.start;
 
 		if (elapsed > 3000)
 		{
@@ -404,23 +368,21 @@ void	search_bestmove(board_t *board, int depth, size_t pv_line,
 			fflush(stdout);
 		}
 
-		clock_t		end = start + (g_goparams.movetime);
-
 		pv[0] = NO_MOVE;
 
 		if (i == 0)
 			g_searchmoves.moves[i].score = -search(board, depth, -INF_SCORE,
-				INF_SCORE, end, sstack);
+				INF_SCORE, sstack);
 		else
 		{
 			g_searchmoves.moves[i].score = -search(board, depth, -alpha - 1,
-				-alpha, end, sstack);
+				-alpha, sstack);
 
 			if (alpha < g_searchmoves.moves[i].score)
 			{
 				pv[0] = NO_MOVE;
 				g_searchmoves.moves[i].score = -search(board, depth,
-					-INF_SCORE, -g_searchmoves.moves[i].score, end, sstack);
+					-INF_SCORE, -g_searchmoves.moves[i].score, sstack);
 			}
 		}
 

@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/23 21:05:04 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/03/06 12:01:42 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/04/01 13:22:42 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -61,13 +61,13 @@ void		engine_go(void)
 	extern ucioptions_t	g_options;
 	extern movelist_t	g_searchmoves;
 
+	g_goparams.start = chess_clock();
+
 	if (g_goparams.perft)
 	{
-		clock_t		time = chess_clock();
-
 		uint64_t	nodes = perft(&g_board, (unsigned int)g_goparams.perft);
 
-		time = chess_clock() - time;
+		clock_t		time = chess_clock() - g_goparams.start;
 
 		size_t		nps = (!time) ? 0 : (nodes * 1000) / time;
 
@@ -89,6 +89,8 @@ void		engine_go(void)
 
 	tt_clear();
 
+	g_goparams.initial_max_time = 0;
+
 	if (!g_goparams.movetime)
 	{
 		if (g_goparams.movestogo == 0)
@@ -97,29 +99,28 @@ void		engine_go(void)
 		if (g_board.side_to_move == WHITE
 			&& (g_goparams.wtime || g_goparams.winc))
 		{
-			g_goparams.movetime = compute_movetime(g_goparams.wtime,
+			g_goparams.initial_max_time = compute_movetime(g_goparams.wtime,
 				g_goparams.winc, g_goparams.movestogo);
-
-			if (g_goparams.movetime > 3600000)
-				g_goparams.movetime = 3600000;
 		}
 		else if (g_board.side_to_move == BLACK
 			&& (g_goparams.btime || g_goparams.binc))
 		{
-			g_goparams.movetime = compute_movetime(g_goparams.btime,
+			g_goparams.initial_max_time = compute_movetime(g_goparams.btime,
 				g_goparams.binc, g_goparams.movestogo);
-
-			if (g_goparams.movetime > 3600000)
-				g_goparams.movetime = 3600000;
 		}
 	}
-
-	if (g_options.min_think_time + g_options.move_overhead > g_goparams.movetime)
-		g_goparams.movetime = g_options.min_think_time;
 	else
-		g_goparams.movetime -= g_options.move_overhead;
+		g_goparams.initial_max_time = g_goparams.movetime;
 
-	clock_t		start = chess_clock();
+	if (g_options.min_think_time + g_options.move_overhead > g_goparams.initial_max_time)
+		g_goparams.initial_max_time = g_options.min_think_time;
+	else
+		g_goparams.initial_max_time -= g_options.move_overhead;
+
+	g_goparams.max_time = g_goparams.initial_max_time;
+
+	printf("Thinking for at most %d ms\n", (int)g_goparams.max_time);
+
 	score_t		*g_backupscore = (score_t *)malloc(sizeof(score_t)
 		* movelist_size(&g_searchmoves));
 
@@ -147,7 +148,7 @@ void		engine_go(void)
 		{
 			move_t	pv_list[512];
 
-			search_bestmove(&g_board, iter_depth, pv_line, start, pv_list);
+			search_bestmove(&g_board, iter_depth, pv_line, pv_list);
 
 			for (size_t k = 0; k < movelist_size(&g_searchmoves); ++k)
 				if (abs(g_searchmoves.moves[k].score) > INF_SCORE)
@@ -170,7 +171,7 @@ void		engine_go(void)
 					g_backupscore[k] = g_searchmoves.moves[k].score;
 			}
 
-			clock_t	chess_time = chess_clock() - start;
+			clock_t	chess_time = chess_clock() - g_goparams.start;
 			size_t	chess_nodes = g_nodes;
 			size_t	chess_nps = (!chess_time) ? 0 : (chess_nodes * 1000)
 				/ chess_time;

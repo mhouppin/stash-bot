@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/23 20:20:19 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/23 22:43:03 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/04/01 13:15:15 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -26,8 +26,9 @@ searchstack_t;
 
 void	engine_go(void);
 void	search_bestmove(board_t *board, int depth, size_t pv_line,
-		clock_t start, move_t *display_pv);
+		move_t *display_pv);
 
+bool	out_of_time(void);
 score_t	evaluate(const board_t *board);
 
 #endif

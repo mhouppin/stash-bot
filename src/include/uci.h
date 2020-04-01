@@ -6,7 +6,7 @@
 /*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
 /*                                                 #+#   #+    #+    #+#      */
 /*   Created: 2020/02/22 18:18:59 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/03/06 11:41:22 by stash       ###    #+. /#+    ###.fr     */
+/*   Updated: 2020/04/01 13:09:37 by stash       ###    #+. /#+    ###.fr     */
 /*                                                         /                  */
 /*                                                        /                   */
 /* ************************************************************************** */
@@ -46,6 +46,10 @@ typedef struct	goparams_s
 	int			infinite;
 	int			perft;
 	clock_t		movetime;
+
+	clock_t		start;
+	clock_t		max_time;
+	clock_t		initial_max_time;
 }				goparams_t;
 
 typedef struct	ucioptions_s
