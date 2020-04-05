@@ -65,6 +65,16 @@ INLINED void		tt_bzero(void)
 	memset(g_hashtable.allocated, 0, sizeof(cluster_t) * g_hashtable.cluster_count);
 }
 
+INLINED score_t		score_to_tt(score_t s, int plies)
+{
+	return (s >= MATE_FOUND ? s + plies : s <= -MATE_FOUND ? s - plies : s);
+}
+
+INLINED score_t		score_from_tt(score_t s, int plies)
+{
+	return (s >= MATE_FOUND ? s - plies : s <= -MATE_FOUND ? s + plies : s);
+}
+
 tt_entry_t	*tt_probe(hashkey_t key, bool *found);
 void		tt_save(tt_entry_t *entry, hashkey_t k, score_t s, int d, int b, move_t m);
 int			tt_hashfull(void);
