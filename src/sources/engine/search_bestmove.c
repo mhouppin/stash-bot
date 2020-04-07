@@ -35,13 +35,20 @@ score_t	qsearch(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 	list_instable(&list, board);
 
-	score_t	next = evaluate(board);
-
 	// If not playing a capture is better because of better quiet moves,
 	// allow for a simple eval return.
 
-	if (alpha < next)
-		alpha = next;
+	if (!board->stack->checkers)
+	{
+		score_t	eval = evaluate(board);
+
+		if (alpha < eval)
+		{
+			alpha = eval;
+			if (alpha >= beta)
+				return (alpha);
+		}
+	}
 
 	if (movelist_size(&list) == 0)
 	{
@@ -53,9 +60,6 @@ score_t	qsearch(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 	if (is_draw(board, ss->plies + 1))
 		return (0);
-
-	if (alpha >= beta)
-		return (alpha);
 
 	(ss + 1)->plies = ss->plies + 1;
 
