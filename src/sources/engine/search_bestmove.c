@@ -175,59 +175,76 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 	(ss + 1)->pv = pv;
 	pv[0] = NO_MOVE;
 
+	score_t		eval = evaluate(board);
+
+	// Razoring.
+
+	if (eval + Razor_LightMargin < beta)
+	{
+		if (max_depth == 1)
+		{
+			score_t		max_score = qsearch(board, 0, alpha, beta, ss);
+			return (eval + Razor_LightMargin < max_score ? max_score : eval + Razor_LightMargin);
+		}
+		if (eval + Razor_HeavyMargin < beta && max_depth <= 3)
+		{
+			score_t		max_score = qsearch(board, 0, alpha, beta, ss);
+			if (max_score < beta)
+				return (eval + Razor_HeavyMargin < max_score ? max_score : eval + Razor_HeavyMargin);
+		}
+	}
+
 	// Null move pruning.
 
-	if (max_depth >= 2 && !board->stack->checkers
-		&& board->stack->plies_from_null_move > 1)
+	if (max_depth >= NMP_MinDepth && !board->stack->checkers
+		&& board->stack->plies_from_null_move >= NMP_MinPlies
+		&& eval >= beta)
 	{
-		score_t		eval = evaluate(board);
+		boardstack_t	stack;
 
-		if (eval >= beta)
-		{
-			boardstack_t	stack;
+		int		nmp_reduction = (eval - beta) / NMP_EvalScale;
 
-			int		nmp_reduction = 3 + (eval - beta) / 256;
+		if (nmp_reduction > NMP_MaxEvalReduction)
+			nmp_reduction = NMP_MaxEvalReduction;
 
-			if (nmp_reduction > 6)
-				nmp_reduction = 6;
+		nmp_reduction += NMP_BaseReduction;
 
-			do_null_move(board, &stack);
+		do_null_move(board, &stack);
 
-			(ss + 1)->plies = ss->plies;
+		(ss + 1)->plies = ss->plies;
 
-			score_t			score = -search(board, max_depth - nmp_reduction, -beta, -beta + 1,
+		score_t			score = -search(board, max_depth - nmp_reduction, -beta, -beta + 1,
 				ss + 1);
 
-			undo_null_move(board);
+		undo_null_move(board);
 
-			if (abs(score) > INF_SCORE)
-				return (NO_SCORE);
+		if (abs(score) > INF_SCORE)
+			return (NO_SCORE);
 
-			if (score >= beta)
-			{
-				// Do not trust mate claims.
+		if (score >= beta)
+		{
+			// Do not trust mate claims.
 
-				if (score > MATE_FOUND)
-					score = beta;
+			if (score > MATE_FOUND)
+				score = beta;
 
-				// Do not trust win claims.
+			// Do not trust win claims.
 
-				if (max_depth < 10 && beta < 5000)
-					return (score);
+			if (max_depth <= NMP_TrustDepth && beta < NMP_TrustScore)
+				return (score);
 
-				// Zugzwang checking.
+			// Zugzwang checking.
 
-				int nmp_depth = board->stack->plies_from_null_move;
-				board->stack->plies_from_null_move = 0;
-			
-				score_t		zzscore = search(board, max_depth - nmp_reduction, beta - 1, beta,
-						ss + 1);
+			int nmp_depth = board->stack->plies_from_null_move;
+			board->stack->plies_from_null_move = 0;
 
-				board->stack->plies_from_null_move = nmp_depth;
+			score_t		zzscore = search(board, max_depth - nmp_reduction, beta - 1, beta,
+					ss + 1);
 
-				if (zzscore >= beta)
-					return (score);
-			}
+			board->stack->plies_from_null_move = nmp_depth;
+
+			if (zzscore >= beta)
+				return (score);
 		}
 	}
 
@@ -259,10 +276,10 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 			bool	need_full_depth_search = true;
 
-			if (max_depth >= 3 && extmove >= movelist_begin(&list) + 4
+			if (max_depth >= LMR_MinDepth && extmove >= movelist_begin(&list) + LMR_MinMoves
 				&& !board->stack->checkers)
 			{
-				int		lmr_depth = max_depth - 2;
+				int		lmr_depth = max_depth - LMR_BaseReduction;
 
 				next = -search(board, lmr_depth, -alpha - 1, -alpha,
 					ss + 1);
@@ -301,10 +318,7 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 			size_t	j;
 			for (j = 0; (ss + 1)->pv[j] != NO_MOVE; ++j)
-			{
-				assert(j != 500);
 				ss->pv[j + 1] = (ss + 1)->pv[j];
-			}
 
 			ss->pv[j + 1] = NO_MOVE;
 		}
@@ -409,10 +423,10 @@ score_t	search_pv(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 			bool	need_full_depth_search = true;
 
-			if (max_depth >= 3 && extmove >= movelist_begin(&list) + 4
+			if (max_depth >= LMR_MinDepth && extmove >= movelist_begin(&list) + LMR_MinMoves
 				&& !board->stack->checkers)
 			{
-				int		lmr_depth = max_depth - 2;
+				int		lmr_depth = max_depth - LMR_BaseReduction;
 
 				next = -search(board, lmr_depth, -alpha - 1, -alpha,
 					ss + 1);
@@ -451,10 +465,7 @@ score_t	search_pv(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 			size_t	j;
 			for (j = 0; (ss + 1)->pv[j] != NO_MOVE; ++j)
-			{
-				assert(j != 500);
 				ss->pv[j + 1] = (ss + 1)->pv[j];
-			}
 
 			ss->pv[j + 1] = NO_MOVE;
 		}

@@ -24,6 +24,25 @@ typedef struct
 }
 searchstack_t;
 
+// All search components are here
+enum
+{
+	NMP_MinDepth = 3,
+	NMP_MinPlies = 2,
+	NMP_BaseReduction = 3,
+	NMP_EvalScale = 256,
+	NMP_MaxEvalReduction = 3,
+	NMP_TrustDepth = 9,
+	NMP_TrustScore = 8000,
+
+	LMR_MinDepth = 3,
+	LMR_MinMoves = 4,
+	LMR_BaseReduction = 2,
+
+	Razor_LightMargin = 150,
+	Razor_HeavyMargin = 300
+};
+
 void	engine_go(void);
 void	search_bestmove(board_t *board, int depth, size_t pv_line,
 		move_t *display_pv);
