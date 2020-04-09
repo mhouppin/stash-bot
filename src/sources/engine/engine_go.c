@@ -202,6 +202,11 @@ void		engine_go(void)
 
 		if (has_search_aborted)
 			break ;
+
+		if (g_goparams.mate < 0 && g_searchmoves.moves[0].score <= mated_in(1 - g_goparams.mate * 2))
+			break ;
+		if (g_goparams.mate > 0 && g_searchmoves.moves[0].score >= mate_in(g_goparams.mate * 2))
+			break ;
 	}
 
 	printf("bestmove %s\n", move_to_str(g_searchmoves.moves[0].move,
