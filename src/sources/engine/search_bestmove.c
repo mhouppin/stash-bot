@@ -230,7 +230,7 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 			// Do not trust win claims.
 
-			if (max_depth <= NMP_TrustDepth && beta < NMP_TrustScore)
+			if (max_depth <= NMP_TrustDepth && abs(beta) < NMP_TrustScore)
 				return (score);
 
 			// Zugzwang checking.

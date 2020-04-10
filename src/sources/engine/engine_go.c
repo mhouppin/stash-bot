@@ -171,8 +171,8 @@ void		engine_go(void)
 
 			clock_t	chess_time = chess_clock() - g_goparams.start;
 			size_t	chess_nodes = g_nodes;
-			size_t	chess_nps = (!chess_time) ? 0 : (chess_nodes * 1000)
-				/ chess_time;
+			size_t	chess_nps = (!chess_time) ? 0 : ((uint64_t)chess_nodes * 1000)
+				/ (uint64_t)chess_time;
 
 			extern int	g_seldepth;
 

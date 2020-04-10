@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include "board.h"
 #include "info.h"
@@ -6,7 +8,8 @@
 
 void	uci_bench(const char *args)
 {
-	(void)args;
+	if (!args || !atoi(args))
+		args = "9";
 
 	const char	*positions[] = {
 		"startpos",
@@ -44,10 +47,15 @@ void	uci_bench(const char *args)
 
 	for (size_t i = 0; positions[i]; ++i)
 	{
+		char	buf[4096];
+
+		strcpy(buf, "depth ");
+		strcat(buf, args);
 		printf("Position " SIZE_FORMAT "/25\n", i + 1);
 		fflush(stdout);
+		uci_ucinewgame(NULL);
 		uci_position(positions[i]);
-		uci_go("depth 9");
+		uci_go(buf);
 
 		usleep(1000);
 		pthread_mutex_lock(&g_engine_mutex);
@@ -70,6 +78,6 @@ void	uci_bench(const char *args)
 	printf("Benchmark report:\n");
 	printf("Total time:   %lu milliseconds\n", bench_time);
 	printf("Total nodes:  " SIZE_FORMAT "\n", total_nodes);
-	printf("Nodes/second: " SIZE_FORMAT "\n", (total_nodes * 1000) / (size_t)bench_time);
+	printf("Nodes/second: " SIZE_FORMAT "\n", (size_t)(((uint64_t)total_nodes * 1000) / (uint64_t)bench_time));
 	fflush(stdout);
 }
