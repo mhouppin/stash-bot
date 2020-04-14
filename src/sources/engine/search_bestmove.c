@@ -61,11 +61,44 @@ score_t	qsearch(board_t *board, int max_depth, score_t alpha, score_t beta,
 	if (is_draw(board, ss->plies + 1))
 		return (0);
 
+	// Check for interesting tt values
+
+	bool		found;
+	tt_entry_t	*entry = tt_probe(board->stack->board_key, &found);
+
+	if (found)
+	{
+		extern transposition_t	g_hashtable;
+
+		int	bound = entry->genbound & 3;
+
+		score_t		tt_score = score_from_tt(entry->score, ss->plies);
+
+		if (bound == EXACT_BOUND)
+			return (tt_score);
+		else if (bound == LOWER_BOUND && tt_score > alpha)
+		{
+			alpha = tt_score;
+			if (alpha >= beta)
+				return (alpha);
+		}
+		else if (bound == UPPER_BOUND && tt_score < beta)
+		{
+			beta = tt_score;
+			if (alpha >= beta)
+				return (alpha);
+		}
+	}
+
+	move_t	tt_move = entry->bestmove;
+
 	(ss + 1)->plies = ss->plies + 1;
 
-	generate_move_values(&list, board, NO_MOVE);
+	generate_move_values(&list, board, tt_move);
 	sort_moves((extmove_t *)movelist_begin(&list),
 		(extmove_t *)movelist_end(&list));
+
+	move_t	bestmove = NO_MOVE;
 
 	for (const extmove_t *extmove = movelist_begin(&list);
 		extmove < movelist_end(&list); ++extmove)
@@ -86,13 +119,27 @@ score_t	qsearch(board_t *board, int max_depth, score_t alpha, score_t beta,
 		}
 
 		if (alpha < next)
+		{
 			alpha = next;
+			bestmove = extmove->move;
+		}
 
 		if (alpha >= beta)
 			break ;
 	}
-	return (alpha);
 
+	// Do not erase entries with higher depth for same position.
+
+	if (alpha != NO_SCORE && (entry->key != board->stack->board_key
+		|| entry->depth <= -DEPTH_OFFSET))
+	{
+		int bound = (bestmove == NO_MOVE) ? UPPER_BOUND
+			: (alpha >= beta) ? LOWER_BOUND : EXACT_BOUND;
+
+		tt_save(entry, board->stack->board_key, score_to_tt(alpha, ss->plies), 0, bound, bestmove);
+	}
+
+	return (alpha);
 }
 
 score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
