@@ -13,6 +13,7 @@
 
 #include "init.h"
 #include "tt.h"
+#include "uci.h"
 #include <pthread.h>
 #include <stdio.h>
 
@@ -22,6 +23,7 @@ int		main(int argc, char **argv)
 	psq_score_init();
 	zobrist_init();
 	tt_resize(16);
+	uci_position("startpos");
 
 	pthread_t	engine_pt;
 
