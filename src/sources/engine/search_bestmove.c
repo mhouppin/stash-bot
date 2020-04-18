@@ -254,7 +254,7 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 		if (nmp_reduction > NMP_MaxEvalReduction)
 			nmp_reduction = NMP_MaxEvalReduction;
 
-		nmp_reduction += NMP_BaseReduction;
+		nmp_reduction += NMP_BaseReduction + (max_depth / 4);
 
 		do_null_move(board, &stack);
 
@@ -283,7 +283,7 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 			// Zugzwang checking.
 
 			int nmp_depth = board->stack->plies_from_null_move;
-			board->stack->plies_from_null_move = 0;
+			board->stack->plies_from_null_move = -(max_depth - nmp_reduction) * 3 / 4;
 
 			score_t		zzscore = search(board, max_depth - nmp_reduction, beta - 1, beta,
 					ss + 1);

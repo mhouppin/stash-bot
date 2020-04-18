@@ -28,7 +28,7 @@ searchstack_t;
 enum
 {
 	NMP_MinDepth = 3,
-	NMP_MinPlies = 2,
+	NMP_MinPlies = 1,
 	NMP_BaseReduction = 3,
 	NMP_EvalScale = 256,
 	NMP_MaxEvalReduction = 3,
