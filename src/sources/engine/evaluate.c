@@ -33,6 +33,31 @@ score_t		evaluate(const board_t *board)
 	int			piece_count = popcount(board->piecetype_bits[ALL_PIECES]);
 	score_t		score;
 
+	if (piece_count <= 7)
+	{
+		// Insufficient material check.
+
+		int		pieces = popcount(board->color_bits[WHITE]);
+
+		if (eg > 0)
+		{
+			if (pieces == 1)
+				eg = 0;
+			else if (pieces == 2 && board_colored_pieces(board, WHITE, KNIGHT, BISHOP))
+				eg = 0;
+		}
+
+		pieces = piece_count - pieces;
+
+		if (eg < 0)
+		{
+			if (pieces == 1)
+				eg = 0;
+			else if (pieces == 2 && board_colored_pieces(board, BLACK, KNIGHT, BISHOP))
+				eg = 0;
+		}
+	}
+
 	if (piece_count <= 16)
 		score = eg;
 	else
