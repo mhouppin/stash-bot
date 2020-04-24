@@ -189,6 +189,12 @@ INLINED bool		castling_blocked(const board_t *board, int castling)
 	return (board->piecetype_bits[ALL_PIECES] & board->castling_path[castling]);
 }
 
+INLINED bool		is_capture_or_promotion(const board_t *board, move_t move)
+{
+	return (type_of_move(move) == NORMAL_MOVE ? !empty_square(board, move_to_square(move))
+		: type_of_move(move) != CASTLING);
+}
+
 INLINED void		put_piece(board_t *board, piece_t piece, square_t square)
 {
 	const bitboard_t	bitsquare = square_bit(square);

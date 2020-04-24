@@ -14,7 +14,7 @@
 #include "movelist.h"
 
 void	generate_move_values(movelist_t *movelist, const board_t *board,
-		move_t tt_move)
+		move_t tt_move, move_t *killers)
 {
 	for (size_t i = 0; i < movelist_size(movelist); ++i)
 	{
@@ -48,6 +48,8 @@ void	generate_move_values(movelist_t *movelist, const board_t *board,
 			movelist->moves[i].score += type_of_piece(captured_piece) * 8
 				- type_of_piece(moved_piece);
 		}
+		else if (killers && (move == killers[0] || move == killers[1]))
+			movelist->moves[i].score = 1536;
 		else
 		{
 			movelist->moves[i].score =

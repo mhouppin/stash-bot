@@ -14,6 +14,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "engine.h"
 #include "info.h"
 #include "movelist.h"
@@ -94,7 +95,7 @@ score_t	qsearch(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 	(ss + 1)->plies = ss->plies + 1;
 
-	generate_move_values(&list, board, tt_move);
+	generate_move_values(&list, board, tt_move, NULL);
 	sort_moves((extmove_t *)movelist_begin(&list),
 		(extmove_t *)movelist_end(&list));
 
@@ -221,6 +222,7 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 	(ss + 1)->pv = pv;
 	pv[0] = NO_MOVE;
+	(ss + 2)->killers[0] = (ss + 2)->killers[1] = NO_MOVE;
 
 	score_t		eval = evaluate(board);
 
@@ -297,7 +299,7 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 	(ss + 1)->plies = ss->plies + 1;
 
-	generate_move_values(&list, board, tt_move);
+	generate_move_values(&list, board, tt_move, ss->killers);
 	sort_moves((extmove_t *)movelist_begin(&list),
 		(extmove_t *)movelist_end(&list));
 
@@ -371,7 +373,16 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 		}
 
 		if (alpha >= beta)
+		{
+			if (!is_capture_or_promotion(board, bestmove))
+			{
+				if (ss->killers[0] == NO_MOVE)
+					ss->killers[0] = bestmove;
+				else if (ss->killers[0] != bestmove)
+					ss->killers[1] = bestmove;
+			}
 			break ;
+		}
 	}
 
 	// Do not erase entries with higher depth for same position.
@@ -443,8 +454,9 @@ score_t	search_pv(board_t *board, int max_depth, score_t alpha, score_t beta,
 	(ss + 1)->pv = pv;
 	pv[0] = NO_MOVE;
 	(ss + 1)->plies = ss->plies + 1;
+	(ss + 2)->killers[0] = (ss + 2)->killers[1] = NO_MOVE;
 
-	generate_move_values(&list, board, tt_move);
+	generate_move_values(&list, board, tt_move, ss->killers);
 	sort_moves((extmove_t *)movelist_begin(&list),
 		(extmove_t *)movelist_end(&list));
 
@@ -518,7 +530,16 @@ score_t	search_pv(board_t *board, int max_depth, score_t alpha, score_t beta,
 		}
 
 		if (alpha >= beta)
+		{
+			if (!is_capture_or_promotion(board, bestmove))
+			{
+				if (ss->killers[0] == NO_MOVE)
+					ss->killers[0] = bestmove;
+				else if (ss->killers[0] != bestmove)
+					ss->killers[1] = bestmove;
+			}
 			break ;
+		}
 	}
 
 	// Do not erase entries with higher depth for same position.
@@ -543,6 +564,8 @@ void	search_bestmove(board_t *board, int depth, size_t pv_line,
 	score_t				alpha = -INF_SCORE;
 	searchstack_t		sstack[512];
 	move_t				pv[512];
+
+	memset(sstack, 0, sizeof(sstack));
 
 	sstack[0].plies = 1;
 	sstack[0].pv = pv;

@@ -51,7 +51,7 @@ extmove_t	*generate_queen_moves(extmove_t *movelist, const board_t *board,
 
 void		sort_moves(extmove_t *begin, extmove_t *end);
 void		generate_move_values(movelist_t *movelist, const board_t *board,
-			move_t tt_move);
+			move_t tt_move, move_t *killers);
 
 INLINED void	list_all(movelist_t *movelist, const board_t *board)
 {

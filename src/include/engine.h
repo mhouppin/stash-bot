@@ -20,6 +20,7 @@
 typedef struct
 {
 	int		plies;
+	move_t	killers[2];
 	move_t	*pv;
 }
 searchstack_t;
