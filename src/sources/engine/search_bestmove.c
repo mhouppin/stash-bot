@@ -11,7 +11,7 @@
 /*                                                        /                   */
 /* ************************************************************************** */
 
-#include <assert.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -328,7 +328,8 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 			if (max_depth >= LMR_MinDepth && extmove >= movelist_begin(&list) + LMR_MinMoves
 				&& !board->stack->checkers)
 			{
-				int		lmr_depth = max_depth - LMR_BaseReduction;
+
+				int		lmr_depth = max_depth - 1 - ilogb(max_depth);
 
 				next = -search(board, lmr_depth, -alpha - 1, -alpha,
 					ss + 1);
@@ -485,7 +486,7 @@ score_t	search_pv(board_t *board, int max_depth, score_t alpha, score_t beta,
 			if (max_depth >= LMR_MinDepth && extmove >= movelist_begin(&list) + LMR_MinMoves
 				&& !board->stack->checkers)
 			{
-				int		lmr_depth = max_depth - LMR_BaseReduction;
+				int		lmr_depth = max_depth - 1 - ilogb(max_depth);
 
 				next = -search(board, lmr_depth, -alpha - 1, -alpha,
 					ss + 1);
