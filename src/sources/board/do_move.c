@@ -27,6 +27,7 @@ void	do_move_gc(board_t *board, move_t move, boardstack_t *next,
 	next->rule50 = board->stack->rule50;
 	next->plies_from_null_move = board->stack->plies_from_null_move;
 	next->en_passant_square = board->stack->en_passant_square;
+	next->pawn_key = board->stack->pawn_key;
 
 	next->prev = board->stack;
 	board->stack = next;
@@ -62,8 +63,13 @@ void	do_move_gc(board_t *board, move_t move, boardstack_t *next,
 	{
 		square_t		captured_square = to;
 
-		if (type_of_move(move) == EN_PASSANT)
-			captured_square -= pawn_direction(us);
+		if (type_of_piece(captured_piece) == PAWN)
+		{
+			if (type_of_move(move) == EN_PASSANT)
+				captured_square -= pawn_direction(us);
+
+			board->stack->pawn_key ^= ZobristPsq[captured_piece][captured_square];
+		}
 
 		remove_piece(board, captured_square);
 
@@ -112,7 +118,11 @@ void	do_move_gc(board_t *board, move_t move, boardstack_t *next,
 			put_piece(board, new_piece, to);
 
 			key ^= ZobristPsq[piece][to] ^ ZobristPsq[new_piece][to];
+			board->stack->pawn_key ^= ZobristPsq[piece][to];
 		}
+
+		board->stack->pawn_key ^= ZobristPsq[piece][from]
+			^ ZobristPsq[piece][to];
 
 		board->stack->rule50 = 0;
 	}

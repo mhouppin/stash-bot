@@ -48,6 +48,8 @@ typedef uint64_t	bitboard_t;
 
 # define FULL_BITS		0xFFFFFFFFFFFFFFFFull
 
+# define DARK_SQUARES	0xAA55AA55AA55AA55ull
+
 extern bitboard_t	LineBits[SQUARE_NB][SQUARE_NB];
 extern bitboard_t	PseudoMoves[PIECETYPE_NB][SQUARE_NB];
 extern bitboard_t	PawnMoves[COLOR_NB][SQUARE_NB];
@@ -86,6 +88,16 @@ INLINED bitboard_t	shift_up(bitboard_t b)
 INLINED bitboard_t	shift_down(bitboard_t b)
 {
 	return (b >> 8);
+}
+
+INLINED bitboard_t	shift_left(bitboard_t b)
+{
+	return ((b & ~FILE_A_BITS) >> 1);
+}
+
+INLINED bitboard_t	shift_right(bitboard_t b)
+{
+	return ((b & ~FILE_H_BITS) << 1);
 }
 
 INLINED bitboard_t	shift_up_left(bitboard_t b)
@@ -157,6 +169,56 @@ INLINED bitboard_t	rook_move_bits(square_t square, bitboard_t occupied)
 	const magic_t	*magic = &RookMagics[square];
 
 	return magic->moves[magic_index(magic, occupied)];
+}
+
+INLINED bitboard_t	white_pawn_attacks(bitboard_t b)
+{
+	return (shift_up_left(b) | shift_up_right(b));
+}
+
+INLINED bitboard_t	black_pawn_attacks(bitboard_t b)
+{
+	return (shift_down_left(b) | shift_down_right(b));
+}
+
+INLINED bitboard_t	white_pawn_dattacks(bitboard_t b)
+{
+	return (shift_up_left(b) & shift_up_right(b));
+}
+
+INLINED bitboard_t	black_pawn_dattacks(bitboard_t b)
+{
+	return (shift_down_left(b) & shift_down_right(b));
+}
+
+INLINED bitboard_t	adjacent_files_bits(square_t s)
+{
+	bitboard_t	fbb = file_square_bits(s);
+	return (shift_left(fbb) | shift_right(fbb));
+}
+
+INLINED bitboard_t	forward_ranks_bits(color_t c, square_t s)
+{
+	if (c == WHITE)
+		return (~RANK_1_BITS << 8 * rank_of_square(s));
+	else
+		return (~RANK_8_BITS >> 8 * (RANK_8 - rank_of_square(s)));
+}
+
+INLINED bitboard_t	forward_file_bits(color_t c, square_t s)
+{
+	return (forward_ranks_bits(c, s) & file_square_bits(s));
+}
+
+INLINED bitboard_t	pawn_attack_span(color_t c, square_t s)
+{
+	return (forward_ranks_bits(c, s) & adjacent_files_bits(s));
+}
+
+INLINED bitboard_t	passed_pawn_span(color_t c, square_t s)
+{
+	return (forward_ranks_bits(c, s)
+		& (adjacent_files_bits(s) | file_square_bits(s)));
 }
 
 INLINED int			popcount(bitboard_t b)

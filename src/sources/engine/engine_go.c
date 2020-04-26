@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include "engine.h"
 #include "info.h"
+#include "pawns.h"
 #include "tt.h"
 #include "uci.h"
 
@@ -88,6 +89,7 @@ void		engine_go(void)
 	}
 
 	tt_clear();
+	reset_pawn_cache();
 
 	g_goparams.initial_max_time = 0;
 

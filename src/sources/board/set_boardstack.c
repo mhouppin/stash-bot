@@ -15,7 +15,7 @@
 
 void	set_boardstack(board_t *board, boardstack_t *stack)
 {
-	stack->board_key = 0;
+	stack->board_key = stack->pawn_key = 0;
 	stack->checkers = attackers_to(board, board->piece_list[
 		create_piece(board->side_to_move, KING)][0])
 		& board->color_bits[opposite_color(board->side_to_move)];
@@ -28,6 +28,9 @@ void	set_boardstack(board_t *board, boardstack_t *stack)
 		piece_t		piece = piece_on(board, square);
 
 		stack->board_key ^= ZobristPsq[piece][square];
+
+		if (type_of_piece(piece) == PAWN)
+			stack->pawn_key ^= ZobristPsq[piece][square];
 	}
 
 	if (stack->en_passant_square != SQ_NONE)

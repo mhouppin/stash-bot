@@ -12,12 +12,56 @@
 /* ************************************************************************** */
 
 #include "engine.h"
+#include "pawns.h"
 
 enum
 {
 	CastlingBonus = SPAIR(100, 0),
-	Initiative = 15
+	Initiative = 15,
+	MobilityBase = SPAIR(-42, -66),
+	MobilityPlus = SPAIR(7, 11),
+	MobilityMax = SPAIR(21, 33)
 };
+
+scorepair_t	evaluate_mobility(const board_t *board, color_t c)
+{
+	scorepair_t	ret = 0;
+
+	const square_t *list = board->piece_list[create_piece(c, BISHOP)];
+	for (square_t sq = *list; sq != SQ_NONE; sq = *++list)
+	{
+		int move_count = popcount(bishop_moves(board, sq));
+
+		if (move_count >= 9)
+			ret += MobilityMax;
+		else
+			ret += MobilityBase + MobilityPlus * move_count;
+	}
+
+	list = board->piece_list[create_piece(c, ROOK)];
+	for (square_t sq = *list; sq != SQ_NONE; sq = *++list)
+	{
+		int move_count = popcount(rook_moves(board, sq));
+
+		if (move_count >= 9)
+			ret += MobilityMax;
+		else
+			ret += MobilityBase + MobilityPlus * move_count;
+	}
+
+	list = board->piece_list[create_piece(c, QUEEN)];
+	for (square_t sq = *list; sq != SQ_NONE; sq = *++list)
+	{
+		int move_count = popcount(queen_moves(board, sq));
+
+		if (move_count >= 9)
+			ret += MobilityMax;
+		else
+			ret += MobilityBase + MobilityPlus * move_count;
+	}
+
+	return (ret);
+}
 
 score_t		evaluate(const board_t *board)
 {
@@ -27,6 +71,10 @@ score_t		evaluate(const board_t *board)
 		eval += CastlingBonus;
 	if (board->stack->castlings & BLACK_CASTLING)
 		eval -= CastlingBonus;
+
+	eval += evaluate_pawns(board);
+	eval += evaluate_mobility(board, WHITE);
+	eval -= evaluate_mobility(board, BLACK);
 
 	score_t		mg = midgame_score(eval);
 	score_t		eg = endgame_score(eval);

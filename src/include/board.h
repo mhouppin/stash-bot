@@ -34,6 +34,7 @@ struct	boardstack_s
 	int				plies_from_null_move;
 	square_t		en_passant_square;
 	hashkey_t		board_key;
+	hashkey_t		pawn_key;
 	bitboard_t		checkers;
 	piece_t			captured_piece;
 	boardstack_t	*prev;
