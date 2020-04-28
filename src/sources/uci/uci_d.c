@@ -39,7 +39,8 @@ void	uci_d(const char *args)
 		puts(grid);
 	}
 
-	printf("\nKey: %lx\n", (unsigned long)g_board.stack->board_key);
-	printf("Eval: %+.2lf\n\n", (double)evaluate(&g_board) / 100.0);
+	printf("\nKey: 0x%lx\n", (unsigned long)g_board.stack->board_key);
+	double eval = (double)evaluate(&g_board) / 100.0;
+	printf("Eval: %+.2lf\n\n", g_board.side_to_move == WHITE ? eval : -eval);
 	fflush(stdout);
 }
