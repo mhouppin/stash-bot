@@ -1,15 +1,20 @@
-/* ************************************************************************** */
-/*                                                          LE - /            */
-/*                                                              /             */
-/*   board_set.c                                      .::    .:/ .      .::   */
-/*                                                 +:+:+   +:    +:  +:+:+    */
-/*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
-/*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2020/02/20 08:02:13 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/24 08:04:18 by stash       ###    #+. /#+    ###.fr     */
-/*                                                         /                  */
-/*                                                        /                   */
-/* ************************************************************************** */
+/*
+**	Stash, a UCI chess playing engine developed from scratch
+**	Copyright (C) 2019-2020 Morgan Houppin
+**
+**	Stash is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	Stash is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include <ctype.h>
 #include <stdio.h>
@@ -32,11 +37,15 @@ void	board_set(board_t *board, char *fen, bool is_chess960,
 	memset(board, 0, sizeof(board_t));
 	memset(bstack, 0, sizeof(boardstack_t));
 
+	// Empties the board.
+
 	for (piece_t piece = 0; piece < PIECE_NB; ++piece)
 		for (int i = 0; i < 16; ++i)
 			board->piece_list[piece][i] = SQ_NONE;
 
 	board->stack = bstack;
+
+	// Scans the piece section of the FEN.
 
 	for (size_t i = 0; fen_pieces[i]; ++i)
 	{
@@ -107,7 +116,11 @@ void	board_set(board_t *board, char *fen, bool is_chess960,
 		}
 	}
 
+	// Gets the side to move.
+
 	board->side_to_move = (strcmp(fen_side_to_move, "w") == 0 ? WHITE : BLACK);
+
+	// Gets the allowed castlings.
 
 	for (size_t i = 0; fen_castlings[i]; ++i)
 	{
@@ -135,6 +148,8 @@ void	board_set(board_t *board, char *fen, bool is_chess960,
 		set_castling(board, color, rook_square);
 	}
 
+	// Gets the en-passant square, if any.
+
 	if (fen_en_passant[0] >= 'a' && fen_en_passant[0] <= 'h'
 		&& (fen_en_passant[1] == '3' || fen_en_passant[1] == '6'))
 	{
@@ -156,6 +171,9 @@ void	board_set(board_t *board, char *fen, bool is_chess960,
 	}
 	else
 		board->stack->en_passant_square = SQ_NONE;
+
+	// If the user omits the last two fields (50mr and plies from start),
+	// allow the parsing to still work correctly.
 
 	if (!fen_rule50)
 		board->stack->rule50 = 0;

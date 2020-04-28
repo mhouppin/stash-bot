@@ -1,6 +1,9 @@
 2020-04-28	Morgan Houppin	<morganhouppin@gmail.com>
 
+	* uci/uci_d.c: Now printing static eval and Zobrist key.
+	* uci/uci_position.c: Fixed global access race on board.
 	Written Changelog from version 9 to actual version.
+	Changed all file headers.
 
 2020-04-26	Morgan Houppin	<morganhouppin@gmail.com>
 

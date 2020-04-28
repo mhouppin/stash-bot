@@ -1,15 +1,20 @@
-/* ************************************************************************** */
-/*                                                          LE - /            */
-/*                                                              /             */
-/*   init.c                                           .::    .:/ .      .::   */
-/*                                                 +:+:+   +:    +:  +:+:+    */
-/*   By: stash <stash@student.le-101.fr>            +:+   +:    +:    +:+     */
-/*                                                 #+#   #+    #+    #+#      */
-/*   Created: 2020/02/19 13:48:02 by stash        #+#   ##    ##    #+#       */
-/*   Updated: 2020/02/24 16:49:05 by mhouppin    ###    #+. /#+    ###.fr     */
-/*                                                         /                  */
-/*                                                        /                   */
-/* ************************************************************************** */
+/*
+**	Stash, a UCI chess playing engine developed from scratch
+**	Copyright (C) 2019-2020 Morgan Houppin
+**
+**	Stash is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	Stash is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include <stdlib.h>
 #include "bitboard.h"
@@ -24,6 +29,9 @@ int			SquareDistance[SQUARE_NB][SQUARE_NB];
 
 bitboard_t	HiddenRookTable[0x19000];
 bitboard_t	HiddenBishopTable[0x1480];
+
+// Returns a bitboard representing all the reachable squares by a bishop
+// (or rook) from given square and given occupied squares.
 
 bitboard_t	sliding_attack(const direction_t *directions, square_t square,
 			bitboard_t occupied)
@@ -42,6 +50,8 @@ bitboard_t	sliding_attack(const direction_t *directions, square_t square,
 
 	return (attack);
 }
+
+// Initializes magic bitboard tables necessary for bishop, rook and queen moves.
 
 void	magic_init(bitboard_t *table, magic_t *magics,
 		const direction_t *directions)
@@ -112,6 +122,8 @@ void	magic_init(bitboard_t *table, magic_t *magics,
 	}
 }
 
+// Initializes all bitboard tables at program startup.
+
 void	bitboard_init(void)
 {
 	static const direction_t	_king_directions[8] = {
@@ -127,6 +139,8 @@ void	bitboard_init(void)
 		-8, -1, 1, 8
 	};
 
+	// Initializes square distance table.
+
 	for (square_t sq1 = SQ_A1; sq1 <= SQ_H8; ++sq1)
 		for (square_t sq2 = SQ_A1; sq2 <= SQ_H8; ++sq2)
 		{
@@ -137,6 +151,8 @@ void	bitboard_init(void)
 				? file_distance : rank_distance;
 		}
 
+	// Initializes pawn pseudo-moves table.
+
 	for (square_t square = SQ_A1; square <= SQ_H8; ++square)
 	{
 		bitboard_t	b = square_bit(square);
@@ -144,6 +160,8 @@ void	bitboard_init(void)
 		PawnMoves[WHITE][square] = (shift_up_left(b) | shift_up_right(b));
 		PawnMoves[BLACK][square] = (shift_down_left(b) | shift_down_right(b));
 	}
+
+	// Initializes king and knight pseudo-moves table.
 
 	for (square_t square = SQ_A1; square <= SQ_H8; ++square)
 	{
@@ -166,6 +184,8 @@ void	bitboard_init(void)
 
 	magic_init(HiddenBishopTable, BishopMagics, _bishop_directions);
 	magic_init(HiddenRookTable, RookMagics, _rook_directions);
+
+	// Initializes bishop, rook and queen pseudo-moves table.
 
 	for (square_t sq1 = SQ_A1; sq1 <= SQ_H8; ++sq1)
 	{
