@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include "board.h"
+#include "engine.h"
 
 void	uci_d(const char *args)
 {
@@ -38,7 +39,7 @@ void	uci_d(const char *args)
 		puts(grid);
 	}
 
-	printf("\nKey: %lx\n", (unsigned long)g_board.stack.board_key);
+	printf("\nKey: %lx\n", (unsigned long)g_board.stack->board_key);
 	printf("Eval: %+.2lf\n\n", (double)evaluate(&g_board) / 100.0);
 	fflush(stdout);
 }
