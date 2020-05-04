@@ -40,6 +40,7 @@ typedef struct	movelist_s
 
 extmove_t	*generate_all(extmove_t *movelist, const board_t *board);
 extmove_t	*generate_instable(extmove_t *movelist, const board_t *board);
+extmove_t	*generate_pseudo(extmove_t *movelist, const board_t *board);
 
 extmove_t	*generate_classic(extmove_t *movelist, const board_t *board);
 extmove_t	*generate_evasions(extmove_t *movelist, const board_t *board);
@@ -66,6 +67,11 @@ INLINED void	list_all(movelist_t *movelist, const board_t *board)
 INLINED void	list_instable(movelist_t *movelist, const board_t *board)
 {
 	movelist->last = generate_instable(movelist->moves, board);
+}
+
+INLINED void	list_pseudo(movelist_t *movelist, const board_t *board)
+{
+	movelist->last = generate_pseudo(movelist->moves, board);
 }
 
 INLINED size_t	movelist_size(const movelist_t *movelist)

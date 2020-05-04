@@ -16,20 +16,24 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "uci.h"
-#include <stdio.h>
+#ifndef IMATH_H
+# define IMATH_H
 
-void	uci_uci(const char *args)
+# include "inlining.h"
+
+INLINED int		max(int a, int b)
 {
-	(void)args;
-	puts("id name Stash v15.1.0");
-	puts("id author Morgan Houppin (@mhouppin)");
-	puts("option name Hash type spin default 16 min 1 max 131072");
-	puts("option name Clear Hash type button");
-	puts("option name MultiPV type spin default 1 min 1 max 16");
-	puts("option name Minimum Thinking Time type spin default 20 min 0 max 30000");
-	puts("option name Move Overhead type spin default 20 min 0 max 1000");
-	puts("option name UCI_Chess960 type check default false");
-	puts("uciok");
-	fflush(stdout);
+	return (a > b ? a : b);
 }
+
+INLINED int		min(int a, int b)
+{
+	return (a < b ? a : b);
+}
+
+INLINED int		clamp(int value, int lower, int upper)
+{
+	return (value < lower ? lower : value > upper ? upper : value);
+}
+
+#endif

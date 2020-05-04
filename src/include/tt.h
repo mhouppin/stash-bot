@@ -28,10 +28,10 @@ typedef struct
 {
 	hashkey_t	key;
 	score_t		score;
+	score_t		eval;
 	uint8_t		depth;
 	uint8_t		genbound;
 	uint16_t	bestmove;
-	uint16_t	padding;
 }		tt_entry_t;
 
 enum
@@ -81,7 +81,7 @@ INLINED score_t		score_from_tt(score_t s, int plies)
 }
 
 tt_entry_t	*tt_probe(hashkey_t key, bool *found);
-void		tt_save(tt_entry_t *entry, hashkey_t k, score_t s, int d, int b, move_t m);
+void		tt_save(tt_entry_t *entry, hashkey_t k, score_t s, score_t e, int d, int b, move_t m);
 int			tt_hashfull(void);
 void		tt_resize(size_t mbsize);
 

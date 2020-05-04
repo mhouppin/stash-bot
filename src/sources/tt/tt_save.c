@@ -18,7 +18,7 @@
 
 #include "tt.h"
 
-void		tt_save(tt_entry_t *entry, hashkey_t k, score_t s, int d, int b, move_t m)
+void		tt_save(tt_entry_t *entry, hashkey_t k, score_t s, score_t e, int d, int b, move_t m)
 {
 	if (m || k != entry->key)
 		entry->bestmove = (uint16_t)m;
@@ -29,6 +29,7 @@ void		tt_save(tt_entry_t *entry, hashkey_t k, score_t s, int d, int b, move_t m)
 
 		entry->key = k;
 		entry->score = s;
+		entry->eval = e;
 		entry->genbound = g_hashtable.generation | (uint8_t)b;
 		entry->depth = (d - DEPTH_OFFSET);
 	}

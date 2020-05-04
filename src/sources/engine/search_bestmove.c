@@ -16,11 +16,13 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "engine.h"
+#include "imath.h"
 #include "info.h"
 #include "movelist.h"
 #include "tt.h"
@@ -39,46 +41,29 @@ score_t	qsearch(board_t *board, int max_depth, score_t alpha, score_t beta,
 	if (g_seldepth < ss->plies + 1)
 		g_seldepth = ss->plies + 1;
 
-	list_instable(&list, board);
-
-	// If not playing a capture is better because of better quiet moves,
-	// allow for a simple eval return.
-
-	if (!board->stack->checkers)
-	{
-		score_t	eval = evaluate(board);
-
-		if (alpha < eval)
-		{
-			alpha = eval;
-			if (alpha >= beta)
-				return (alpha);
-		}
-	}
-
-	if (movelist_size(&list) == 0)
-	{
-		if (board->stack->checkers)
-			return (mated_in(ss->plies + 1));
-		else
-			return (alpha);
-	}
-
-	if (is_draw(board, ss->plies + 1))
-		return (0);
-
 	// Check for interesting tt values
 
 	bool		found;
 	tt_entry_t	*entry = tt_probe(board->stack->board_key, &found);
+	score_t		eval = found ? entry->eval : evaluate(board);
+	score_t		best_value = eval;
+
+	// If not playing a capture is better because of better quiet moves,
+	// allow for a simple eval return.
+
+	if (!board->stack->checkers && alpha < best_value)
+	{
+		alpha = best_value;
+		if (alpha >= beta)
+			return (alpha);
+	}
 
 	if (found)
 	{
-		extern transposition_t	g_hashtable;
-
 		int	bound = entry->genbound & 3;
 
 		score_t		tt_score = score_from_tt(entry->score, ss->plies);
+		assert(abs(tt_score) < INF_SCORE);
 
 		if (bound == EXACT_BOUND)
 			return (tt_score);
@@ -96,72 +81,8 @@ score_t	qsearch(board_t *board, int max_depth, score_t alpha, score_t beta,
 		}
 	}
 
-	move_t	tt_move = entry->bestmove;
-
-	(ss + 1)->plies = ss->plies + 1;
-
-	generate_move_values(&list, board, tt_move, NULL);
-	sort_moves((extmove_t *)movelist_begin(&list),
-		(extmove_t *)movelist_end(&list));
-
-	move_t	bestmove = NO_MOVE;
-
-	for (const extmove_t *extmove = movelist_begin(&list);
-		extmove < movelist_end(&list); ++extmove)
-	{
-		boardstack_t	stack;
-
-		do_move(board, extmove->move, &stack);
-
-		score_t		next = -qsearch(board, max_depth - 1, -beta, -alpha,
-			ss + 1);
-
-		undo_move(board, extmove->move);
-
-		if (abs(next) > INF_SCORE)
-		{
-			alpha = NO_SCORE;
-			break ;
-		}
-
-		if (alpha < next)
-		{
-			alpha = next;
-			bestmove = extmove->move;
-		}
-
-		if (alpha >= beta)
-			break ;
-	}
-
-	// Do not erase entries with higher depth for same position.
-
-	if (alpha != NO_SCORE && (entry->key != board->stack->board_key
-		|| entry->depth <= -DEPTH_OFFSET))
-	{
-		int bound = (bestmove == NO_MOVE) ? UPPER_BOUND
-			: (alpha >= beta) ? LOWER_BOUND : EXACT_BOUND;
-
-		tt_save(entry, board->stack->board_key, score_to_tt(alpha, ss->plies), 0, bound, bestmove);
-	}
-
-	return (alpha);
-}
-
-score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
-		searchstack_t *ss)
-{
-	if (max_depth <= 0)
-		return (qsearch(board, max_depth, alpha, beta, ss));
-
-	movelist_t			list;
-	move_t				pv[512];
-
-	if (g_nodes % 4096 == 0 && out_of_time())
-		return (NO_SCORE);
-
-	if (g_seldepth < ss->plies + 1)
-		g_seldepth = ss->plies + 1;
+	if (is_draw(board, ss->plies + 1))
+		return (0);
 
 	// Mate pruning.
 
@@ -178,35 +99,119 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 			return (alpha);
 	}
 
-	list_all(&list, board);
+	move_t	tt_move = entry->bestmove;
 
-	if (movelist_size(&list) == 0)
+	(ss + 1)->plies = ss->plies + 1;
+
+	list_instable(&list, board);
+	generate_move_values(&list, board, tt_move, NULL);
+	sort_moves((extmove_t *)movelist_begin(&list),
+		(extmove_t *)movelist_end(&list));
+
+	move_t	bestmove = NO_MOVE;
+	int		move_count = 0;
+
+	for (const extmove_t *extmove = movelist_begin(&list);
+		extmove < movelist_end(&list); ++extmove)
 	{
-		if (board->stack->checkers)
-			return (mated_in(ss->plies));
-		else
-			return (0);
+		if (!board_legal(board, extmove->move))
+			continue ;
+
+		move_count++;
+
+		boardstack_t	stack;
+
+		do_move(board, extmove->move, &stack);
+
+		score_t		next = -qsearch(board, max_depth - 1, -beta, -alpha,
+			ss + 1);
+
+		undo_move(board, extmove->move);
+
+		if (abs(next) > INF_SCORE)
+		{
+			best_value = NO_SCORE;
+			break ;
+		}
+
+		if (best_value < next)
+		{
+			best_value = next;
+			if (alpha < best_value)
+			{
+				alpha = best_value;
+				bestmove = extmove->move;
+				if (alpha >= beta)
+					break ;
+			}
+		}
 	}
+
+	if (move_count == 0 && board->stack->checkers)
+		best_value = mated_in(ss->plies);
+
+	// Do not erase entries with higher depth for same position.
+
+	if (best_value != NO_SCORE && (entry->key != board->stack->board_key
+		|| entry->depth <= -DEPTH_OFFSET))
+	{
+		int bound = (best_value >= beta) ? LOWER_BOUND : UPPER_BOUND;
+
+		tt_save(entry, board->stack->board_key, score_to_tt(best_value, ss->plies), eval, 0, bound, bestmove);
+	}
+
+	return (best_value);
+}
+
+score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
+		searchstack_t *ss)
+{
+	if (max_depth <= 0)
+		return (qsearch(board, max_depth, alpha, beta, ss));
+
+	movelist_t			list;
+	move_t				pv[512];
+	score_t				best_value = -INF_SCORE;
+
+	if (g_nodes % 4096 == 0 && out_of_time())
+		return (NO_SCORE);
+
+	if (g_seldepth < ss->plies + 1)
+		g_seldepth = ss->plies + 1;
 
 	if (is_draw(board, ss->plies + 1))
 		return (0);
+
+	// Mate pruning.
+
+	{
+		score_t		mate_alpha = mated_in(ss->plies);
+		score_t		mate_beta = mate_in(ss->plies + 1);
+
+		if (alpha < mate_alpha)
+			alpha = mate_alpha;
+		if (beta > mate_beta)
+			beta = mate_beta;
+
+		if (alpha >= beta)
+			return (alpha);
+	}
 
 	// Check for interesting tt values
 
 	move_t		tt_move = NO_MOVE;
 	bool		found;
 	tt_entry_t	*entry = tt_probe(board->stack->board_key, &found);
+	score_t		eval;
 
 	if (found)
 	{
-		extern transposition_t	g_hashtable;
+		score_t	tt_score = score_from_tt(entry->score, ss->plies);
+		int		bound = entry->genbound & 3;
 
 		if (entry->depth >= max_depth - DEPTH_OFFSET)
 		{
-			int	bound = entry->genbound & 3;
-
-			score_t		tt_score = score_from_tt(entry->score, ss->plies);
-
+			assert(abs(tt_score) < INF_SCORE);
 			if (bound == EXACT_BOUND)
 				return (tt_score);
 			else if (bound == LOWER_BOUND && tt_score > alpha)
@@ -223,28 +228,37 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 			}
 		}
 		tt_move = entry->bestmove;
+
+		eval = ss->static_eval = entry->eval;
+
+		if (bound & (tt_score > eval ? LOWER_BOUND : UPPER_BOUND))
+			eval = tt_score;
 	}
+	else
+		eval = ss->static_eval = evaluate(board);
 
 	(ss + 1)->pv = pv;
 	pv[0] = NO_MOVE;
 	(ss + 2)->killers[0] = (ss + 2)->killers[1] = NO_MOVE;
 
-	score_t		eval = evaluate(board);
-
 	// Razoring.
 
-	if (eval + Razor_LightMargin < beta)
+	if (ss->static_eval + Razor_LightMargin < beta)
 	{
 		if (max_depth == 1)
 		{
 			score_t		max_score = qsearch(board, 0, alpha, beta, ss);
-			return (eval + Razor_LightMargin < max_score ? max_score : eval + Razor_LightMargin);
+			if (abs(max_score) > INF_SCORE)
+				return (NO_SCORE);
+			return (max(ss->static_eval + Razor_LightMargin, max_score));
 		}
-		if (eval + Razor_HeavyMargin < beta && max_depth <= 3)
+		if (ss->static_eval + Razor_HeavyMargin < beta && max_depth <= 3)
 		{
 			score_t		max_score = qsearch(board, 0, alpha, beta, ss);
+			if (abs(max_score) > INF_SCORE)
+				return (NO_SCORE);
 			if (max_score < beta)
-				return (eval + Razor_HeavyMargin < max_score ? max_score : eval + Razor_HeavyMargin);
+				return (max(ss->static_eval + Razor_HeavyMargin, max_score));
 		}
 	}
 
@@ -252,7 +266,7 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 	if (max_depth >= NMP_MinDepth && !board->stack->checkers
 		&& board->stack->plies_from_null_move >= NMP_MinPlies
-		&& eval >= beta)
+		&& eval >= beta && eval >= ss->static_eval)
 	{
 		boardstack_t	stack;
 
@@ -304,15 +318,22 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 	(ss + 1)->plies = ss->plies + 1;
 
+	list_pseudo(&list, board);
 	generate_move_values(&list, board, tt_move, ss->killers);
 	sort_moves((extmove_t *)movelist_begin(&list),
 		(extmove_t *)movelist_end(&list));
 
 	move_t	bestmove = NO_MOVE;
+	int		move_count = 0;
 
 	for (const extmove_t *extmove = movelist_begin(&list);
 		extmove < movelist_end(&list); ++extmove)
 	{
+		if (!board_legal(board, extmove->move))
+			continue ;
+
+		move_count++;
+
 		boardstack_t	stack;
 
 		do_move(board, extmove->move, &stack);
@@ -321,7 +342,7 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 		pv[0] = NO_MOVE;
 
-		if (extmove == movelist_begin(&list))
+		if (move_count == 1)
 			next = -search(board, max_depth - 1, -beta, -alpha,
 				ss + 1);
 		else
@@ -330,16 +351,15 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 			bool	need_full_depth_search = true;
 
-			if (max_depth >= LMR_MinDepth && extmove >= movelist_begin(&list) + LMR_MinMoves
+			if (max_depth >= LMR_MinDepth && move_count > LMR_MinMoves
 				&& !board->stack->checkers)
 			{
-
-				int		lmr_depth = max_depth - 1 - ilogb(max_depth);
+				int		lmr_depth = max_depth - 1 - (int)cbrt(max_depth);
 
 				next = -search(board, lmr_depth, -alpha - 1, -alpha,
 					ss + 1);
 
-				need_full_depth_search = (abs(next) <= INF_SCORE && alpha < next);
+				need_full_depth_search = (abs(next) < INF_SCORE && alpha < next);
 			}
 
 			if (need_full_depth_search)
@@ -362,47 +382,57 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 		if (abs(next) > INF_SCORE)
 		{
-			alpha = NO_SCORE;
+			best_value = NO_SCORE;
 			break ;
 		}
 
-		if (alpha < next)
+		if (best_value < next)
 		{
-			ss->pv[0] = bestmove = extmove->move;
-			alpha = next;
+			best_value = next;
 
-			size_t	j;
-			for (j = 0; (ss + 1)->pv[j] != NO_MOVE; ++j)
-				ss->pv[j + 1] = (ss + 1)->pv[j];
-
-			ss->pv[j + 1] = NO_MOVE;
-		}
-
-		if (alpha >= beta)
-		{
-			if (!is_capture_or_promotion(board, bestmove))
+			if (alpha < best_value)
 			{
-				if (ss->killers[0] == NO_MOVE)
-					ss->killers[0] = bestmove;
-				else if (ss->killers[0] != bestmove)
-					ss->killers[1] = bestmove;
+				ss->pv[0] = bestmove = extmove->move;
+				alpha = best_value;
+
+				size_t	j;
+				for (j = 0; (ss + 1)->pv[j] != NO_MOVE; ++j)
+					ss->pv[j + 1] = (ss + 1)->pv[j];
+
+				ss->pv[j + 1] = NO_MOVE;
+
+				if (alpha >= beta)
+				{
+					if (!is_capture_or_promotion(board, bestmove))
+					{
+						if (ss->killers[0] == NO_MOVE)
+							ss->killers[0] = bestmove;
+						else if (ss->killers[0] != bestmove)
+							ss->killers[1] = bestmove;
+					}
+					break ;
+				}
 			}
-			break ;
 		}
 	}
+
+	// Checkmate/Stalemate ?
+
+	if (move_count == 0)
+		best_value = (board->stack->checkers) ? mated_in(ss->plies) : 0;
 
 	// Do not erase entries with higher depth for same position.
 
-	if (alpha != NO_SCORE && (entry->key != board->stack->board_key
+	if (best_value != NO_SCORE && (entry->key != board->stack->board_key
 		|| entry->depth <= max_depth - DEPTH_OFFSET))
 	{
-		int bound = (bestmove == NO_MOVE) ? UPPER_BOUND
-			: (alpha >= beta) ? LOWER_BOUND : EXACT_BOUND;
+		int bound = (best_value >= beta) ? LOWER_BOUND : UPPER_BOUND;
 
-		tt_save(entry, board->stack->board_key, score_to_tt(alpha, ss->plies), max_depth, bound, bestmove);
+		tt_save(entry, board->stack->board_key, score_to_tt(best_value, ss->plies),
+			ss->static_eval, max_depth, bound, bestmove);
 	}
 
-	return (alpha);
+	return (best_value);
 }
 
 score_t	search_pv(board_t *board, int max_depth, score_t alpha, score_t beta,
@@ -413,12 +443,16 @@ score_t	search_pv(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 	movelist_t			list;
 	move_t				pv[512];
+	score_t				best_value = -INF_SCORE;
 
 	if (g_nodes % 4096 == 0 && out_of_time())
 		return (NO_SCORE);
 
 	if (g_seldepth < ss->plies + 1)
 		g_seldepth = ss->plies + 1;
+
+	if (is_draw(board, ss->plies + 1))
+		return (0);
 
 	// Mate pruning.
 
@@ -435,42 +469,42 @@ score_t	search_pv(board_t *board, int max_depth, score_t alpha, score_t beta,
 			return (alpha);
 	}
 
-	list_all(&list, board);
-
-	if (movelist_size(&list) == 0)
-	{
-		if (board->stack->checkers)
-			return (mated_in(ss->plies));
-		else
-			return (0);
-	}
-
-	if (is_draw(board, ss->plies + 1))
-		return (0);
-
 	// Check for interesting tt values
 
 	move_t		tt_move = NO_MOVE;
 	bool		found;
 	tt_entry_t	*entry = tt_probe(board->stack->board_key, &found);
+	score_t		eval;
 
 	if (found)
+	{
+		eval = entry->eval;
 		tt_move = entry->bestmove;
+	}
+	else
+		eval = evaluate(board);
 
 	(ss + 1)->pv = pv;
 	pv[0] = NO_MOVE;
 	(ss + 1)->plies = ss->plies + 1;
 	(ss + 2)->killers[0] = (ss + 2)->killers[1] = NO_MOVE;
 
+	list_pseudo(&list, board);
 	generate_move_values(&list, board, tt_move, ss->killers);
 	sort_moves((extmove_t *)movelist_begin(&list),
 		(extmove_t *)movelist_end(&list));
 
 	move_t	bestmove = NO_MOVE;
+	int		move_count = 0;
 
 	for (const extmove_t *extmove = movelist_begin(&list);
 		extmove < movelist_end(&list); ++extmove)
 	{
+		if (!board_legal(board, extmove->move))
+			continue ;
+
+		move_count++;
+
 		boardstack_t	stack;
 
 		do_move(board, extmove->move, &stack);
@@ -479,7 +513,7 @@ score_t	search_pv(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 		pv[0] = NO_MOVE;
 
-		if (extmove == movelist_begin(&list))
+		if (move_count == 1)
 			next = -search_pv(board, max_depth - 1, -beta, -alpha,
 				ss + 1);
 		else
@@ -488,15 +522,15 @@ score_t	search_pv(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 			bool	need_full_depth_search = true;
 
-			if (max_depth >= LMR_MinDepth && extmove >= movelist_begin(&list) + LMR_MinMoves
+			if (max_depth >= LMR_MinDepth && move_count > LMR_MinMoves
 				&& !board->stack->checkers)
 			{
-				int		lmr_depth = max_depth - 1 - ilogb(max_depth);
+				int		lmr_depth = max_depth - 1 - (int)cbrt(max_depth);
 
 				next = -search(board, lmr_depth, -alpha - 1, -alpha,
 					ss + 1);
 
-				need_full_depth_search = (abs(next) <= INF_SCORE && alpha < next);
+				need_full_depth_search = (abs(next) < INF_SCORE && alpha < next);
 			}
 
 			if (need_full_depth_search)
@@ -519,47 +553,57 @@ score_t	search_pv(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 		if (abs(next) > INF_SCORE)
 		{
-			alpha = NO_SCORE;
+			best_value = NO_SCORE;
 			break ;
 		}
 
-		if (alpha < next)
+		if (best_value < next)
 		{
-			ss->pv[0] = bestmove = extmove->move;
-			alpha = next;
+			best_value = next;
 
-			size_t	j;
-			for (j = 0; (ss + 1)->pv[j] != NO_MOVE; ++j)
-				ss->pv[j + 1] = (ss + 1)->pv[j];
-
-			ss->pv[j + 1] = NO_MOVE;
-		}
-
-		if (alpha >= beta)
-		{
-			if (!is_capture_or_promotion(board, bestmove))
+			if (alpha < best_value)
 			{
-				if (ss->killers[0] == NO_MOVE)
-					ss->killers[0] = bestmove;
-				else if (ss->killers[0] != bestmove)
-					ss->killers[1] = bestmove;
+				ss->pv[0] = bestmove = extmove->move;
+				alpha = best_value;
+
+				size_t	j;
+				for (j = 0; (ss + 1)->pv[j] != NO_MOVE; ++j)
+					ss->pv[j + 1] = (ss + 1)->pv[j];
+
+				ss->pv[j + 1] = NO_MOVE;
+
+				if (alpha >= beta)
+				{
+					if (!is_capture_or_promotion(board, bestmove))
+					{
+						if (ss->killers[0] == NO_MOVE)
+							ss->killers[0] = bestmove;
+						else if (ss->killers[0] != bestmove)
+							ss->killers[1] = bestmove;
+					}
+					break ;
+				}
 			}
-			break ;
 		}
 	}
+
+	// Checkmate/Stalemate ?
+
+	if (move_count == 0)
+		best_value = (board->stack->checkers) ? mated_in(ss->plies) : 0;
 
 	// Do not erase entries with higher depth for same position.
 
-	if (alpha != NO_SCORE && (entry->key != board->stack->board_key
+	if (best_value != NO_SCORE && (entry->key != board->stack->board_key
 		|| entry->depth <= max_depth - DEPTH_OFFSET))
 	{
 		int bound = (bestmove == NO_MOVE) ? UPPER_BOUND
-			: (alpha >= beta) ? LOWER_BOUND : EXACT_BOUND;
+			: (best_value >= beta) ? LOWER_BOUND : EXACT_BOUND;
 
-		tt_save(entry, board->stack->board_key, score_to_tt(alpha, ss->plies), max_depth, bound, bestmove);
+		tt_save(entry, board->stack->board_key, score_to_tt(best_value, ss->plies), eval, max_depth, bound, bestmove);
 	}
 
-	return (alpha);
+	return (best_value);
 }
 
 void	search_bestmove(board_t *board, int depth, size_t pv_line,

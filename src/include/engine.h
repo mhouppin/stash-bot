@@ -25,6 +25,7 @@
 typedef struct
 {
 	int		plies;
+	score_t	static_eval;
 	move_t	killers[2];
 	move_t	*pv;
 }
