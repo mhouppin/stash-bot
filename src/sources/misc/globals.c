@@ -30,6 +30,7 @@ uint64_t			g_nodes;
 ucioptions_t		g_options;
 movelist_t			g_searchmoves;
 uint64_t			g_seed;
+uint64_t			g_tbhits;
 
 void __attribute__((constructor))	init_globals(void)
 {

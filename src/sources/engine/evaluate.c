@@ -16,7 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdlib.h>
+#include "endgame.h"
 #include "engine.h"
+#include "info.h"
 #include "pawns.h"
 
 enum
@@ -70,7 +73,23 @@ scorepair_t	evaluate_mobility(const board_t *board, color_t c)
 
 score_t		evaluate(const board_t *board)
 {
+	if (abs(midgame_score(board->psq_scorepair)) > VICTORY)
+		return (midgame_score(board->psq_scorepair));
+
+	endgame_entry_t	*entry = endgame_probe(board);
+
+	if (entry->key == board->stack->material_key)
+	{
+		g_tbhits++;
+		return (entry->eg_eval(board));
+	}
+
 	scorepair_t		eval = board->psq_scorepair;
+
+	if (!more_than_one(board->color_bits[WHITE]) && endgame_score(eval) < -2000)
+		return (-VICTORY - 5000 + endgame_score(eval) / 2);
+	if (!more_than_one(board->color_bits[BLACK]) && endgame_score(eval) > 2000)
+		return (VICTORY + 5000 + endgame_score(eval) / 2);
 
 	if (board->stack->castlings & WHITE_CASTLING)
 		eval += CastlingBonus;
@@ -85,31 +104,6 @@ score_t		evaluate(const board_t *board)
 	score_t		eg = endgame_score(eval);
 	int			piece_count = popcount(board->piecetype_bits[ALL_PIECES]);
 	score_t		score;
-
-	if (piece_count <= 7)
-	{
-		// Insufficient material check.
-
-		int		pieces = popcount(board->color_bits[WHITE]);
-
-		if (eg > 0)
-		{
-			if (pieces == 1)
-				eg = 0;
-			else if (pieces == 2 && board_colored_pieces(board, WHITE, KNIGHT, BISHOP))
-				eg = 0;
-		}
-
-		pieces = piece_count - pieces;
-
-		if (eg < 0)
-		{
-			if (pieces == 1)
-				eg = 0;
-			else if (pieces == 2 && board_colored_pieces(board, BLACK, KNIGHT, BISHOP))
-				eg = 0;
-		}
-	}
 
 	if (piece_count <= 16)
 		score = eg;

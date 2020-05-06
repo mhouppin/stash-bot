@@ -16,7 +16,6 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,6 +32,7 @@ int		g_seldepth;
 score_t	qsearch(board_t *board, int max_depth, score_t alpha, score_t beta,
 		searchstack_t *ss)
 {
+	const score_t		old_alpha = alpha;
 	movelist_t			list;
 
 	if (g_nodes % 4096 == 0 && out_of_time())
@@ -40,6 +40,24 @@ score_t	qsearch(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 	if (g_seldepth < ss->plies + 1)
 		g_seldepth = ss->plies + 1;
+
+	if (is_draw(board, ss->plies + 1))
+		return (0);
+
+	// Mate pruning.
+
+	{
+		score_t		mate_alpha = mated_in(ss->plies);
+		score_t		mate_beta = mate_in(ss->plies + 1);
+
+		if (alpha < mate_alpha)
+			alpha = mate_alpha;
+		if (beta > mate_beta)
+			beta = mate_beta;
+
+		if (alpha >= beta)
+			return (alpha);
+	}
 
 	// Check for interesting tt values
 
@@ -63,7 +81,6 @@ score_t	qsearch(board_t *board, int max_depth, score_t alpha, score_t beta,
 		int	bound = entry->genbound & 3;
 
 		score_t		tt_score = score_from_tt(entry->score, ss->plies);
-		assert(abs(tt_score) < INF_SCORE);
 
 		if (bound == EXACT_BOUND)
 			return (tt_score);
@@ -79,24 +96,6 @@ score_t	qsearch(board_t *board, int max_depth, score_t alpha, score_t beta,
 			if (alpha >= beta)
 				return (alpha);
 		}
-	}
-
-	if (is_draw(board, ss->plies + 1))
-		return (0);
-
-	// Mate pruning.
-
-	{
-		score_t		mate_alpha = mated_in(ss->plies);
-		score_t		mate_beta = mate_in(ss->plies + 1);
-
-		if (alpha < mate_alpha)
-			alpha = mate_alpha;
-		if (beta > mate_beta)
-			beta = mate_beta;
-
-		if (alpha >= beta)
-			return (alpha);
 	}
 
 	move_t	tt_move = entry->bestmove;
@@ -155,7 +154,8 @@ score_t	qsearch(board_t *board, int max_depth, score_t alpha, score_t beta,
 	if (best_value != NO_SCORE && (entry->key != board->stack->board_key
 		|| entry->depth <= -DEPTH_OFFSET))
 	{
-		int bound = (best_value >= beta) ? LOWER_BOUND : UPPER_BOUND;
+		int bound = (best_value >= beta) ? LOWER_BOUND
+			: (best_value <= old_alpha) ? UPPER_BOUND : EXACT_BOUND;
 
 		tt_save(entry, board->stack->board_key, score_to_tt(best_value, ss->plies), eval, 0, bound, bestmove);
 	}
@@ -211,7 +211,6 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 		if (entry->depth >= max_depth - DEPTH_OFFSET)
 		{
-			assert(abs(tt_score) < INF_SCORE);
 			if (bound == EXACT_BOUND)
 				return (tt_score);
 			else if (bound == LOWER_BOUND && tt_score > alpha)
@@ -298,7 +297,7 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 
 			// Do not trust win claims.
 
-			if (max_depth <= NMP_TrustDepth && abs(beta) < NMP_TrustScore)
+			if (max_depth <= NMP_TrustDepth && abs(beta) < VICTORY)
 				return (score);
 
 			// Zugzwang checking.
@@ -354,7 +353,7 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 			if (max_depth >= LMR_MinDepth && move_count > LMR_MinMoves
 				&& !board->stack->checkers)
 			{
-				int		lmr_depth = max_depth - 1 - (int)cbrt(max_depth);
+				int		lmr_depth = max_depth - 1 - ilogb(max_depth);
 
 				next = -search(board, lmr_depth, -alpha - 1, -alpha,
 					ss + 1);
@@ -426,7 +425,8 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 	if (best_value != NO_SCORE && (entry->key != board->stack->board_key
 		|| entry->depth <= max_depth - DEPTH_OFFSET))
 	{
-		int bound = (best_value >= beta) ? LOWER_BOUND : UPPER_BOUND;
+		int bound = (best_value >= beta) ? LOWER_BOUND
+			: (bestmove == NO_MOVE) ? UPPER_BOUND : EXACT_BOUND;
 
 		tt_save(entry, board->stack->board_key, score_to_tt(best_value, ss->plies),
 			ss->static_eval, max_depth, bound, bestmove);
@@ -525,7 +525,7 @@ score_t	search_pv(board_t *board, int max_depth, score_t alpha, score_t beta,
 			if (max_depth >= LMR_MinDepth && move_count > LMR_MinMoves
 				&& !board->stack->checkers)
 			{
-				int		lmr_depth = max_depth - 1 - (int)cbrt(max_depth);
+				int		lmr_depth = max_depth - 1 - ilogb(max_depth);
 
 				next = -search(board, lmr_depth, -alpha - 1, -alpha,
 					ss + 1);
@@ -587,6 +587,24 @@ score_t	search_pv(board_t *board, int max_depth, score_t alpha, score_t beta,
 		}
 	}
 
+
+	if (is_draw(board, ss->plies + 1))
+		return (0);
+
+	// Mate pruning.
+
+	{
+		score_t		mate_alpha = mated_in(ss->plies);
+		score_t		mate_beta = mate_in(ss->plies + 1);
+
+		if (alpha < mate_alpha)
+			alpha = mate_alpha;
+		if (beta > mate_beta)
+			beta = mate_beta;
+
+		if (alpha >= beta)
+			return (alpha);
+	}
 	// Checkmate/Stalemate ?
 
 	if (move_count == 0)

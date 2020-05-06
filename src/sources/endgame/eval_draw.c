@@ -16,32 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef INFO_H
-# define INFO_H
+#include "endgame.h"
 
-# if defined(_WIN32) || defined(_WIN64)
-
-// Windows has some weird format strings for size_t
-
-#  define SIZE_FORMAT "%I64u"
-
-# else // Assume standard size_t format
-
-#  define SIZE_FORMAT "%zu"
-
-# endif
-
-# include <stdint.h>
-# include "board.h"
-# include "move.h"
-# include "movelist.h"
-
-extern uint64_t		g_nodes;
-extern uint64_t		g_tbhits;
-
-const char	*move_to_str(move_t move, bool is_chess960);
-const char	*score_to_str(score_t score);
-
-move_t		str_to_move(const board_t *board, const char *str);
-
-#endif
+score_t	eval_draw(const board_t *board)
+{
+	(void)board;
+	return (0);
+}

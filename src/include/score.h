@@ -29,6 +29,7 @@ typedef int16_t		phase_t;
 enum
 {
 	DRAW = 0,
+	VICTORY = 10000,
 	MATE_FOUND = 31000,
 	MATE = 32000,
 	INF_SCORE = 32001,

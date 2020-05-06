@@ -1,3 +1,45 @@
+2020-05-06	Morgan Houppin	<morganhouppin@gmail.com>
+
+	* board.h: Added material key to board stack for endgame evaluation.
+	* endgame.h: Added endgame specialized evaluations.
+	* engine.h: Removed NMP_TrustScore (replaced by Victory Score).
+	* info.h: Added TB hit counter (for now simply counting endgame positions
+		reached in search).
+	* score.h: Added Victory Score constant (10000 centipawns).
+	* board/do_move.c: Added material key updating.
+	* board/set_boardstack.c: Added material key initializing.
+	* endgame/eval_draw.c: Added insufficient material draws + KNNK draw.
+	* endgame/eval_kbbk.c: Added KBBK eval specialization.
+	* endgame/eval_knbk.c: Added KNBK eval specialization.
+	* endgame/eval_kqk.c: Added KQK eval specialization.
+	* endgame/eval_kqkm.c: Added KQKM eval specialization.
+	* endgame/eval_kqkr.c: Added KQKR eval specialization.
+	* endgame/eval_krbk.c: Added KRBK eval specialization.
+	* endgame/eval_krk.c: Added KRK eval specialization.
+	* endgame/init_endgame_table.c: Added endgame table initialization.
+	* engine/engine_go.c: Added TB hit display.
+	* engine/evaluate.c: Retired insufficient material checking, added endgame
+		specialized eval probing.
+	* engine/out_of_time.c: Just retired a newline.
+	* engine/search_bestmove.c: Restored LMR computation, improved fail-low
+		value returns.
+	* main/main.c: Added endgame initialization call.
+	* misc/globals.c: Added g_tbhits symbol.
+	* pawns/evaluate_pawns.c: Added Doubled/Isolated Pawn Penalty.
+
+2020-05-04	Morgan Houppin	<morganhouppin@gmail.com>
+
+	* engine.h: Added static evaluation to search stack.
+	* imath.h: Added min, max and clamp helpers.
+	* movelist.h: Added pseudo-legal move generator.
+	* tt.h: Added static evaluation to hash entries.
+	* engine/search_bestmove.c: Replaced legal by pseudo-legal move generators,
+		added improving eval check for Null Move Pruning.
+	* movelist/generate_instable.c: Removed legality checking (now verified
+		during search).
+	* movelist/generate_pseudo.c: Added pseudo-legal move generator.
+	* tt/tt_save.c: Added static evaluation to hash saving.
+
 2020-04-28	Morgan Houppin	<morganhouppin@gmail.com>
 
 	* uci/uci_d.c: Now printing static eval and Zobrist key.

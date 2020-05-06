@@ -22,6 +22,8 @@ enum
 {
 	BackwardPenalty = SPAIR(-16, -40),
 	StragglerPenalty = SPAIR(-24, -56),
+	DoubledPenalty = SPAIR(-22, -52),
+	IsolatedPenalty = SPAIR(-22, -52),
 
 	CandidateBonus = SPAIR(20, 48),
 	PassedPawnBonus = SPAIR(28, 64),
@@ -129,6 +131,26 @@ scorepair_t	evaluate_backward(color_t c, bitboard_t us, bitboard_t them,
 	return (ret);
 }
 
+scorepair_t	evaluate_doubled_isolated(bitboard_t us)
+{
+	scorepair_t	ret = 0;
+
+	for (square_t s = SQ_A2; s <= SQ_H2; ++s)
+	{
+		bitboard_t	b = us & file_square_bits(s);
+
+		if (b)
+		{
+			if (more_than_one(b))
+				ret += DoubledPenalty;
+			if (!(adjacent_files_bits(s) & us))
+				ret += IsolatedPenalty;
+		}
+	}
+
+	return (ret);
+}
+
 scorepair_t	evaluate_pawns(const board_t *board)
 {
 	pawns_cache_t	*entry = &(g_pawns[board->stack->pawn_key
@@ -153,6 +175,8 @@ scorepair_t	evaluate_pawns(const board_t *board)
 	entry->value -= evaluate_passers(BLACK, blist, wpawns);
 	entry->value += evaluate_candidates(WHITE, wpawns, bpawns);
 	entry->value -= evaluate_candidates(BLACK, bpawns, wpawns);
+	entry->value += evaluate_doubled_isolated(wpawns);
+	entry->value -= evaluate_doubled_isolated(bpawns);
 
 	return (entry->value);
 }

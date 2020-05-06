@@ -16,32 +16,29 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef INFO_H
-# define INFO_H
+#include "endgame.h"
 
-# if defined(_WIN32) || defined(_WIN64)
+score_t	eval_kbbk(const board_t *board)
+{
+	{
+		bitboard_t	dsb = board->piecetype_bits[BISHOP] & DARK_SQUARES;
+		if (!dsb || more_than_one(dsb))
+			return (0);
+	}
 
-// Windows has some weird format strings for size_t
+	score_t	base_score = VICTORY + KBBK_Bonus;
 
-#  define SIZE_FORMAT "%I64u"
+	square_t	strong_k = board->piece_list[WHITE_KING][0];
+	square_t	weak_k = board->piece_list[BLACK_KING][0];
 
-# else // Assume standard size_t format
+	if (board->piece_count[BLACK_BISHOP])
+	{
+		square_t	tmp = strong_k;
+		strong_k = weak_k;
+		weak_k = tmp;
+	}
 
-#  define SIZE_FORMAT "%zu"
+	base_score += proximity_bonus(strong_k, weak_k) + cornered_bonus(weak_k);
 
-# endif
-
-# include <stdint.h>
-# include "board.h"
-# include "move.h"
-# include "movelist.h"
-
-extern uint64_t		g_nodes;
-extern uint64_t		g_tbhits;
-
-const char	*move_to_str(move_t move, bool is_chess960);
-const char	*score_to_str(score_t score);
-
-move_t		str_to_move(const board_t *board, const char *str);
-
-#endif
+	return (more_than_one(board->color_bits[board->side_to_move]) ? base_score : -base_score);
+}
