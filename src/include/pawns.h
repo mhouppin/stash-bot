@@ -30,7 +30,7 @@ pawns_cache_t;
 
 enum
 {
-	PawnCacheSize = 4096
+	PawnCacheSize = 8192
 };
 
 extern pawns_cache_t	g_pawns[PawnCacheSize];

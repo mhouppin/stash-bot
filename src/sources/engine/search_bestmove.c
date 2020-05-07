@@ -425,8 +425,7 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 	if (best_value != NO_SCORE && (entry->key != board->stack->board_key
 		|| entry->depth <= max_depth - DEPTH_OFFSET))
 	{
-		int bound = (best_value >= beta) ? LOWER_BOUND
-			: (bestmove == NO_MOVE) ? UPPER_BOUND : EXACT_BOUND;
+		int bound = (best_value >= beta) ? LOWER_BOUND : UPPER_BOUND;
 
 		tt_save(entry, board->stack->board_key, score_to_tt(best_value, ss->plies),
 			ss->static_eval, max_depth, bound, bestmove);
@@ -587,24 +586,6 @@ score_t	search_pv(board_t *board, int max_depth, score_t alpha, score_t beta,
 		}
 	}
 
-
-	if (is_draw(board, ss->plies + 1))
-		return (0);
-
-	// Mate pruning.
-
-	{
-		score_t		mate_alpha = mated_in(ss->plies);
-		score_t		mate_beta = mate_in(ss->plies + 1);
-
-		if (alpha < mate_alpha)
-			alpha = mate_alpha;
-		if (beta > mate_beta)
-			beta = mate_beta;
-
-		if (alpha >= beta)
-			return (alpha);
-	}
 	// Checkmate/Stalemate ?
 
 	if (move_count == 0)

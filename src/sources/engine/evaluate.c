@@ -33,7 +33,7 @@ enum
 
 scorepair_t	evaluate_mobility(const board_t *board, color_t c)
 {
-	scorepair_t	ret = 0;
+	scorepair_t			ret = 0;
 
 	const square_t *list = board->piece_list[create_piece(c, BISHOP)];
 	for (square_t sq = *list; sq != SQ_NONE; sq = *++list)
@@ -87,9 +87,15 @@ score_t		evaluate(const board_t *board)
 	scorepair_t		eval = board->psq_scorepair;
 
 	if (!more_than_one(board->color_bits[WHITE]) && endgame_score(eval) < -2000)
-		return (-VICTORY - 5000 + endgame_score(eval) / 2);
+	{
+		score_t	score = (-VICTORY - 5000 + endgame_score(eval) / 2);
+		return (board->side_to_move == WHITE ? score : -score);
+	}
 	if (!more_than_one(board->color_bits[BLACK]) && endgame_score(eval) > 2000)
-		return (VICTORY + 5000 + endgame_score(eval) / 2);
+	{
+		score_t score = (VICTORY + 5000 + endgame_score(eval) / 2);
+		return (board->side_to_move == WHITE ? score : -score);
+	}
 
 	if (board->stack->castlings & WHITE_CASTLING)
 		eval += CastlingBonus;
@@ -104,6 +110,32 @@ score_t		evaluate(const board_t *board)
 	score_t		eg = endgame_score(eval);
 	int			piece_count = popcount(board->piecetype_bits[ALL_PIECES]);
 	score_t		score;
+
+	if (piece_count <= 7)
+	{
+		// Insufficient material check.
+
+		int		pieces = popcount(board->color_bits[WHITE]);
+
+		if (eg > 0)
+		{
+			if (pieces == 1)
+				eg = 0;
+			else if (pieces == 2 && board_colored_pieces(board, WHITE, KNIGHT, BISHOP))
+				eg = 0;
+		}
+
+		pieces = piece_count - pieces;
+
+		if (eg < 0)
+		{
+			if (pieces == 1)
+				eg = 0;
+			else if (pieces == 2 && board_colored_pieces(board, BLACK, KNIGHT, BISHOP))
+				eg = 0;
+		}
+	}
+
 
 	if (piece_count <= 16)
 		score = eg;
