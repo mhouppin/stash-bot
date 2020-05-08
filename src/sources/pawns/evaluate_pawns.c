@@ -22,8 +22,8 @@ enum
 {
 	BackwardPenalty = SPAIR(-16, -40),
 	StragglerPenalty = SPAIR(-24, -56),
-	DoubledPenalty = SPAIR(-22, -52),
-	IsolatedPenalty = SPAIR(-22, -52),
+	DoubledPenalty = SPAIR(-14, -36),
+	IsolatedPenalty = SPAIR(-14, -36),
 
 	CandidateBonus = SPAIR(20, 48),
 	PassedPawnBonus = SPAIR(28, 64),

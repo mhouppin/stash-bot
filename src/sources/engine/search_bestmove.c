@@ -261,6 +261,11 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 		}
 	}
 
+	// Futility Pruning.
+
+	if (max_depth <= 2 && eval + 256 * max_depth <= alpha)
+		return (eval);
+
 	// Null move pruning.
 
 	if (max_depth >= NMP_MinDepth && !board->stack->checkers
@@ -353,7 +358,7 @@ score_t	search(board_t *board, int max_depth, score_t alpha, score_t beta,
 			if (max_depth >= LMR_MinDepth && move_count > LMR_MinMoves
 				&& !board->stack->checkers)
 			{
-				int		lmr_depth = max_depth - 1 - ilogb(max_depth);
+				int		lmr_depth = max_depth - (int)sqrt(max_depth * 1.5);
 
 				next = -search(board, lmr_depth, -alpha - 1, -alpha,
 					ss + 1);
@@ -524,7 +529,7 @@ score_t	search_pv(board_t *board, int max_depth, score_t alpha, score_t beta,
 			if (max_depth >= LMR_MinDepth && move_count > LMR_MinMoves
 				&& !board->stack->checkers)
 			{
-				int		lmr_depth = max_depth - 1 - ilogb(max_depth);
+				int		lmr_depth = max_depth - (int)sqrt(max_depth * 1.5);
 
 				next = -search(board, lmr_depth, -alpha - 1, -alpha,
 					ss + 1);

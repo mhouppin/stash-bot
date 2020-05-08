@@ -39,7 +39,7 @@ enum
 	NMP_BaseReduction = 3,
 	NMP_EvalScale = 256,
 	NMP_MaxEvalReduction = 3,
-	NMP_TrustDepth = 9,
+	NMP_TrustDepth = 10,
 
 	LMR_MinDepth = 3,
 	LMR_MinMoves = 4,

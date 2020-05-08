@@ -27,7 +27,7 @@ tt_entry_t	*tt_probe(hashkey_t key, bool *found)
 	for (int i = 0; i < ClusterSize; ++i)
 		if (!entry[i].key || entry[i].key == key)
 		{
-			entry[i].genbound = (uint8_t)(g_hashtable.generation | (entry[i].genbound & 0x7));
+			entry[i].genbound = (uint8_t)(g_hashtable.generation | (entry[i].genbound & 0x3));
 			*found = (bool)entry[i].key;
 			return (entry + i);
 		}

@@ -120,9 +120,9 @@ score_t		evaluate(const board_t *board)
 		if (eg > 0)
 		{
 			if (pieces == 1)
-				eg = 0;
+				return (0);
 			else if (pieces == 2 && board_colored_pieces(board, WHITE, KNIGHT, BISHOP))
-				eg = 0;
+				return (0);
 		}
 
 		pieces = piece_count - pieces;
@@ -130,9 +130,9 @@ score_t		evaluate(const board_t *board)
 		if (eg < 0)
 		{
 			if (pieces == 1)
-				eg = 0;
+				return (0);
 			else if (pieces == 2 && board_colored_pieces(board, BLACK, KNIGHT, BISHOP))
-				eg = 0;
+				return (0);
 		}
 	}
 
