@@ -37,7 +37,6 @@
 # include "movelist.h"
 
 extern uint64_t		g_nodes;
-extern uint64_t		g_tbhits;
 
 const char	*move_to_str(move_t move, bool is_chess960);
 const char	*score_to_str(score_t score);

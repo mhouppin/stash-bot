@@ -30,7 +30,9 @@ uint64_t			g_nodes;
 ucioptions_t		g_options;
 movelist_t			g_searchmoves;
 uint64_t			g_seed;
-uint64_t			g_tbhits;
+
+uint64_t			g_butterfly_table[PIECE_NB][SQUARE_NB * SQUARE_NB];
+uint64_t			g_history_table[PIECE_NB][SQUARE_NB * SQUARE_NB];
 
 void __attribute__((constructor))	init_globals(void)
 {

@@ -16,7 +16,6 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "endgame.h"
 #include "init.h"
 #include "tt.h"
 #include "uci.h"
@@ -28,7 +27,6 @@ int		main(int argc, char **argv)
 	bitboard_init();
 	psq_score_init();
 	zobrist_init();
-	init_endgame_table();
 	tt_resize(16);
 	uci_position("startpos");
 

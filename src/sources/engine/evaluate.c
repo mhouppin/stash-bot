@@ -17,7 +17,6 @@
 */
 
 #include <stdlib.h>
-#include "endgame.h"
 #include "engine.h"
 #include "info.h"
 #include "pawns.h"
@@ -73,29 +72,7 @@ scorepair_t	evaluate_mobility(const board_t *board, color_t c)
 
 score_t		evaluate(const board_t *board)
 {
-	if (abs(midgame_score(board->psq_scorepair)) > VICTORY)
-		return (midgame_score(board->psq_scorepair));
-
-	endgame_entry_t	*entry = endgame_probe(board);
-
-	if (entry->key == board->stack->material_key)
-	{
-		g_tbhits++;
-		return (entry->eg_eval(board));
-	}
-
 	scorepair_t		eval = board->psq_scorepair;
-
-	if (!more_than_one(board->color_bits[WHITE]) && endgame_score(eval) < -2000)
-	{
-		score_t	score = (-VICTORY - 5000 + endgame_score(eval) / 2);
-		return (board->side_to_move == WHITE ? score : -score);
-	}
-	if (!more_than_one(board->color_bits[BLACK]) && endgame_score(eval) > 2000)
-	{
-		score_t score = (VICTORY + 5000 + endgame_score(eval) / 2);
-		return (board->side_to_move == WHITE ? score : -score);
-	}
 
 	if (board->stack->castlings & WHITE_CASTLING)
 		eval += CastlingBonus;

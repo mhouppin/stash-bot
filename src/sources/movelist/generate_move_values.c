@@ -16,6 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "history.h"
 #include "movelist.h"
 
 void	generate_move_values(movelist_t *movelist, const board_t *board,
@@ -40,9 +41,6 @@ void	generate_move_values(movelist_t *movelist, const board_t *board,
 		if (type_of_move(move) == PROMOTION)
 			movelist->moves[i].score = 4096 + PieceScores[ENDGAME][promotion_type(move)];
 
-		else if (type_of_move(move) == CASTLING)
-			movelist->moves[i].score = 512;
-
 		else if (type_of_move(move) == EN_PASSANT)
 			movelist->moves[i].score = 2048 + PAWN * 8 - PAWN;
 
@@ -63,6 +61,8 @@ void	generate_move_values(movelist_t *movelist, const board_t *board,
 
 			if (board->side_to_move == BLACK)
 				movelist->moves[i].score = -movelist->moves[i].score;
+
+			movelist->moves[i].score += get_hist_score(moved_piece, move);
 		}
 	}
 }

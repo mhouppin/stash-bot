@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "engine.h"
+#include "history.h"
 #include "info.h"
 #include "pawns.h"
 #include "tt.h"
@@ -95,6 +96,7 @@ void		engine_go(void)
 
 	tt_clear();
 	reset_pawn_cache();
+	reset_history();
 
 	g_goparams.initial_max_time = 0;
 
@@ -133,7 +135,6 @@ void		engine_go(void)
 		g_backupscore[i] = g_searchmoves.moves[i].score = NO_SCORE;
 
 	g_nodes = 0;
-	g_tbhits = 0;
 
 	if (g_goparams.depth == 0)
 		g_goparams.depth = 255;
@@ -179,7 +180,6 @@ void		engine_go(void)
 
 			clock_t	chess_time = chess_clock() - g_goparams.start;
 			size_t	chess_nodes = g_nodes;
-			size_t	chess_tbhits = g_tbhits;
 			size_t	chess_nps = (!chess_time) ? 0 : ((uint64_t)chess_nodes * 1000)
 				/ (uint64_t)chess_time;
 
@@ -187,9 +187,9 @@ void		engine_go(void)
 
 			printf("info depth %d seldepth %d multipv " SIZE_FORMAT
 				" nodes " SIZE_FORMAT " nps " SIZE_FORMAT " hashfull %d"
-				" tbhits " SIZE_FORMAT " time %lu score %s pv",
+				" time %lu score %s pv",
 				iter_depth - has_search_aborted + 1, g_seldepth, pv_line + 1,
-				chess_nodes, chess_nps, tt_hashfull(), chess_tbhits, chess_time,
+				chess_nodes, chess_nps, tt_hashfull(), chess_time,
 				score_to_str(g_searchmoves.moves[pv_line].score));
 
 			if (has_search_aborted)

@@ -33,7 +33,6 @@ void	do_move_gc(board_t *board, move_t move, boardstack_t *next,
 	next->plies_from_null_move = board->stack->plies_from_null_move;
 	next->en_passant_square = board->stack->en_passant_square;
 	next->pawn_key = board->stack->pawn_key;
-	next->material_key = board->stack->material_key;
 
 	next->prev = board->stack;
 	board->stack = next;
@@ -49,8 +48,6 @@ void	do_move_gc(board_t *board, move_t move, boardstack_t *next,
 	piece_t		piece = piece_on(board, from);
 	piece_t		captured_piece = type_of_move(move) == EN_PASSANT
 		? create_piece(them, PAWN) : piece_on(board, to);
-
-	assert(type_of_piece(captured_piece) != KING);
 
 	if (type_of_move(move) == CASTLING)
 	{
@@ -82,8 +79,6 @@ void	do_move_gc(board_t *board, move_t move, boardstack_t *next,
 		if (type_of_move(move) == EN_PASSANT)
 			board->table[captured_square] = NO_PIECE;
 
-		board->stack->material_key ^=
-			ZobristPsq[captured_piece][board->piece_count[captured_piece]];
 		key ^= ZobristPsq[captured_piece][captured_square];
 
 		board->stack->rule50 = 0;
@@ -127,9 +122,6 @@ void	do_move_gc(board_t *board, move_t move, boardstack_t *next,
 
 			key ^= ZobristPsq[piece][to] ^ ZobristPsq[new_piece][to];
 			board->stack->pawn_key ^= ZobristPsq[piece][to];
-			board->stack->material_key ^=
-				ZobristPsq[new_piece][board->piece_count[new_piece] - 1]
-				^ ZobristPsq[piece][board->piece_count[piece]];
 		}
 
 		board->stack->pawn_key ^= ZobristPsq[piece][from]
