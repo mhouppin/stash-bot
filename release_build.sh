@@ -7,7 +7,7 @@
 
 set -e
 
-version=15.4
+version=16.0
 
 cd src
 
