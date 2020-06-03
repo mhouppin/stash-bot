@@ -98,8 +98,6 @@ score_t	qsearch(board_t *board, int depth, score_t alpha, score_t beta,
 
 	list_instable(&list, board);
 	generate_move_values(&list, board, tt_move, NULL);
-	sort_moves((extmove_t *)movelist_begin(&list),
-		(extmove_t *)movelist_end(&list));
 
 	move_t	bestmove = NO_MOVE;
 	int		move_count = 0;
@@ -107,6 +105,7 @@ score_t	qsearch(board_t *board, int depth, score_t alpha, score_t beta,
 	for (const extmove_t *extmove = movelist_begin(&list);
 		extmove < movelist_end(&list); ++extmove)
 	{
+		place_top_move((extmove_t *)extmove, (extmove_t *)movelist_end(&list));
 		if (!board_legal(board, extmove->move))
 			continue ;
 
@@ -315,8 +314,6 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 
 	list_pseudo(&list, board);
 	generate_move_values(&list, board, tt_move, ss->killers);
-	sort_moves((extmove_t *)movelist_begin(&list),
-		(extmove_t *)movelist_end(&list));
 
 	move_t	bestmove = NO_MOVE;
 	int		move_count = 0;
@@ -324,6 +321,7 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 	for (const extmove_t *extmove = movelist_begin(&list);
 		extmove < movelist_end(&list); ++extmove)
 	{
+		place_top_move((extmove_t *)extmove, (extmove_t *)movelist_end(&list));
 		if (!board_legal(board, extmove->move))
 			continue ;
 
@@ -480,8 +478,6 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 
 	list_pseudo(&list, board);
 	generate_move_values(&list, board, tt_move, ss->killers);
-	sort_moves((extmove_t *)movelist_begin(&list),
-		(extmove_t *)movelist_end(&list));
 
 	move_t	bestmove = NO_MOVE;
 	int		move_count = 0;
@@ -489,6 +485,7 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 	for (const extmove_t *extmove = movelist_begin(&list);
 		extmove < movelist_end(&list); ++extmove)
 	{
+		place_top_move((extmove_t *)extmove, (extmove_t *)movelist_end(&list));
 		if (!board_legal(board, extmove->move))
 			continue ;
 

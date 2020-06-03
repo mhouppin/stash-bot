@@ -22,47 +22,55 @@
 void	generate_move_values(movelist_t *movelist, const board_t *board,
 		move_t tt_move, move_t *killers)
 {
-	for (size_t i = 0; i < movelist_size(movelist); ++i)
+	const bool	in_endgame = popcount(board->piecetype_bits[ALL_PIECES]) <= 16;
+	extmove_t	*const end = movelist->last;
+
+	for (extmove_t *extmove = movelist->moves; extmove < end; ++extmove)
 	{
-		move_t		move = movelist->moves[i].move;
+		move_t		move = extmove->move;
 
 		if (move == tt_move)
 		{
-			movelist->moves[i].score = 8192;
+			extmove->score = 8192;
 			continue ;
 		}
 
-		square_t	from = move_from_square(move);
-		square_t	to = move_to_square(move);
-
-		piece_t		moved_piece = piece_on(board, from);
-		piece_t		captured_piece = piece_on(board, to);
-
-		if (type_of_move(move) == PROMOTION)
-			movelist->moves[i].score = 4096 + PieceScores[ENDGAME][promotion_type(move)];
-
-		else if (type_of_move(move) == EN_PASSANT)
-			movelist->moves[i].score = 2048 + PAWN * 8 - PAWN;
-
-		else if (captured_piece != NO_PIECE)
+		switch (type_of_move(move))
 		{
-			movelist->moves[i].score = see_greater_than(board, move, 0) ? 2048 : 1024;
+			case PROMOTION:
+				extmove->score = 4096 + PieceScores[ENDGAME][promotion_type(move)];
+				break ;
 
-			movelist->moves[i].score += type_of_piece(captured_piece) * 8
-				- type_of_piece(moved_piece);
-		}
-		else if (killers && (move == killers[0] || move == killers[1]))
-			movelist->moves[i].score = 1536;
-		else
-		{
-			movelist->moves[i].score =
-				midgame_score(PsqScore[moved_piece][to])
-				- midgame_score(PsqScore[moved_piece][from]);
+			case EN_PASSANT:
+				extmove->score = 2048 + PAWN * 8 - PAWN;
+				break ;
 
-			if (board->side_to_move == BLACK)
-				movelist->moves[i].score = -movelist->moves[i].score;
+			default: ; // Statement issue
+				const square_t	from = move_from_square(move);
+				const square_t	to = move_to_square(move);
+				const piece_t	moved_piece = piece_on(board, from);
+				const piece_t	captured_piece = piece_on(board, to);
 
-			movelist->moves[i].score += get_hist_score(moved_piece, move);
+				if (captured_piece != NO_PIECE)
+				{
+					extmove->score = see_greater_than(board, move, 0) ? 2048 : 1024;
+					extmove->score += type_of_piece(captured_piece) * 8
+						- type_of_piece(moved_piece);
+				}
+				else if (killers && (move == killers[0] || move == killers[1]))
+					extmove->score = 1536;
+				else
+				{
+					scorepair_t	qscore = PsqScore[moved_piece][to] - PsqScore[moved_piece][from];
+
+					extmove->score = (in_endgame) ? endgame_score(qscore) : midgame_score(qscore);
+
+					if (board->side_to_move == BLACK)
+						extmove->score = -extmove->score;
+
+					extmove->score += get_hist_score(moved_piece, move);
+				}
+				break ;
 		}
 	}
 }

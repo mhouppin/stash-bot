@@ -16,20 +16,19 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "uci.h"
-#include <stdio.h>
+#include "movelist.h"
+#include <string.h>
 
-void	uci_uci(const char *args)
+void	place_top_move(extmove_t *begin, extmove_t *end)
 {
-	(void)args;
-	puts("id name Stash v16.1");
-	puts("id author Morgan Houppin (@mhouppin)");
-	puts("option name Hash type spin default 16 min 1 max 131072");
-	puts("option name Clear Hash type button");
-	puts("option name MultiPV type spin default 1 min 1 max 16");
-	puts("option name Minimum Thinking Time type spin default 20 min 0 max 30000");
-	puts("option name Move Overhead type spin default 20 min 0 max 1000");
-	puts("option name UCI_Chess960 type check default false");
-	puts("uciok");
-	fflush(stdout);
+	extmove_t	*top = begin;
+
+	for (extmove_t *i = begin + 1; i < end; ++i)
+		if (i->score > top->score)
+			top = i;
+
+	extmove_t	tmp = *top;
+	for (extmove_t *i = top; i > begin; --i)
+		*i = *(i - 1);
+	*begin = tmp;
 }

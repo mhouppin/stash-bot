@@ -56,6 +56,7 @@ extmove_t	*generate_queen_moves(extmove_t *movelist, const board_t *board,
 			color_t us, bitboard_t target_squares);
 
 void		sort_moves(extmove_t *begin, extmove_t *end);
+void		place_top_move(extmove_t *begin, extmove_t *end);
 void		generate_move_values(movelist_t *movelist, const board_t *board,
 			move_t tt_move, move_t *killers);
 
