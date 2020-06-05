@@ -31,6 +31,16 @@ typedef struct
 }
 searchstack_t;
 
+typedef struct
+{
+	move_t	move;
+	int		depth;
+	score_t	previous_score;
+	score_t	score;
+	move_t	pv[512];
+}
+root_move_t;
+
 // All search components are here
 enum
 {
@@ -43,15 +53,20 @@ enum
 
 	LMR_MinDepth = 3,
 	LMR_MinMoves = 4,
-	LMR_BaseReduction = 2,
 
 	Razor_LightMargin = 150,
 	Razor_HeavyMargin = 300
 };
 
+void	sort_root_moves(root_move_t *begin, root_move_t *end);
+
 void	engine_go(void);
-void	search_bestmove(board_t *board, int depth, size_t pv_line,
-		move_t *display_pv);
+void	search_bestmove(board_t *board, int depth, root_move_t *begin,
+		root_move_t *end, int pv_line);
+score_t	qsearch(board_t *board, int depth, score_t alpha, score_t beta,
+		searchstack_t *ss);
+score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
+		searchstack_t *ss);
 
 bool	out_of_time(void);
 score_t	evaluate(const board_t *board);

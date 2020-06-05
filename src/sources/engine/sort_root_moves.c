@@ -16,20 +16,31 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "uci.h"
-#include <stdio.h>
+#include "engine.h"
 
-void	uci_uci(const char *args)
+static int	rtm_greater_than(root_move_t *right, root_move_t *left)
 {
-	(void)args;
-	puts("id name Stash v16.2");
-	puts("id author Morgan Houppin (@mhouppin)");
-	puts("option name Hash type spin default 16 min 1 max 131072");
-	puts("option name Clear Hash type button");
-	puts("option name MultiPV type spin default 1 min 1 max 16");
-	puts("option name Minimum Thinking Time type spin default 20 min 0 max 30000");
-	puts("option name Move Overhead type spin default 20 min 0 max 1000");
-	puts("option name UCI_Chess960 type check default false");
-	puts("uciok");
-	fflush(stdout);
+	if (right->depth != left->depth)
+		return (right->depth > left->depth);
+	else if (right->score != left->score)
+		return (right->score > left->score);
+	else
+		return (right->previous_score > left->previous_score);
+}
+
+void	sort_root_moves(root_move_t *begin, root_move_t *end)
+{
+	const int	size = (int)(end - begin);
+
+	for (int i = 1; i < size; ++i)
+	{
+		root_move_t	tmp = begin[i];
+		int		j = i - 1;
+		while (j >= 0 && rtm_greater_than(&tmp, begin + j))
+		{
+			begin[j + 1] = begin[j];
+			--j;
+		}
+		begin[j + 1] = tmp;
+	}
 }

@@ -17,20 +17,17 @@
 */
 
 #include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include "engine.h"
 #include "history.h"
 #include "imath.h"
 #include "info.h"
 #include "movelist.h"
 #include "tt.h"
-#include "uci.h"
 
-int		g_seldepth;
+extern int	g_seldepth;
 
-score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
+score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 		searchstack_t *ss)
 {
 	if (depth <= 0)
@@ -49,6 +46,14 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 	if (is_draw(board, ss->plies + 1))
 		return (0);
 
+	// Mate pruning.
+
+	alpha = max(alpha, mated_in(ss->plies));
+	beta = min(beta, mate_in(ss->plies + 1));
+
+	if (alpha >= beta)
+		return (alpha);
+
 	// Check for interesting tt values
 
 	move_t		tt_move = NO_MOVE;
@@ -58,16 +63,125 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 
 	if (found)
 	{
-		eval = entry->eval;
+		score_t	tt_score = score_from_tt(entry->score, ss->plies);
+		int		bound = entry->genbound & 3;
+
+		if (entry->depth >= depth - DEPTH_OFFSET)
+		{
+			if (bound == EXACT_BOUND)
+				return (tt_score);
+			else if (bound == LOWER_BOUND && tt_score > alpha)
+			{
+				alpha = tt_score;
+				if (alpha >= beta)
+					return (alpha);
+			}
+			else if (bound == UPPER_BOUND && tt_score < beta)
+			{
+				beta = tt_score;
+				if (alpha >= beta)
+					return (alpha);
+			}
+		}
 		tt_move = entry->bestmove;
+
+		eval = ss->static_eval = entry->eval;
+
+		if (bound & (tt_score > eval ? LOWER_BOUND : UPPER_BOUND))
+			eval = tt_score;
 	}
 	else
-		eval = evaluate(board);
+		eval = ss->static_eval = evaluate(board);
 
 	(ss + 1)->pv = pv;
 	pv[0] = NO_MOVE;
-	(ss + 1)->plies = ss->plies + 1;
 	(ss + 2)->killers[0] = (ss + 2)->killers[1] = NO_MOVE;
+
+	// Razoring.
+
+	if (ss->static_eval + Razor_LightMargin < beta)
+	{
+		if (depth == 1)
+		{
+			score_t		max_score = qsearch(board, 0, alpha, beta, ss);
+			if (abs(max_score) > INF_SCORE)
+				return (NO_SCORE);
+			return (max(ss->static_eval + Razor_LightMargin, max_score));
+		}
+		if (ss->static_eval + Razor_HeavyMargin < beta && depth <= 3)
+		{
+			score_t		max_score = qsearch(board, 0, alpha, beta, ss);
+			if (abs(max_score) > INF_SCORE)
+				return (NO_SCORE);
+			if (max_score < beta)
+				return (max(ss->static_eval + Razor_HeavyMargin, max_score));
+		}
+	}
+
+	// Futility Pruning.
+
+	if (depth <= 2 && eval + 256 * depth <= alpha)
+		return (eval);
+
+	// Null move pruning.
+
+	if (depth >= NMP_MinDepth && !board->stack->checkers
+		&& board->stack->plies_from_null_move >= NMP_MinPlies
+		&& eval >= beta && eval >= ss->static_eval)
+	{
+		boardstack_t	stack;
+
+		int	nmp_reduction = NMP_BaseReduction
+			+ min((eval - beta) / NMP_EvalScale, NMP_MaxEvalReduction)
+			+ (depth / 4);
+
+		do_null_move(board, &stack);
+
+		(ss + 1)->plies = ss->plies;
+
+		score_t			score = -search(board, depth - nmp_reduction, -beta, -beta + 1,
+				ss + 1);
+
+		undo_null_move(board);
+
+		if (abs(score) > INF_SCORE)
+			return (NO_SCORE);
+
+		if (score >= beta)
+		{
+			// Do not trust mate claims.
+
+			if (score > MATE_FOUND)
+				score = beta;
+
+			// Do not trust win claims.
+
+			if (depth <= NMP_TrustDepth && abs(beta) < VICTORY)
+				return (score);
+
+			// Zugzwang checking.
+
+			int nmp_depth = board->stack->plies_from_null_move;
+			board->stack->plies_from_null_move = -(depth - nmp_reduction) * 3 / 4;
+
+			score_t		zzscore = search(board, depth - nmp_reduction, beta - 1, beta,
+					ss + 1);
+
+			board->stack->plies_from_null_move = nmp_depth;
+
+			if (zzscore >= beta)
+				return (score);
+		}
+	}
+
+	if (depth > 7 && !tt_move)
+	{
+		search(board, depth / 2, alpha, beta, ss + 1);
+		entry = tt_probe(board->stack->board_key, &found);
+		tt_move = entry->bestmove;
+	}
+
+	(ss + 1)->plies = ss->plies + 1;
 
 	list_pseudo(&list, board);
 	generate_move_values(&list, board, tt_move, ss->killers);
@@ -93,7 +207,7 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 		pv[0] = NO_MOVE;
 
 		if (move_count == 1)
-			next = -search_pv(board, depth - 1, -beta, -alpha,
+			next = -search(board, depth - 1, -beta, -alpha,
 				ss + 1);
 		else
 		{
@@ -122,7 +236,7 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 				if (alpha < next && next < beta)
 				{
 					pv[0] = NO_MOVE;
-					next = -search_pv(board, depth - 1, -beta, -next,
+					next = -search(board, depth - 1, -beta, -next,
 						ss + 1);
 				}
 			}
@@ -185,90 +299,11 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 	if (best_value != NO_SCORE && (entry->key != board->stack->board_key
 		|| entry->depth <= depth - DEPTH_OFFSET))
 	{
-		int bound = (bestmove == NO_MOVE) ? UPPER_BOUND
-			: (best_value >= beta) ? LOWER_BOUND : EXACT_BOUND;
+		int bound = (best_value >= beta) ? LOWER_BOUND : UPPER_BOUND;
 
-		tt_save(entry, board->stack->board_key, score_to_tt(best_value, ss->plies), eval, depth, bound, bestmove);
+		tt_save(entry, board->stack->board_key, score_to_tt(best_value, ss->plies),
+			ss->static_eval, depth, bound, bestmove);
 	}
 
 	return (best_value);
-}
-
-void	search_bestmove(board_t *board, int depth, root_move_t *begin,
-		root_move_t *end, int pv_line)
-{
-	extern goparams_t	g_goparams;
-	score_t				alpha = -INF_SCORE;
-	searchstack_t		sstack[512];
-	move_t				pv[512];
-
-	memset(sstack, 0, sizeof(sstack));
-
-	sstack[0].plies = 1;
-	sstack[0].pv = pv;
-
-	for (root_move_t *i = begin; i < end; ++i)
-	{
-		pthread_mutex_lock(&g_engine_mutex);
-
-		if (g_engine_send == DO_ABORT || g_engine_send == DO_EXIT)
-		{
-			i->score = -NO_SCORE;
-			pthread_mutex_unlock(&g_engine_mutex);
-			return ;
-		}
-		pthread_mutex_unlock(&g_engine_mutex);
-
-		boardstack_t	stack;
-
-		do_move(board, i->move, &stack);
-
-		clock_t			elapsed = chess_clock() - g_goparams.start;
-
-		if (elapsed > 3000)
-		{
-			size_t	nps = g_nodes * 1000ul / (size_t)elapsed;
-
-			printf("info depth %d nodes " SIZE_FORMAT " nps " SIZE_FORMAT
-				" time %lu currmove %s currmovenumber %d\n",
-				depth + 1, (size_t)g_nodes, nps, elapsed,
-				move_to_str(i->move, board->chess960),
-				(int)(i - begin) + pv_line + 1);
-			fflush(stdout);
-		}
-
-		pv[0] = NO_MOVE;
-
-		if (i == begin)
-			i->score = -search_pv(board, depth, -INF_SCORE, INF_SCORE, sstack);
-		else
-		{
-			i->score = -search(board, depth, -alpha - 1, -alpha, sstack);
-
-			if (alpha < i->score)
-			{
-				pv[0] = NO_MOVE;
-				i->score = -search_pv(board, depth, -INF_SCORE,
-					-i->score, sstack);
-			}
-		}
-
-		undo_move(board, i->move);
-
-		if (abs(i->score) > INF_SCORE)
-			return ;
-		else if (i->score > alpha)
-		{
-			alpha = i->score;
-			i->depth = depth + 1;
-			i->pv[0] = i->move;
-
-			size_t	j;
-			for (j = 0; sstack[0].pv[j] != NO_MOVE; ++j)
-				i->pv[j + 1] = sstack[0].pv[j];
-
-			i->pv[j + 1] = NO_MOVE;
-		}
-	}
-	return ;
 }
