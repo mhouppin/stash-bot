@@ -188,6 +188,10 @@ void		engine_go(void)
 			sort_root_moves(root_moves + pv_line, root_moves + root_move_count);
 			sort_root_moves(root_moves, root_moves + multi_pv);
 
+			for (root_move_t *i = root_moves + multi_pv;
+				i < root_moves + root_move_count; ++i)
+				i->depth = 0;
+
 			clock_t	chess_time = chess_clock() - g_goparams.start;
 			size_t	chess_nodes = g_nodes;
 			size_t	chess_nps = (!chess_time) ? 0 : ((uint64_t)chess_nodes * 1000)
