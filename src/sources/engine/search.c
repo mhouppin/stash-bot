@@ -80,7 +80,7 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 			{
 				beta = tt_score;
 				if (alpha >= beta)
-					return (alpha);
+					return (beta);
 			}
 		}
 		tt_move = entry->bestmove;

@@ -84,7 +84,7 @@ score_t	qsearch(board_t *board, int depth, score_t alpha, score_t beta,
 		{
 			beta = tt_score;
 			if (alpha >= beta)
-				return (alpha);
+				return (beta);
 		}
 	}
 

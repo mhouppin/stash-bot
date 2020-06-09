@@ -232,9 +232,9 @@ void		engine_go(void)
 		if (has_search_aborted)
 			break ;
 
-		if (g_goparams.mate < 0 && root_moves->score <= mated_in(1 - g_goparams.mate * 2))
+		if (g_goparams.mate < 0 && root_moves->previous_score <= mated_in(1 - g_goparams.mate * 2))
 			break ;
-		if (g_goparams.mate > 0 && root_moves->score >= mate_in(g_goparams.mate * 2))
+		if (g_goparams.mate > 0 && root_moves->previous_score >= mate_in(g_goparams.mate * 2))
 			break ;
 	}
 

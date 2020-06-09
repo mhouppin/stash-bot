@@ -53,7 +53,7 @@ void	generate_move_values(movelist_t *movelist, const board_t *board,
 
 				if (captured_piece != NO_PIECE)
 				{
-					extmove->score = see_greater_than(board, move, 0) ? 2048 : 1024;
+					extmove->score = see_greater_than(board, move, -30) ? 2048 : 1024;
 					extmove->score += type_of_piece(captured_piece) * 8
 						- type_of_piece(moved_piece);
 				}

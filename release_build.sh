@@ -7,7 +7,7 @@
 
 set -e
 
-version=16.2
+version=17.0
 
 cd src
 
@@ -36,16 +36,11 @@ do
 		EXT_LFLAGS="-lgcov -static" ARCH="$build_arch"
 done
 
-make -f tmp.make re EXT_OFLAGS="-fprofile-generate -m32" EXT_LFLAGS="-lgcov" \
-
-./stash-bot bench
-
 rm -f stash-bot
 rm $(find objects \( -name "*.o" \) )
 
 make -f tmp.make EXE="stash-$version-linux-i386" \
-	EXT_OFLAGS="-fprofile-use -fno-peel-loops -fno-tracer -flto -m32" \
-	EXT_LFLAGS="-lgcov"
+	EXT_OFLAGS="-flto -m32" \
 
 make -f tmp.make clean
 
