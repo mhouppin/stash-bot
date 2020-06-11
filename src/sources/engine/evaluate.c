@@ -28,35 +28,108 @@ enum
 	Initiative = 15,
 	MobilityBase = SPAIR(-42, -66),
 	MobilityPlus = SPAIR(7, 11),
+
+	PawnWeight = 10,
+	MinorWeight = 20,
+	RookWeight = 40,
+	QueenWeight = 80,
+
+	SafetyScale = 2,
+	SafetyRatio = SPAIR(2, 1)
+};
+
+const int	AttackWeights[8] = {
+	0, 0, 50, 75, 88, 94, 97, 99
 };
 
 scorepair_t	evaluate_mobility(const board_t *board, color_t c)
 {
-	scorepair_t			ret = 0;
+	scorepair_t		ret = 0;
+	int				wattacks = 0;
+	int				attackers = 0;
+	bitboard_t		king_zone;
 
-	const square_t *list = board->piece_list[create_piece(c, BISHOP)];
+	const bitboard_t	occupancy = board->piecetype_bits[ALL_PIECES];
+
+	if (c == WHITE)
+	{
+		king_zone = king_moves(board->piece_list[BLACK_KING][0]);
+		king_zone |= shift_down(king_zone);
+		king_zone &= ~black_pawn_attacks(board->piecetype_bits[PAWN] & board->color_bits[BLACK]);
+	}
+	else
+	{
+		king_zone = king_moves(board->piece_list[WHITE_KING][0]);
+		king_zone |= shift_up(king_zone);
+		king_zone &= ~white_pawn_attacks(board->piecetype_bits[PAWN] & board->color_bits[WHITE]);
+	}
+	
+	const square_t *list = board->piece_list[create_piece(c, KNIGHT)];
+
 	for (square_t sq = *list; sq != SQ_NONE; sq = *++list)
 	{
-		int			move_count = popcount(bishop_moves(board, sq));
+		bitboard_t	b = knight_moves(sq);
+
+		if (b & king_zone)
+		{
+			attackers++;
+			wattacks += popcount(b & king_zone) * MinorWeight;
+		}
+	}
+
+	list = board->piece_list[create_piece(c, BISHOP)];
+	for (square_t sq = *list; sq != SQ_NONE; sq = *++list)
+	{
+		bitboard_t	b = bishop_move_bits(sq, occupancy);
+
+		int			move_count = popcount(b);
 
 		ret += MobilityBase + MobilityPlus * min(move_count, 9);
+
+		if (b & king_zone)
+		{
+			attackers++;
+			wattacks += popcount(b & king_zone) * MinorWeight;
+		}
 	}
 
 	list = board->piece_list[create_piece(c, ROOK)];
 	for (square_t sq = *list; sq != SQ_NONE; sq = *++list)
 	{
-		int			move_count = popcount(rook_moves(board, sq));
+		bitboard_t	b = rook_move_bits(sq, occupancy);
+
+		int			move_count = popcount(b);
 
 		ret += MobilityBase + MobilityPlus * min(move_count, 9);
+
+		if (b & king_zone)
+		{
+			attackers++;
+			wattacks += popcount(b & king_zone) * RookWeight;
+		}
 	}
 
 	list = board->piece_list[create_piece(c, QUEEN)];
 	for (square_t sq = *list; sq != SQ_NONE; sq = *++list)
 	{
-		int			move_count = popcount(queen_moves(board, sq));
+		bitboard_t	b = bishop_move_bits(sq, occupancy)
+			| rook_move_bits(sq, occupancy);
+
+		int			move_count = popcount(b);
 
 		ret += MobilityBase + MobilityPlus * min(move_count, 9);
+
+		if (b & king_zone)
+		{
+			attackers++;
+			wattacks += popcount(b & king_zone) * QueenWeight;
+		}
 	}
+
+	if (attackers >= 8)
+		ret += scorepair_divide(SafetyRatio * wattacks, SafetyScale);
+	else
+		ret += scorepair_divide(SafetyRatio * (wattacks * AttackWeights[attackers] / 100), SafetyScale);
 
 	return (ret);
 }
