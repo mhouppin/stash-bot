@@ -98,6 +98,12 @@ score_t	qsearch(board_t *board, int depth, score_t alpha, score_t beta,
 	move_t	bestmove = NO_MOVE;
 	int		move_count = 0;
 
+	// Check if delta pruning is possible.
+
+	const bool		delta_pruning = (!board->stack->checkers
+		&& popcount(board->piecetype_bits[ALL_PIECES]) > 6);
+	const score_t	delta_base = eval + PAWN_EG_SCORE * 2;
+
 	for (const extmove_t *extmove = movelist_begin(&list);
 		extmove < movelist_end(&list); ++extmove)
 	{
@@ -107,9 +113,23 @@ score_t	qsearch(board_t *board, int depth, score_t alpha, score_t beta,
 
 		move_count++;
 
+		bool	gives_check = move_gives_check(board, extmove->move);
+
+		if (delta_pruning && !gives_check
+			&& type_of_move(extmove->move) == NORMAL_MOVE)
+		{
+			score_t		delta = delta_base + PieceScores[ENDGAME]
+				[type_of_piece(piece_on(board, move_to_square(extmove->move)))];
+
+			// Check if the move is very unlikely to improve alpha.
+
+			if (delta < alpha)
+				continue ;
+		}
+
 		boardstack_t	stack;
 
-		do_move(board, extmove->move, &stack);
+		do_move_gc(board, extmove->move, &stack, gives_check);
 
 		score_t		next = -qsearch(board, depth - 1, -beta, -alpha,
 			ss + 1);
