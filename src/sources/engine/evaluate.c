@@ -33,14 +33,37 @@ enum
 	MinorWeight = 20,
 	RookWeight = 40,
 	QueenWeight = 80,
-
 	SafetyScale = 2,
-	SafetyRatio = SPAIR(2, 1)
+	SafetyRatio = SPAIR(2, 1),
+
+	BishopPairBonus = SPAIR(30, 50),
+	KnightPairPenalty = SPAIR(-15, -35),
+	RookPairPenalty = SPAIR(-20, -40),
+	NonPawnBonus = SPAIR(32, 48)
 };
 
 const int	AttackWeights[8] = {
 	0, 0, 50, 75, 88, 94, 97, 99
 };
+
+scorepair_t	evaluate_material(const board_t *board, color_t c)
+{
+	scorepair_t			ret = 0;
+	const bitboard_t	b = board->color_bits[c];
+
+	if (more_than_one(b & board->piecetype_bits[BISHOP]))
+		ret += BishopPairBonus;
+
+	if (more_than_one(b & board->piecetype_bits[KNIGHT]))
+		ret += KnightPairPenalty;
+
+	if (more_than_one(b & board->piecetype_bits[ROOK]))
+		ret += RookPairPenalty;
+
+	ret += NonPawnBonus * popcount(b & ~board->piecetype_bits[PAWN]);
+
+	return (ret);
+}
 
 scorepair_t	evaluate_mobility(const board_t *board, color_t c)
 {
@@ -144,6 +167,8 @@ score_t		evaluate(const board_t *board)
 		eval -= CastlingBonus;
 
 	eval += evaluate_pawns(board);
+	eval += evaluate_material(board, WHITE);
+	eval -= evaluate_material(board, BLACK);
 	eval += evaluate_mobility(board, WHITE);
 	eval -= evaluate_mobility(board, BLACK);
 
