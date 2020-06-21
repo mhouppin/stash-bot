@@ -1,7 +1,7 @@
 ## stash-bot
 
 Stash is a UCI-compliant chess engine developed from scratch. Preferably used
-with a GUI like Arena, CuteChess, Fritz, etc. Currently rated around 2160 Elo.
+with a GUI like Arena, CuteChess, Fritz, etc. Currently rated around 2330 Elo.
 
 ## Files
 
