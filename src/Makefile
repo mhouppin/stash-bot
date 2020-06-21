@@ -50,7 +50,7 @@ $(EXE): $(OBJECTS)
 	$(CC) $(OFLAGS) -o $@ $^ -lpthread -lm $(EXT_OFLAGS) $(EXT_LFLAGS)
 
 objects/%.o: sources/%.c
-	@if test ! -d $(dir $@); then mkdir -p $(dir $@); fi
+	@mkdir -p $(dir $@)
 	$(CC) $(OFLAGS) $(EXT_OFLAGS) -Wall -Wextra -Werror -c -MMD -I include \
 		-o $@ $<
 
