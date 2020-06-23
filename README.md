@@ -16,8 +16,6 @@ The repository consists of the following files:
     profiled builds for your architecture.
   * release\_build.sh, a shell script mainly intended for the contributors to
     automatically generate all binaries when creating releases.
-  * Changelog, a text file listing all changes applied to this repository since
-    version 9.
 
 ## UCI Parameters
 
