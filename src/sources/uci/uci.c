@@ -59,8 +59,12 @@ int		execute_uci_cmd(const char *command)
 	}
 
 	if (strcmp(cmd, "quit") == 0)
+	{
+		free(dup);
 		return (0);
+	}
 
+	free(dup);
 	return (1);
 }
 

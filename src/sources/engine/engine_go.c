@@ -62,9 +62,8 @@ uint64_t	perft(board_t *board, unsigned int depth)
 	}
 }
 
-void		engine_go(void)
+void		engine_go(board_t *board)
 {
-	extern board_t		g_board;
 	extern goparams_t	g_goparams;
 	extern ucioptions_t	g_options;
 	extern movelist_t	g_searchmoves;
@@ -74,7 +73,7 @@ void		engine_go(void)
 
 	if (g_goparams.perft)
 	{
-		uint64_t	nodes = perft(&g_board, (unsigned int)g_goparams.perft);
+		uint64_t	nodes = perft(board, (unsigned int)g_goparams.perft);
 
 		clock_t		time = chess_clock() - g_goparams.start;
 
@@ -88,7 +87,7 @@ void		engine_go(void)
 
 	if (root_move_count == 0)
 	{
-		if (g_board.stack->checkers)
+		if (board->stack->checkers)
 			printf("info depth 0 score mate 0\nbestmove 0000\n");
 		else
 			printf("info depth 0 score cp 0\nbestmove 0000\n");
@@ -122,19 +121,19 @@ void		engine_go(void)
 			// If we get enough increment per move to avoid time burns, decrease
 			// estimated movestogo.
 
-			if (g_board.side_to_move == WHITE && g_goparams.winc > g_options.move_overhead)
+			if (board->side_to_move == WHITE && g_goparams.winc > g_options.move_overhead)
 				g_goparams.movestogo = 35;
-			if (g_board.side_to_move == BLACK && g_goparams.binc > g_options.move_overhead)
+			if (board->side_to_move == BLACK && g_goparams.binc > g_options.move_overhead)
 				g_goparams.movestogo = 35;
 		}
 
-		if (g_board.side_to_move == WHITE
+		if (board->side_to_move == WHITE
 			&& (g_goparams.wtime || g_goparams.winc))
 		{
 			g_goparams.initial_max_time = compute_movetime(g_goparams.wtime,
 				g_goparams.winc, g_goparams.movestogo);
 		}
-		else if (g_board.side_to_move == BLACK
+		else if (board->side_to_move == BLACK
 			&& (g_goparams.btime || g_goparams.binc))
 		{
 			g_goparams.initial_max_time = compute_movetime(g_goparams.btime,
@@ -170,7 +169,7 @@ void		engine_go(void)
 
 		for (int pv_line = 0; pv_line < multi_pv; ++pv_line)
 		{
-			search_bestmove(&g_board, iter_depth, root_moves + pv_line,
+			search_bestmove(board, iter_depth, root_moves + pv_line,
 				root_moves + root_move_count, pv_line);
 
 			// Catch fail-low and search aborting
@@ -213,7 +212,7 @@ void		engine_go(void)
 	
 					for (size_t k = 0; root_moves[i].pv[k] != NO_MOVE; ++k)
 						printf(" %s", move_to_str(root_moves[i].pv[k],
-							g_board.chess960));
+							board->chess960));
 					puts("");
 				}
 				fflush(stdout);
@@ -245,6 +244,7 @@ void		engine_go(void)
 		while (!out_of_time())
 			;
 
-	printf("bestmove %s\n", move_to_str(root_moves->move, g_board.chess960));
+	printf("bestmove %s\n", move_to_str(root_moves->move, board->chess960));
 	fflush(stdout);
+	free(root_moves);
 }

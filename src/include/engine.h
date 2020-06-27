@@ -60,7 +60,7 @@ enum
 
 void	sort_root_moves(root_move_t *begin, root_move_t *end);
 
-void	engine_go(void);
+void	engine_go(board_t *board);
 void	search_bestmove(board_t *board, int depth, root_move_t *begin,
 		root_move_t *end, int pv_line);
 score_t	qsearch(board_t *board, int depth, score_t alpha, score_t beta,

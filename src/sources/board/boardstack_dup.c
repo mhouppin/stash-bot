@@ -16,38 +16,17 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "engine.h"
-#include "uci.h"
+#include <stdlib.h>
+#include "board.h"
 
-void	*engine_thread(void *nothing __attribute__((unused)))
+boardstack_t	*boardstack_dup(const boardstack_t *stack)
 {
-	pthread_mutex_lock(&g_engine_mutex);
+	if (!stack)
+		return (NULL);
 
-	while (g_engine_send != DO_ABORT)
-	{
-		pthread_cond_wait(&g_engine_condvar, &g_engine_mutex);
+	boardstack_t	*new_stack = malloc(sizeof(boardstack_t));
 
-		if (g_engine_send == DO_THINK)
-		{
-			g_engine_mode = THINKING;
-			g_engine_send = DO_NOTHING;
-			pthread_mutex_unlock(&g_engine_mutex);
-
-			extern board_t	g_board;
-			board_t			dup = g_board;
-
-			dup.stack = boardstack_dup(g_board.stack);
-
-			engine_go(&dup);
-
-			boardstack_free(dup.stack);
-
-			pthread_mutex_lock(&g_engine_mutex);
-			g_engine_mode = WAITING;
-		}
-	}
-
-	pthread_mutex_unlock(&g_engine_mutex);
-
-	return (NULL);
+	*new_stack = *stack;
+	new_stack->prev = boardstack_dup(stack->prev);
+	return (new_stack);
 }
