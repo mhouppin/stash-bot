@@ -32,14 +32,7 @@ void	uci_position(const char *args)
 	extern board_t		g_board;
 	extern ucioptions_t	g_options;
 
-	pthread_mutex_lock(&g_engine_mutex);
-	while (g_engine_mode == THINKING)
-	{
-		pthread_mutex_unlock(&g_engine_mutex);
-		usleep(1000);
-		pthread_mutex_lock(&g_engine_mutex);
-	}
-	pthread_mutex_unlock(&g_engine_mutex);
+	wait_search_end();
 
 	if (hidden_size > 0)
 	{

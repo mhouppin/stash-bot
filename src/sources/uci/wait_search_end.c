@@ -16,13 +16,16 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "tt.h"
+#include <unistd.h>
 #include "uci.h"
 
-void	uci_ucinewgame(const char *args)
+void	wait_search_end(void)
 {
-	wait_search_end();
+	usleep(1000);
+	pthread_mutex_lock(&g_engine_mutex);
 
-	(void)args;
-	tt_bzero();
+	while (g_engine_mode == THINKING)
+		pthread_cond_wait(&g_engine_condvar, &g_engine_mutex);
+
+	pthread_mutex_unlock(&g_engine_mutex);
 }

@@ -44,6 +44,7 @@ void	*engine_thread(void *nothing __attribute__((unused)))
 
 			pthread_mutex_lock(&g_engine_mutex);
 			g_engine_mode = WAITING;
+			pthread_cond_broadcast(&g_engine_condvar);
 		}
 	}
 

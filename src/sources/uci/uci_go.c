@@ -27,20 +27,7 @@ void	uci_go(const char *args)
 {
 	const char	*delim = " \t\n";
 
-	if (pthread_mutex_lock(&g_engine_mutex))
-	{
-		perror("Unable to launch engine");
-		fflush(stderr);
-		return ;
-	}
-
-	if (g_engine_mode == THINKING)
-	{
-		pthread_mutex_unlock(&g_engine_mutex);
-		fputs("Engine already thinking", stderr);
-		fflush(stderr);
-		return ;
-	}
+	wait_search_end();
 
 	extern movelist_t	g_searchmoves;
 	extern board_t		g_board;
@@ -133,6 +120,6 @@ void	uci_go(const char *args)
 	}
 
 	pthread_mutex_unlock(&g_engine_mutex);
-	pthread_cond_signal(&g_engine_condvar);
+	pthread_cond_broadcast(&g_engine_condvar);
 	free(copy);
 }

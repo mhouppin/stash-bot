@@ -29,7 +29,6 @@ void	uci_setoption(const char *args)
 	char	*copy = strdup(args);
 	char	*token = strtok(copy, delim);
 
-
 	if (!token || strcmp(token, "name"))
 		goto __end;
 
