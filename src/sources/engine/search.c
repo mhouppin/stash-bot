@@ -34,7 +34,6 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 		return (qsearch(board, depth, alpha, beta, ss));
 
 	movelist_t			list;
-	move_t				pv[512];
 	score_t				best_value = -INF_SCORE;
 
 	if (g_nodes % 4096 == 0 && out_of_time())
@@ -93,8 +92,7 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 	else
 		eval = ss->static_eval = evaluate(board);
 
-	(ss + 1)->pv = pv;
-	pv[0] = NO_MOVE;
+	(ss + 1)->plies = ss->plies + 1;
 	(ss + 2)->killers[0] = (ss + 2)->killers[1] = NO_MOVE;
 
 	// Razoring.
@@ -137,8 +135,6 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 
 		do_null_move(board, &stack);
 
-		(ss + 1)->plies = ss->plies;
-
 		score_t			score = -search(board, depth - nmp_reduction, -beta, -beta + 1,
 				ss + 1);
 
@@ -165,7 +161,7 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 			board->stack->plies_from_null_move = -(depth - nmp_reduction) * 3 / 4;
 
 			score_t		zzscore = search(board, depth - nmp_reduction, beta - 1, beta,
-					ss + 1);
+					ss);
 
 			board->stack->plies_from_null_move = nmp_depth;
 
@@ -176,12 +172,10 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 
 	if (depth > 7 && !tt_move)
 	{
-		search(board, depth / 2, alpha, beta, ss + 1);
+		search(board, depth / 2, alpha, beta, ss);
 		entry = tt_probe(board->stack->board_key, &found);
 		tt_move = entry->bestmove;
 	}
-
-	(ss + 1)->plies = ss->plies + 1;
 
 	list_pseudo(&list, board);
 	generate_move_values(&list, board, tt_move, ss->killers);
@@ -204,11 +198,8 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 
 		score_t		next;
 
-		pv[0] = NO_MOVE;
-
 		if (move_count == 1)
-			next = -search(board, depth - 1, -beta, -alpha,
-				ss + 1);
+			next = -search(board, depth - 1, -beta, -alpha, ss + 1);
 		else
 		{
 			// Late Move Reductions.
@@ -220,25 +211,17 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 			{
 				int		lmr_depth = depth - (int)sqrt(depth + move_count);
 
-				next = -search(board, lmr_depth, -alpha - 1, -alpha,
-					ss + 1);
+				next = -search(board, lmr_depth, -alpha - 1, -alpha, ss + 1);
 
 				need_full_depth_search = (abs(next) < INF_SCORE && alpha < next);
 			}
 
 			if (need_full_depth_search)
 			{
-				pv[0] = NO_MOVE;
-
-				next = -search(board, depth - 1, -alpha - 1, -alpha,
-					ss + 1);
+				next = -search(board, depth - 1, -alpha - 1, -alpha, ss + 1);
 
 				if (alpha < next && next < beta)
-				{
-					pv[0] = NO_MOVE;
-					next = -search(board, depth - 1, -beta, -next,
-						ss + 1);
-				}
+					next = -search(board, depth - 1, -beta, -next, ss + 1);
 			}
 		}
 
@@ -256,14 +239,8 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 
 			if (alpha < best_value)
 			{
-				ss->pv[0] = bestmove = extmove->move;
+				bestmove = extmove->move;
 				alpha = best_value;
-
-				size_t	j;
-				for (j = 0; (ss + 1)->pv[j] != NO_MOVE; ++j)
-					ss->pv[j + 1] = (ss + 1)->pv[j];
-
-				ss->pv[j + 1] = NO_MOVE;
 
 				if (alpha >= beta)
 				{

@@ -93,8 +93,7 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 		pv[0] = NO_MOVE;
 
 		if (move_count == 1)
-			next = -search_pv(board, depth - 1, -beta, -alpha,
-				ss + 1);
+			next = -search_pv(board, depth - 1, -beta, -alpha, ss + 1);
 		else
 		{
 			// Late Move Reductions.
@@ -106,8 +105,7 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 			{
 				int		lmr_depth = depth - (int)sqrt(depth + move_count);
 
-				next = -search(board, lmr_depth, -alpha - 1, -alpha,
-					ss + 1);
+				next = -search(board, lmr_depth, -alpha - 1, -alpha, ss + 1);
 
 				need_full_depth_search = (abs(next) < INF_SCORE && alpha < next);
 			}
@@ -116,14 +114,12 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 			{
 				pv[0] = NO_MOVE;
 
-				next = -search(board, depth - 1, -alpha - 1, -alpha,
-					ss + 1);
+				next = -search(board, depth - 1, -alpha - 1, -alpha, ss + 1);
 
 				if (alpha < next && next < beta)
 				{
 					pv[0] = NO_MOVE;
-					next = -search_pv(board, depth - 1, -beta, -next,
-						ss + 1);
+					next = -search_pv(board, depth - 1, -beta, -next, ss + 1);
 				}
 			}
 		}
