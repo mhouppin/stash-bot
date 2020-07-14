@@ -39,7 +39,14 @@ enum
 	BishopPairBonus = SPAIR(30, 50),
 	KnightPairPenalty = SPAIR(-15, -35),
 	RookPairPenalty = SPAIR(-20, -40),
-	NonPawnBonus = SPAIR(32, 48)
+	NonPawnBonus = SPAIR(32, 48),
+
+	QueenPhase = 4,
+	RookPhase = 2,
+	MinorPhase = 1,
+
+	MidgamePhase = 24,
+	EndgamePhase = 12
 };
 
 const int	AttackWeights[8] = {
@@ -202,11 +209,21 @@ score_t		evaluate(const board_t *board)
 		}
 	}
 
+	{
+		int		phase = QueenPhase * popcount(board->piecetype_bits[QUEEN])
+			+ RookPhase * popcount(board->piecetype_bits[ROOK])
+			+ MinorPhase * popcount(board->piecetype_bits[KNIGHT] | board->piecetype_bits[BISHOP]);
 
-	if (piece_count <= 16)
-		score = eg;
-	else
-		score = (eg * (32 - piece_count) + mg * (piece_count - 16)) / 16;
+		if (phase >= MidgamePhase)
+			score = mg;
+		else if (phase >= EndgamePhase)
+		{
+			score = mg * (phase - EndgamePhase) / (MidgamePhase - EndgamePhase);
+			score += eg * (MidgamePhase - phase) / (MidgamePhase - EndgamePhase);
+		}
+		else
+			score = eg;
+	}
 
 	return (Initiative + (board->side_to_move == WHITE ? score : -score));
 }
