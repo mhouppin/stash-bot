@@ -41,6 +41,10 @@ enum
 	RookPairPenalty = SPAIR(-20, -40),
 	NonPawnBonus = SPAIR(32, 48),
 
+	RookOnSemiOpenFile = SPAIR(24, 24),
+	RookOnOpenFile = SPAIR(48, 6),
+	RookXrayQueen = SPAIR(18, 0),
+
 	QueenPhase = 4,
 	RookPhase = 2,
 	MinorPhase = 1,
@@ -52,6 +56,30 @@ enum
 const int	AttackWeights[8] = {
 	0, 0, 50, 75, 88, 94, 97, 99
 };
+
+scorepair_t	evaluate_rook_patterns(const board_t *board, color_t c)
+{
+	scorepair_t	ret = 0;
+
+	bitboard_t	my_pawns = board->piecetype_bits[PAWN] & board->color_bits[c];
+	bitboard_t	their_pawns = board->piecetype_bits[PAWN] & ~my_pawns;
+	bitboard_t	their_queens = board->piecetype_bits[QUEEN]
+		& board->color_bits[opposite_color(c)];
+
+	const square_t	*list = board->piece_list[create_piece(c, ROOK)];
+
+	for (square_t sq = *list; sq != SQ_NONE; sq = *++list)
+	{
+		bitboard_t	rook_file = file_square_bits(sq);
+
+		if (!(rook_file & my_pawns))
+			ret += (rook_file & their_pawns) ? RookOnSemiOpenFile : RookOnOpenFile;
+
+		if (rook_file & their_queens)
+			ret += RookXrayQueen;
+	}
+	return (ret);
+}
 
 scorepair_t	evaluate_material(const board_t *board, color_t c)
 {
@@ -178,6 +206,8 @@ score_t		evaluate(const board_t *board)
 	eval -= evaluate_material(board, BLACK);
 	eval += evaluate_mobility(board, WHITE);
 	eval -= evaluate_mobility(board, BLACK);
+	eval += evaluate_rook_patterns(board, WHITE);
+	eval -= evaluate_rook_patterns(board, BLACK);
 
 	score_t		mg = midgame_score(eval);
 	score_t		eg = endgame_score(eval);
