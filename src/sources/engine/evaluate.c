@@ -33,8 +33,7 @@ enum
 	MinorWeight = 20,
 	RookWeight = 40,
 	QueenWeight = 80,
-	SafetyScale = 2,
-	SafetyRatio = SPAIR(2, 1),
+	SafetyRatio = SPAIR(1, 3),
 
 	BishopPairBonus = SPAIR(30, 50),
 	KnightPairPenalty = SPAIR(-15, -35),
@@ -184,10 +183,10 @@ scorepair_t	evaluate_mobility(const board_t *board, color_t c)
 		}
 	}
 
-	if (attackers >= 8)
-		ret += scorepair_divide(SafetyRatio * wattacks, SafetyScale);
-	else
-		ret += scorepair_divide(SafetyRatio * (wattacks * AttackWeights[attackers] / 100), SafetyScale);
+	if (attackers < 8)
+		wattacks = wattacks * AttackWeights[attackers] / 100;
+
+	ret += SafetyRatio * wattacks;
 
 	return (ret);
 }
