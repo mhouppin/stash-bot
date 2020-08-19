@@ -106,6 +106,7 @@ scorepair_t	evaluate_mobility(const board_t *board, color_t c)
 	int				wattacks = 0;
 	int				attackers = 0;
 	bitboard_t		king_zone;
+	bitboard_t		safe;
 
 	const bitboard_t	occupancy = board->piecetype_bits[ALL_PIECES];
 
@@ -113,15 +114,19 @@ scorepair_t	evaluate_mobility(const board_t *board, color_t c)
 	{
 		king_zone = king_moves(board->piece_list[BLACK_KING][0]);
 		king_zone |= shift_down(king_zone);
-		king_zone &= ~black_pawn_attacks(board->piecetype_bits[PAWN] & board->color_bits[BLACK]);
+		safe = ~black_pawn_attacks(board->piecetype_bits[PAWN] & board->color_bits[BLACK]);
 	}
 	else
 	{
 		king_zone = king_moves(board->piece_list[WHITE_KING][0]);
 		king_zone |= shift_up(king_zone);
-		king_zone &= ~white_pawn_attacks(board->piecetype_bits[PAWN] & board->color_bits[WHITE]);
+		safe = ~white_pawn_attacks(board->piecetype_bits[PAWN] & board->color_bits[WHITE]);
 	}
-	
+
+	// Exclude unsafe squares from king zone target squares
+
+	king_zone &= safe;
+
 	const square_t *list = board->piece_list[create_piece(c, KNIGHT)];
 
 	for (square_t sq = *list; sq != SQ_NONE; sq = *++list)
@@ -140,7 +145,7 @@ scorepair_t	evaluate_mobility(const board_t *board, color_t c)
 	{
 		bitboard_t	b = bishop_move_bits(sq, occupancy);
 
-		int			move_count = popcount(b);
+		int			move_count = popcount(b & safe);
 
 		ret += MobilityBase + MobilityPlus * min(move_count, 9);
 
@@ -156,7 +161,7 @@ scorepair_t	evaluate_mobility(const board_t *board, color_t c)
 	{
 		bitboard_t	b = rook_move_bits(sq, occupancy);
 
-		int			move_count = popcount(b);
+		int			move_count = popcount(b & safe);
 
 		ret += MobilityBase + MobilityPlus * min(move_count, 9);
 
@@ -173,7 +178,7 @@ scorepair_t	evaluate_mobility(const board_t *board, color_t c)
 		bitboard_t	b = bishop_move_bits(sq, occupancy)
 			| rook_move_bits(sq, occupancy);
 
-		int			move_count = popcount(b);
+		int			move_count = popcount(b & safe);
 
 		ret += MobilityBase + MobilityPlus * min(move_count, 9);
 
