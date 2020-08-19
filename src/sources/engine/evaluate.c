@@ -33,7 +33,7 @@ enum
 	MinorWeight = 20,
 	RookWeight = 40,
 	QueenWeight = 80,
-	SafetyRatio = SPAIR(1, 3),
+	SafetyRatio = SPAIR(1, 1),
 
 	BishopPairBonus = SPAIR(30, 50),
 	KnightPairPenalty = SPAIR(-15, -35),
