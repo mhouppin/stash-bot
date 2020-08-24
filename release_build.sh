@@ -7,7 +7,7 @@
 
 set -e
 
-version=19.1
+version=19.2
 
 cd src
 
