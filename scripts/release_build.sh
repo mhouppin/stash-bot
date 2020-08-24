@@ -9,7 +9,9 @@ set -e
 
 version=19.2
 
-cd src
+cd $(dirname "$0")
+
+cd ../src
 
 cat Makefile | sed 's/-Werror/-w/g' > tmp.make
 
