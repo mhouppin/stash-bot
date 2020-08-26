@@ -49,7 +49,7 @@ enum
 	MinorPhase = 1,
 
 	MidgamePhase = 24,
-	EndgamePhase = 12
+	EndgamePhase = 0
 };
 
 const int	AttackWeights[8] = {
