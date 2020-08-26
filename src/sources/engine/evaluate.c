@@ -49,7 +49,6 @@ enum
 	MinorPhase = 1,
 
 	MidgamePhase = 24,
-	EndgamePhase = 0
 };
 
 const int	AttackWeights[8] = {
@@ -250,13 +249,11 @@ score_t		evaluate(const board_t *board)
 
 		if (phase >= MidgamePhase)
 			score = mg;
-		else if (phase >= EndgamePhase)
-		{
-			score = mg * (phase - EndgamePhase) / (MidgamePhase - EndgamePhase);
-			score += eg * (MidgamePhase - phase) / (MidgamePhase - EndgamePhase);
-		}
 		else
-			score = eg;
+		{
+			score = mg * phase / MidgamePhase;
+			score += eg * (MidgamePhase - phase) / MidgamePhase;
+		}
 	}
 
 	return (Initiative + (board->side_to_move == WHITE ? score : -score));
