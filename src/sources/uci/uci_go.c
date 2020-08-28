@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "info.h"
 #include "movelist.h"
 #include "uci.h"
@@ -28,6 +29,7 @@ void	uci_go(const char *args)
 	const char	*delim = " \t\n";
 
 	wait_search_end();
+	pthread_mutex_lock(&g_engine_mutex);
 
 	extern movelist_t	g_searchmoves;
 	extern board_t		g_board;
@@ -119,7 +121,13 @@ void	uci_go(const char *args)
 		token = strtok(NULL, delim);
 	}
 
-	pthread_mutex_unlock(&g_engine_mutex);
 	pthread_cond_broadcast(&g_engine_condvar);
+	pthread_mutex_unlock(&g_engine_mutex);
+
+	// Wait for the broadcast to propagate to the engine thread
+
+	while (g_engine_mode != THINKING)
+		usleep(100);
+
 	free(copy);
 }

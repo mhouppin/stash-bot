@@ -21,10 +21,9 @@
 
 void	wait_search_end(void)
 {
-	usleep(1000);
 	pthread_mutex_lock(&g_engine_mutex);
 
-	while (g_engine_mode == THINKING)
+	while (g_engine_mode != WAITING)
 		pthread_cond_wait(&g_engine_condvar, &g_engine_mutex);
 
 	pthread_mutex_unlock(&g_engine_mutex);

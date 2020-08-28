@@ -70,9 +70,7 @@ int		execute_uci_cmd(const char *command)
 
 void	uci_loop(int argc, char **argv)
 {
-	// Small hack to allow the engine thread to be ready before us
-
-	usleep(1000);
+	uci_position("startpos");
 
 	if (argc > 1)
 		for (int i = 1; i < argc; ++i)

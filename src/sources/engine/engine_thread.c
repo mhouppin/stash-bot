@@ -18,10 +18,13 @@
 
 #include "engine.h"
 #include "uci.h"
+#include <stdio.h>
 
 void	*engine_thread(void *nothing __attribute__((unused)))
 {
 	pthread_mutex_lock(&g_engine_mutex);
+	g_engine_mode = WAITING;
+	pthread_cond_broadcast(&g_engine_condvar);
 
 	while (g_engine_send != DO_ABORT)
 	{
@@ -31,12 +34,15 @@ void	*engine_thread(void *nothing __attribute__((unused)))
 		{
 			g_engine_mode = THINKING;
 			g_engine_send = DO_NOTHING;
-			pthread_mutex_unlock(&g_engine_mutex);
 
 			extern board_t	g_board;
 			board_t			dup = g_board;
 
 			dup.stack = boardstack_dup(g_board.stack);
+
+			// Only unlock the mutex once we're not using the global board
+
+			pthread_mutex_unlock(&g_engine_mutex);
 
 			engine_go(&dup);
 
