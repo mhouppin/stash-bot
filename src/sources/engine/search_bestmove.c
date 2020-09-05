@@ -103,7 +103,7 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 			if (depth >= LMR_MinDepth && move_count > LMR_MinMoves
 				&& !board->stack->checkers)
 			{
-				int		lmr_depth = depth - (int)sqrt(depth + move_count);
+				int		lmr_depth = depth - (depth + move_count) / 10 - 2;
 
 				next = -search(board, lmr_depth, -alpha - 1, -alpha, ss + 1);
 
