@@ -124,10 +124,5 @@ void	uci_go(const char *args)
 	pthread_cond_broadcast(&g_engine_condvar);
 	pthread_mutex_unlock(&g_engine_mutex);
 
-	// Wait for the broadcast to propagate to the engine thread
-
-	while (g_engine_mode != THINKING)
-		usleep(100);
-
 	free(copy);
 }
