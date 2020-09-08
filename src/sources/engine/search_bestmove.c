@@ -223,11 +223,11 @@ void	search_bestmove(board_t *board, int depth, root_move_t *begin,
 
 		if (elapsed > 3000)
 		{
-			size_t	nps = g_nodes * 1000ul / (size_t)elapsed;
+			uint64_t	nps = (g_nodes * 1000) / elapsed;
 
-			printf("info depth %d nodes " SIZE_FORMAT " nps " SIZE_FORMAT
+			printf("info depth %d nodes %lu nps %lu"
 				" time %lu currmove %s currmovenumber %d\n",
-				depth + 1, (size_t)g_nodes, nps, elapsed,
+				depth + 1, (info_t)g_nodes, (info_t)nps, elapsed,
 				move_to_str(i->move, board->chess960),
 				(int)(i - begin) + pv_line + 1);
 			fflush(stdout);

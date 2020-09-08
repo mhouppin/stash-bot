@@ -22,7 +22,7 @@ endif
 
 ifeq ($(OS),Windows_NT)
 	REMOVE := del
-	SILENCE := >nul 2>&1
+	SILENCE := >nul 2>&1 || (exit 0)
 	ifeq ($(EXE),)
 		EXE=stash-bot.exe
 	endif

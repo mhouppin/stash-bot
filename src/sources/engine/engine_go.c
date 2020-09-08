@@ -77,10 +77,10 @@ void		engine_go(board_t *board)
 
 		clock_t		time = chess_clock() - g_goparams.start;
 
-		size_t		nps = (!time) ? 0 : (nodes * 1000) / time;
+		uint64_t	nps = (!time) ? 0 : (nodes * 1000) / time;
 
-		printf("info nodes " SIZE_FORMAT " nps " SIZE_FORMAT " time %lu\n",
-			(size_t)nodes, nps, time);
+		printf("info nodes %lu nps %lu time %lu\n",
+			(info_t)nodes, (info_t)nps, time);
 
 		return ;
 	}
@@ -191,10 +191,10 @@ void		engine_go(board_t *board)
 				i < root_moves + root_move_count; ++i)
 				i->depth = 0;
 
-			clock_t	chess_time = chess_clock() - g_goparams.start;
-			size_t	chess_nodes = g_nodes;
-			size_t	chess_nps = (!chess_time) ? 0 : ((uint64_t)chess_nodes * 1000)
-				/ (uint64_t)chess_time;
+			clock_t		chess_time = chess_clock() - g_goparams.start;
+			uint64_t	chess_nodes = g_nodes;
+			uint64_t	chess_nps = (!chess_time) ? 0 : (chess_nodes * 1000)
+				/ chess_time;
 
 			// Don't update Multi-PV lines if not all analysed at current depth
 			// and not enough time elapsed
@@ -203,11 +203,11 @@ void		engine_go(board_t *board)
 			{
 				for (int i = 0; i < multi_pv; ++i)
 				{
-					printf("info depth %d seldepth %d multipv %d nodes "
-						SIZE_FORMAT " nps " SIZE_FORMAT " hashfull %d"
-						" time %lu score %s pv",
+					printf("info depth %d seldepth %d multipv %d nodes %lu"
+						" nps %lu hashfull %d time %lu score %s pv",
 						root_moves[i].depth, g_seldepth, i + 1,
-						chess_nodes, chess_nps, tt_hashfull(), chess_time,
+						(info_t)chess_nodes, (info_t)chess_nps,
+						tt_hashfull(), chess_time,
 						score_to_str(root_moves[i].score));
 	
 					for (size_t k = 0; root_moves[i].pv[k] != NO_MOVE; ++k)

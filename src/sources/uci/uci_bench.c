@@ -61,7 +61,7 @@ void	uci_bench(const char *args)
 	};
 
 	clock_t		bench_time = chess_clock();
-	size_t		total_nodes = 0;
+	uint64_t	total_nodes = 0;
 
 	for (size_t i = 0; positions[i]; ++i)
 	{
@@ -69,27 +69,23 @@ void	uci_bench(const char *args)
 
 		strcpy(buf, "depth ");
 		strcat(buf, args);
-		printf("Position " SIZE_FORMAT "/25\n", i + 1);
-		fflush(stdout);
 		uci_ucinewgame(NULL);
 		uci_position(positions[i]);
 		uci_go(buf);
 
-		usleep(2000);
+		struct timespec ts = {.tv_sec = 0, .tv_nsec = 20000000};
+		nanosleep(&ts, &ts);
 
 		wait_search_end();
 
-		extern uint64_t		g_nodes;
-
 		total_nodes += g_nodes;
-		puts("");
 	}
 
 	bench_time = chess_clock() - bench_time;
 
 	printf("Benchmark report:\n");
 	printf("TIME:  %lu milliseconds\n", bench_time);
-	printf("NODES: " SIZE_FORMAT "\n", total_nodes);
-	printf("NPS:   " SIZE_FORMAT "\n", (size_t)(((uint64_t)total_nodes * 1000) / (uint64_t)bench_time));
+	printf("NODES: %lu\n", (info_t)total_nodes);
+	printf("NPS:   %lu\n", (info_t)((total_nodes * 1000) / bench_time));
 	fflush(stdout);
 }
