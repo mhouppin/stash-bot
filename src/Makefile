@@ -20,9 +20,23 @@ ifeq ($(EXE),)
 EXE=stash-bot
 endif
 
+ifeq ($(OS),Windows_NT)
+	REMOVE := del
+	SILENCE := >nul 2>&1
+	ifeq ($(EXE),)
+		EXE=stash-bot.exe
+	endif
+else
+	REMOVE := rm -f
+	SILENCE := >/dev/null 2>&1
+	ifeq ($(EXE),)
+		EXE=stash-bot
+	endif
+endif
+
 SOURCES	:= $(wildcard sources/*/*.c)
-OBJECTS	:= $(SOURCES:sources/%.c=objects/%.o)
-DEPENDS := $(SOURCES:sources/%.c=objects/%.d)
+OBJECTS	:= $(SOURCES:%.c=%.o)
+DEPENDS := $(SOURCES:%.c=%.d)
 
 OFLAGS	:= -O3
 
@@ -49,17 +63,14 @@ all: $(EXE)
 $(EXE): $(OBJECTS)
 	$(CC) $(OFLAGS) -o $@ $^ -lpthread -lm $(EXT_OFLAGS) $(EXT_LFLAGS)
 
-objects/%.o: sources/%.c
-	@mkdir -p $(dir $@)
+%.o: %.c
 	$(CC) $(OFLAGS) $(EXT_OFLAGS) -Wall -Wextra -Werror -c -MMD -I include \
 		-o $@ $<
 
 -include $(DEPENDS)
 
 clean:
-	rm -f $(OBJECTS)
-	rm -f $(DEPENDS)
-	rm -rf objects
-	rm -f $(EXE)
+	$(REMOVE) $(OBJECTS) $(SILENCE)
+	$(REMOVE) $(DEPENDS) $(SILENCE)
 
 re: clean all

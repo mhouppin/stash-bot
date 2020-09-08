@@ -75,6 +75,8 @@ void	uci_bench(const char *args)
 		uci_position(positions[i]);
 		uci_go(buf);
 
+		usleep(2000);
+
 		wait_search_end();
 
 		extern uint64_t		g_nodes;
