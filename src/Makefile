@@ -16,9 +16,7 @@
 #	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-ifeq ($(EXE),)
-EXE=stash-bot
-endif
+SOURCES	:= $(wildcard sources/*/*.c)
 
 ifeq ($(OS),Windows_NT)
 	REMOVE := del
@@ -26,6 +24,7 @@ ifeq ($(OS),Windows_NT)
 	ifeq ($(EXE),)
 		EXE=stash-bot.exe
 	endif
+	SOURCES := $(subst /,\,$(SOURCES))
 else
 	REMOVE := rm -f
 	SILENCE := >/dev/null 2>&1
@@ -34,7 +33,6 @@ else
 	endif
 endif
 
-SOURCES	:= $(wildcard sources/*/*.c)
 OBJECTS	:= $(SOURCES:%.c=%.o)
 DEPENDS := $(SOURCES:%.c=%.d)
 

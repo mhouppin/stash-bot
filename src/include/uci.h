@@ -22,6 +22,7 @@
 # include <pthread.h>
 # include <stddef.h>
 # include <time.h>
+# include <sys/timeb.h>
 # include "inlining.h"
 
 enum	e_egn_mode
@@ -79,14 +80,21 @@ typedef struct	cmdlink_s
 
 INLINED clock_t	chess_clock(void)
 {
+#if defined(_WIN32) || defined(_WIN64)
+	struct timeb tp;
+
+	ftime(&tp);
+	return ((clock_t)tp.time * 1000 + tp.millitm);
+#else
 	struct timespec	tp;
 
 	clock_gettime(CLOCK_REALTIME, &tp);
-	return ((clock_t)tp.tv_sec * 1000 +
-			(clock_t)tp.tv_nsec / 1000000);
+	return ((clock_t)tp.tv_sec * 1000 + tp.tv_nsec / 1000000);
+#endif
 }
 
 void	wait_search_end(void);
+char	*get_next_token(char **str);
 
 void	uci_bench(const char *args);
 void	uci_d(const char *args);

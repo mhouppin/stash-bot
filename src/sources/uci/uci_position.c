@@ -26,7 +26,6 @@
 
 void	uci_position(const char *args)
 {
-	const char			*delim = " \t\n";
 	static boardstack_t	**hidden_list = NULL;
 	static size_t		hidden_size = 0;
 	extern board_t		g_board;
@@ -47,19 +46,19 @@ void	uci_position(const char *args)
 
 	char	*fen;
 	char	*copy = strdup(args);
-	char	*ptr;
-	char	*token = strtok_r(copy, delim, &ptr);
+	char	*ptr = copy;
+	char	*token = get_next_token(&ptr);
 
 	if (!strcmp(token, "startpos"))
 	{
 		fen = strdup("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-		token = strtok_r(NULL, delim, &ptr);
+		token = get_next_token(&ptr);
 	}
 	else if (!strcmp(token, "fen"))
 	{
 		fen = strdup("");
 
-		token = strtok_r(NULL, delim, &ptr);
+		token = get_next_token(&ptr);
 
 		while (token && strcmp(token, "moves"))
 		{
@@ -71,7 +70,7 @@ void	uci_position(const char *args)
 
 			free(fen);
 			fen = tmp;
-			token = strtok_r(NULL, delim, &ptr);
+			token = get_next_token(&ptr);
 		}
 	}
 	else
@@ -80,7 +79,7 @@ void	uci_position(const char *args)
 	board_set(&g_board, fen, g_options.chess960, *hidden_list);
 	free(fen);
 
-	token = strtok_r(NULL, delim, &ptr);
+	token = get_next_token(&ptr);
 
 	move_t	move;
 
@@ -92,7 +91,7 @@ void	uci_position(const char *args)
 
 		do_move(&g_board, move, hidden_list[hidden_size - 1]);
 
-		token = strtok_r(NULL, delim, &ptr);
+		token = get_next_token(&ptr);
 	}
 
 	free(copy);

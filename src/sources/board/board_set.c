@@ -21,18 +21,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include "board.h"
+#include "uci.h"
 
 void	board_set(board_t *board, char *fen, bool is_chess960,
 		boardstack_t *bstack)
 {
-	const char	*delim = " \t\n";
 	square_t	square = SQ_A8;
-	char		*fen_pieces = strtok(fen, delim);
-	char		*fen_side_to_move = strtok(NULL, delim);
-	char		*fen_castlings = strtok(NULL, delim);
-	char		*fen_en_passant = strtok(NULL, delim);
-	char		*fen_rule50 = strtok(NULL, delim);
-	char		*fen_turn = strtok(NULL, delim);
+	char		*ptr = fen;
+	char		*fen_pieces = get_next_token(&ptr);
+	char		*fen_side_to_move = get_next_token(&ptr);
+	char		*fen_castlings = get_next_token(&ptr);
+	char		*fen_en_passant = get_next_token(&ptr);
+	char		*fen_rule50 = get_next_token(&ptr);
+	char		*fen_turn = get_next_token(&ptr);
 
 	memset(board, 0, sizeof(board_t));
 	memset(bstack, 0, sizeof(boardstack_t));

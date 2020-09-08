@@ -1,6 +1,7 @@
 *.o
 *.d
 stash-bot
+stash-bot.exe
 stash-*-darwin-*
 stash-*-linux-*
 stash-*-windows-*
