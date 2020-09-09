@@ -121,6 +121,8 @@ void	uci_go(const char *args)
 		token = strtok(NULL, delim);
 	}
 
+	g_engine_mode = THINKING;
+
 	pthread_cond_broadcast(&g_engine_condvar);
 	pthread_mutex_unlock(&g_engine_mutex);
 

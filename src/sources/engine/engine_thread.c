@@ -23,7 +23,6 @@
 void	*engine_thread(void *nothing __attribute__((unused)))
 {
 	pthread_mutex_lock(&g_engine_mutex);
-	g_engine_mode = WAITING;
 	pthread_cond_broadcast(&g_engine_condvar);
 
 	while (g_engine_send != DO_ABORT)
@@ -32,7 +31,6 @@ void	*engine_thread(void *nothing __attribute__((unused)))
 
 		if (g_engine_send == DO_THINK)
 		{
-			g_engine_mode = THINKING;
 			g_engine_send = DO_NOTHING;
 
 			extern board_t	g_board;
