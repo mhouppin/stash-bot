@@ -73,8 +73,10 @@ void	uci_bench(const char *args)
 		uci_position(positions[i]);
 		uci_go(buf);
 
-		struct timespec ts = {.tv_sec = 0, .tv_nsec = 20000000};
-		nanosleep(&ts, &ts);
+		struct timespec ts = {.tv_sec = 0, .tv_nsec = 2000000};
+
+		while (g_engine_mode == WAITING)
+			nanosleep(&ts, &ts);
 
 		wait_search_end();
 
