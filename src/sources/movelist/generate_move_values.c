@@ -22,7 +22,6 @@
 void	generate_move_values(movelist_t *movelist, const board_t *board,
 		move_t tt_move, move_t *killers)
 {
-	const bool	in_endgame = popcount(board->piecetype_bits[ALL_PIECES]) <= 16;
 	extmove_t	*const end = movelist->last;
 
 	for (extmove_t *extmove = movelist->moves; extmove < end; ++extmove)
@@ -60,16 +59,7 @@ void	generate_move_values(movelist_t *movelist, const board_t *board,
 				else if (killers && (move == killers[0] || move == killers[1]))
 					extmove->score = 1536;
 				else
-				{
-					scorepair_t	qscore = PsqScore[moved_piece][to] - PsqScore[moved_piece][from];
-
-					extmove->score = (in_endgame) ? endgame_score(qscore) : midgame_score(qscore);
-
-					if (board->side_to_move == BLACK)
-						extmove->score = -extmove->score;
-
-					extmove->score += get_hist_score(moved_piece, move);
-				}
+					extmove->score = get_hist_score(moved_piece, move);
 				break ;
 		}
 	}
