@@ -7,7 +7,7 @@
 
 set -e
 
-version=20.1
+version=20.2
 
 cd $(dirname "$0")
 
@@ -25,13 +25,13 @@ do
 	./stash-bot bench
 
 	rm -f stash-bot
-	rm $(find objects \( -name "*.o" \) )
+	rm $(find sources \( -name "*.o" \) )
 
 	make -f tmp.make EXE="stash-$version-linux-$ext_arch" \
 		EXT_OFLAGS="-fprofile-use -fno-peel-loops -fno-tracer -flto" \
 		EXT_LFLAGS="-lgcov" ARCH="$build_arch"
 
-	rm $(find objects \( -name "*.o" \) )
+	rm $(find sources \( -name "*.o" \) )
 
 	CC=x86_64-w64-mingw32-gcc make -f tmp.make EXE="stash-$version-windows-$ext_arch.exe" \
 		EXT_OFLAGS="-fprofile-use -fno-peel-loops -fno-tracer -flto" \
@@ -39,7 +39,7 @@ do
 done
 
 rm -f stash-bot
-rm $(find objects \( -name "*.o" \) )
+rm $(find sources \( -name "*.o" \) )
 
 make -f tmp.make EXE="stash-$version-linux-i386" \
 	EXT_OFLAGS="-flto -m32" \
