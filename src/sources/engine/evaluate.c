@@ -24,25 +24,34 @@
 
 enum
 {
-	CastlingBonus = SPAIR(100, 0),
+	CastlingBonus = SPAIR(109, -37),
 	Initiative = 15,
-	MobilityBase = SPAIR(-42, -66),
-	MobilityPlus = SPAIR(7, 11),
 
-	PawnWeight = 10,
-	MinorWeight = 20,
-	RookWeight = 40,
-	QueenWeight = 80,
+	BishopMobBase = SPAIR(-37, -78),
+	BishopMobPlus = SPAIR(7, 16),
+	BishopMobMax = 6,
+
+	RookMobBase = SPAIR(-25, -23),
+	RookMobPlus = SPAIR(1, 19),
+	RookMobMax = 8,
+
+	QueenMobBase = SPAIR(37, -4),
+	QueenMobPlus = SPAIR(0, 56),
+	QueenMobMax = 12,
+
+	MinorWeight = 33,
+	RookWeight = 11,
+	QueenWeight = 70,
 	SafetyRatio = SPAIR(1, 1),
 
-	BishopPairBonus = SPAIR(30, 50),
-	KnightPairPenalty = SPAIR(-15, -35),
-	RookPairPenalty = SPAIR(-20, -40),
-	NonPawnBonus = SPAIR(32, 48),
+	BishopPairBonus = SPAIR(62, 81),
+	KnightPairPenalty = SPAIR(14, 19),
+	RookPairPenalty = SPAIR(14, 18),
+	NonPawnBonus = SPAIR(100, 124),
 
-	RookOnSemiOpenFile = SPAIR(24, 24),
-	RookOnOpenFile = SPAIR(48, 6),
-	RookXrayQueen = SPAIR(18, 0),
+	RookOnSemiOpenFile = SPAIR(17, 26),
+	RookOnOpenFile = SPAIR(74, 1),
+	RookXrayQueen = SPAIR(18, 19),
 
 	QueenPhase = 4,
 	RookPhase = 2,
@@ -145,7 +154,7 @@ scorepair_t	evaluate_mobility(const board_t *board, color_t c)
 
 		int			move_count = popcount(b & safe);
 
-		ret += MobilityBase + MobilityPlus * min(move_count, 9);
+		ret += BishopMobBase + BishopMobPlus * min(move_count, BishopMobMax);
 
 		if (b & king_zone)
 		{
@@ -161,7 +170,7 @@ scorepair_t	evaluate_mobility(const board_t *board, color_t c)
 
 		int			move_count = popcount(b & safe);
 
-		ret += MobilityBase + MobilityPlus * min(move_count, 9);
+		ret += RookMobBase + RookMobPlus * min(move_count, RookMobMax);
 
 		if (b & king_zone)
 		{
@@ -178,7 +187,7 @@ scorepair_t	evaluate_mobility(const board_t *board, color_t c)
 
 		int			move_count = popcount(b & safe);
 
-		ret += MobilityBase + MobilityPlus * min(move_count, 9);
+		ret += QueenMobBase + QueenMobPlus * min(move_count, QueenMobMax);
 
 		if (b & king_zone)
 		{
