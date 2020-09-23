@@ -73,7 +73,7 @@ scorepair_t	evaluate_passers(color_t c, const square_t *ulist, bitboard_t them)
 	for (square_t sq = *ulist; sq != SQ_NONE; sq = *++ulist)
 	{
 		if (!(passed_pawn_span(c, sq) & them))
-			ret += PassedBonus[relative_square_rank(c, sq)];
+			ret += PassedBonus[relative_square_rank(sq, c)];
 	}
 	return (ret);
 }
