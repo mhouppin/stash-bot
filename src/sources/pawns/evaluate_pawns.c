@@ -20,22 +20,22 @@
 
 enum
 {
-	BackwardPenalty = SPAIR(-3, 0),
-	StragglerPenalty = SPAIR(-31, -36),
-	DoubledPenalty = SPAIR(-19, -38),
-	IsolatedPenalty = SPAIR(-21, -24),
+	BackwardPenalty = SPAIR(-7, 0),
+	StragglerPenalty = SPAIR(-36, -30),
+	DoubledPenalty = SPAIR(-22, -39),
+	IsolatedPenalty = SPAIR(-24, -24),
 
-	CandidateBonus = SPAIR(0, 48),
+	CandidateBonus = SPAIR(0, 10),
 };
 
 const scorepair_t	PassedBonus[RANK_NB] = {
 	0,
+	SPAIR(0, 1),
 	SPAIR(0, 0),
-	SPAIR(0, 0),
-	SPAIR(0, 72),
-	SPAIR(33, 95),
-	SPAIR(108, 173),
-	SPAIR(128, 243),
+	SPAIR(0, 62),
+	SPAIR(24, 110),
+	SPAIR(97, 176),
+	SPAIR(133, 262),
 	0
 };
 

@@ -24,34 +24,34 @@
 
 enum
 {
-	CastlingBonus = SPAIR(109, -37),
-	Initiative = 15,
+	CastlingBonus = SPAIR(100, -49),
+	Initiative = SPAIR(9, 5),
 
-	BishopMobBase = SPAIR(-37, -78),
-	BishopMobPlus = SPAIR(7, 16),
+	BishopMobBase = SPAIR(-38, -80),
+	BishopMobPlus = SPAIR(8, 16),
 	BishopMobMax = 6,
 
-	RookMobBase = SPAIR(-25, -23),
-	RookMobPlus = SPAIR(1, 19),
-	RookMobMax = 8,
+	RookMobBase = SPAIR(-31, -20),
+	RookMobPlus = SPAIR(1, 16),
+	RookMobMax = 10,
 
-	QueenMobBase = SPAIR(37, -4),
-	QueenMobPlus = SPAIR(0, 56),
-	QueenMobMax = 12,
+	QueenMobBase = SPAIR(92, 13),
+	QueenMobPlus = SPAIR(2, 54),
+	QueenMobMax = 11,
 
 	MinorWeight = 33,
-	RookWeight = 11,
+	RookWeight = 13,
 	QueenWeight = 70,
 	SafetyRatio = SPAIR(1, 1),
 
-	BishopPairBonus = SPAIR(62, 81),
-	KnightPairPenalty = SPAIR(14, 19),
-	RookPairPenalty = SPAIR(14, 18),
-	NonPawnBonus = SPAIR(100, 124),
+	BishopPairBonus = SPAIR(66, 91),
+	KnightPairPenalty = SPAIR(20, 22),
+	RookPairPenalty = SPAIR(12, 12),
+	NonPawnBonus = SPAIR(114, 134),
 
-	RookOnSemiOpenFile = SPAIR(17, 26),
-	RookOnOpenFile = SPAIR(74, 1),
-	RookXrayQueen = SPAIR(18, 19),
+	RookOnSemiOpenFile = SPAIR(22, 27),
+	RookOnOpenFile = SPAIR(68, 8),
+	RookXrayQueen = SPAIR(16, 24),
 
 	QueenPhase = 4,
 	RookPhase = 2,
@@ -220,6 +220,7 @@ score_t		evaluate(const board_t *board)
 	eval -= evaluate_mobility(board, BLACK);
 	eval += evaluate_rook_patterns(board, WHITE);
 	eval -= evaluate_rook_patterns(board, BLACK);
+	eval += (board->side_to_move == WHITE) ? Initiative : -Initiative;
 
 	score_t		mg = midgame_score(eval);
 	score_t		eg = endgame_score(eval);
@@ -265,5 +266,5 @@ score_t		evaluate(const board_t *board)
 		}
 	}
 
-	return (Initiative + (board->side_to_move == WHITE ? score : -score));
+	return (board->side_to_move == WHITE ? score : -score);
 }
