@@ -36,6 +36,8 @@ do
 	CC=x86_64-w64-mingw32-gcc make -f tmp.make EXE="stash-$version-windows-$ext_arch.exe" \
 		EXT_OFLAGS="-fprofile-use -fno-peel-loops -fno-tracer -flto" \
 		EXT_LFLAGS="-lgcov -static" ARCH="$build_arch"
+
+	rm $(find sources \( -name "*.gcda" \) )
 done
 
 rm -f stash-bot
