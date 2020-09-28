@@ -24,40 +24,58 @@
 
 enum
 {
-	CastlingBonus = SPAIR(100, -49),
-	Initiative = SPAIR(9, 5),
+	CastlingBonus = SPAIR(76, -56),
+	Initiative = SPAIR(12, 20),
 
-	BishopMobBase = SPAIR(-38, -80),
-	BishopMobPlus = SPAIR(8, 16),
-	BishopMobMax = 6,
-
-	RookMobBase = SPAIR(-31, -20),
-	RookMobPlus = SPAIR(1, 16),
-	RookMobMax = 10,
-
-	QueenMobBase = SPAIR(92, 13),
-	QueenMobPlus = SPAIR(2, 54),
-	QueenMobMax = 11,
-
-	MinorWeight = 33,
-	RookWeight = 13,
-	QueenWeight = 70,
+	MinorWeight = 31,
+	RookWeight = 20,
+	QueenWeight = 95,
 	SafetyRatio = SPAIR(1, 1),
 
-	BishopPairBonus = SPAIR(66, 91),
-	KnightPairPenalty = SPAIR(20, 22),
-	RookPairPenalty = SPAIR(12, 12),
-	NonPawnBonus = SPAIR(114, 134),
+	BishopPairBonus = SPAIR(20, 128),
+	KnightPairPenalty = SPAIR(-5, 0),
+	RookPairPenalty = SPAIR(-24, -4),
+	NonPawnBonus = SPAIR(96, 165),
 
-	RookOnSemiOpenFile = SPAIR(22, 27),
-	RookOnOpenFile = SPAIR(68, 8),
-	RookXrayQueen = SPAIR(16, 24),
+	RookOnSemiOpenFile = SPAIR(23, 23),
+	RookOnOpenFile = SPAIR(50, 20),
+	RookXrayQueen = SPAIR(7, 19),
 
 	QueenPhase = 4,
 	RookPhase = 2,
 	MinorPhase = 1,
 
 	MidgamePhase = 24,
+};
+
+const scorepair_t	MobilityN[9] = {
+	SPAIR( -74, -72), SPAIR( -58, -68), SPAIR( -26, -60), SPAIR( -16,  -7),
+	SPAIR(  -3,   2), SPAIR(  -3,  27), SPAIR(   6,  31), SPAIR(  16,  33),
+	SPAIR(  32,  35)
+};
+
+const scorepair_t	MobilityB[14] = {
+	SPAIR( -83,-119), SPAIR( -61,-114), SPAIR( -17,-104), SPAIR( -15, -55),
+	SPAIR(  -4, -26), SPAIR(   4,  -5), SPAIR(   6,  18), SPAIR(   6,  29),
+	SPAIR(   6,  40), SPAIR(   6,  46), SPAIR(  10,  44), SPAIR(  23,  42),
+	SPAIR(  32,  39), SPAIR(  36,  36)
+};
+
+const scorepair_t	MobilityR[15] = {
+	SPAIR( -42, -20), SPAIR( -41, -12), SPAIR( -38,  -5), SPAIR( -36,  28),
+	SPAIR( -35,  74), SPAIR( -34,  88), SPAIR( -33, 108), SPAIR( -29, 117),
+	SPAIR( -25, 122), SPAIR( -20, 127), SPAIR( -15, 135), SPAIR( -14, 138),
+	SPAIR(  -8, 139), SPAIR(   9, 140), SPAIR(  46, 141)
+};
+
+const scorepair_t	MobilityQ[28] = {
+	SPAIR(  92,  13), SPAIR(  94,  67), SPAIR(  96, 121), SPAIR(  97, 175),
+	SPAIR(  99, 229), SPAIR( 101, 285), SPAIR( 103, 347), SPAIR( 105, 421),
+	SPAIR( 107, 481), SPAIR( 109, 523), SPAIR( 113, 544), SPAIR( 115, 573),
+	SPAIR( 119, 587), SPAIR( 123, 590), SPAIR( 122, 602), SPAIR( 121, 607),
+	SPAIR( 120, 608), SPAIR( 119, 615), SPAIR( 118, 614), SPAIR( 117, 611),
+	SPAIR( 117, 601), SPAIR( 116, 597), SPAIR( 116, 592), SPAIR( 115, 590),
+	SPAIR( 115, 588), SPAIR( 114, 587), SPAIR( 114, 585), SPAIR( 114, 584)
 };
 
 const int	AttackWeights[8] = {
@@ -140,6 +158,8 @@ scorepair_t	evaluate_mobility(const board_t *board, color_t c)
 	{
 		bitboard_t	b = knight_moves(sq);
 
+		ret += MobilityN[popcount(b & safe)];
+
 		if (b & king_zone)
 		{
 			attackers++;
@@ -152,9 +172,7 @@ scorepair_t	evaluate_mobility(const board_t *board, color_t c)
 	{
 		bitboard_t	b = bishop_move_bits(sq, occupancy);
 
-		int			move_count = popcount(b & safe);
-
-		ret += BishopMobBase + BishopMobPlus * min(move_count, BishopMobMax);
+		ret += MobilityB[popcount(b & safe)];
 
 		if (b & king_zone)
 		{
@@ -168,9 +186,7 @@ scorepair_t	evaluate_mobility(const board_t *board, color_t c)
 	{
 		bitboard_t	b = rook_move_bits(sq, occupancy);
 
-		int			move_count = popcount(b & safe);
-
-		ret += RookMobBase + RookMobPlus * min(move_count, RookMobMax);
+		ret += MobilityR[popcount(b & safe)];
 
 		if (b & king_zone)
 		{
@@ -185,9 +201,7 @@ scorepair_t	evaluate_mobility(const board_t *board, color_t c)
 		bitboard_t	b = bishop_move_bits(sq, occupancy)
 			| rook_move_bits(sq, occupancy);
 
-		int			move_count = popcount(b & safe);
-
-		ret += QueenMobBase + QueenMobPlus * min(move_count, QueenMobMax);
+		ret += MobilityQ[popcount(b & safe)];
 
 		if (b & king_zone)
 		{
