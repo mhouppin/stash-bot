@@ -24,11 +24,13 @@ const char	*score_to_str(score_t score)
 {
 	static char	buf[12];
 
+	// CP score is divided by 2 to offset heavy endgame piece values.
+
 	if (abs(score) >= MATE_FOUND)
 		sprintf(buf, "mate %d", (score > 0 ? MATE - score + 1 : -MATE - score)
 			/ 2);
 	else
-		sprintf(buf, "cp %d", score);
+		sprintf(buf, "cp %d", score / 2);
 
 	return (buf);
 }
