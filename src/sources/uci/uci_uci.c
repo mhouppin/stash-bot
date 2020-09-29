@@ -16,6 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "option.h"
 #include "uci.h"
 #include <stdio.h>
 
@@ -24,12 +25,9 @@ void	uci_uci(const char *args)
 	(void)args;
 	puts("id name Stash v21.0");
 	puts("id author Morgan Houppin (@mhouppin)");
-	puts("option name Hash type spin default 16 min 1 max 131072");
-	puts("option name Clear Hash type button");
-	puts("option name MultiPV type spin default 1 min 1 max 16");
-	puts("option name Minimum Thinking Time type spin default 20 min 0 max 30000");
-	puts("option name Move Overhead type spin default 20 min 0 max 1000");
-	puts("option name UCI_Chess960 type check default false");
+
+	show_options(&g_opthandler);
+
 	puts("uciok");
 	fflush(stdout);
 }

@@ -18,6 +18,7 @@
 
 
 #include "info.h"
+#include "option.h"
 #include "uci.h"
 
 board_t				g_board;
@@ -27,6 +28,7 @@ pthread_mutex_t		g_engine_mutex;
 enum e_egn_send		g_engine_send;
 goparams_t			g_goparams;
 uint64_t			g_nodes;
+option_list_t		g_opthandler;
 ucioptions_t		g_options;
 movelist_t			g_searchmoves;
 uint64_t			g_seed;
@@ -44,9 +46,11 @@ void __attribute__((constructor))	init_globals(void)
 
 	g_nodes = 0;
 
+	g_options.hash = 16;
 	g_options.move_overhead = 20;
 	g_options.multi_pv = 1;
 	g_options.min_think_time = 20;
+	g_options.chess960 = false;
 
 	g_seed = 1048592ul;
 }

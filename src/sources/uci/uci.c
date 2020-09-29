@@ -16,6 +16,8 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "option.h"
+#include "tt.h"
 #include "uci.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,8 +70,29 @@ int		execute_uci_cmd(const char *command)
 	return (1);
 }
 
+void	on_hash_set(void *data)
+{
+	tt_resize((size_t)*(long *)data);
+}
+
+void	on_clear_hash(void *nothing)
+{
+	(void)nothing;
+	tt_bzero();
+}
+
 void	uci_loop(int argc, char **argv)
 {
+	extern ucioptions_t	g_options;
+
+	init_option_list(&g_opthandler);
+	add_option_spin_int(&g_opthandler, "Hash", &g_options.hash, 16, 1, 131072, &on_hash_set);
+	add_option_spin_int(&g_opthandler, "Move Overhead", &g_options.move_overhead, 20, 0, 30000, NULL);
+	add_option_spin_int(&g_opthandler, "Minimum Thinking Time", &g_options.min_think_time, 20, 0, 30000, NULL);
+	add_option_spin_int(&g_opthandler, "MultiPV", &g_options.multi_pv, 1, 1, 16, NULL);
+	add_option_check(&g_opthandler, "UCI_Chess960", &g_options.chess960, false, NULL);
+	add_option_button(&g_opthandler, "Clear Hash", &on_clear_hash);
+
 	uci_position("startpos");
 
 	if (argc > 1)
@@ -88,5 +111,6 @@ void	uci_loop(int argc, char **argv)
 
 	wait_search_end();
 	uci_quit(NULL);
+	quit_option_list(&g_opthandler);
 }
 

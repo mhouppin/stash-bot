@@ -18,118 +18,49 @@
 
 #include "tt.h"
 #include "uci.h"
+#include "option.h"
 #include <string.h>
 #include <stdlib.h>
 
 void	uci_setoption(const char *args)
 {
-	const char			*delim = " \t\n";
-	extern ucioptions_t	g_options;
+	if (!args)
+		return ;
+
+	const char	*delim = " \t\n";
 
 	char	*copy = strdup(args);
-	char	*token = strtok(copy, delim);
+	char	*name_token = strstr(copy, "name");
+	char	*value_token = strstr(copy, "value");
 
-	if (!token || strcmp(token, "name"))
-		goto __end;
-
-	token = strtok(NULL, delim);
-
-	if (!strcmp(token, "Hash"))
+	if (!name_token || !value_token)
 	{
+		free(copy);
+		return ;
+	}
+
+	char	namebuf[1024] = {0};
+	char	valuebuf[1024];
+
+	*(value_token - 1) = '\0';
+
+	char	*token;
+
+	token = strtok(name_token + 4, delim);
+	while (token)
+	{
+		strcat(namebuf, token);
 		token = strtok(NULL, delim);
-
-		if (!token || strcmp(token, "value"))
-			goto __end;
-
-		token = strtok(NULL, delim);
-
 		if (token)
-		{
-			size_t	value = (size_t)atol(token);
-			if (value >= 1 && value <= 131072ul)
-				tt_resize(value);
-		}
-	}
-	else if (!strcmp(token, "Clear"))
-	{
-		tt_bzero();
-	}
-	else if (!strcmp(token, "Move"))
-	{
-		token = strtok(NULL, delim);
-
-		if (!token || strcmp(token, "Overhead"))
-			goto __end;
-
-		token = strtok(NULL, delim);
-
-		if (!token || strcmp(token, "value"))
-			goto __end;
-
-		token = strtok(NULL, delim);
-
-		if (token)
-		{
-			clock_t		value = (clock_t)atol(token);
-			if (value <= 1000)
-				g_options.move_overhead = value;
-		}
-	}
-	else if (!strcmp(token, "MultiPV"))
-	{
-		token = strtok(NULL, delim);
-
-		if (!token || strcmp(token, "value"))
-			goto __end;
-
-		token = strtok(NULL, delim);
-
-		if (token)
-		{
-			int value = atoi(token);
-			if (value >= 1 && value <= 16)
-				g_options.multi_pv = value;
-		}
-	}
-	else if (!strcmp(token, "Minimum"))
-	{
-		token = strtok(NULL, delim);
-
-		if (!token || strcmp(token, "Thinking"))
-			goto __end;
-
-		token = strtok(NULL, delim);
-
-		if (!token || strcmp(token, "Time"))
-			goto __end;
-
-		token = strtok(NULL, delim);
-
-		if (!token || strcmp(token, "value"))
-			goto __end;
-
-		token = strtok(NULL, delim);
-
-		if (token)
-		{
-			clock_t	value = (clock_t)atol(token);
-			if (value <= 30000)
-				g_options.min_think_time = value;
-		}
-	}
-	else if (!strcmp(token, "UCI_Chess960"))
-	{
-		token = strtok(NULL, delim);
-
-		if (!token || strcmp(token, "value"))
-			goto __end;
-
-		token = strtok(NULL, delim);
-
-		if (token)
-			g_options.chess960 = !strcmp(token, "true");
+			strcat(namebuf, " ");
 	}
 
-__end:
+	strcpy(valuebuf, value_token + 6);
+
+	// Remove the final newline to valuebuf
+
+	valuebuf[strlen(valuebuf) - 1] = '\0';
+
+	set_option(&g_opthandler, namebuf, valuebuf);
 	free(copy);
 }

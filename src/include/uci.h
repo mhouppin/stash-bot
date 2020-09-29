@@ -20,6 +20,7 @@
 # define UCI_H
 
 # include <pthread.h>
+# include <stdbool.h>
 # include <stddef.h>
 # include <time.h>
 # include <sys/timeb.h>
@@ -60,10 +61,11 @@ typedef struct	goparams_s
 
 typedef struct	ucioptions_s
 {
-	clock_t		move_overhead;
-	int			multi_pv;
-	clock_t		min_think_time;
-	int			chess960;
+	long		hash;
+	long		move_overhead;
+	long		multi_pv;
+	long		min_think_time;
+	bool		chess960;
 }				ucioptions_t;
 
 extern pthread_mutex_t	g_engine_mutex;
