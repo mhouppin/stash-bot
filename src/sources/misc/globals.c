@@ -41,7 +41,7 @@ void __attribute__((constructor))	init_globals(void)
 	pthread_cond_init(&g_engine_condvar, NULL);
 	pthread_mutex_init(&g_engine_mutex, NULL);
 
-	g_engine_mode = WAITING;
+	g_engine_mode = THINKING;
 	g_engine_send = DO_NOTHING;
 
 	g_nodes = 0;
