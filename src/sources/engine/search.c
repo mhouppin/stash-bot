@@ -217,12 +217,7 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 			}
 
 			if (need_full_depth_search)
-			{
 				next = -search(board, depth - 1, -alpha - 1, -alpha, ss + 1);
-
-				if (alpha < next && next < beta)
-					next = -search(board, depth - 1, -beta, -next, ss + 1);
-			}
 		}
 
 		undo_move(board, extmove->move);
