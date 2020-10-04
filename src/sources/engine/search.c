@@ -36,7 +36,7 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 	movelist_t			list;
 	score_t				best_value = -INF_SCORE;
 
-	if (g_nodes % 4096 == 0 && out_of_time())
+	if (g_nodes % 2048 == 0 && out_of_time())
 		return (NO_SCORE);
 
 	if (g_seldepth < ss->plies + 1)

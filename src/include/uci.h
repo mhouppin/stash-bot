@@ -55,8 +55,8 @@ typedef struct	goparams_s
 	clock_t		movetime;
 
 	clock_t		start;
-	clock_t		max_time;
-	clock_t		initial_max_time;
+	clock_t		maximal_time;
+	clock_t		optimal_time;
 }				goparams_t;
 
 typedef struct	ucioptions_s
@@ -64,7 +64,8 @@ typedef struct	ucioptions_s
 	long		hash;
 	long		move_overhead;
 	long		multi_pv;
-	long		min_think_time;
+	double		burn_ratio;
+	double		save_ratio;
 	bool		chess960;
 }				ucioptions_t;
 

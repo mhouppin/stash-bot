@@ -32,7 +32,7 @@ score_t	qsearch(board_t *board, int depth, score_t alpha, score_t beta,
 	const score_t		old_alpha = alpha;
 	movelist_t			list;
 
-	if (g_nodes % 4096 == 0 && out_of_time())
+	if (g_nodes % 2048 == 0 && out_of_time())
 		return (NO_SCORE);
 
 	if (g_seldepth < ss->plies + 1)

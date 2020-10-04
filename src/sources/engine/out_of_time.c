@@ -41,10 +41,11 @@ bool	out_of_time(void)
 	if (g_nodes >= g_goparams.nodes)
 		return (true);
 
-	if (g_goparams.movetime || g_goparams.wtime || g_goparams.winc
-		|| g_goparams.btime || g_goparams.binc)
+	// Are we using a timer ?
+
+	if (g_goparams.movetime || g_goparams.wtime || g_goparams.winc)
 	{
-		clock_t		end = g_goparams.start + g_goparams.max_time;
+		clock_t		end = g_goparams.start + g_goparams.maximal_time;
 
 		if (chess_clock() > end)
 			return (true);

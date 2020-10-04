@@ -26,16 +26,6 @@
 #include "tt.h"
 #include "uci.h"
 
-clock_t		compute_movetime(clock_t time, clock_t increment, clock_t movestogo)
-{
-	clock_t		time_estimation = time / movestogo + increment;
-
-	if (time_estimation > time)
-		time_estimation = time;
-
-	return (time_estimation);
-}
-
 uint64_t	perft(board_t *board, unsigned int depth)
 {
 	if (depth == 0)
@@ -110,45 +100,47 @@ void		engine_go(board_t *board)
 	reset_pawn_cache();
 	reset_history();
 
-	g_goparams.initial_max_time = 0;
+	g_goparams.maximal_time = g_goparams.movetime;
+	g_goparams.optimal_time = g_goparams.movetime;
 
-	if (!g_goparams.movetime)
+	// Do we have to use the time manager ?
+
+	if (g_goparams.wtime || g_goparams.btime)
 	{
 		if (g_goparams.movestogo == 0)
 		{
 			g_goparams.movestogo = 50;
 
-			// If we get enough increment per move to avoid time burns, decrease
+			// If we have an increment to avoid time burns, decrease
 			// estimated movestogo.
 
-			if (board->side_to_move == WHITE && g_goparams.winc > g_options.move_overhead)
+			if (board->side_to_move == WHITE && g_goparams.winc)
 				g_goparams.movestogo = 35;
-			if (board->side_to_move == BLACK && g_goparams.binc > g_options.move_overhead)
+			if (board->side_to_move == BLACK && g_goparams.binc)
 				g_goparams.movestogo = 35;
 		}
 
-		if (board->side_to_move == WHITE
-			&& (g_goparams.wtime || g_goparams.winc))
-		{
-			g_goparams.initial_max_time = compute_movetime(g_goparams.wtime,
-				g_goparams.winc, g_goparams.movestogo);
-		}
-		else if (board->side_to_move == BLACK
-			&& (g_goparams.btime || g_goparams.binc))
-		{
-			g_goparams.initial_max_time = compute_movetime(g_goparams.btime,
-				g_goparams.binc, g_goparams.movestogo);
-		}
+		clock_t		our_time = (board->side_to_move == WHITE) ? g_goparams.wtime
+			: g_goparams.btime;
+		clock_t		our_inc = (board->side_to_move == WHITE) ? g_goparams.winc
+			: g_goparams.binc;
+
+		clock_t		estimated_time = our_time / g_goparams.movestogo + our_inc;
+
+		g_goparams.maximal_time = estimated_time * g_options.burn_ratio;
+		g_goparams.optimal_time = estimated_time / g_options.save_ratio;
+
+		g_goparams.maximal_time = min(g_goparams.maximal_time, our_time);
+		g_goparams.optimal_time = min(g_goparams.optimal_time, our_time);
 	}
-	else
-		g_goparams.initial_max_time = g_goparams.movetime;
 
-	if (g_options.min_think_time + g_options.move_overhead > g_goparams.initial_max_time)
-		g_goparams.initial_max_time = g_options.min_think_time;
-	else
-		g_goparams.initial_max_time -= g_options.move_overhead;
+	// Apply the overhead after time calculation
 
-	g_goparams.max_time = g_goparams.initial_max_time;
+	if (g_goparams.wtime || g_goparams.btime || g_goparams.movetime)
+	{
+		g_goparams.maximal_time = max(1, g_goparams.maximal_time - g_options.move_overhead);
+		g_goparams.optimal_time = max(1, g_goparams.optimal_time - g_options.move_overhead);
+	}
 
 	g_nodes = 0;
 
@@ -229,6 +221,13 @@ void		engine_go(board_t *board)
 		}
 
 		if (has_search_aborted)
+			break ;
+
+		// If we went over optimal time usage, we just finished our iteration,
+		// so we can safely return our bestmove.
+
+		if ((g_goparams.wtime || g_goparams.btime)
+			&& chess_clock() - g_goparams.start >= g_goparams.optimal_time)
 			break ;
 
 		if (g_goparams.mate < 0 && root_moves->previous_score <= mated_in(1 - g_goparams.mate * 2))

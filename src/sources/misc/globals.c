@@ -49,7 +49,8 @@ void __attribute__((constructor))	init_globals(void)
 	g_options.hash = 16;
 	g_options.move_overhead = 20;
 	g_options.multi_pv = 1;
-	g_options.min_think_time = 20;
+	g_options.burn_ratio = 1;
+	g_options.save_ratio = 1;
 	g_options.chess960 = false;
 
 	g_seed = 1048592ul;
