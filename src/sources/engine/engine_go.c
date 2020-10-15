@@ -100,9 +100,6 @@ void		engine_go(board_t *board)
 	reset_pawn_cache();
 	reset_history();
 
-	g_goparams.maximal_time = g_goparams.movetime;
-	g_goparams.optimal_time = g_goparams.movetime;
-
 	// Do we have to use the time manager ?
 
 	if (g_goparams.wtime || g_goparams.btime)
@@ -125,6 +122,10 @@ void		engine_go(board_t *board)
 		clock_t		our_inc = (board->side_to_move == WHITE) ? g_goparams.winc
 			: g_goparams.binc;
 
+		// Remove overhead from initial time
+
+		our_time = max(0, our_time - g_options.move_overhead);
+
 		clock_t		estimated_time = our_time / g_goparams.movestogo + our_inc;
 
 		g_goparams.maximal_time = estimated_time * g_options.burn_ratio;
@@ -133,14 +134,13 @@ void		engine_go(board_t *board)
 		g_goparams.maximal_time = min(g_goparams.maximal_time, our_time);
 		g_goparams.optimal_time = min(g_goparams.optimal_time, our_time);
 	}
-
-	// Apply the overhead after time calculation
-
-	if (g_goparams.wtime || g_goparams.btime || g_goparams.movetime)
+	else if (g_goparams.movetime)
 	{
-		g_goparams.maximal_time = max(1, g_goparams.maximal_time - g_options.move_overhead);
-		g_goparams.optimal_time = max(1, g_goparams.optimal_time - g_options.move_overhead);
+		g_goparams.maximal_time = max(1, g_goparams.movetime - g_options.move_overhead);
+		g_goparams.optimal_time = g_goparams.maximal_time;
 	}
+	else
+		g_goparams.maximal_time = g_goparams.optimal_time = 0;
 
 	g_nodes = 0;
 
