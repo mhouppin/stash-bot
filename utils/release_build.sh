@@ -7,7 +7,7 @@
 
 set -e
 
-version=21.1
+version=21.2
 
 cd $(dirname "$0")
 
