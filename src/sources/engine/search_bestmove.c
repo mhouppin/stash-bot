@@ -119,7 +119,7 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 				if (alpha < next && next < beta)
 				{
 					pv[0] = NO_MOVE;
-					next = -search_pv(board, depth - 1, -beta, -next, ss + 1);
+					next = -search_pv(board, depth - 1, -beta, -alpha, ss + 1);
 				}
 			}
 		}
@@ -245,7 +245,7 @@ void	search_bestmove(board_t *board, int depth, root_move_t *begin,
 			{
 				pv[0] = NO_MOVE;
 				i->score = -search_pv(board, depth, -INF_SCORE,
-					-i->score, sstack);
+					-alpha, sstack);
 			}
 		}
 
