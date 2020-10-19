@@ -195,6 +195,7 @@ void	search_bestmove(board_t *board, int depth, root_move_t *begin,
 {
 	extern goparams_t	g_goparams;
 	score_t				alpha = -INF_SCORE;
+	score_t				beta = INF_SCORE;
 	searchstack_t		sstack[512];
 	move_t				pv[512];
 
@@ -203,21 +204,26 @@ void	search_bestmove(board_t *board, int depth, root_move_t *begin,
 	sstack[0].plies = 1;
 	sstack[0].pv = pv;
 
-	for (root_move_t *i = begin; i < end; ++i)
-	{
-		pthread_mutex_lock(&g_engine_mutex);
+	movelist_t			list;
+	int					move_count = 0;
 
-		if (g_engine_send == DO_ABORT || g_engine_send == DO_EXIT)
-		{
-			i->score = -NO_SCORE;
-			pthread_mutex_unlock(&g_engine_mutex);
-			return ;
-		}
-		pthread_mutex_unlock(&g_engine_mutex);
+	list_pseudo(&list, board);
+	generate_move_values(&list, board, begin->move, NULL);
+
+	for (const extmove_t *extmove = movelist_begin(&list);
+		extmove < movelist_end(&list); ++extmove)
+	{
+		root_move_t	*cur;
+
+		place_top_move((extmove_t *)extmove, (extmove_t *)movelist_end(&list));
+		if ((cur = find_root_move(begin, end, extmove->move)) == NULL)
+			continue ;
+
+		move_count++;
 
 		boardstack_t	stack;
 
-		do_move(board, i->move, &stack);
+		do_move(board, cur->move, &stack);
 
 		clock_t			elapsed = chess_clock() - g_goparams.start;
 
@@ -227,43 +233,66 @@ void	search_bestmove(board_t *board, int depth, root_move_t *begin,
 
 			printf("info depth %d nodes %lu nps %lu"
 				" time %lu currmove %s currmovenumber %d\n",
-				depth + 1, (info_t)g_nodes, (info_t)nps, elapsed,
-				move_to_str(i->move, board->chess960),
-				(int)(i - begin) + pv_line + 1);
+				depth, (info_t)g_nodes, (info_t)nps, elapsed,
+				move_to_str(cur->move, board->chess960),
+				move_count + pv_line);
 			fflush(stdout);
 		}
 
 		pv[0] = NO_MOVE;
 
-		if (i == begin)
-			i->score = -search_pv(board, depth, -INF_SCORE, INF_SCORE, sstack);
+		score_t		next;
+
+		if (move_count == 1)
+			next = -search_pv(board, depth - 1, -beta, -alpha, sstack);
 		else
 		{
-			i->score = -search(board, depth, -alpha - 1, -alpha, sstack);
+			// Late Move Reductions.
 
-			if (alpha < i->score)
+			bool	need_full_depth_search = true;
+
+			if (depth >= LMR_MinDepth && move_count > LMR_MinMoves
+				&& !board->stack->checkers)
+			{
+				int		lmr_depth = depth - (depth + move_count) / 10 - 2;
+
+				next = -search(board, lmr_depth, -alpha - 1, -alpha, sstack);
+
+				need_full_depth_search = (abs(next) < INF_SCORE && alpha < next);
+			}
+
+			if (need_full_depth_search)
 			{
 				pv[0] = NO_MOVE;
-				i->score = -search_pv(board, depth, -INF_SCORE,
-					-alpha, sstack);
+
+				next = -search(board, depth - 1, -alpha - 1, -alpha, sstack);
+
+				if (alpha < next && next < beta)
+				{
+					pv[0] = NO_MOVE;
+					next = -search_pv(board, depth - 1, -beta, -alpha, sstack);
+				}
 			}
 		}
 
-		undo_move(board, i->move);
+		undo_move(board, cur->move);
 
-		if (abs(i->score) > INF_SCORE)
-			return ;
-		else if (i->score > alpha)
+		if (abs(next) > INF_SCORE)
 		{
-			alpha = i->score;
-			i->depth = depth + 1;
-			i->pv[0] = i->move;
+			cur->score = NO_SCORE;
+			return ;
+		}
+		else if (next > alpha)
+		{
+			cur->score = alpha = next;
+			cur->seldepth = g_seldepth;
+			cur->pv[0] = cur->move;
 
 			size_t	j;
 			for (j = 0; sstack[0].pv[j] != NO_MOVE; ++j)
-				i->pv[j + 1] = sstack[0].pv[j];
+				cur->pv[j + 1] = sstack[0].pv[j];
 
-			i->pv[j + 1] = NO_MOVE;
+			cur->pv[j + 1] = NO_MOVE;
 		}
 	}
 	return ;

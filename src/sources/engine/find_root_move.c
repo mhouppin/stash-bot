@@ -18,27 +18,13 @@
 
 #include "engine.h"
 
-static int	rtm_greater_than(root_move_t *right, root_move_t *left)
+root_move_t	*find_root_move(root_move_t *begin, root_move_t *end, move_t move)
 {
-	if (right->score != left->score)
-		return (right->score > left->score);
-	else
-		return (right->previous_score > left->previous_score);
-}
-
-void	sort_root_moves(root_move_t *begin, root_move_t *end)
-{
-	const int	size = (int)(end - begin);
-
-	for (int i = 1; i < size; ++i)
+	while (begin < end)
 	{
-		root_move_t	tmp = begin[i];
-		int		j = i - 1;
-		while (j >= 0 && rtm_greater_than(&tmp, begin + j))
-		{
-			begin[j + 1] = begin[j];
-			--j;
-		}
-		begin[j + 1] = tmp;
+		if (begin->move == move)
+			return (begin);
+		++begin;
 	}
+	return (NULL);
 }

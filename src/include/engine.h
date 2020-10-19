@@ -34,7 +34,7 @@ searchstack_t;
 typedef struct
 {
 	move_t	move;
-	int		depth;
+	int		seldepth;
 	score_t	previous_score;
 	score_t	score;
 	move_t	pv[512];
@@ -58,7 +58,8 @@ enum
 	Razor_HeavyMargin = 300
 };
 
-void	sort_root_moves(root_move_t *begin, root_move_t *end);
+void		sort_root_moves(root_move_t *begin, root_move_t *end);
+root_move_t	*find_root_move(root_move_t *begin, root_move_t *end, move_t move);
 
 void	engine_go(board_t *board);
 void	search_bestmove(board_t *board, int depth, root_move_t *begin,

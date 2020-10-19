@@ -91,7 +91,7 @@ void		engine_go(board_t *board)
 	for (size_t i = 0; i < movelist_size(&g_searchmoves); ++i)
 	{
 		root_moves[i].move = g_searchmoves.moves[i].move;
-		root_moves[i].depth = 0;
+		root_moves[i].seldepth = 0;
 		root_moves[i].previous_score = root_moves[i].score = -INF_SCORE;
 		root_moves[i].pv[0] = NO_MOVE;
 	}
@@ -145,7 +145,7 @@ void		engine_go(board_t *board)
 	g_nodes = 0;
 
 	if (g_goparams.depth == 0)
-		g_goparams.depth = 255;
+		g_goparams.depth = 240;
 
 	if (g_goparams.nodes == 0)
 		g_goparams.nodes = SIZE_MAX;
@@ -157,31 +157,23 @@ void		engine_go(board_t *board)
 		bool		has_search_aborted = false;
 		extern int	g_seldepth;
 
-		g_seldepth = 0;
-
 		for (int pv_line = 0; pv_line < multi_pv; ++pv_line)
 		{
-			search_bestmove(board, iter_depth, root_moves + pv_line,
+			g_seldepth = 0;
+			search_bestmove(board, iter_depth + 1, root_moves + pv_line,
 				root_moves + root_move_count, pv_line);
 
 			// Catch fail-low and search aborting
 
 			for (root_move_t *i = root_moves; i < root_moves + root_move_count; ++i)
-			{
-				if (abs(i->score) >= INF_SCORE)
+				if (abs(i->score) > INF_SCORE)
 				{
-					if (i->score == -NO_SCORE)
-						has_search_aborted = true;
-					i->score = i->previous_score;
+					has_search_aborted = true;
+					i->score = -INF_SCORE;
 				}
-			}
 
 			sort_root_moves(root_moves + pv_line, root_moves + root_move_count);
 			sort_root_moves(root_moves, root_moves + multi_pv);
-
-			for (root_move_t *i = root_moves + multi_pv;
-				i < root_moves + root_move_count; ++i)
-				i->depth = 0;
 
 			clock_t		chess_time = chess_clock() - g_goparams.start;
 			uint64_t	chess_nodes = g_nodes;
@@ -195,12 +187,16 @@ void		engine_go(board_t *board)
 			{
 				for (int i = 0; i < multi_pv; ++i)
 				{
+					bool		searched = (root_moves[i].score != -INF_SCORE);
+					score_t		root_score = (searched) ? root_moves[i].score
+						: root_moves[i].previous_score;
+
 					printf("info depth %d seldepth %d multipv %d nodes %lu"
 						" nps %lu hashfull %d time %lu score %s pv",
-						root_moves[i].depth, g_seldepth, i + 1,
+						max(iter_depth + (int)searched, 1), root_moves[i].seldepth, i + 1,
 						(info_t)chess_nodes, (info_t)chess_nps,
 						tt_hashfull(), chess_time,
-						score_to_str(root_moves[i].score));
+						score_to_str(root_score));
 	
 					for (size_t k = 0; root_moves[i].pv[k] != NO_MOVE; ++k)
 						printf(" %s", move_to_str(root_moves[i].pv[k],
@@ -212,12 +208,12 @@ void		engine_go(board_t *board)
 
 			if (has_search_aborted)
 				break ;
+		}
 
-			for (root_move_t *i = root_moves; i < root_moves + root_move_count; ++i)
-			{
-				i->previous_score = i->score;
-				i->score = -INF_SCORE;
-			}
+		for (root_move_t *i = root_moves; i < root_moves + root_move_count; ++i)
+		{
+			i->previous_score = i->score;
+			i->score = -INF_SCORE;
 		}
 
 		if (has_search_aborted)
