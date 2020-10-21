@@ -16,6 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "engine.h"
@@ -160,20 +161,41 @@ void		engine_go(board_t *board)
 		for (int pv_line = 0; pv_line < multi_pv; ++pv_line)
 		{
 			g_seldepth = 0;
-			search_bestmove(board, iter_depth + 1, root_moves + pv_line,
-				root_moves + root_move_count, pv_line);
 
-			// Catch fail-low and search aborting
+			score_t	_alpha, _beta, _delta;
 
-			for (root_move_t *i = root_moves; i < root_moves + root_move_count; ++i)
-				if (abs(i->score) > INF_SCORE)
-				{
-					has_search_aborted = true;
-					i->score = -INF_SCORE;
-				}
+			if (iter_depth <= 10)
+			{
+				_delta = 0;
+				_alpha = -INF_SCORE;
+				_beta = INF_SCORE;
+			}
+			else
+			{
+				_delta = max(20, 200 / sqrt(iter_depth));
+				_alpha = max(-INF_SCORE, root_moves[pv_line].previous_score - _delta);
+				_beta = min(INF_SCORE, root_moves[pv_line].previous_score + _delta);
+			}
+
+__retry:
+
+			search_bestmove(board, iter_depth + 1, _alpha, _beta,
+				root_moves + pv_line, root_moves + root_move_count, pv_line);
+
+			// Catch search aborting
+
+			pthread_mutex_lock(&g_engine_mutex);
+			has_search_aborted = (g_engine_send == DO_ABORT || g_engine_send == DO_EXIT);
+			pthread_mutex_unlock(&g_engine_mutex);
 
 			sort_root_moves(root_moves + pv_line, root_moves + root_move_count);
-			sort_root_moves(root_moves, root_moves + multi_pv);
+
+			int		bound = (abs(root_moves[pv_line].score) == INF_SCORE) ? EXACT_BOUND
+				: (root_moves[pv_line].score >= _beta) ? LOWER_BOUND
+				: (root_moves[pv_line].score <= _alpha) ? UPPER_BOUND : EXACT_BOUND;
+
+			if (bound == EXACT_BOUND)
+				sort_root_moves(root_moves, root_moves + multi_pv);
 
 			clock_t		chess_time = chess_clock() - g_goparams.start;
 			uint64_t	chess_nodes = g_nodes;
@@ -183,7 +205,8 @@ void		engine_go(board_t *board)
 			// Don't update Multi-PV lines if not all analysed at current depth
 			// and not enough time elapsed
 
-			if (pv_line == multi_pv - 1 || chess_time > 3000)
+			if ((multi_pv == 1 && (bound == EXACT_BOUND || chess_time > 3000))
+				|| (multi_pv > 1 && bound == EXACT_BOUND && (pv_line == multi_pv - 1 || chess_time > 3000)))
 			{
 				for (int i = 0; i < multi_pv; ++i)
 				{
@@ -192,11 +215,12 @@ void		engine_go(board_t *board)
 						: root_moves[i].previous_score;
 
 					printf("info depth %d seldepth %d multipv %d nodes %lu"
-						" nps %lu hashfull %d time %lu score %s pv",
+						" nps %lu hashfull %d time %lu score %s%s pv",
 						max(iter_depth + (int)searched, 1), root_moves[i].seldepth, i + 1,
 						(info_t)chess_nodes, (info_t)chess_nps,
 						tt_hashfull(), chess_time,
-						score_to_str(root_score));
+						score_to_str(root_score), bound == EXACT_BOUND ? ""
+						: bound == LOWER_BOUND ? " lowerbound" : " upperbound");
 	
 					for (size_t k = 0; root_moves[i].pv[k] != NO_MOVE; ++k)
 						printf(" %s", move_to_str(root_moves[i].pv[k],
@@ -208,6 +232,20 @@ void		engine_go(board_t *board)
 
 			if (has_search_aborted)
 				break ;
+
+			if (bound == UPPER_BOUND)
+			{
+				_alpha = max(-INF_SCORE, (int)_alpha - _delta);
+				_beta = (_alpha + _beta) / 2;
+				_delta += _delta / 4;
+				goto __retry;
+			}
+			else if (bound == LOWER_BOUND)
+			{
+				_beta = min(INF_SCORE, (int)_beta + _delta);
+				_delta += _delta / 4;
+				goto __retry;
+			}
 		}
 
 		for (root_move_t *i = root_moves; i < root_moves + root_move_count; ++i)

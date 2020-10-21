@@ -190,12 +190,10 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 	return (best_value);
 }
 
-void	search_bestmove(board_t *board, int depth, root_move_t *begin,
-		root_move_t *end, int pv_line)
+void	search_bestmove(board_t *board, int depth, score_t alpha, score_t beta,
+		root_move_t *begin, root_move_t *end, int pv_line)
 {
 	extern goparams_t	g_goparams;
-	score_t				alpha = -INF_SCORE;
-	score_t				beta = INF_SCORE;
 	searchstack_t		sstack[512];
 	move_t				pv[512];
 
@@ -279,12 +277,15 @@ void	search_bestmove(board_t *board, int depth, root_move_t *begin,
 
 		if (abs(next) > INF_SCORE)
 		{
-			cur->score = NO_SCORE;
+			pthread_mutex_lock(&g_engine_mutex);
+			g_engine_send = DO_EXIT;
+			pthread_mutex_unlock(&g_engine_mutex);
 			return ;
 		}
-		else if (next > alpha)
+		else if (move_count == 1 || next > alpha)
 		{
-			cur->score = alpha = next;
+			cur->score = next;
+			alpha = max(alpha, next);
 			cur->seldepth = g_seldepth;
 			cur->pv[0] = cur->move;
 
@@ -293,6 +294,9 @@ void	search_bestmove(board_t *board, int depth, root_move_t *begin,
 				cur->pv[j + 1] = sstack[0].pv[j];
 
 			cur->pv[j + 1] = NO_MOVE;
+
+			if (next >= beta)
+				return ;
 		}
 	}
 	return ;
