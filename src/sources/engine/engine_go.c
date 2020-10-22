@@ -164,7 +164,7 @@ void		engine_go(board_t *board)
 
 			score_t	_alpha, _beta, _delta;
 
-			if (iter_depth <= 10)
+			if (iter_depth <= 9)
 			{
 				_delta = 0;
 				_alpha = -INF_SCORE;
@@ -172,7 +172,7 @@ void		engine_go(board_t *board)
 			}
 			else
 			{
-				_delta = max(20, 200 / sqrt(iter_depth));
+				_delta = max(20, 160 / sqrt(iter_depth));
 				_alpha = max(-INF_SCORE, root_moves[pv_line].previous_score - _delta);
 				_beta = min(INF_SCORE, root_moves[pv_line].previous_score + _delta);
 			}
@@ -235,8 +235,8 @@ __retry:
 
 			if (bound == UPPER_BOUND)
 			{
-				_alpha = max(-INF_SCORE, (int)_alpha - _delta);
 				_beta = (_alpha + _beta) / 2;
+				_alpha = max(-INF_SCORE, (int)_alpha - _delta);
 				_delta += _delta / 4;
 				goto __retry;
 			}

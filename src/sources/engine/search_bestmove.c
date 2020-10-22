@@ -298,6 +298,8 @@ void	search_bestmove(board_t *board, int depth, score_t alpha, score_t beta,
 			if (next >= beta)
 				return ;
 		}
+		else
+			cur->score = -INF_SCORE;
 	}
 	return ;
 }
