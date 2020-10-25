@@ -19,11 +19,12 @@
 #include <string.h>
 #include "board.h"
 #include "info.h"
+#include "lazy_smp.h"
 #include "tt.h"
 
 void	do_null_move(board_t *board, boardstack_t *stack)
 {
-	g_nodes += 1;
+	get_worker(board)->nodes += 1;
 
 	memcpy(stack, board->stack, sizeof(boardstack_t));
 	stack->prev = board->stack;

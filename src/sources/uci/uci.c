@@ -16,6 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "lazy_smp.h"
 #include "option.h"
 #include "tt.h"
 #include "uci.h"
@@ -81,11 +82,17 @@ void	on_clear_hash(void *nothing)
 	tt_bzero();
 }
 
+void	on_thread_set(void *data)
+{
+	wpool_init((int)*(long *)data);
+}
+
 void	uci_loop(int argc, char **argv)
 {
 	extern ucioptions_t	g_options;
 
 	init_option_list(&g_opthandler);
+	add_option_spin_int(&g_opthandler, "Threads", &g_options.threads, 1, 1, 64, &on_thread_set);
 	add_option_spin_int(&g_opthandler, "Hash", &g_options.hash, 16, 1, 131072, &on_hash_set);
 	add_option_spin_int(&g_opthandler, "Move Overhead", &g_options.move_overhead, 40, 0, 30000, NULL);
 	add_option_spin_flt(&g_opthandler, "TimeburnRatio", &g_options.burn_ratio, 1.2, 0.1, 10, NULL);

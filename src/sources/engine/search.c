@@ -22,10 +22,9 @@
 #include "history.h"
 #include "imath.h"
 #include "info.h"
+#include "lazy_smp.h"
 #include "movelist.h"
 #include "tt.h"
-
-extern int	g_seldepth;
 
 score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 		searchstack_t *ss)
@@ -33,14 +32,15 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 	if (depth <= 0)
 		return (qsearch(board, depth, alpha, beta, ss));
 
+	worker_t			*worker = get_worker(board);
 	movelist_t			list;
 	score_t				best_value = -INF_SCORE;
 
-	if (g_nodes % 2048 == 0 && out_of_time())
+	if (worker->nodes % 2048 == 0 && out_of_time(board))
 		return (NO_SCORE);
 
-	if (g_seldepth < ss->plies + 1)
-		g_seldepth = ss->plies + 1;
+	if (worker->seldepth < ss->plies + 1)
+		worker->seldepth = ss->plies + 1;
 
 	if (is_draw(board, ss->plies + 1))
 		return (0);
@@ -241,8 +241,9 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 				{
 					if (!is_capture_or_promotion(board, bestmove))
 					{
-						add_hist_bonus(piece_on(board,
-							move_from_square(bestmove)), bestmove);
+						add_history(worker->good_history,
+							piece_on(board, move_from_square(bestmove)),
+							bestmove);
 
 						if (ss->killers[0] == NO_MOVE)
 							ss->killers[0] = bestmove;
@@ -252,8 +253,9 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 
 					while (--extmove >= movelist_begin(&list))
 						if (!is_capture_or_promotion(board, extmove->move))
-							add_hist_penalty(piece_on(board,
-								move_from_square(extmove->move)), extmove->move);
+							add_history(worker->bad_history,
+								piece_on(board, move_from_square(extmove->move)),
+								extmove->move);
 
 					break ;
 				}

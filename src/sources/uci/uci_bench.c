@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include "board.h"
 #include "info.h"
+#include "lazy_smp.h"
 #include "uci.h"
 
 void	uci_bench(const char *args)
@@ -75,7 +76,7 @@ void	uci_bench(const char *args)
 
 		wait_search_end();
 
-		total_nodes += g_nodes;
+		total_nodes += get_node_count();
 	}
 
 	bench_time = chess_clock() - bench_time;

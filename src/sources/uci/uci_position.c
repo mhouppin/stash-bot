@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include "board.h"
 #include "info.h"
+#include "lazy_smp.h"
 #include "uci.h"
 
 void	uci_position(const char *args)
@@ -93,6 +94,8 @@ void	uci_position(const char *args)
 
 		token = get_next_token(&ptr);
 	}
+
+	g_board.worker = WPool.list;
 
 	free(copy);
 }

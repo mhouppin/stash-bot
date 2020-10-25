@@ -21,22 +21,22 @@
 #include "engine.h"
 #include "imath.h"
 #include "info.h"
+#include "lazy_smp.h"
 #include "movelist.h"
 #include "tt.h"
-
-extern int	g_seldepth;
 
 score_t	qsearch(board_t *board, int depth, score_t alpha, score_t beta,
 		searchstack_t *ss)
 {
+	worker_t			*worker = get_worker(board);
 	const score_t		old_alpha = alpha;
 	movelist_t			list;
 
-	if (g_nodes % 2048 == 0 && out_of_time())
+	if (worker->nodes % 2048 == 0 && out_of_time(board))
 		return (NO_SCORE);
 
-	if (g_seldepth < ss->plies + 1)
-		g_seldepth = ss->plies + 1;
+	if (worker->seldepth < ss->plies + 1)
+		worker->seldepth = ss->plies + 1;
 
 	if (is_draw(board, ss->plies + 1))
 		return (0);

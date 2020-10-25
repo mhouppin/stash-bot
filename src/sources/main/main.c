@@ -17,6 +17,7 @@
 */
 
 #include "init.h"
+#include "lazy_smp.h"
 #include "tt.h"
 #include "uci.h"
 #include <pthread.h>
@@ -28,6 +29,7 @@ int		main(int argc, char **argv)
 	psq_score_init();
 	zobrist_init();
 	tt_resize(16);
+	wpool_init(1);
 
 	pthread_t	engine_pt;
 
@@ -40,6 +42,8 @@ int		main(int argc, char **argv)
 	wait_search_end();
 
 	uci_loop(argc, argv);
+
+	wpool_quit();
 
 	return (0);
 }

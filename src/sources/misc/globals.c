@@ -40,8 +40,6 @@ void __attribute__((constructor))	init_globals(void)
 	g_engine_mode = THINKING;
 	g_engine_send = DO_NOTHING;
 
-	g_nodes = 0;
-
 	g_options.threads = 1;
 	g_options.hash = 16;
 	g_options.move_overhead = 40;

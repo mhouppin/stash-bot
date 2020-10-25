@@ -16,6 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "lazy_smp.h"
 #include "engine.h"
 #include "uci.h"
 #include <stdio.h>
@@ -35,17 +36,18 @@ void	*engine_thread(void *nothing __attribute__((unused)))
 			g_engine_send = DO_NOTHING;
 
 			extern board_t	g_board;
-			board_t			dup = g_board;
 
-			dup.stack = boardstack_dup(g_board.stack);
+			board_t	*my_board = &WPool.list->board;
+
+			*my_board = g_board;
+			my_board->stack = boardstack_dup(g_board.stack);
+			WPool.list->stack = my_board->stack;
 
 			// Only unlock the mutex once we're not using the global board
 
 			pthread_mutex_unlock(&g_engine_mutex);
 
-			engine_go(&dup);
-
-			boardstack_free(dup.stack);
+			engine_go(my_board);
 
 			pthread_mutex_lock(&g_engine_mutex);
 			g_engine_mode = WAITING;

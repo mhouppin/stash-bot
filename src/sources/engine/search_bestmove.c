@@ -40,7 +40,7 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 	move_t				pv[512];
 	score_t				best_value = -INF_SCORE;
 
-	if (g_nodes % 2048 == 0 && out_of_time())
+	if (worker->nodes % 2048 == 0 && out_of_time(board))
 		return (NO_SCORE);
 
 	if (worker->seldepth < ss->plies + 1)
@@ -227,14 +227,10 @@ void	search_bestmove(board_t *board, int depth, score_t alpha, score_t beta,
 
 		clock_t			elapsed = chess_clock() - g_goparams.start;
 
-		if (elapsed > 3000)
+		if (!get_worker(board)->idx && elapsed > 3000)
 		{
-			uint64_t	nps = (g_nodes * 1000) / elapsed;
-
-			printf("info depth %d nodes %lu nps %lu"
-				" time %lu currmove %s currmovenumber %d\n",
-				depth, (info_t)g_nodes, (info_t)nps, elapsed,
-				move_to_str(cur->move, board->chess960),
+			printf("info depth %d currmove %s currmovenumber %d\n",
+				depth, move_to_str(cur->move, board->chess960),
 				move_count + pv_line);
 			fflush(stdout);
 		}

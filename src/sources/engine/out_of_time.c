@@ -17,28 +17,30 @@
 */
 
 #include "engine.h"
+#include "lazy_smp.h"
 #include "uci.h"
 
-bool	out_of_time(void)
+bool	out_of_time(const board_t *board)
 {
-	extern uint64_t		g_nodes;
 	extern goparams_t	g_goparams;
-
-	pthread_mutex_lock(&g_engine_mutex);
 	enum e_egn_send	send = g_engine_send;
-	pthread_mutex_unlock(&g_engine_mutex);
 
 	// Check if a "quit" or "stop" command has been received.
 
 	if (send == DO_ABORT || send == DO_EXIT)
 		return (true);
 
+	// Only the main worker should check other search conditions.
+
+	if (get_worker(board)->idx)
+		return (false);
+
 	// Don't use time management when "go infinite" has been used.
 
 	if (g_goparams.infinite)
 		return (false);
 
-	if (g_nodes >= g_goparams.nodes)
+	if (get_node_count() >= g_goparams.nodes)
 		return (true);
 
 	// Are we using a timer ?

@@ -16,6 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "lazy_smp.h"
 #include "pawns.h"
 
 enum
@@ -39,7 +40,6 @@ const scorepair_t	PassedBonus[RANK_NB] = {
 	0
 };
 
-pawns_cache_t	g_pawns[PawnCacheSize];
 /*
 bitboard_t	safe_pawn_squares(color_t c, bitboard_t us, bitboard_t them)
 {
@@ -159,7 +159,8 @@ scorepair_t	evaluate_doubled_isolated(bitboard_t us)
 
 scorepair_t	evaluate_pawns(const board_t *board)
 {
-	pawns_cache_t	*entry = &(g_pawns[board->stack->pawn_key
+	pawns_cache_t	*entry =
+		&(get_worker(board)->pawns_cache[board->stack->pawn_key
 		& (PawnCacheSize - 1)]);
 
 	if (entry->key == board->stack->pawn_key)

@@ -19,12 +19,13 @@
 #include <assert.h>
 #include "board.h"
 #include "info.h"
+#include "lazy_smp.h"
 #include "tt.h"
 
 void	do_move_gc(board_t *board, move_t move, boardstack_t *next,
 		bool gives_check)
 {
-	g_nodes += 1;
+	get_worker(board)->nodes += 1;
 
 	hashkey_t	key = board->stack->board_key ^ ZobristBlackToMove;
 

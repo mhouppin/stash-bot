@@ -69,7 +69,7 @@ score_t	qsearch(board_t *board, int depth, score_t alpha, score_t beta,
 score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 		searchstack_t *ss);
 
-bool	out_of_time(void);
+bool	out_of_time(const board_t *board);
 score_t	evaluate(const board_t *board);
 
 #endif

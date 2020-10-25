@@ -100,12 +100,14 @@ void		*engine_go(void *ptr)
 
 	memset(worker->good_history, 0, sizeof(history_t));
 	memset(worker->bad_history, 0, sizeof(history_t));
-	memset(worker->pawns_cache,0,  sizeof(pawns_table_t));
+	memset(worker->pawns_cache, 0,  sizeof(pawns_table_t));
 	worker->verif_plies = 0;
 	worker->nodes = 0;
 
 	if (!worker->idx)
 	{
+		tt_clear();
+
 		g_goparams.start = chess_clock();
 
 		// Do we have to use the time manager ?
@@ -219,7 +221,7 @@ __retry:
 			if (!worker->idx)
 			{
 				clock_t		chess_time = chess_clock() - g_goparams.start;
-				uint64_t	chess_nodes = g_nodes;
+				uint64_t	chess_nodes = get_node_count();
 				uint64_t	chess_nps = (!chess_time) ? 0 : (chess_nodes * 1000)
 					/ chess_time;
 
@@ -298,20 +300,23 @@ __retry:
 	// before the GUI sends us the "stop" in infinite mode.
 
 	if (g_goparams.infinite)
-		while (!out_of_time())
+		while (!out_of_time(board))
 			;
 
-	printf("bestmove %s\n", move_to_str(root_moves->move, board->chess960));
-	fflush(stdout);
-
-	if (!worker->idx && g_engine_send != DO_ABORT)
+	if (!worker->idx)
 	{
-		pthread_mutex_lock(&g_engine_mutex);
-		g_engine_send = DO_EXIT;
-		pthread_mutex_unlock(&g_engine_mutex);
+		printf("bestmove %s\n", move_to_str(root_moves->move, board->chess960));
+		fflush(stdout);
 
-		for (int i = 1; i < WPool.size; ++i)
-			pthread_join(WPool.list[i].thread, NULL);
+		if (g_engine_send != DO_ABORT)
+		{
+			pthread_mutex_lock(&g_engine_mutex);
+			g_engine_send = DO_EXIT;
+			pthread_mutex_unlock(&g_engine_mutex);
+
+			for (int i = 1; i < WPool.size; ++i)
+				pthread_join(WPool.list[i].thread, NULL);
+		}
 	}
 
 	free(root_moves);
