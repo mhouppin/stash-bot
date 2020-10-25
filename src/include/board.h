@@ -64,6 +64,7 @@ typedef struct	board_s
 	color_t			side_to_move;
 	scorepair_t		psq_scorepair;
 	boardstack_t	*stack;
+	void			*worker;
 	bool			chess960;
 }				board_t;
 

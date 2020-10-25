@@ -27,14 +27,10 @@ enum e_egn_mode		g_engine_mode;
 pthread_mutex_t		g_engine_mutex;
 enum e_egn_send		g_engine_send;
 goparams_t			g_goparams;
-uint64_t			g_nodes;
 option_list_t		g_opthandler;
 ucioptions_t		g_options;
 movelist_t			g_searchmoves;
 uint64_t			g_seed;
-
-uint64_t			g_butterfly_table[PIECE_NB][SQUARE_NB * SQUARE_NB];
-uint64_t			g_history_table[PIECE_NB][SQUARE_NB * SQUARE_NB];
 
 void __attribute__((constructor))	init_globals(void)
 {
@@ -46,6 +42,7 @@ void __attribute__((constructor))	init_globals(void)
 
 	g_nodes = 0;
 
+	g_options.threads = 1;
 	g_options.hash = 16;
 	g_options.move_overhead = 40;
 	g_options.multi_pv = 1;

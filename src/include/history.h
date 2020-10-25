@@ -29,36 +29,24 @@ enum
 	HistoryBonus = 256
 };
 
-extern uint64_t		g_butterfly_table[PIECE_NB][SQUARE_NB * SQUARE_NB];
-extern uint64_t		g_history_table[PIECE_NB][SQUARE_NB * SQUARE_NB];
+typedef uint64_t	history_t[PIECE_NB][SQUARE_NB * SQUARE_NB];
 
-INLINED void	reset_history(void)
+INLINED void	add_history(history_t hist, piece_t piece, move_t move)
 {
-	memset(g_butterfly_table, 0, sizeof(g_butterfly_table));
-	memset(g_history_table, 0, sizeof(g_history_table));
+	hist[piece][move_squares(move)] += 1;
 }
 
-INLINED void	add_hist_bonus(piece_t piece, move_t move)
-{
-	g_history_table[piece][move_squares(move)] += 1;
-}
-
-INLINED void	add_hist_penalty(piece_t piece, move_t move)
-{
-	g_butterfly_table[piece][move_squares(move)] += 1;
-}
-
-INLINED score_t	get_hist_score(piece_t piece, move_t move)
+INLINED score_t	get_history_score(history_t good_hist, history_t bad_hist,
+				piece_t piece, move_t move)
 {
 	const int	idx = move_squares(move);
 
 	// Small trick to catch zero-division error and history score overflow.
 
-	if (g_history_table[piece][idx] >= g_butterfly_table[piece][idx])
+	if (good_hist[piece][idx] >= bad_hist[piece][idx])
 		return (HistoryBonus);
 
-	return (g_history_table[piece][idx] * HistoryBonus
-		/ g_butterfly_table[piece][idx]);
+	return (good_hist[piece][idx] * HistoryBonus / bad_hist[piece][idx]);
 }
 
 #endif

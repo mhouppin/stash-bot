@@ -61,6 +61,7 @@ typedef struct	goparams_s
 
 typedef struct	ucioptions_s
 {
+	long		threads;
 	long		hash;
 	long		move_overhead;
 	long		multi_pv;

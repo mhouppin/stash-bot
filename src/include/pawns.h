@@ -33,9 +33,8 @@ enum
 	PawnCacheSize = 8192
 };
 
-extern pawns_cache_t	g_pawns[PawnCacheSize];
+typedef pawns_cache_t	pawns_table_t[PawnCacheSize];
 
-void			reset_pawn_cache(void);
 scorepair_t		evaluate_pawns(const board_t *board);
 
 #endif

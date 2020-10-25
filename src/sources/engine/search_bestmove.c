@@ -24,11 +24,10 @@
 #include "history.h"
 #include "imath.h"
 #include "info.h"
+#include "lazy_smp.h"
 #include "movelist.h"
 #include "tt.h"
 #include "uci.h"
-
-int		g_seldepth;
 
 score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 		searchstack_t *ss)
@@ -36,6 +35,7 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 	if (depth <= 0)
 		return (qsearch(board, depth, alpha, beta, ss));
 
+	worker_t			*worker = get_worker(board);
 	movelist_t			list;
 	move_t				pv[512];
 	score_t				best_value = -INF_SCORE;
@@ -43,8 +43,8 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 	if (g_nodes % 2048 == 0 && out_of_time())
 		return (NO_SCORE);
 
-	if (g_seldepth < ss->plies + 1)
-		g_seldepth = ss->plies + 1;
+	if (worker->seldepth < ss->plies + 1)
+		worker->seldepth = ss->plies + 1;
 
 	if (is_draw(board, ss->plies + 1))
 		return (0);
@@ -151,8 +151,9 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 				{
 					if (!is_capture_or_promotion(board, bestmove))
 					{
-						add_hist_bonus(piece_on(board,
-							move_from_square(bestmove)), bestmove);
+						add_history(worker->good_history,
+							piece_on(board, move_from_square(bestmove)),
+							bestmove);
 
 						if (ss->killers[0] == NO_MOVE)
 							ss->killers[0] = bestmove;
@@ -162,8 +163,9 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 
 					while (--extmove >= movelist_begin(&list))
 						if (!is_capture_or_promotion(board, extmove->move))
-							add_hist_penalty(piece_on(board,
-								move_from_square(extmove->move)), extmove->move);
+							add_history(worker->bad_history,
+								piece_on(board, move_from_square(extmove->move)),
+								extmove->move);
 
 					break ;
 				}
@@ -277,16 +279,19 @@ void	search_bestmove(board_t *board, int depth, score_t alpha, score_t beta,
 
 		if (abs(next) > INF_SCORE)
 		{
-			pthread_mutex_lock(&g_engine_mutex);
-			g_engine_send = DO_EXIT;
-			pthread_mutex_unlock(&g_engine_mutex);
+			if (!get_worker(board)->idx && g_engine_send != DO_ABORT)
+			{
+				pthread_mutex_lock(&g_engine_mutex);
+				g_engine_send = DO_EXIT;
+				pthread_mutex_unlock(&g_engine_mutex);
+			}
 			return ;
 		}
 		else if (move_count == 1 || next > alpha)
 		{
 			cur->score = next;
 			alpha = max(alpha, next);
-			cur->seldepth = g_seldepth;
+			cur->seldepth = get_worker(board)->seldepth;
 			cur->pv[0] = cur->move;
 
 			size_t	j;

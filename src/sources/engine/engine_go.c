@@ -23,6 +23,7 @@
 #include "history.h"
 #include "imath.h"
 #include "info.h"
+#include "lazy_smp.h"
 #include "pawns.h"
 #include "tt.h"
 #include "uci.h"
@@ -53,14 +54,14 @@ uint64_t	perft(board_t *board, unsigned int depth)
 	}
 }
 
-void		engine_go(board_t *board)
+void		*engine_go(void *ptr)
 {
 	extern goparams_t	g_goparams;
 	extern ucioptions_t	g_options;
 	extern movelist_t	g_searchmoves;
 	const size_t		root_move_count = movelist_size(&g_searchmoves);
-
-	g_goparams.start = chess_clock();
+	board_t				*board = ptr;
+	worker_t			*worker = get_worker(board);
 
 	if (g_goparams.perft)
 	{
@@ -73,7 +74,7 @@ void		engine_go(board_t *board)
 		printf("info nodes %lu nps %lu time %lu\n",
 			(info_t)nodes, (info_t)nps, time);
 
-		return ;
+		return (NULL);
 	}
 
 	if (root_move_count == 0)
@@ -83,7 +84,7 @@ void		engine_go(board_t *board)
 		else
 			printf("info depth 0 score cp 0\nbestmove 0000\n");
 		fflush(stdout);
-		return ;
+		return (NULL);
 	}
 
 	// Init root move struct here
@@ -97,70 +98,90 @@ void		engine_go(board_t *board)
 		root_moves[i].pv[0] = NO_MOVE;
 	}
 
-	tt_clear();
-	reset_pawn_cache();
-	reset_history();
+	memset(worker->good_history, 0, sizeof(history_t));
+	memset(worker->bad_history, 0, sizeof(history_t));
+	memset(worker->pawns_cache,0,  sizeof(pawns_table_t));
+	worker->verif_plies = 0;
+	worker->nodes = 0;
 
-	// Do we have to use the time manager ?
-
-	if (g_goparams.wtime || g_goparams.btime)
+	if (!worker->idx)
 	{
-		if (g_goparams.movestogo == 0)
+		g_goparams.start = chess_clock();
+
+		// Do we have to use the time manager ?
+
+		if (g_goparams.wtime || g_goparams.btime)
 		{
-			g_goparams.movestogo = 50;
+			if (g_goparams.movestogo == 0)
+			{
+				g_goparams.movestogo = 50;
 
-			// If we have an increment to avoid time burns, decrease
-			// estimated movestogo.
+				// If we have an increment to avoid time burns, decrease
+				// estimated movestogo.
 
-			if (board->side_to_move == WHITE && g_goparams.winc)
-				g_goparams.movestogo = 35;
-			if (board->side_to_move == BLACK && g_goparams.binc)
-				g_goparams.movestogo = 35;
+				if (board->side_to_move == WHITE && g_goparams.winc)
+					g_goparams.movestogo = 35;
+				if (board->side_to_move == BLACK && g_goparams.binc)
+					g_goparams.movestogo = 35;
+			}
+
+			clock_t		our_time = (board->side_to_move == WHITE) ? g_goparams.wtime
+				: g_goparams.btime;
+			clock_t		our_inc = (board->side_to_move == WHITE) ? g_goparams.winc
+				: g_goparams.binc;
+
+			// Remove overhead from initial time
+
+			our_time = max(0, our_time - g_options.move_overhead);
+
+			clock_t		estimated_time = our_time / g_goparams.movestogo + our_inc;
+
+			g_goparams.maximal_time = estimated_time * g_options.burn_ratio;
+			g_goparams.optimal_time = estimated_time / g_options.save_ratio;
+
+			g_goparams.maximal_time = min(g_goparams.maximal_time, our_time);
+			g_goparams.optimal_time = min(g_goparams.optimal_time, our_time);
 		}
+		else if (g_goparams.movetime)
+		{
+			g_goparams.maximal_time = max(1, g_goparams.movetime - g_options.move_overhead);
+			g_goparams.optimal_time = g_goparams.maximal_time;
+		}
+		else
+			g_goparams.maximal_time = g_goparams.optimal_time = 0;
 
-		clock_t		our_time = (board->side_to_move == WHITE) ? g_goparams.wtime
-			: g_goparams.btime;
-		clock_t		our_inc = (board->side_to_move == WHITE) ? g_goparams.winc
-			: g_goparams.binc;
+		if (g_goparams.depth == 0)
+			g_goparams.depth = 240;
 
-		// Remove overhead from initial time
+		if (g_goparams.nodes == 0)
+			g_goparams.nodes = SIZE_MAX;
 
-		our_time = max(0, our_time - g_options.move_overhead);
+		for (int i = 1; i < WPool.size; ++i)
+		{
+			worker_t	*cur = WPool.list + i;
 
-		clock_t		estimated_time = our_time / g_goparams.movestogo + our_inc;
+			cur->board = worker->board;
+			cur->stack = boardstack_dup(worker->stack);
+			cur->board.stack = cur->stack;
+			cur->board.worker = cur;
 
-		g_goparams.maximal_time = estimated_time * g_options.burn_ratio;
-		g_goparams.optimal_time = estimated_time / g_options.save_ratio;
-
-		g_goparams.maximal_time = min(g_goparams.maximal_time, our_time);
-		g_goparams.optimal_time = min(g_goparams.optimal_time, our_time);
+			if (pthread_create(&cur->thread, NULL, &engine_go, &cur->board))
+			{
+				perror("Unable to initialize worker thread");
+				exit(EXIT_FAILURE);
+			}
+		}
 	}
-	else if (g_goparams.movetime)
-	{
-		g_goparams.maximal_time = max(1, g_goparams.movetime - g_options.move_overhead);
-		g_goparams.optimal_time = g_goparams.maximal_time;
-	}
-	else
-		g_goparams.maximal_time = g_goparams.optimal_time = 0;
-
-	g_nodes = 0;
-
-	if (g_goparams.depth == 0)
-		g_goparams.depth = 240;
-
-	if (g_goparams.nodes == 0)
-		g_goparams.nodes = SIZE_MAX;
 
 	const int	multi_pv = min(g_options.multi_pv, root_move_count);
 
 	for (int iter_depth = 0; iter_depth < g_goparams.depth; ++iter_depth)
 	{
 		bool		has_search_aborted = false;
-		extern int	g_seldepth;
 
 		for (int pv_line = 0; pv_line < multi_pv; ++pv_line)
 		{
-			g_seldepth = 0;
+			worker->seldepth = 0;
 
 			score_t	_alpha, _beta, _delta;
 
@@ -184,9 +205,7 @@ __retry:
 
 			// Catch search aborting
 
-			pthread_mutex_lock(&g_engine_mutex);
 			has_search_aborted = (g_engine_send == DO_ABORT || g_engine_send == DO_EXIT);
-			pthread_mutex_unlock(&g_engine_mutex);
 
 			sort_root_moves(root_moves + pv_line, root_moves + root_move_count);
 
@@ -197,37 +216,41 @@ __retry:
 			if (bound == EXACT_BOUND)
 				sort_root_moves(root_moves, root_moves + multi_pv);
 
-			clock_t		chess_time = chess_clock() - g_goparams.start;
-			uint64_t	chess_nodes = g_nodes;
-			uint64_t	chess_nps = (!chess_time) ? 0 : (chess_nodes * 1000)
-				/ chess_time;
-
-			// Don't update Multi-PV lines if not all analysed at current depth
-			// and not enough time elapsed
-
-			if ((multi_pv == 1 && (bound == EXACT_BOUND || chess_time > 3000))
-				|| (multi_pv > 1 && bound == EXACT_BOUND && (pv_line == multi_pv - 1 || chess_time > 3000)))
+			if (!worker->idx)
 			{
-				for (int i = 0; i < multi_pv; ++i)
+				clock_t		chess_time = chess_clock() - g_goparams.start;
+				uint64_t	chess_nodes = g_nodes;
+				uint64_t	chess_nps = (!chess_time) ? 0 : (chess_nodes * 1000)
+					/ chess_time;
+
+				// Don't update Multi-PV lines if not all analysed at current depth
+				// and not enough time elapsed
+
+				if ((multi_pv == 1 && (bound == EXACT_BOUND || chess_time > 3000))
+					|| (multi_pv > 1 && bound == EXACT_BOUND
+						&& (pv_line == multi_pv - 1 || chess_time > 3000)))
 				{
-					bool		searched = (root_moves[i].score != -INF_SCORE);
-					score_t		root_score = (searched) ? root_moves[i].score
+					for (int i = 0; i < multi_pv; ++i)
+					{
+						bool		searched = (root_moves[i].score != -INF_SCORE);
+						score_t		root_score = (searched) ? root_moves[i].score
 						: root_moves[i].previous_score;
 
-					printf("info depth %d seldepth %d multipv %d nodes %lu"
-						" nps %lu hashfull %d time %lu score %s%s pv",
-						max(iter_depth + (int)searched, 1), root_moves[i].seldepth, i + 1,
-						(info_t)chess_nodes, (info_t)chess_nps,
-						tt_hashfull(), chess_time,
-						score_to_str(root_score), bound == EXACT_BOUND ? ""
-						: bound == LOWER_BOUND ? " lowerbound" : " upperbound");
+						printf("info depth %d seldepth %d multipv %d nodes %lu"
+							" nps %lu hashfull %d time %lu score %s%s pv",
+							max(iter_depth + (int)searched, 1), root_moves[i].seldepth, i + 1,
+							(info_t)chess_nodes, (info_t)chess_nps,
+							tt_hashfull(), chess_time,
+							score_to_str(root_score), bound == EXACT_BOUND ? ""
+							: bound == LOWER_BOUND ? " lowerbound" : " upperbound");
 	
-					for (size_t k = 0; root_moves[i].pv[k] != NO_MOVE; ++k)
-						printf(" %s", move_to_str(root_moves[i].pv[k],
-							board->chess960));
-					puts("");
+						for (size_t k = 0; root_moves[i].pv[k] != NO_MOVE; ++k)
+							printf(" %s", move_to_str(root_moves[i].pv[k],
+								board->chess960));
+						puts("");
+					}
+					fflush(stdout);
 				}
-				fflush(stdout);
 			}
 
 			if (has_search_aborted)
@@ -260,9 +283,10 @@ __retry:
 		// If we went over optimal time usage, we just finished our iteration,
 		// so we can safely return our bestmove.
 
-		if ((g_goparams.wtime || g_goparams.btime)
-			&& chess_clock() - g_goparams.start >= g_goparams.optimal_time)
-			break ;
+		if (!worker->idx)
+			if ((g_goparams.wtime || g_goparams.btime)
+				&& chess_clock() - g_goparams.start >= g_goparams.optimal_time)
+				break ;
 
 		if (g_goparams.mate < 0 && root_moves->previous_score <= mated_in(1 - g_goparams.mate * 2))
 			break ;
@@ -279,5 +303,18 @@ __retry:
 
 	printf("bestmove %s\n", move_to_str(root_moves->move, board->chess960));
 	fflush(stdout);
+
+	if (!worker->idx && g_engine_send != DO_ABORT)
+	{
+		pthread_mutex_lock(&g_engine_mutex);
+		g_engine_send = DO_EXIT;
+		pthread_mutex_unlock(&g_engine_mutex);
+
+		for (int i = 1; i < WPool.size; ++i)
+			pthread_join(WPool.list[i].thread, NULL);
+	}
+
 	free(root_moves);
+	boardstack_free(worker->stack);
+	return (NULL);
 }
