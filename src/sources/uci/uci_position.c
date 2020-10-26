@@ -78,6 +78,7 @@ void	uci_position(const char *args)
 		return ;
 
 	board_set(&g_board, fen, g_options.chess960, *hidden_list);
+	g_board.worker = WPool.list;
 	free(fen);
 
 	token = get_next_token(&ptr);
@@ -94,8 +95,6 @@ void	uci_position(const char *args)
 
 		token = get_next_token(&ptr);
 	}
-
-	g_board.worker = WPool.list;
 
 	free(copy);
 }
