@@ -71,8 +71,8 @@ void		*engine_go(void *ptr)
 
 		uint64_t	nps = (!time) ? 0 : (nodes * 1000) / time;
 
-		printf("info nodes %lu nps %lu time %lu\n",
-			(info_t)nodes, (info_t)nps, time);
+		printf("info nodes %" FMT_INFO " nps %" FMT_INFO " time %" FMT_INFO "\n",
+			(info_t)nodes, (info_t)nps, (info_t)time);
 
 		return (NULL);
 	}
@@ -238,11 +238,11 @@ __retry:
 						score_t		root_score = (searched) ? root_moves[i].score
 						: root_moves[i].previous_score;
 
-						printf("info depth %d seldepth %d multipv %d nodes %lu"
-							" nps %lu hashfull %d time %lu score %s%s pv",
+						printf("info depth %d seldepth %d multipv %d nodes %" FMT_INFO
+							" nps %" FMT_INFO " hashfull %d time %" FMT_INFO " score %s%s pv",
 							max(iter_depth + (int)searched, 1), root_moves[i].seldepth, i + 1,
 							(info_t)chess_nodes, (info_t)chess_nps,
-							tt_hashfull(), chess_time,
+							tt_hashfull(), (info_t)chess_time,
 							score_to_str(root_score), bound == EXACT_BOUND ? ""
 							: bound == LOWER_BOUND ? " lowerbound" : " upperbound");
 	
