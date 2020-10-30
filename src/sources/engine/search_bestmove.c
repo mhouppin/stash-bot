@@ -74,6 +74,8 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 
 	move_t	bestmove = NO_MOVE;
 	int		move_count = 0;
+	move_t	quiets[64];
+	int		qcount = 0;
 
 	for (const extmove_t *extmove = movelist_begin(&list);
 		extmove < movelist_end(&list); ++extmove)
@@ -161,16 +163,21 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 							ss->killers[1] = bestmove;
 					}
 
-					while (--extmove >= movelist_begin(&list))
-						if (!is_capture_or_promotion(board, extmove->move))
-							add_history(worker->bad_history,
-								piece_on(board, move_from_square(extmove->move)),
-								extmove->move);
+					for (int i = 0; i < qcount; ++i)
+						add_history(worker->bad_history,
+						piece_on(board, move_from_square(quiets[i])),
+						quiets[i]);
 
 					break ;
 				}
 			}
 		}
+
+		if (qcount < 64 && !is_capture_or_promotion(board, extmove->move))
+			quiets[qcount++] = extmove->move;
+
+		if (depth < 4 && qcount > depth * 8)
+			break ;
 	}
 
 	// Checkmate/Stalemate ?
