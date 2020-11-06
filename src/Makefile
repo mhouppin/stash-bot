@@ -36,7 +36,7 @@ endif
 OBJECTS	:= $(SOURCES:%.c=%.o)
 DEPENDS := $(SOURCES:%.c=%.d)
 
-OFLAGS	:= -O3
+OFLAGS	:= -O3 -flto
 
 EXT_OFLAGS	?=
 EXT_LFLAGS	?=
@@ -54,6 +54,12 @@ ifeq ($(ARCH),x86-64-bmi2)
 	OFLAGS += -DUSE_PREFETCH -msse
 	OFLAGS += -DUSE_POPCNT -msse3 -mpopcnt
 	OFLAGS += -DUSE_PEXT -msse4 -mbmi2
+endif
+
+# If no arch is specified, build will default to a native one
+
+ifeq ($(ARCH),)
+	OFLAGS += -march=native
 endif
 
 all: $(EXE)
