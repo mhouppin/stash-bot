@@ -35,7 +35,6 @@ enum
 	BishopPairBonus = SPAIR(20, 128),
 	KnightPairPenalty = SPAIR(-5, 0),
 	RookPairPenalty = SPAIR(-24, -4),
-	NonPawnBonus = SPAIR(96, 165),
 
 	RookOnSemiOpenFile = SPAIR(23, 23),
 	RookOnOpenFile = SPAIR(50, 20),
@@ -69,13 +68,13 @@ const scorepair_t	MobilityR[15] = {
 };
 
 const scorepair_t	MobilityQ[28] = {
-	SPAIR(  92,  13), SPAIR(  94,  67), SPAIR(  96, 121), SPAIR(  97, 175),
-	SPAIR(  99, 229), SPAIR( 101, 285), SPAIR( 103, 347), SPAIR( 105, 421),
-	SPAIR( 107, 481), SPAIR( 109, 523), SPAIR( 113, 544), SPAIR( 115, 573),
-	SPAIR( 119, 587), SPAIR( 123, 590), SPAIR( 122, 602), SPAIR( 121, 607),
-	SPAIR( 120, 608), SPAIR( 119, 615), SPAIR( 118, 614), SPAIR( 117, 611),
-	SPAIR( 117, 601), SPAIR( 116, 597), SPAIR( 116, 592), SPAIR( 115, 590),
-	SPAIR( 115, 588), SPAIR( 114, 587), SPAIR( 114, 585), SPAIR( 114, 584)
+	SPAIR(  -8,-287), SPAIR(  -6,-233), SPAIR(  -4,-179), SPAIR(  -3,-125),
+	SPAIR(  -1, -71), SPAIR(   1, -15), SPAIR(   3,  47), SPAIR(   5, 121),
+	SPAIR(   7, 181), SPAIR(   9, 223), SPAIR(  13, 244), SPAIR(  15, 273),
+	SPAIR(  19, 287), SPAIR(  23, 290), SPAIR(  22, 302), SPAIR(  21, 307),
+	SPAIR(  20, 308), SPAIR(  19, 315), SPAIR(  18, 314), SPAIR(  17, 311),
+	SPAIR(  17, 301), SPAIR(  16, 297), SPAIR(  16, 292), SPAIR(  15, 290),
+	SPAIR(  15, 288), SPAIR(  14, 287), SPAIR(  14, 285), SPAIR(  14, 284)
 };
 
 const int	AttackWeights[8] = {
@@ -119,8 +118,6 @@ scorepair_t	evaluate_material(const board_t *board, color_t c)
 
 	if (more_than_one(b & board->piecetype_bits[ROOK]))
 		ret += RookPairPenalty;
-
-	ret += NonPawnBonus * popcount(b & ~board->piecetype_bits[PAWN]);
 
 	return (ret);
 }
