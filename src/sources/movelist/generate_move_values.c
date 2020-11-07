@@ -61,7 +61,7 @@ void	generate_move_values(movelist_t *movelist, const board_t *board,
 				else if (killers && (move == killers[0] || move == killers[1]))
 					extmove->score = 1536;
 				else
-					extmove->score = get_history_score(worker->good_history, worker->bad_history, moved_piece, move);
+					extmove->score = get_history_score(worker->history, moved_piece, move);
 				break ;
 		}
 	}

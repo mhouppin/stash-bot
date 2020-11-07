@@ -19,34 +19,30 @@
 #ifndef HISTORY_H
 # define HISTORY_H
 
-# include <string.h>
+# include <stdlib.h>
 # include "move.h"
 # include "piece.h"
 # include "score.h"
 
 enum
 {
-	HistoryBonus = 256
+	HistoryMaxScore = 512,
+	HistoryScale = 16,
+	HistoryResolution = HistoryMaxScore * HistoryScale
 };
 
-typedef uint64_t	history_t[PIECE_NB][SQUARE_NB * SQUARE_NB];
+typedef int32_t	history_t[PIECE_NB][SQUARE_NB * SQUARE_NB];
 
-INLINED void	add_history(history_t hist, piece_t piece, move_t move)
+INLINED void	add_history(history_t hist, piece_t piece, move_t move, int32_t bonus)
 {
-	hist[piece][move_squares(move)] += 1;
+	int32_t		*entry = &hist[piece][move_squares(move)];
+
+	*entry += bonus - *entry * abs(bonus) / HistoryResolution;
 }
 
-INLINED score_t	get_history_score(history_t good_hist, history_t bad_hist,
-				piece_t piece, move_t move)
+INLINED score_t	get_history_score(history_t hist, piece_t piece, move_t move)
 {
-	const int	idx = move_squares(move);
-
-	// Small trick to catch zero-division error and history score overflow.
-
-	if (good_hist[piece][idx] >= bad_hist[piece][idx])
-		return (HistoryBonus);
-
-	return (good_hist[piece][idx] * HistoryBonus / bad_hist[piece][idx]);
+	return (hist[piece][move_squares(move)] / HistoryScale);
 }
 
 #endif

@@ -154,20 +154,20 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 				{
 					if (!is_capture_or_promotion(board, bestmove))
 					{
-						add_history(worker->good_history,
+						add_history(worker->history,
 							piece_on(board, move_from_square(bestmove)),
-							bestmove);
+							bestmove, 1);
 
 						if (ss->killers[0] == NO_MOVE)
 							ss->killers[0] = bestmove;
 						else if (ss->killers[0] != bestmove)
 							ss->killers[1] = bestmove;
-					}
 
-					for (int i = 0; i < qcount; ++i)
-						add_history(worker->bad_history,
-						piece_on(board, move_from_square(quiets[i])),
-						quiets[i]);
+						for (int i = 0; i < qcount; ++i)
+							add_history(worker->history,
+							piece_on(board, move_from_square(quiets[i])),
+							quiets[i], -1);
+					}
 
 					break ;
 				}

@@ -14,8 +14,7 @@ typedef struct
 
 	board_t				board;
 	boardstack_t		*stack;
-	history_t			good_history;
-	history_t			bad_history;
+	history_t			history;
 	pawns_table_t		pawns_cache;
 
 	int					seldepth;
