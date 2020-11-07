@@ -25,6 +25,7 @@
 #include "lazy_smp.h"
 #include "movelist.h"
 #include "tt.h"
+#include "uci.h"
 
 score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 		searchstack_t *ss)
@@ -36,14 +37,18 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 	movelist_t			list;
 	score_t				best_value = -INF_SCORE;
 
-	if (worker->nodes % 2048 == 0 && out_of_time(board))
-		return (NO_SCORE);
+	if (!worker->idx)
+		check_time();
 
 	if (worker->seldepth < ss->plies + 1)
 		worker->seldepth = ss->plies + 1;
 
-	if (is_draw(board, ss->plies + 1))
+	if (g_engine_send == DO_EXIT || g_engine_send == DO_ABORT
+		|| is_draw(board, ss->plies))
 		return (0);
+
+	if (ss->plies >= MAX_PLIES)
+		return (!board->stack->checkers ? evaluate(board) : 0);
 
 	// Mate pruning.
 
@@ -102,15 +107,11 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 		if (depth == 1)
 		{
 			score_t		max_score = qsearch(board, 0, alpha, beta, ss);
-			if (abs(max_score) > INF_SCORE)
-				return (NO_SCORE);
 			return (max(ss->static_eval + Razor_LightMargin, max_score));
 		}
 		if (ss->static_eval + Razor_HeavyMargin < beta && depth <= 3)
 		{
 			score_t		max_score = qsearch(board, 0, alpha, beta, ss);
-			if (abs(max_score) > INF_SCORE)
-				return (NO_SCORE);
 			if (max_score < beta)
 				return (max(ss->static_eval + Razor_HeavyMargin, max_score));
 		}
@@ -139,9 +140,6 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 				ss + 1);
 
 		undo_null_move(board);
-
-		if (abs(score) > INF_SCORE)
-			return (NO_SCORE);
 
 		if (score >= beta)
 		{
@@ -214,7 +212,7 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 
 				next = -search(board, lmr_depth, -alpha - 1, -alpha, ss + 1);
 
-				need_full_depth_search = (abs(next) < INF_SCORE && alpha < next);
+				need_full_depth_search = (alpha < next);
 			}
 
 			if (need_full_depth_search)
@@ -223,11 +221,8 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 
 		undo_move(board, extmove->move);
 
-		if (abs(next) > INF_SCORE)
-		{
-			best_value = NO_SCORE;
-			break ;
-		}
+		if (g_engine_send == DO_ABORT || g_engine_send == DO_EXIT)
+			return (0);
 
 		if (best_value < next)
 		{
@@ -276,8 +271,7 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 
 	// Do not erase entries with higher depth for same position.
 
-	if (best_value != NO_SCORE && (entry->key != board->stack->board_key
-		|| entry->depth <= depth - DEPTH_OFFSET))
+	if (entry->key != board->stack->board_key || entry->depth <= depth - DEPTH_OFFSET)
 	{
 		int bound = (best_value >= beta) ? LOWER_BOUND : UPPER_BOUND;
 

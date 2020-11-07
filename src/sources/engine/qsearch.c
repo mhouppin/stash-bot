@@ -24,6 +24,7 @@
 #include "lazy_smp.h"
 #include "movelist.h"
 #include "tt.h"
+#include "uci.h"
 
 score_t	qsearch(board_t *board, int depth, score_t alpha, score_t beta,
 		searchstack_t *ss)
@@ -32,14 +33,18 @@ score_t	qsearch(board_t *board, int depth, score_t alpha, score_t beta,
 	const score_t		old_alpha = alpha;
 	movelist_t			list;
 
-	if (worker->nodes % 2048 == 0 && out_of_time(board))
-		return (NO_SCORE);
+	if (!worker->idx)
+		check_time();
 
 	if (worker->seldepth < ss->plies + 1)
 		worker->seldepth = ss->plies + 1;
 
-	if (is_draw(board, ss->plies + 1))
+	if (g_engine_send == DO_EXIT || g_engine_send == DO_ABORT
+		|| is_draw(board, ss->plies))
 		return (0);
+
+	if (ss->plies >= MAX_PLIES)
+		return (!board->stack->checkers ? evaluate(board) : 0);
 
 	// Mate pruning.
 

@@ -65,9 +65,10 @@ void		*engine_go(void *ptr)
 
 	if (g_goparams.perft)
 	{
+		clock_t		time = chess_clock();
 		uint64_t	nodes = perft(board, (unsigned int)g_goparams.perft);
 
-		clock_t		time = chess_clock() - g_goparams.start;
+		time = chess_clock() - time;
 
 		uint64_t	nps = (!time) ? 0 : (nodes * 1000) / time;
 
@@ -102,7 +103,6 @@ void		*engine_go(void *ptr)
 	memset(worker->bad_history, 0, sizeof(history_t));
 	memset(worker->pawns_cache, 0,  sizeof(pawns_table_t));
 	worker->verif_plies = 0;
-	worker->nodes = 0;
 
 	if (!worker->idx)
 	{
@@ -158,6 +158,9 @@ void		*engine_go(void *ptr)
 		if (g_goparams.nodes == 0)
 			g_goparams.nodes = SIZE_MAX;
 
+		WPool.checks = 1000;
+		worker->nodes = 0;
+
 		for (int i = 1; i < WPool.size; ++i)
 		{
 			worker_t	*cur = WPool.list + i;
@@ -166,6 +169,7 @@ void		*engine_go(void *ptr)
 			cur->stack = boardstack_dup(worker->stack);
 			cur->board.stack = cur->stack;
 			cur->board.worker = cur;
+			cur->nodes = 0;
 
 			if (pthread_create(&cur->thread, NULL, &engine_go, &cur->board))
 			{
@@ -300,8 +304,9 @@ __retry:
 	// before the GUI sends us the "stop" in infinite mode.
 
 	if (g_goparams.infinite)
-		while (!out_of_time(board))
-			;
+		while (!(g_engine_send == DO_ABORT || g_engine_send == DO_EXIT))
+			if (!worker->idx)
+				check_time();
 
 	if (!worker->idx)
 	{

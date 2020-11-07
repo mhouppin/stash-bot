@@ -16,37 +16,42 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
-#include "info.h"
-#include "option.h"
+#include "engine.h"
+#include "lazy_smp.h"
 #include "uci.h"
 
-board_t				g_board;
-pthread_cond_t		g_engine_condvar;
-enum e_egn_mode		g_engine_mode;
-pthread_mutex_t		g_engine_mutex;
-enum e_egn_send		g_engine_send;
-goparams_t			g_goparams;
-option_list_t		g_opthandler;
-ucioptions_t		g_options;
-movelist_t			g_searchmoves;
-uint64_t			g_seed;
-
-void __attribute__((constructor))	init_globals(void)
+void	check_time(void)
 {
-	pthread_cond_init(&g_engine_condvar, NULL);
-	pthread_mutex_init(&g_engine_mutex, NULL);
+	extern goparams_t	g_goparams;
 
-	g_engine_mode = THINKING;
-	g_engine_send = DO_NOTHING;
+	if (--WPool.checks > 0)
+		return ;
 
-	g_options.threads = 1;
-	g_options.hash = 16;
-	g_options.move_overhead = 100;
-	g_options.multi_pv = 1;
-	g_options.burn_ratio = 1.2;
-	g_options.save_ratio = 1.2;
-	g_options.chess960 = false;
+	// Reset check counter
 
-	g_seed = 1048592ul;
+	WPool.checks = 1000;
+
+	// If we are in infinite mode, or the stop has already been set,
+	// we can safely return.
+
+	if (g_goparams.infinite || g_engine_send == DO_ABORT || g_engine_send == DO_EXIT)
+		return ;
+
+	if (get_node_count() >= g_goparams.nodes)
+		goto __set_stop;
+
+	if (g_goparams.movetime || g_goparams.wtime || g_goparams.winc)
+	{
+		clock_t		end = g_goparams.start + g_goparams.maximal_time;
+
+		if (chess_clock() > end)
+			goto __set_stop;
+	}
+
+	return ;
+
+__set_stop:
+	pthread_mutex_lock(&g_engine_mutex);
+	g_engine_send = DO_EXIT;
+	pthread_mutex_unlock(&g_engine_mutex);
 }

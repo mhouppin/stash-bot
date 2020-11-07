@@ -37,17 +37,21 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 
 	worker_t			*worker = get_worker(board);
 	movelist_t			list;
-	move_t				pv[512];
+	move_t				pv[256];
 	score_t				best_value = -INF_SCORE;
 
-	if (worker->nodes % 2048 == 0 && out_of_time(board))
-		return (NO_SCORE);
+	if (!worker->idx)
+		check_time();
 
 	if (worker->seldepth < ss->plies + 1)
 		worker->seldepth = ss->plies + 1;
 
-	if (is_draw(board, ss->plies + 1))
+	if (g_engine_send == DO_EXIT || g_engine_send == DO_ABORT
+		|| is_draw(board, ss->plies))
 		return (0);
+
+	if (ss->plies >= MAX_PLIES)
+		return (!board->stack->checkers ? evaluate(board) : 0);
 
 	// Check for interesting tt values
 
@@ -109,7 +113,7 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 
 				next = -search(board, lmr_depth, -alpha - 1, -alpha, ss + 1);
 
-				need_full_depth_search = (abs(next) < INF_SCORE && alpha < next);
+				need_full_depth_search = (alpha < next);
 			}
 
 			if (need_full_depth_search)
@@ -128,11 +132,8 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 
 		undo_move(board, extmove->move);
 
-		if (abs(next) > INF_SCORE)
-		{
-			best_value = NO_SCORE;
-			break ;
-		}
+		if (g_engine_send == DO_ABORT || g_engine_send == DO_EXIT)
+			return (0);
 
 		if (best_value < next)
 		{
@@ -187,8 +188,7 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 
 	// Do not erase entries with higher depth for same position.
 
-	if (best_value != NO_SCORE && (entry->key != board->stack->board_key
-		|| entry->depth <= depth - DEPTH_OFFSET))
+	if (entry->key != board->stack->board_key || entry->depth <= depth - DEPTH_OFFSET)
 	{
 		int bound = (bestmove == NO_MOVE) ? UPPER_BOUND
 			: (best_value >= beta) ? LOWER_BOUND : EXACT_BOUND;
@@ -280,16 +280,8 @@ void	search_bestmove(board_t *board, int depth, score_t alpha, score_t beta,
 
 		undo_move(board, cur->move);
 
-		if (abs(next) > INF_SCORE)
-		{
-			if (!get_worker(board)->idx && g_engine_send != DO_ABORT)
-			{
-				pthread_mutex_lock(&g_engine_mutex);
-				g_engine_send = DO_EXIT;
-				pthread_mutex_unlock(&g_engine_mutex);
-			}
+		if (g_engine_send == DO_ABORT || g_engine_send == DO_EXIT)
 			return ;
-		}
 		else if (move_count == 1 || next > alpha)
 		{
 			cur->score = next;

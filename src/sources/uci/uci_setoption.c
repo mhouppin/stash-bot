@@ -59,7 +59,11 @@ void	uci_setoption(const char *args)
 
 	// Remove the final newline to valuebuf
 
-	valuebuf[strlen(valuebuf) - 1] = '\0';
+	{
+		char	*maybe_nl = &valuebuf[strlen(valuebuf) - 1];
+		if (*maybe_nl == '\n')
+			*maybe_nl = '\0';
+	}
 
 	set_option(&g_opthandler, namebuf, valuebuf);
 	free(copy);

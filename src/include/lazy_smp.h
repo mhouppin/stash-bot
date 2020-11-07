@@ -29,6 +29,7 @@ worker_t;
 typedef struct
 {
 	int			size;
+	int			checks;
 	worker_t	*list;
 }
 worker_pool_t;

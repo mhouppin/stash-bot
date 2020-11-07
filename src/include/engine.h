@@ -45,7 +45,6 @@ root_move_t;
 enum
 {
 	NMP_MinDepth = 3,
-	NMP_MinPlies = 1,
 	NMP_BaseReduction = 3,
 	NMP_EvalScale = 256,
 	NMP_MaxEvalReduction = 3,
@@ -55,7 +54,9 @@ enum
 	LMR_MinMoves = 4,
 
 	Razor_LightMargin = 150,
-	Razor_HeavyMargin = 300
+	Razor_HeavyMargin = 300,
+
+	MAX_PLIES = 240
 };
 
 void		sort_root_moves(root_move_t *begin, root_move_t *end);
@@ -69,7 +70,8 @@ score_t	qsearch(board_t *board, int depth, score_t alpha, score_t beta,
 score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 		searchstack_t *ss);
 
-bool	out_of_time(const board_t *board);
+void	check_time(void);
+
 score_t	evaluate(const board_t *board);
 
 #endif
