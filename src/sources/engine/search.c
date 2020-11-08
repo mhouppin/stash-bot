@@ -237,9 +237,11 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 				{
 					if (!is_capture_or_promotion(board, bestmove))
 					{
+						int		bonus = (depth <= 12) ? 16 * depth * depth : 20;
+
 						add_history(worker->history,
 							piece_on(board, move_from_square(bestmove)),
-							bestmove, 1);
+							bestmove, bonus);
 
 						if (ss->killers[0] == NO_MOVE)
 							ss->killers[0] = bestmove;
@@ -249,7 +251,7 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 						for (int i = 0; i < qcount; ++i)
 							add_history(worker->history,
 							piece_on(board, move_from_square(quiets[i])),
-							quiets[i], -1);
+							quiets[i], -bonus);
 					}
 
 					break ;
