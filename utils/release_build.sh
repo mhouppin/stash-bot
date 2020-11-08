@@ -28,13 +28,13 @@ do
 	rm $(find sources \( -name "*.o" \) )
 
 	make -f tmp.make EXE="stash-$version-linux-$ext_arch" \
-		EXT_OFLAGS="-fprofile-use -fno-peel-loops -fno-tracer -flto" \
+		EXT_OFLAGS="-fprofile-use -fno-peel-loops -fno-tracer" \
 		EXT_LFLAGS="-lgcov" ARCH="$build_arch"
 
 	rm $(find sources \( -name "*.o" \) )
 
 	CC=x86_64-w64-mingw32-gcc make -f tmp.make EXE="stash-$version-windows-$ext_arch.exe" \
-		EXT_OFLAGS="-fprofile-use -fno-peel-loops -fno-tracer -flto" \
+		EXT_OFLAGS="-fprofile-use -fno-peel-loops -fno-tracer" \
 		EXT_LFLAGS="-lgcov -static" ARCH="$build_arch"
 
 	rm $(find sources \( -name "*.gcda" \) )
@@ -44,7 +44,7 @@ rm -f stash-bot
 rm $(find sources \( -name "*.o" \) )
 
 make -f tmp.make EXE="stash-$version-linux-i386" \
-	EXT_OFLAGS="-flto -m32" \
+	EXT_OFLAGS="-m32" ARCH=i386 \
 
 make -f tmp.make clean
 
