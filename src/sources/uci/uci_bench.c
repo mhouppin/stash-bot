@@ -28,7 +28,7 @@
 void	uci_bench(const char *args)
 {
 	if (!args || !atoi(args))
-		args = "11";
+		args = "13";
 
 	const char	*positions[] = {
 		"startpos",
