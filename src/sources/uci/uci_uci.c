@@ -23,7 +23,7 @@
 void	uci_uci(const char *args)
 {
 	(void)args;
-	puts("id name Stash v23.0");
+	puts("id name Stash v23.1");
 	puts("id author Morgan Houppin");
 
 	show_options(&g_opthandler);
