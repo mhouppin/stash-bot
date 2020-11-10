@@ -23,7 +23,7 @@ void		tt_save(tt_entry_t *entry, hashkey_t k, score_t s, score_t e, int d, int b
 	if (m || k != entry->key)
 		entry->bestmove = (uint16_t)m;
 
-	if (k != entry->key || d - DEPTH_OFFSET > entry->depth || b == EXACT_BOUND)
+	if (k != entry->key || d > entry->depth || b == EXACT_BOUND)
 	{
 		extern transposition_t	g_hashtable;
 
@@ -31,6 +31,6 @@ void		tt_save(tt_entry_t *entry, hashkey_t k, score_t s, score_t e, int d, int b
 		entry->score = s;
 		entry->eval = e;
 		entry->genbound = g_hashtable.generation | (uint8_t)b;
-		entry->depth = (d - DEPTH_OFFSET);
+		entry->depth = d;
 	}
 }

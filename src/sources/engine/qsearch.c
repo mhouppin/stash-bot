@@ -26,8 +26,7 @@
 #include "tt.h"
 #include "uci.h"
 
-score_t	qsearch(board_t *board, int depth, score_t alpha, score_t beta,
-		searchstack_t *ss)
+score_t	qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
 {
 	worker_t			*worker = get_worker(board);
 	const score_t		old_alpha = alpha;
@@ -73,24 +72,13 @@ score_t	qsearch(board_t *board, int depth, score_t alpha, score_t beta,
 
 	if (found)
 	{
-		int	bound = entry->genbound & 3;
-
+		int			bound = entry->genbound & 3;
 		score_t		tt_score = score_from_tt(entry->score, ss->plies);
 
-		if (bound == EXACT_BOUND)
+		if (bound == EXACT_BOUND
+			|| (bound == LOWER_BOUND && tt_score >= beta)
+			|| (bound == UPPER_BOUND && tt_score <= alpha))
 			return (tt_score);
-		else if (bound == LOWER_BOUND && tt_score > alpha)
-		{
-			alpha = tt_score;
-			if (alpha >= beta)
-				return (alpha);
-		}
-		else if (bound == UPPER_BOUND && tt_score < beta)
-		{
-			beta = tt_score;
-			if (alpha >= beta)
-				return (beta);
-		}
 	}
 
 	move_t	tt_move = entry->bestmove;
@@ -136,8 +124,7 @@ score_t	qsearch(board_t *board, int depth, score_t alpha, score_t beta,
 
 		do_move_gc(board, extmove->move, &stack, gives_check);
 
-		score_t		next = -qsearch(board, depth - 1, -beta, -alpha,
-			ss + 1);
+		score_t		next = -qsearch(board, -beta, -alpha, ss + 1);
 
 		undo_move(board, extmove->move);
 
@@ -166,7 +153,7 @@ score_t	qsearch(board_t *board, int depth, score_t alpha, score_t beta,
 	// Do not erase entries with higher depth for same position.
 
 	if (best_value != NO_SCORE && (entry->key != board->stack->board_key
-		|| entry->depth <= -DEPTH_OFFSET))
+		|| entry->depth == 0))
 	{
 		int bound = (best_value >= beta) ? LOWER_BOUND
 			: (best_value <= old_alpha) ? UPPER_BOUND : EXACT_BOUND;

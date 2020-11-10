@@ -31,7 +31,7 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 		searchstack_t *ss)
 {
 	if (depth <= 0)
-		return (qsearch(board, depth, alpha, beta, ss));
+		return (qsearch(board, alpha, beta, ss));
 
 	worker_t			*worker = get_worker(board);
 	movelist_t			list;
@@ -70,25 +70,15 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 		score_t	tt_score = score_from_tt(entry->score, ss->plies);
 		int		bound = entry->genbound & 3;
 
-		if (entry->depth >= depth - DEPTH_OFFSET)
+		if (entry->depth >= depth)
 		{
-			if (bound == EXACT_BOUND)
+			if (bound == EXACT_BOUND
+				|| (bound == LOWER_BOUND && tt_score >= beta)
+				|| (bound == UPPER_BOUND && tt_score <= alpha))
 				return (tt_score);
-			else if (bound == LOWER_BOUND && tt_score > alpha)
-			{
-				alpha = tt_score;
-				if (alpha >= beta)
-					return (alpha);
-			}
-			else if (bound == UPPER_BOUND && tt_score < beta)
-			{
-				beta = tt_score;
-				if (alpha >= beta)
-					return (beta);
-			}
 		}
-		tt_move = entry->bestmove;
 
+		tt_move = entry->bestmove;
 		eval = ss->static_eval = entry->eval;
 
 		if (bound & (tt_score > eval ? LOWER_BOUND : UPPER_BOUND))
@@ -106,12 +96,12 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 	{
 		if (depth == 1)
 		{
-			score_t		max_score = qsearch(board, 0, alpha, beta, ss);
+			score_t		max_score = qsearch(board, alpha, beta, ss);
 			return (max(ss->static_eval + Razor_LightMargin, max_score));
 		}
 		if (ss->static_eval + Razor_HeavyMargin < beta && depth <= 3)
 		{
-			score_t		max_score = qsearch(board, 0, alpha, beta, ss);
+			score_t		max_score = qsearch(board, alpha, beta, ss);
 			if (max_score < beta)
 				return (max(ss->static_eval + Razor_HeavyMargin, max_score));
 		}
@@ -192,32 +182,24 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 		move_count++;
 
 		boardstack_t	stack;
+		score_t			next;
+		int				reduction;
+		int				new_depth = depth - 1;
 
 		do_move(board, extmove->move, &stack);
 
-		score_t		next;
-
-		if (move_count == 1)
-			next = -search(board, depth - 1, -beta, -alpha, ss + 1);
+		// Can we apply LMR ?
+		if (depth >= LMR_MinDepth && move_count > LMR_MinMoves && !board->stack->checkers)
+			reduction = (depth + move_count) / 10 + 1;
 		else
-		{
-			// Late Move Reductions.
+			reduction = 0;
 
-			bool	need_full_depth_search = true;
+		if (reduction)
+			next = -search(board, new_depth - reduction, -alpha - 1, -alpha, ss + 1);
 
-			if (depth >= LMR_MinDepth && move_count > LMR_MinMoves
-				&& !board->stack->checkers)
-			{
-				int		lmr_depth = depth - (depth + move_count) / 10 - 2;
-
-				next = -search(board, lmr_depth, -alpha - 1, -alpha, ss + 1);
-
-				need_full_depth_search = (alpha < next);
-			}
-
-			if (need_full_depth_search)
-				next = -search(board, depth - 1, -alpha - 1, -alpha, ss + 1);
-		}
+		// If LMR is not possible, or our LMR failed, do a search with no reductions
+		if ((reduction && next > alpha) || !reduction)
+			next = -search(board, new_depth, -alpha - 1, -alpha, ss + 1);
 
 		undo_move(board, extmove->move);
 
@@ -273,7 +255,7 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 
 	// Do not erase entries with higher depth for same position.
 
-	if (entry->key != board->stack->board_key || entry->depth <= depth - DEPTH_OFFSET)
+	if (entry->key != board->stack->board_key || entry->depth <= depth)
 	{
 		int bound = (best_value >= beta) ? LOWER_BOUND : UPPER_BOUND;
 
