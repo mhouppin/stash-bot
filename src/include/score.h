@@ -51,13 +51,6 @@ enum
 	PHASE_NB
 };
 
-enum
-{
-	// Represents the maximal depth reduction that can occur in normal search
-
-	DEPTH_OFFSET = -3
-};
-
 INLINED score_t		midgame_score(scorepair_t pair)
 {
 	return ((score_t)(uint16_t)(((uint32_t)pair + 32768) >> 16));

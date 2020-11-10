@@ -33,7 +33,7 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 		searchstack_t *ss)
 {
 	if (depth <= 0)
-		return (qsearch(board, depth, alpha, beta, ss));
+		return (qsearch(board, alpha, beta, ss));
 
 	worker_t			*worker = get_worker(board);
 	movelist_t			list;
@@ -91,43 +91,31 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 		move_count++;
 
 		boardstack_t	stack;
+		score_t			next;
+		int				reduction;
+		int				new_depth = depth - 1;
 
 		do_move(board, extmove->move, &stack);
 
-		score_t		next;
-
-		pv[0] = NO_MOVE;
-
-		if (move_count == 1)
-			next = -search_pv(board, depth - 1, -beta, -alpha, ss + 1);
+		// Can we apply LMR ?
+		if (depth >= LMR_MinDepth && move_count > LMR_MinMoves && !board->stack->checkers)
+			reduction = (depth + move_count) / 10 + 1;
 		else
+			reduction = 0;
+
+		if (reduction)
+			next = -search(board, new_depth - reduction, -alpha - 1, -alpha, ss + 1);
+
+		// If LMR is not possible, or our LMR failed, do a search with no reductions
+		if ((reduction && next > alpha) || (!reduction && move_count != 1))
+			next = -search(board, new_depth, -alpha - 1, -alpha, ss + 1);
+
+		// Finally, if null window search and LMR search failed above alpha, do
+		// a full window search.
+		if (move_count == 1 || next > alpha)
 		{
-			// Late Move Reductions.
-
-			bool	need_full_depth_search = true;
-
-			if (depth >= LMR_MinDepth && move_count > LMR_MinMoves
-				&& !board->stack->checkers)
-			{
-				int		lmr_depth = depth - (depth + move_count) / 10 - 2;
-
-				next = -search(board, lmr_depth, -alpha - 1, -alpha, ss + 1);
-
-				need_full_depth_search = (alpha < next);
-			}
-
-			if (need_full_depth_search)
-			{
-				pv[0] = NO_MOVE;
-
-				next = -search(board, depth - 1, -alpha - 1, -alpha, ss + 1);
-
-				if (alpha < next && next < beta)
-				{
-					pv[0] = NO_MOVE;
-					next = -search_pv(board, depth - 1, -beta, -alpha, ss + 1);
-				}
-			}
+			pv[0] = NO_MOVE;
+			next = -search_pv(board, new_depth, -beta, -alpha, ss + 1);
 		}
 
 		undo_move(board, extmove->move);
@@ -190,7 +178,7 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 
 	// Do not erase entries with higher depth for same position.
 
-	if (entry->key != board->stack->board_key || entry->depth <= depth - DEPTH_OFFSET)
+	if (entry->key != board->stack->board_key || entry->depth <= depth)
 	{
 		int bound = (bestmove == NO_MOVE) ? UPPER_BOUND
 			: (best_value >= beta) ? LOWER_BOUND : EXACT_BOUND;
@@ -230,11 +218,7 @@ void	search_bestmove(board_t *board, int depth, score_t alpha, score_t beta,
 
 		move_count++;
 
-		boardstack_t	stack;
-
-		do_move(board, cur->move, &stack);
-
-		clock_t			elapsed = chess_clock() - g_goparams.start;
+		clock_t		elapsed = chess_clock() - g_goparams.start;
 
 		if (!get_worker(board)->idx && elapsed > 3000)
 		{
@@ -244,46 +228,39 @@ void	search_bestmove(board_t *board, int depth, score_t alpha, score_t beta,
 			fflush(stdout);
 		}
 
-		pv[0] = NO_MOVE;
+		boardstack_t	stack;
+		score_t			next;
+		int				reduction;
+		int				new_depth = depth - 1;
 
-		score_t		next;
+		do_move(board, extmove->move, &stack);
 
-		if (move_count == 1)
-			next = -search_pv(board, depth - 1, -beta, -alpha, sstack);
+		// Can we apply LMR ?
+		if (depth >= LMR_MinDepth && move_count > LMR_MinMoves && !board->stack->checkers)
+			reduction = (depth + move_count) / 10 + 1;
 		else
+			reduction = 0;
+
+		if (reduction)
+			next = -search(board, new_depth - reduction, -alpha - 1, -alpha, sstack);
+
+		// If LMR is not possible, or our LMR failed, do a search with no reductions
+		if ((reduction && next > alpha) || (!reduction && move_count != 1))
+			next = -search(board, new_depth, -alpha - 1, -alpha, sstack);
+
+		// Finally, if null window search and LMR search failed above alpha, do
+		// a full window search.
+		if (move_count == 1 || next > alpha)
 		{
-			// Late Move Reductions.
-
-			bool	need_full_depth_search = true;
-
-			if (depth >= LMR_MinDepth && move_count > LMR_MinMoves
-				&& !board->stack->checkers)
-			{
-				int		lmr_depth = depth - (depth + move_count) / 10 - 2;
-
-				next = -search(board, lmr_depth, -alpha - 1, -alpha, sstack);
-
-				need_full_depth_search = (abs(next) < INF_SCORE && alpha < next);
-			}
-
-			if (need_full_depth_search)
-			{
-				pv[0] = NO_MOVE;
-
-				next = -search(board, depth - 1, -alpha - 1, -alpha, sstack);
-
-				if (alpha < next && next < beta)
-				{
-					pv[0] = NO_MOVE;
-					next = -search_pv(board, depth - 1, -beta, -alpha, sstack);
-				}
-			}
+			pv[0] = NO_MOVE;
+			next = -search_pv(board, new_depth, -beta, -alpha, sstack);
 		}
 
 		undo_move(board, cur->move);
 
 		if (g_engine_send == DO_ABORT || g_engine_send == DO_EXIT)
 			return ;
+
 		else if (move_count == 1 || next > alpha)
 		{
 			cur->score = next;
