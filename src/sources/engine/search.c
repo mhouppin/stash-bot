@@ -168,11 +168,7 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 	}
 
 	if (depth > 7 && !tt_move)
-	{
-		search(board, depth / 2, alpha, beta, ss);
-		entry = tt_probe(board->stack->board_key, &found);
-		tt_move = entry->bestmove;
-	}
+		--depth;
 
 	list_pseudo(&list, board);
 	generate_move_values(&list, board, tt_move, ss->killers);
