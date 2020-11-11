@@ -109,7 +109,7 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 
 	// Futility Pruning.
 
-	if (depth <= 2 && eval + 256 * depth <= alpha)
+	if (depth <= 3 && eval + 256 * depth >= beta && eval < VICTORY)
 		return (eval);
 
 	// Null move pruning.
