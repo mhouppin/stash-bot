@@ -81,13 +81,80 @@ const int	AttackWeights[8] = {
 	0, 0, 50, 75, 88, 94, 97, 99
 };
 
-scorepair_t	evaluate_rook_patterns(const board_t *board, color_t c)
+typedef struct
 {
-	scorepair_t	ret = 0;
+	bitboard_t	king_zone[COLOR_NB];
+	bitboard_t	safe_zone[COLOR_NB];
+	int			attackers[COLOR_NB];
+	int			weights[COLOR_NB];
+}
+evaluation_t;
 
-	bitboard_t	my_pawns = board->piecetype_bits[PAWN] & board->color_bits[c];
-	bitboard_t	their_pawns = board->piecetype_bits[PAWN] & ~my_pawns;
-	bitboard_t	their_queens = board->piecetype_bits[QUEEN]
+void		eval_init(const board_t *board, evaluation_t *eval)
+{
+	const bitboard_t	pawns = board->piecetype_bits[PAWN];
+
+	eval->attackers[WHITE] = eval->attackers[BLACK]
+		= eval->weights[WHITE] = eval->weights[BLACK] = 0;
+
+	eval->king_zone[WHITE] = king_moves(board->piece_list[BLACK_KING][0]);
+	eval->king_zone[BLACK] = king_moves(board->piece_list[WHITE_KING][0]);
+	eval->king_zone[WHITE] |= shift_down(eval->king_zone[WHITE]);
+	eval->king_zone[BLACK] |= shift_up(eval->king_zone[BLACK]);
+	eval->safe_zone[WHITE] = ~black_pawn_attacks(pawns & board->color_bits[BLACK]);
+	eval->safe_zone[BLACK] = ~white_pawn_attacks(pawns & board->color_bits[WHITE]);
+	eval->king_zone[WHITE] &= eval->safe_zone[WHITE];
+	eval->king_zone[BLACK] &= eval->safe_zone[BLACK];
+}
+
+scorepair_t	evaluate_knights(const board_t *board, evaluation_t *eval, color_t c)
+{
+	scorepair_t		ret = 0;
+	const square_t	*list = board->piece_list[create_piece(c, KNIGHT)];
+
+	for (square_t sq = *list; sq != SQ_NONE; sq = *++list)
+	{
+		bitboard_t	b = knight_moves(sq);
+
+		ret += MobilityN[popcount(b & eval->safe_zone[c])];
+
+		if (b & eval->king_zone[c])
+		{
+			eval->attackers[c] += 1;
+			eval->weights[c] += popcount(b & eval->king_zone[c]) * MinorWeight;
+		}
+	}
+	return (ret);
+}
+
+scorepair_t	evaluate_bishops(const board_t *board, evaluation_t *eval, color_t c)
+{
+	scorepair_t			ret = 0;
+	const bitboard_t	occupancy = board->piecetype_bits[ALL_PIECES];
+	const square_t		*list = board->piece_list[create_piece(c, BISHOP)];
+
+	for (square_t sq = *list; sq != SQ_NONE; sq = *++list)
+	{
+		bitboard_t	b = bishop_move_bits(sq, occupancy);
+
+		ret += MobilityB[popcount(b & eval->safe_zone[c])];
+
+		if (b & eval->king_zone[c])
+		{
+			eval->attackers[c] += 1;
+			eval->weights[c] += popcount(b & eval->king_zone[c]) * MinorWeight;
+		}
+	}
+	return (ret);
+}
+
+scorepair_t	evaluate_rooks(const board_t *board, evaluation_t *eval, color_t c)
+{
+	scorepair_t			ret = 0;
+	const bitboard_t	occupancy = board->piecetype_bits[ALL_PIECES];
+	const bitboard_t	my_pawns = board->piecetype_bits[PAWN] & board->color_bits[c];
+	const bitboard_t	their_pawns = board->piecetype_bits[PAWN] & ~my_pawns;
+	const bitboard_t	their_queens = board->piecetype_bits[QUEEN]
 		& board->color_bits[opposite_color(c)];
 
 	const square_t	*list = board->piece_list[create_piece(c, ROOK)];
@@ -95,14 +162,55 @@ scorepair_t	evaluate_rook_patterns(const board_t *board, color_t c)
 	for (square_t sq = *list; sq != SQ_NONE; sq = *++list)
 	{
 		bitboard_t	rook_file = file_square_bits(sq);
+		bitboard_t	b = rook_move_bits(sq, occupancy);
 
 		if (!(rook_file & my_pawns))
 			ret += (rook_file & their_pawns) ? RookOnSemiOpenFile : RookOnOpenFile;
 
 		if (rook_file & their_queens)
 			ret += RookXrayQueen;
+
+		ret += MobilityR[popcount(b & eval->safe_zone[c])];
+
+		if (b & eval->king_zone[c])
+		{
+			eval->attackers[c] += 1;
+			eval->weights[c] += popcount(b & eval->king_zone[c]) * RookWeight;
+		}
 	}
 	return (ret);
+}
+
+scorepair_t	evaluate_queens(const board_t *board, evaluation_t *eval, color_t c)
+{
+	scorepair_t			ret = 0;
+	const bitboard_t	occupancy = board->piecetype_bits[ALL_PIECES];
+	const square_t		*list = board->piece_list[create_piece(c, QUEEN)];
+
+	for (square_t sq = *list; sq != SQ_NONE; sq = *++list)
+	{
+		bitboard_t	b = bishop_move_bits(sq, occupancy)
+			| rook_move_bits(sq, occupancy);
+
+		ret += MobilityQ[popcount(b & eval->safe_zone[c])];
+
+		if (b & eval->king_zone[c])
+		{
+			eval->attackers[c] += 1;
+			eval->weights[c] += popcount(b & eval->king_zone[c]) * QueenWeight;
+		}
+	}
+	return (ret);
+}
+
+scorepair_t	evaluate_safety(evaluation_t *eval, color_t c)
+{
+	int		bonus = eval->weights[c];
+
+	if (eval->attackers[c] <= 8)
+		bonus = bonus * AttackWeights[eval->attackers[c]] / 100;
+
+	return (SafetyRatio * bonus);
 }
 
 scorepair_t	evaluate_material(const board_t *board, color_t c)
@@ -122,119 +230,38 @@ scorepair_t	evaluate_material(const board_t *board, color_t c)
 	return (ret);
 }
 
-scorepair_t	evaluate_mobility(const board_t *board, color_t c)
-{
-	scorepair_t		ret = 0;
-	int				wattacks = 0;
-	int				attackers = 0;
-	bitboard_t		king_zone;
-	bitboard_t		safe;
-
-	const bitboard_t	occupancy = board->piecetype_bits[ALL_PIECES];
-
-	if (c == WHITE)
-	{
-		king_zone = king_moves(board->piece_list[BLACK_KING][0]);
-		king_zone |= shift_down(king_zone);
-		safe = ~black_pawn_attacks(board->piecetype_bits[PAWN] & board->color_bits[BLACK]);
-	}
-	else
-	{
-		king_zone = king_moves(board->piece_list[WHITE_KING][0]);
-		king_zone |= shift_up(king_zone);
-		safe = ~white_pawn_attacks(board->piecetype_bits[PAWN] & board->color_bits[WHITE]);
-	}
-
-	// Exclude unsafe squares from king zone target squares
-
-	king_zone &= safe;
-
-	const square_t *list = board->piece_list[create_piece(c, KNIGHT)];
-
-	for (square_t sq = *list; sq != SQ_NONE; sq = *++list)
-	{
-		bitboard_t	b = knight_moves(sq);
-
-		ret += MobilityN[popcount(b & safe)];
-
-		if (b & king_zone)
-		{
-			attackers++;
-			wattacks += popcount(b & king_zone) * MinorWeight;
-		}
-	}
-
-	list = board->piece_list[create_piece(c, BISHOP)];
-	for (square_t sq = *list; sq != SQ_NONE; sq = *++list)
-	{
-		bitboard_t	b = bishop_move_bits(sq, occupancy);
-
-		ret += MobilityB[popcount(b & safe)];
-
-		if (b & king_zone)
-		{
-			attackers++;
-			wattacks += popcount(b & king_zone) * MinorWeight;
-		}
-	}
-
-	list = board->piece_list[create_piece(c, ROOK)];
-	for (square_t sq = *list; sq != SQ_NONE; sq = *++list)
-	{
-		bitboard_t	b = rook_move_bits(sq, occupancy);
-
-		ret += MobilityR[popcount(b & safe)];
-
-		if (b & king_zone)
-		{
-			attackers++;
-			wattacks += popcount(b & king_zone) * RookWeight;
-		}
-	}
-
-	list = board->piece_list[create_piece(c, QUEEN)];
-	for (square_t sq = *list; sq != SQ_NONE; sq = *++list)
-	{
-		bitboard_t	b = bishop_move_bits(sq, occupancy)
-			| rook_move_bits(sq, occupancy);
-
-		ret += MobilityQ[popcount(b & safe)];
-
-		if (b & king_zone)
-		{
-			attackers++;
-			wattacks += popcount(b & king_zone) * QueenWeight;
-		}
-	}
-
-	if (attackers < 8)
-		wattacks = wattacks * AttackWeights[attackers] / 100;
-
-	ret += SafetyRatio * wattacks;
-
-	return (ret);
-}
-
 score_t		evaluate(const board_t *board)
 {
-	scorepair_t		eval = board->psq_scorepair;
+	evaluation_t	eval;
+	scorepair_t		tapered = board->psq_scorepair;
 
 	if (board->stack->castlings & WHITE_CASTLING)
-		eval += CastlingBonus;
+		tapered += CastlingBonus;
 	if (board->stack->castlings & BLACK_CASTLING)
-		eval -= CastlingBonus;
+		tapered -= CastlingBonus;
 
-	eval += evaluate_pawns(board);
-	eval += evaluate_material(board, WHITE);
-	eval -= evaluate_material(board, BLACK);
-	eval += evaluate_mobility(board, WHITE);
-	eval -= evaluate_mobility(board, BLACK);
-	eval += evaluate_rook_patterns(board, WHITE);
-	eval -= evaluate_rook_patterns(board, BLACK);
-	eval += (board->side_to_move == WHITE) ? Initiative : -Initiative;
+	eval_init(board, &eval);
 
-	score_t		mg = midgame_score(eval);
-	score_t		eg = endgame_score(eval);
+	tapered += evaluate_pawns(board);
+
+	tapered += evaluate_material(board, WHITE);
+	tapered -= evaluate_material(board, BLACK);
+
+	tapered += evaluate_knights(board, &eval, WHITE);
+	tapered -= evaluate_knights(board, &eval, BLACK);
+	tapered += evaluate_bishops(board, &eval, WHITE);
+	tapered -= evaluate_bishops(board, &eval, BLACK);
+	tapered += evaluate_rooks(board, &eval, WHITE);
+	tapered -= evaluate_rooks(board, &eval, BLACK);
+	tapered += evaluate_queens(board, &eval, WHITE);
+	tapered -= evaluate_queens(board, &eval, BLACK);
+
+	tapered += evaluate_safety(&eval, WHITE);
+	tapered -= evaluate_safety(&eval, BLACK);
+	tapered += (board->side_to_move == WHITE) ? Initiative : -Initiative;
+
+	score_t		mg = midgame_score(tapered);
+	score_t		eg = endgame_score(tapered);
 	int			piece_count = popcount(board->piecetype_bits[ALL_PIECES]);
 	score_t		score;
 
