@@ -39,7 +39,7 @@ void	generate_move_values(movelist_t *movelist, const board_t *board,
 		switch (type_of_move(move))
 		{
 			case PROMOTION:
-				extmove->score = 4096 + PieceScores[ENDGAME][promotion_type(move)];
+				extmove->score = 4096 + promotion_type(move);
 				break ;
 
 			case EN_PASSANT:

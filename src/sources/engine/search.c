@@ -181,6 +181,7 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 		score_t			next;
 		int				reduction;
 		int				new_depth = depth - 1;
+		bool			is_quiet = !is_capture_or_promotion(board, extmove->move);
 
 		do_move(board, extmove->move, &stack);
 
@@ -213,31 +214,15 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 
 				if (alpha >= beta)
 				{
-					if (!is_capture_or_promotion(board, bestmove))
-					{
-						int		bonus = (depth <= 12) ? 16 * depth * depth : 20;
-
-						add_history(worker->history,
-							piece_on(board, move_from_square(bestmove)),
-							bestmove, bonus);
-
-						if (ss->killers[0] == NO_MOVE)
-							ss->killers[0] = bestmove;
-						else if (ss->killers[0] != bestmove)
-							ss->killers[1] = bestmove;
-
-						for (int i = 0; i < qcount; ++i)
-							add_history(worker->history,
-							piece_on(board, move_from_square(quiets[i])),
-							quiets[i], -bonus);
-					}
-
+					if (is_quiet)
+						update_quiet_history(worker->history, board, depth,
+							bestmove, quiets, qcount, ss);
 					break ;
 				}
 			}
 		}
 
-		if (qcount < 64 && !is_capture_or_promotion(board, extmove->move))
+		if (qcount < 64 && is_quiet)
 			quiets[qcount++] = extmove->move;
 
 		if (depth < 4 && qcount > depth * 8)

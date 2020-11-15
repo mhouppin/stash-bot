@@ -21,6 +21,7 @@
 
 # include <time.h>
 # include "board.h"
+# include "history.h"
 
 typedef struct
 {
@@ -70,6 +71,9 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 		searchstack_t *ss);
 
 void	check_time(void);
+
+void	update_quiet_history(history_t hist, const board_t *board, int depth,
+		move_t bestmove, const move_t quiets[64], int qcount, searchstack_t *ss);
 
 score_t	evaluate(const board_t *board);
 
