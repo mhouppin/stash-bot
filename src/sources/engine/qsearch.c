@@ -97,22 +97,23 @@ score_t	qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
 		&& popcount(board->piecetype_bits[ALL_PIECES]) > 6);
 	const score_t	delta_base = eval + PAWN_EG_SCORE * 2;
 
-	for (const extmove_t *extmove = movelist_begin(&list);
-		extmove < movelist_end(&list); ++extmove)
+	for (extmove_t *extmove = list.moves; extmove < list.last; ++extmove)
 	{
-		place_top_move((extmove_t *)extmove, (extmove_t *)movelist_end(&list));
-		if (!board_legal(board, extmove->move))
+		place_top_move(extmove, list.last);
+		const move_t	currmove = extmove->move;
+
+		if (!board_legal(board, currmove))
 			continue ;
 
 		move_count++;
 
-		bool	gives_check = move_gives_check(board, extmove->move);
+		bool	gives_check = move_gives_check(board, currmove);
 
 		if (delta_pruning && !gives_check
-			&& type_of_move(extmove->move) == NORMAL_MOVE)
+			&& type_of_move(currmove) == NORMAL_MOVE)
 		{
 			score_t		delta = delta_base + PieceScores[ENDGAME]
-				[type_of_piece(piece_on(board, move_to_square(extmove->move)))];
+				[type_of_piece(piece_on(board, move_to_square(currmove)))];
 
 			// Check if the move is very unlikely to improve alpha.
 
@@ -122,17 +123,14 @@ score_t	qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
 
 		boardstack_t	stack;
 
-		do_move_gc(board, extmove->move, &stack, gives_check);
+		do_move_gc(board, currmove, &stack, gives_check);
 
 		score_t		next = -qsearch(board, -beta, -alpha, ss + 1);
 
-		undo_move(board, extmove->move);
+		undo_move(board, currmove);
 
-		if (abs(next) > INF_SCORE)
-		{
-			best_value = NO_SCORE;
-			break ;
-		}
+		if (g_engine_send == DO_ABORT || g_engine_send == DO_EXIT)
+			return (0);
 
 		if (best_value < next)
 		{
@@ -140,7 +138,7 @@ score_t	qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
 			if (alpha < best_value)
 			{
 				alpha = best_value;
-				bestmove = extmove->move;
+				bestmove = currmove;
 				if (alpha >= beta)
 					break ;
 			}
@@ -152,8 +150,7 @@ score_t	qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
 
 	// Do not erase entries with higher depth for same position.
 
-	if (best_value != NO_SCORE && (entry->key != board->stack->board_key
-		|| entry->depth == 0))
+	if (entry->key != board->stack->board_key || entry->depth == 0)
 	{
 		int bound = (best_value >= beta) ? LOWER_BOUND
 			: (best_value <= old_alpha) ? UPPER_BOUND : EXACT_BOUND;
