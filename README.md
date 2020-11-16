@@ -1,7 +1,7 @@
 ## stash-bot
 
 Stash is a UCI-compliant chess engine developed from scratch. Preferably used
-with a GUI like Arena, CuteChess, Fritz, etc. Currently rated around 2700 Elo.
+with a GUI like Arena, CuteChess, Fritz, etc. Currently rated around 2880 Elo.
 
 ## Files
 
@@ -12,14 +12,17 @@ The repository consists of the following files:
   * src, the directory containing all the source code + a Makefile that can be
     used to compile Stash on Unix-like systems (or Windows if you installed
     MinGW).
-  * unix\_build.sh and windows\_build.sh, two shell scripts that can generate
-    profiled builds for your architecture.
-  * release\_build.sh, a shell script mainly intended for the contributors to
-    automatically generate all binaries when creating releases.
+  * utils\\unix\_build.sh and utils\\windows\_build.sh, two shell scripts that
+    can generate profiled builds for your architecture.
+  * utils\\release\_build.sh, a shell script mainly intended for the
+    contributors to automatically generate all binaries when creating releases.
 
 ## UCI Parameters
 
 Stash supports for now all these UCI options:
+
+  * #### Threads
+    Sets the number of cores used for searching a position (defaults to 1).
 
   * #### Hash
     Sets the hash table size in MB (defaults to 16).
@@ -29,18 +32,12 @@ Stash supports for now all these UCI options:
 
   * #### MultiPV
     Output the best N lines (principal variations) when searching.
-	This option is still experimental (not completely UCI compliant),
-	and so may not satisfy all GUIs. Leave at 1 for best performance.
+	Leave at 1 for best performance.
 
   * #### Move Overhead
     Assumes a time delay of x milliseconds due to network and GUI overheads.
 	Increase it if the engine often loses games on time. The default value
-	of 20 ms should be reasonable for all chess GUIs.
-
-  * #### Minimum Thinking Time
-    Thinks at least x milliseconds per move. Useful for short time controls
-	when the Move Overhead may cause the usable time to be zero. Too high values
-	may cause the engine to flag bullet games.
+	of 100 ms should be sufficient for all chess GUIs.
 
 ## Frequently Asked Questions
 
