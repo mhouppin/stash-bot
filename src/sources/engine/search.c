@@ -28,19 +28,20 @@
 #include "uci.h"
 
 score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
-		searchstack_t *ss)
+		searchstack_t *ss, bool pv_node)
 {
 	if (depth <= 0)
 		return (qsearch(board, alpha, beta, ss));
 
 	worker_t			*worker = get_worker(board);
 	movelist_t			list;
+	move_t				pv[256];
 	score_t				best_value = -INF_SCORE;
 
 	if (!worker->idx)
 		check_time();
 
-	if (worker->seldepth < ss->plies + 1)
+	if (pv_node && worker->seldepth < ss->plies + 1)
 		worker->seldepth = ss->plies + 1;
 
 	if (g_engine_send == DO_EXIT || g_engine_send == DO_ABORT
@@ -70,7 +71,7 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 		score_t	tt_score = score_from_tt(entry->score, ss->plies);
 		int		bound = entry->genbound & 3;
 
-		if (entry->depth >= depth)
+		if (entry->depth >= depth && !pv_node)
 		{
 			if (bound == EXACT_BOUND
 				|| (bound == LOWER_BOUND && tt_score >= beta)
@@ -87,12 +88,13 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 	else
 		eval = ss->static_eval = evaluate(board);
 
+	(ss + 1)->pv = pv;
 	(ss + 1)->plies = ss->plies + 1;
 	(ss + 2)->killers[0] = (ss + 2)->killers[1] = NO_MOVE;
 
 	// Razoring.
 
-	if (ss->static_eval + Razor_LightMargin < beta)
+	if (!pv_node && ss->static_eval + Razor_LightMargin < beta)
 	{
 		if (depth == 1)
 		{
@@ -114,7 +116,7 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 
 	// Null move pruning.
 
-	if (depth >= NMP_MinDepth && !board->stack->checkers
+	if (!pv_node && depth >= NMP_MinDepth && !board->stack->checkers
 		&& ss->plies >= worker->verif_plies
 		&& eval >= beta && eval >= ss->static_eval)
 	{
@@ -127,7 +129,7 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 		do_null_move(board, &stack);
 
 		score_t			score = -search(board, depth - nmp_reduction, -beta, -beta + 1,
-				ss + 1);
+				ss + 1, false);
 
 		undo_null_move(board);
 
@@ -148,7 +150,7 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 			worker->verif_plies = ss->plies + (depth - nmp_reduction) * 3 / 4;
 
 			score_t		zzscore = search(board, depth - nmp_reduction, beta - 1, beta,
-				ss);
+				ss, false);
 
 			worker->verif_plies = 0;
 
@@ -193,11 +195,17 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 			reduction = 0;
 
 		if (reduction)
-			next = -search(board, new_depth - reduction, -alpha - 1, -alpha, ss + 1);
+			next = -search(board, new_depth - reduction, -alpha - 1, -alpha, ss + 1, false);
 
 		// If LMR is not possible, or our LMR failed, do a search with no reductions
-		if ((reduction && next > alpha) || !reduction)
-			next = -search(board, new_depth, -alpha - 1, -alpha, ss + 1);
+		if ((reduction && next > alpha) || (!reduction && !(pv_node && move_count == 1)))
+			next = -search(board, new_depth, -alpha - 1, -alpha, ss + 1, false);
+
+		if (pv_node && (move_count == 1 || next > alpha))
+		{
+			pv[0] = NO_MOVE;
+			next = -search(board, new_depth, -beta, -alpha, ss + 1, true);
+		}
 
 		undo_move(board, currmove);
 
@@ -212,6 +220,17 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 			{
 				bestmove = currmove;
 				alpha = best_value;
+
+				if (pv_node)
+				{
+					ss->pv[0] = bestmove = currmove;
+
+					size_t	j;
+					for (j = 0; (ss + 1)->pv[j] != NO_MOVE; ++j)
+						ss->pv[j + 1] = (ss + 1)->pv[j];
+
+					ss->pv[j + 1] = NO_MOVE;
+				}
 
 				if (alpha >= beta)
 				{
@@ -239,7 +258,8 @@ score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
 
 	if (entry->key != board->stack->board_key || entry->depth <= depth)
 	{
-		int bound = (best_value >= beta) ? LOWER_BOUND : UPPER_BOUND;
+		int bound = (best_value >= beta) ? LOWER_BOUND
+			: (pv_node && bestmove) ? EXACT_BOUND : UPPER_BOUND;
 
 		tt_save(entry, board->stack->board_key, score_to_tt(best_value, ss->plies),
 			ss->static_eval, depth, bound, bestmove);

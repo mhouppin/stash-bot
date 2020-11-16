@@ -68,7 +68,7 @@ void	search_bestmove(board_t *board, int depth, score_t alpha, score_t beta,
 		root_move_t *begin, root_move_t *end, int pv_line);
 score_t	qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss);
 score_t	search(board_t *board, int depth, score_t alpha, score_t beta,
-		searchstack_t *ss);
+		searchstack_t *ss, bool pv_node);
 
 void	check_time(void);
 

@@ -35,9 +35,6 @@ score_t	qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
 	if (!worker->idx)
 		check_time();
 
-	if (worker->seldepth < ss->plies + 1)
-		worker->seldepth = ss->plies + 1;
-
 	if (g_engine_send == DO_EXIT || g_engine_send == DO_ABORT
 		|| is_draw(board, ss->plies))
 		return (0);
