@@ -81,11 +81,12 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 	move_t	quiets[64];
 	int		qcount = 0;
 
-	for (const extmove_t *extmove = movelist_begin(&list);
-		extmove < movelist_end(&list); ++extmove)
+	for (extmove_t *extmove = list.moves; extmove < list.last; ++extmove)
 	{
-		place_top_move((extmove_t *)extmove, (extmove_t *)movelist_end(&list));
-		if (!board_legal(board, extmove->move))
+		place_top_move(extmove, list.last);
+		const move_t	currmove = extmove->move;
+
+		if (!board_legal(board, currmove))
 			continue ;
 
 		move_count++;
@@ -94,9 +95,9 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 		score_t			next;
 		int				reduction;
 		int				new_depth = depth - 1;
-		bool			is_quiet = !is_capture_or_promotion(board, extmove->move);
+		bool			is_quiet = !is_capture_or_promotion(board, currmove);
 
-		do_move(board, extmove->move, &stack);
+		do_move(board, currmove, &stack);
 
 		// Can we apply LMR ?
 		if (depth >= LMR_MinDepth && move_count > LMR_MinMoves && !board->stack->checkers)
@@ -119,7 +120,7 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 			next = -search_pv(board, new_depth, -beta, -alpha, ss + 1);
 		}
 
-		undo_move(board, extmove->move);
+		undo_move(board, currmove);
 
 		if (g_engine_send == DO_ABORT || g_engine_send == DO_EXIT)
 			return (0);
@@ -130,7 +131,7 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 
 			if (alpha < best_value)
 			{
-				ss->pv[0] = bestmove = extmove->move;
+				ss->pv[0] = bestmove = currmove;
 				alpha = best_value;
 
 				size_t	j;
@@ -150,7 +151,7 @@ score_t	search_pv(board_t *board, int depth, score_t alpha, score_t beta,
 		}
 
 		if (qcount < 64 && is_quiet)
-			quiets[qcount++] = extmove->move;
+			quiets[qcount++] = currmove;
 
 		if (depth < 4 && qcount > depth * 8)
 			break ;
@@ -192,12 +193,11 @@ void	search_bestmove(board_t *board, int depth, score_t alpha, score_t beta,
 	list_pseudo(&list, board);
 	generate_move_values(&list, board, begin->move, NULL);
 
-	for (const extmove_t *extmove = movelist_begin(&list);
-		extmove < movelist_end(&list); ++extmove)
+	for (extmove_t *extmove = list.moves; extmove < list.last; ++extmove)
 	{
 		root_move_t	*cur;
 
-		place_top_move((extmove_t *)extmove, (extmove_t *)movelist_end(&list));
+		place_top_move(extmove, list.last);
 		if ((cur = find_root_move(begin, end, extmove->move)) == NULL)
 			continue ;
 
@@ -218,7 +218,7 @@ void	search_bestmove(board_t *board, int depth, score_t alpha, score_t beta,
 		int				reduction;
 		int				new_depth = depth - 1;
 
-		do_move(board, extmove->move, &stack);
+		do_move(board, cur->move, &stack);
 
 		// Can we apply LMR ?
 		if (depth >= LMR_MinDepth && move_count > LMR_MinMoves && !board->stack->checkers)
