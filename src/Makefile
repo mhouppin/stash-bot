@@ -35,40 +35,45 @@ endif
 
 OBJECTS	:= $(SOURCES:%.c=%.o)
 DEPENDS := $(SOURCES:%.c=%.d)
+native = yes
 
-OFLAGS	:= -O3 -flto
-
-EXT_OFLAGS	?=
-EXT_LFLAGS	?=
+CFLAGS += -Wall -Wextra -Werror -O3 -flto
+LDFLAGS += -lpthread -lm
 
 ifeq ($(ARCH),x86-64)
-	OFLAGS += -DUSE_PREFETCH -msse
+	CFLAGS += -DUSE_PREFETCH
+	ifneq ($(native),yes)
+		CFLAGS += -msse
+	endif
 endif
 
 ifeq ($(ARCH),x86-64-modern)
-	OFLAGS += -DUSE_PREFETCH -msse
-	OFLAGS += -DUSE_POPCNT -msse3 -mpopcnt
+	CFLAGS += -DUSE_PREFETCH -DUSE_POPCNT
+	ifneq ($(native),yes)
+		CFLAGS += -msse -msse3 -mpopcnt
+	endif
 endif
 
 ifeq ($(ARCH),x86-64-bmi2)
-	OFLAGS += -DUSE_PREFETCH -msse
-	OFLAGS += -DUSE_POPCNT -msse3 -mpopcnt
-	OFLAGS += -DUSE_PEXT -msse4 -mbmi2
+	CFLAGS += -DUSE_PREFETCH -DUSE_POPCNT -DUSE_PEXT
+	ifneq ($(native),yes)
+		CFLAGS += -msse -msse3 -mpopcnt -msse4 -mbmi2
+	endif
 endif
 
-# If no arch is specified, build will default to a native one
+# If native is specified, build will try to use all available CPU instructions
 
-ifeq ($(ARCH),)
-	OFLAGS += -march=native
+ifeq ($(native),yes)
+	CFLAGS += -march=native
 endif
 
 all: $(EXE)
 
 $(EXE): $(OBJECTS)
-	$(CC) $(OFLAGS) -o $@ $^ -lpthread -lm $(EXT_OFLAGS) $(EXT_LFLAGS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 %.o: %.c
-	$(CC) $(OFLAGS) $(EXT_OFLAGS) -Wall -Wextra -Werror -c -MMD -I include \
+	$(CC) $(CFLAGS) -c -MMD -I include \
 		-o $@ $<
 
 -include $(DEPENDS)

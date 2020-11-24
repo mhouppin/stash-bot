@@ -13,39 +13,29 @@ cd $(dirname "$0")
 
 cd ../src
 
-cat Makefile | sed 's/-Werror/-w/g' > tmp.make
+cat Makefile | sed 's/-Wall -Wextra -Werror/-w/g' > tmp.make
 
-for build_arch in 64 x86-64 x86-64-modern x86-64-bmi2
+for arch in 64 x86-64 x86-64-modern x86-64-bmi2
 do
-	ext_arch=${build_arch/x86-64/x86_64}
+	ext_arch=${arch/x86-64/x86_64}
 
-	make -f tmp.make re EXT_OFLAGS="-fprofile-generate" EXT_LFLAGS="-lgcov" \
-		ARCH="$build_arch"
+	ARCH="$arch" CFLAGS="-fprofile-generate" LDFLAGS="-lgcov" make -f tmp.make re native=no
 
 	./stash-bot bench
 
-	rm -f stash-bot
-	rm $(find sources \( -name "*.o" \) )
+	ARCH="$arch" CFLAGS="-fprofile-use -fno-peel-loops -fno-tracer" LDFLAGS="-lgcov" \
+		make -f tmp.make re EXE="stash-$version-linux-$ext_arch" native=no \
 
-	make -f tmp.make EXE="stash-$version-linux-$ext_arch" \
-		EXT_OFLAGS="-fprofile-use -fno-peel-loops -fno-tracer" \
-		EXT_LFLAGS="-lgcov" ARCH="$build_arch"
-
-	rm $(find sources \( -name "*.o" \) )
-
-	CC=x86_64-w64-mingw32-gcc make -f tmp.make EXE="stash-$version-windows-$ext_arch.exe" \
-		EXT_OFLAGS="-fprofile-use -fno-peel-loops -fno-tracer" \
-		EXT_LFLAGS="-lgcov -static" ARCH="$build_arch"
+	ARCH="$arch" CC=x86_64-w64-mingw32-gcc CFLAGS="-fprofile-use -fno-peel-loops -fno-tracer" \
+		LDFLAGS="-lgcov -static" make -f tmp.make re \
+		EXE="stash-$version-windows-$ext_arch.exe" native=no \
 
 	rm $(find sources \( -name "*.gcda" \) )
 done
 
-rm -f stash-bot
-rm $(find sources \( -name "*.o" \) )
-
-make -f tmp.make EXE="stash-$version-linux-i386" \
-	EXT_OFLAGS="-m32" ARCH=i386 \
+CFLAGS="-m32" make -f tmp.make re EXE="stash-$version-linux-i386" native=no
 
 make -f tmp.make clean
 
+rm stash-bot
 rm -f tmp.make
