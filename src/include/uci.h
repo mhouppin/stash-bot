@@ -65,8 +65,6 @@ typedef struct	ucioptions_s
 	long		hash;
 	long		move_overhead;
 	long		multi_pv;
-	double		burn_ratio;
-	double		save_ratio;
 	bool		chess960;
 }				ucioptions_t;
 
