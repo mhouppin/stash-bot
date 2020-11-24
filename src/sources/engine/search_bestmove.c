@@ -45,7 +45,7 @@ void	search_bestmove(board_t *board, int depth, score_t alpha, score_t beta,
 	int					move_count = 0;
 
 	list_pseudo(&list, board);
-	generate_move_values(&list, board, begin->move, NULL);
+	generate_move_values(&list, board, begin->move, sstack[0].killers);
 
 	for (extmove_t *extmove = list.moves; extmove < list.last; ++extmove)
 	{
