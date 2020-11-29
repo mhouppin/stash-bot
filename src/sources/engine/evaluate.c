@@ -24,21 +24,21 @@
 
 enum
 {
-	CastlingBonus = SPAIR(76, -56),
-	Initiative = SPAIR(12, 20),
+	CastlingBonus = SPAIR(85, -43),
+	Initiative = SPAIR(10, 15),
 
-	MinorWeight = 31,
-	RookWeight = 20,
-	QueenWeight = 95,
-	SafetyRatio = SPAIR(1, 1),
+	KnightWeight = SPAIR(26, 8),
+	BishopWeight = SPAIR(18, 5),
+	RookWeight = SPAIR(51, -4),
+	QueenWeight = SPAIR(51, 72),
 
-	BishopPairBonus = SPAIR(20, 128),
-	KnightPairPenalty = SPAIR(-5, 0),
-	RookPairPenalty = SPAIR(-24, -4),
+	BishopPairBonus = SPAIR(12, 103),
+	KnightPairPenalty = SPAIR(-7, 7),
+	RookPairPenalty = SPAIR(-39, 24),
 
-	RookOnSemiOpenFile = SPAIR(23, 23),
-	RookOnOpenFile = SPAIR(50, 20),
-	RookXrayQueen = SPAIR(7, 19),
+	RookOnSemiOpenFile = SPAIR(19, 17),
+	RookOnOpenFile = SPAIR(38, 16),
+	RookXrayQueen = SPAIR(7, 9),
 
 	QueenPhase = 4,
 	RookPhase = 2,
@@ -48,37 +48,37 @@ enum
 };
 
 const scorepair_t	MobilityN[9] = {
-	SPAIR( -74, -72), SPAIR( -58, -68), SPAIR( -26, -60), SPAIR( -16,  -7),
-	SPAIR(  -3,   2), SPAIR(  -3,  27), SPAIR(   6,  31), SPAIR(  16,  33),
-	SPAIR(  32,  35)
+	SPAIR( -83, -76), SPAIR( -40, -74), SPAIR( -24, -15), SPAIR( -16,  26),
+	SPAIR(  -4,  32), SPAIR(  -3,  49), SPAIR(   4,  53), SPAIR(  13,  48),
+	SPAIR(  26,  31)
 };
 
 const scorepair_t	MobilityB[14] = {
-	SPAIR( -83,-119), SPAIR( -61,-114), SPAIR( -17,-104), SPAIR( -15, -55),
-	SPAIR(  -4, -26), SPAIR(   4,  -5), SPAIR(   6,  18), SPAIR(   6,  29),
-	SPAIR(   6,  40), SPAIR(   6,  46), SPAIR(  10,  44), SPAIR(  23,  42),
-	SPAIR(  32,  39), SPAIR(  36,  36)
+	SPAIR( -96, -80), SPAIR( -51,-100), SPAIR( -16, -66), SPAIR( -15, -24),
+	SPAIR(  -5,  -1), SPAIR(   1,  16), SPAIR(   4,  33), SPAIR(   4,  41),
+	SPAIR(   4,  49), SPAIR(   5,  54), SPAIR(   8,  52), SPAIR(  19,  44),
+	SPAIR(  44,  43), SPAIR(  46,  26)
 };
 
 const scorepair_t	MobilityR[15] = {
-	SPAIR( -42, -20), SPAIR( -41, -12), SPAIR( -38,  -5), SPAIR( -36,  28),
-	SPAIR( -35,  74), SPAIR( -34,  88), SPAIR( -33, 108), SPAIR( -29, 117),
-	SPAIR( -25, 122), SPAIR( -20, 127), SPAIR( -15, 135), SPAIR( -14, 138),
-	SPAIR(  -8, 139), SPAIR(   9, 140), SPAIR(  46, 141)
+	SPAIR( -43, -11), SPAIR( -56, -14), SPAIR( -37,  -6), SPAIR( -35,  22),
+	SPAIR( -34,  59), SPAIR( -33,  69), SPAIR( -31,  84), SPAIR( -28,  91),
+	SPAIR( -24,  94), SPAIR( -19,  98), SPAIR( -15, 104), SPAIR( -13, 105),
+	SPAIR(  -8, 105), SPAIR(   7,  95), SPAIR(  54,  64)
 };
 
 const scorepair_t	MobilityQ[28] = {
-	SPAIR(  -8,-287), SPAIR(  -6,-233), SPAIR(  -4,-179), SPAIR(  -3,-125),
-	SPAIR(  -1, -71), SPAIR(   1, -15), SPAIR(   3,  47), SPAIR(   5, 121),
-	SPAIR(   7, 181), SPAIR(   9, 223), SPAIR(  13, 244), SPAIR(  15, 273),
-	SPAIR(  19, 287), SPAIR(  23, 290), SPAIR(  22, 302), SPAIR(  21, 307),
-	SPAIR(  20, 308), SPAIR(  19, 315), SPAIR(  18, 314), SPAIR(  17, 311),
-	SPAIR(  17, 301), SPAIR(  16, 297), SPAIR(  16, 292), SPAIR(  15, 290),
-	SPAIR(  15, 288), SPAIR(  14, 287), SPAIR(  14, 285), SPAIR(  14, 284)
+	SPAIR(  -8,-144), SPAIR(  -6,-117), SPAIR(  -5, -90), SPAIR(  -7, -63),
+	SPAIR( -13, -38), SPAIR(  -6, -11), SPAIR(   5,  26), SPAIR(   7,  74),
+	SPAIR(  12, 101), SPAIR(  15, 125), SPAIR(  19, 137), SPAIR(  21, 159),
+	SPAIR(  25, 170), SPAIR(  30, 173), SPAIR(  30, 183), SPAIR(  30, 189),
+	SPAIR(  29, 191), SPAIR(  25, 197), SPAIR(  24, 198), SPAIR(  21, 196),
+	SPAIR(  33, 186), SPAIR(  33, 183), SPAIR(  31, 171), SPAIR(  31, 167),
+	SPAIR(  21, 156), SPAIR(  15, 151), SPAIR(  15, 145), SPAIR(  17, 146)
 };
 
-const int	AttackWeights[8] = {
-	0, 0, 50, 75, 88, 94, 97, 99
+const int	AttackRescale[8] = {
+	1, 1, 2, 4, 8, 16, 32, 64
 };
 
 typedef struct
@@ -86,7 +86,7 @@ typedef struct
 	bitboard_t	king_zone[COLOR_NB];
 	bitboard_t	safe_zone[COLOR_NB];
 	int			attackers[COLOR_NB];
-	int			weights[COLOR_NB];
+	scorepair_t	weights[COLOR_NB];
 }
 evaluation_t;
 
@@ -121,7 +121,7 @@ scorepair_t	evaluate_knights(const board_t *board, evaluation_t *eval, color_t c
 		if (b & eval->king_zone[c])
 		{
 			eval->attackers[c] += 1;
-			eval->weights[c] += popcount(b & eval->king_zone[c]) * MinorWeight;
+			eval->weights[c] += popcount(b & eval->king_zone[c]) * KnightWeight;
 		}
 	}
 	return (ret);
@@ -142,7 +142,7 @@ scorepair_t	evaluate_bishops(const board_t *board, evaluation_t *eval, color_t c
 		if (b & eval->king_zone[c])
 		{
 			eval->attackers[c] += 1;
-			eval->weights[c] += popcount(b & eval->king_zone[c]) * MinorWeight;
+			eval->weights[c] += popcount(b & eval->king_zone[c]) * BishopWeight;
 		}
 	}
 	return (ret);
@@ -205,12 +205,12 @@ scorepair_t	evaluate_queens(const board_t *board, evaluation_t *eval, color_t c)
 
 scorepair_t	evaluate_safety(evaluation_t *eval, color_t c)
 {
-	int		bonus = eval->weights[c];
+	scorepair_t		bonus = eval->weights[c];
 
 	if (eval->attackers[c] <= 8)
-		bonus = bonus * AttackWeights[eval->attackers[c]] / 100;
+		bonus -= scorepair_divide(bonus, AttackRescale[eval->attackers[c]]);
 
-	return (SafetyRatio * bonus);
+	return (bonus);
 }
 
 scorepair_t	evaluate_material(const board_t *board, color_t c)
