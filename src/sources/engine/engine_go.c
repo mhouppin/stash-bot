@@ -198,7 +198,7 @@ void		*engine_go(void *ptr)
 			}
 			else
 			{
-				_delta = max(20, 80 / sqrt(iter_depth));
+				_delta = 15;
 				_alpha = max(-INF_SCORE, root_moves[pv_line].previous_score - _delta);
 				_beta = min(INF_SCORE, root_moves[pv_line].previous_score + _delta);
 			}
