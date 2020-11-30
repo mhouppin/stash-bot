@@ -241,13 +241,13 @@ __retry:
 						score_t		root_score = (searched) ? root_moves[i].score
 						: root_moves[i].previous_score;
 
-						printf("info depth %d seldepth %d multipv %d nodes %" FMT_INFO
-							" nps %" FMT_INFO " hashfull %d time %" FMT_INFO " score %s%s pv",
+						printf("info depth %d seldepth %d multipv %d score %s%s nodes %" FMT_INFO
+							" nps %" FMT_INFO " hashfull %d time %" FMT_INFO " pv",
 							max(iter_depth + (int)searched, 1), root_moves[i].seldepth, i + 1,
-							(info_t)chess_nodes, (info_t)chess_nps,
-							tt_hashfull(), (info_t)chess_time,
 							score_to_str(root_score), bound == EXACT_BOUND ? ""
-							: bound == LOWER_BOUND ? " lowerbound" : " upperbound");
+							: bound == LOWER_BOUND ? " lowerbound" : " upperbound",
+							(info_t)chess_nodes, (info_t)chess_nps,
+							tt_hashfull(), (info_t)chess_time);
 	
 						for (size_t k = 0; root_moves[i].pv[k] != NO_MOVE; ++k)
 							printf(" %s", move_to_str(root_moves[i].pv[k],
