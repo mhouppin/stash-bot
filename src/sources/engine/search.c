@@ -86,7 +86,13 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
             eval = tt_score;
     }
     else
+    {
         eval = ss->static_eval = evaluate(board);
+
+        // Save the eval in TT so that other workers won't have to recompute it
+
+        tt_save(entry, board->stack->board_key, NO_SCORE, eval, 0, NO_BOUND, NO_MOVE);
+    }
 
     (ss + 1)->pv = pv;
     (ss + 1)->plies = ss->plies + 1;
