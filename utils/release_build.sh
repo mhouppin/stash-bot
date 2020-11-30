@@ -17,20 +17,20 @@ cat Makefile | sed 's/-Wall -Wextra -Werror/-w/g' > tmp.make
 
 for arch in 64 x86-64 x86-64-modern x86-64-bmi2
 do
-	ext_arch=${arch/x86-64/x86_64}
+    ext_arch=${arch/x86-64/x86_64}
 
-	ARCH="$arch" CFLAGS="-fprofile-generate" LDFLAGS="-lgcov" make -f tmp.make re native=no
+    ARCH="$arch" CFLAGS="-fprofile-generate" LDFLAGS="-lgcov" make -f tmp.make re native=no
 
-	./stash-bot bench
+    ./stash-bot bench
 
-	ARCH="$arch" CFLAGS="-fprofile-use -fno-peel-loops -fno-tracer" LDFLAGS="-lgcov" \
-		make -f tmp.make re EXE="stash-$version-linux-$ext_arch" native=no \
+    ARCH="$arch" CFLAGS="-fprofile-use -fno-peel-loops -fno-tracer" LDFLAGS="-lgcov" \
+        make -f tmp.make re EXE="stash-$version-linux-$ext_arch" native=no \
 
-	ARCH="$arch" CC=x86_64-w64-mingw32-gcc CFLAGS="-fprofile-use -fno-peel-loops -fno-tracer" \
-		LDFLAGS="-lgcov -static" make -f tmp.make re \
-		EXE="stash-$version-windows-$ext_arch.exe" native=no \
+    ARCH="$arch" CC=x86_64-w64-mingw32-gcc CFLAGS="-fprofile-use -fno-peel-loops -fno-tracer" \
+        LDFLAGS="-lgcov -static" make -f tmp.make re \
+        EXE="stash-$version-windows-$ext_arch.exe" native=no \
 
-	rm $(find sources \( -name "*.gcda" \) )
+    rm $(find sources \( -name "*.gcda" \) )
 done
 
 CFLAGS="-m32" make -f tmp.make re EXE="stash-$version-linux-i386" native=no

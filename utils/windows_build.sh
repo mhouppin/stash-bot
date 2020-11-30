@@ -7,4 +7,4 @@ CFLAGS="-fprofile-generate" LDFLAGS="-lgcov" ARCH="$ARCH" make re
 ./stash-bot bench
 
 CFLAGS="-fprofile-use -fno-peel-loops -fno-tracer" LDFLAGS="-lgcov -static" \
-	ARCH="$ARCH" make re
+    ARCH="$ARCH" make re
