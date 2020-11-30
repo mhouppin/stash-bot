@@ -66,12 +66,13 @@ bitboard_t	safe_pawn_squares(color_t c, bitboard_t us, bitboard_t them)
 	return (our_double_attacks | ~their_attacks | (our_odd_attacks & ~their_double_attacks));
 }
 */
-scorepair_t	evaluate_passers(color_t c, const square_t *ulist, bitboard_t them)
+scorepair_t	evaluate_passers(color_t c, bitboard_t us, bitboard_t them)
 {
 	scorepair_t	ret = 0;
 
-	for (square_t sq = *ulist; sq != SQ_NONE; sq = *++ulist)
+	while (us)
 	{
+		square_t	sq = pop_first_square(&us);
 		if (!(passed_pawn_span(c, sq) & them))
 			ret += PassedBonus[relative_square_rank(sq, c)];
 	}
@@ -95,14 +96,14 @@ scorepair_t	evaluate_candidates(color_t c, bitboard_t us, bitboard_t them)
 	return (candidates ? CandidateBonus * popcount(candidates) : 0);
 }
 */
-scorepair_t	evaluate_backward(color_t c, bitboard_t us, bitboard_t them,
-			const square_t *ulist, const square_t *tlist)
+scorepair_t	evaluate_backward(color_t c, bitboard_t us, bitboard_t them)
 {
 	bitboard_t	stops = (c == WHITE) ? shift_up(us) : shift_down(us);
 	bitboard_t	our_attack_spans = 0;
 
-	for (square_t sq = *ulist; sq != SQ_NONE; sq = *++ulist)
-		our_attack_spans |= pawn_attack_span(c, sq);
+	bitboard_t	bb = us;
+	while (bb)
+		our_attack_spans |= pawn_attack_span(c, pop_first_square(&bb));
 
 	bitboard_t	their_attacks = (c == WHITE)
 		? black_pawn_attacks(them) : white_pawn_attacks(them);
@@ -124,8 +125,9 @@ scorepair_t	evaluate_backward(color_t c, bitboard_t us, bitboard_t them,
 
 	bitboard_t	their_files = 0;
 
-	for (square_t sq = *tlist; sq != SQ_NONE; sq = *++tlist)
-		their_files |= forward_file_bits(opposite_color(c), sq);
+	bb = them;
+	while (bb)
+		their_files |= forward_file_bits(not_color(c), pop_first_square(&bb));
 
 	backward &= ~their_files;
 
@@ -173,13 +175,11 @@ scorepair_t	evaluate_pawns(const board_t *board)
 		& board->color_bits[WHITE];
 	const bitboard_t	bpawns = board->piecetype_bits[PAWN]
 		& board->color_bits[BLACK];
-	const square_t		*wlist = board->piece_list[WHITE_PAWN];
-	const square_t		*blist = board->piece_list[BLACK_PAWN];
 
-	entry->value += evaluate_backward(WHITE, wpawns, bpawns, wlist, blist);
-	entry->value -= evaluate_backward(BLACK, bpawns, wpawns, blist, wlist);
-	entry->value += evaluate_passers(WHITE, wlist, bpawns);
-	entry->value -= evaluate_passers(BLACK, blist, wpawns);
+	entry->value += evaluate_backward(WHITE, wpawns, bpawns);
+	entry->value -= evaluate_backward(BLACK, bpawns, wpawns);
+	entry->value += evaluate_passers(WHITE, wpawns, bpawns);
+	entry->value -= evaluate_passers(BLACK, bpawns, wpawns);
 //	entry->value += evaluate_candidates(WHITE, wpawns, bpawns);
 //	entry->value -= evaluate_candidates(BLACK, bpawns, wpawns);
 	entry->value += evaluate_doubled_isolated(wpawns);

@@ -97,8 +97,8 @@ void		eval_init(const board_t *board, evaluation_t *eval)
 	eval->attackers[WHITE] = eval->attackers[BLACK]
 		= eval->weights[WHITE] = eval->weights[BLACK] = 0;
 
-	eval->king_zone[WHITE] = king_moves(board->piece_list[BLACK_KING][0]);
-	eval->king_zone[BLACK] = king_moves(board->piece_list[WHITE_KING][0]);
+	eval->king_zone[WHITE] = king_moves(board_king_square(board, BLACK));
+	eval->king_zone[BLACK] = king_moves(board_king_square(board, WHITE));
 	eval->king_zone[WHITE] |= shift_down(eval->king_zone[WHITE]);
 	eval->king_zone[BLACK] |= shift_up(eval->king_zone[BLACK]);
 	eval->safe_zone[WHITE] = ~black_pawn_attacks(pawns & board->color_bits[BLACK]);
@@ -110,10 +110,11 @@ void		eval_init(const board_t *board, evaluation_t *eval)
 scorepair_t	evaluate_knights(const board_t *board, evaluation_t *eval, color_t c)
 {
 	scorepair_t		ret = 0;
-	const square_t	*list = board->piece_list[create_piece(c, KNIGHT)];
+	bitboard_t		bb = piece_bb(board, c, KNIGHT);
 
-	for (square_t sq = *list; sq != SQ_NONE; sq = *++list)
+	while (bb)
 	{
+		square_t	sq = pop_first_square(&bb);
 		bitboard_t	b = knight_moves(sq);
 
 		ret += MobilityN[popcount(b & eval->safe_zone[c])];
@@ -131,10 +132,11 @@ scorepair_t	evaluate_bishops(const board_t *board, evaluation_t *eval, color_t c
 {
 	scorepair_t			ret = 0;
 	const bitboard_t	occupancy = board->piecetype_bits[ALL_PIECES];
-	const square_t		*list = board->piece_list[create_piece(c, BISHOP)];
+	bitboard_t			bb = piece_bb(board, c, BISHOP);
 
-	for (square_t sq = *list; sq != SQ_NONE; sq = *++list)
+	while (bb)
 	{
+		square_t	sq = pop_first_square(&bb);
 		bitboard_t	b = bishop_move_bits(sq, occupancy);
 
 		ret += MobilityB[popcount(b & eval->safe_zone[c])];
@@ -152,15 +154,14 @@ scorepair_t	evaluate_rooks(const board_t *board, evaluation_t *eval, color_t c)
 {
 	scorepair_t			ret = 0;
 	const bitboard_t	occupancy = board->piecetype_bits[ALL_PIECES];
-	const bitboard_t	my_pawns = board->piecetype_bits[PAWN] & board->color_bits[c];
-	const bitboard_t	their_pawns = board->piecetype_bits[PAWN] & ~my_pawns;
-	const bitboard_t	their_queens = board->piecetype_bits[QUEEN]
-		& board->color_bits[opposite_color(c)];
+	const bitboard_t	my_pawns = piece_bb(board, c, PAWN);
+	const bitboard_t	their_pawns = piecetype_bb(board, PAWN) & ~my_pawns;
+	const bitboard_t	their_queens = piece_bb(board, not_color(c), QUEEN);
+	bitboard_t			bb = piece_bb(board, c, ROOK);
 
-	const square_t	*list = board->piece_list[create_piece(c, ROOK)];
-
-	for (square_t sq = *list; sq != SQ_NONE; sq = *++list)
+	while (bb)
 	{
+		square_t	sq = pop_first_square(&bb);
 		bitboard_t	rook_file = file_square_bits(sq);
 		bitboard_t	b = rook_move_bits(sq, occupancy);
 
@@ -185,10 +186,11 @@ scorepair_t	evaluate_queens(const board_t *board, evaluation_t *eval, color_t c)
 {
 	scorepair_t			ret = 0;
 	const bitboard_t	occupancy = board->piecetype_bits[ALL_PIECES];
-	const square_t		*list = board->piece_list[create_piece(c, QUEEN)];
+	bitboard_t			bb = piece_bb(board, c, QUEEN);
 
-	for (square_t sq = *list; sq != SQ_NONE; sq = *++list)
+	while (bb)
 	{
+		square_t	sq = pop_first_square(&bb);
 		bitboard_t	b = bishop_move_bits(sq, occupancy)
 			| rook_move_bits(sq, occupancy);
 
@@ -275,7 +277,7 @@ score_t		evaluate(const board_t *board)
 		{
 			if (pieces == 1)
 				return (0);
-			else if (pieces == 2 && board_colored_pieces(board, WHITE, KNIGHT, BISHOP))
+			else if (pieces == 2 && pieces_bb(board, WHITE, KNIGHT, BISHOP))
 				return (0);
 		}
 
@@ -285,7 +287,7 @@ score_t		evaluate(const board_t *board)
 		{
 			if (pieces == 1)
 				return (0);
-			else if (pieces == 2 && board_colored_pieces(board, BLACK, KNIGHT, BISHOP))
+			else if (pieces == 2 && pieces_bb(board, BLACK, KNIGHT, BISHOP))
 				return (0);
 		}
 	}

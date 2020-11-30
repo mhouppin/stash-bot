@@ -20,7 +20,7 @@
 
 void	undo_move(board_t *board, move_t move)
 {
-	board->side_to_move = opposite_color(board->side_to_move);
+	board->side_to_move = not_color(board->side_to_move);
 
 	color_t		us = board->side_to_move;
 	square_t	from = move_from_square(move);

@@ -21,7 +21,7 @@
 
 void	set_castling(board_t *board, color_t color, square_t rook_square)
 {
-	square_t	king_square = board->piece_list[create_piece(color, KING)][0];
+	square_t	king_square = board_king_square(board, color);
 	int			castling = (color == WHITE ? WHITE_CASTLING : BLACK_CASTLING)
 		& (king_square < rook_square ? KINGSIDE_CASTLING : QUEENSIDE_CASTLING);
 

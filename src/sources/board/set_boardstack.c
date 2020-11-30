@@ -21,9 +21,8 @@
 void	set_boardstack(board_t *board, boardstack_t *stack)
 {
 	stack->board_key = stack->pawn_key = 0;
-	stack->checkers = attackers_to(board, board->piece_list[
-		create_piece(board->side_to_move, KING)][0])
-		& board->color_bits[opposite_color(board->side_to_move)];
+	stack->checkers = attackers_to(board, board_king_square(board, board->side_to_move))
+		& board->color_bits[not_color(board->side_to_move)];
 
 	set_check(board, stack);
 

@@ -21,5 +21,5 @@
 void	undo_null_move(board_t *board)
 {
 	board->stack = board->stack->prev;
-	board->side_to_move = opposite_color(board->side_to_move);
+	board->side_to_move = not_color(board->side_to_move);
 }

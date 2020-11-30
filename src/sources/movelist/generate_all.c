@@ -25,7 +25,7 @@ extmove_t	*generate_all(extmove_t *movelist, const board_t *board)
 	bitboard_t	pinned = board->stack->king_blockers[us]
 		& board->color_bits[us];
 
-	square_t	king_square = board->piece_list[create_piece(us, KING)][0];
+	square_t	king_square = board_king_square(board, us);
 
 	extmove_t	*current = movelist;
 

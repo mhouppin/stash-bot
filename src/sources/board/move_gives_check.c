@@ -27,10 +27,9 @@ bool	move_gives_check(const board_t *board, move_t move)
 		& square_bit(to))
 		return (true);
 
-	square_t	their_king = board->piece_list[create_piece(
-		opposite_color(board->side_to_move), KING)][0];
+	square_t	their_king = board_king_square(board, not_color(board->side_to_move));
 
-	if ((board->stack->king_blockers[opposite_color(board->side_to_move)]
+	if ((board->stack->king_blockers[not_color(board->side_to_move)]
 		& square_bit(from)) && !aligned(from, to, their_king))
 		return (true);
 
@@ -54,9 +53,9 @@ bool	move_gives_check(const board_t *board, move_t move)
 				| square_bit(to);
 
 			return ((rook_move_bits(their_king, occupied)
-				& board_colored_pieces(board, board->side_to_move, QUEEN, ROOK))
+				& pieces_bb(board, board->side_to_move, QUEEN, ROOK))
 				| (bishop_move_bits(their_king, occupied)
-				& board_colored_pieces(board, board->side_to_move, QUEEN,
+				& pieces_bb(board, board->side_to_move, QUEEN,
 				BISHOP)));
 
 		case CASTLING:

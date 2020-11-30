@@ -21,10 +21,11 @@
 extmove_t	*generate_bishop_moves(extmove_t *movelist, const board_t *board,
 			color_t us, bitboard_t target)
 {
-	const square_t	*piecelist = board->piece_list[create_piece(us, BISHOP)];
+	bitboard_t	bb = piece_bb(board, us, BISHOP);
 
-	for (square_t from = *piecelist; from != SQ_NONE; from = *++piecelist)
+	while (bb)
 	{
+		square_t	from = pop_first_square(&bb);
 		bitboard_t	b = bishop_moves(board, from) & target;
 
 		while (b)

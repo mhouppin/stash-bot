@@ -21,10 +21,11 @@
 extmove_t	*generate_knight_moves(extmove_t *movelist, const board_t *board,
 			color_t us, bitboard_t target)
 {
-	const square_t	*piecelist = board->piece_list[create_piece(us, KNIGHT)];
+	bitboard_t	bb = piece_bb(board, us, KNIGHT);
 
-	for (square_t from = *piecelist; from != SQ_NONE; from = *++piecelist)
+	while (bb)
 	{
+		square_t	from = pop_first_square(&bb);
 		bitboard_t	b = knight_moves(from) & target;
 
 		while (b)

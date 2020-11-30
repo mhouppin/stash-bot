@@ -46,13 +46,13 @@ bool	see_greater_than(const board_t *board, move_t m, score_t threshold)
 
 	while (true)
 	{
-		side_to_move = opposite_color(side_to_move);
+		side_to_move = not_color(side_to_move);
 		attackers &= occupied;
 
 		if (!(stm_attackers = attackers & board->color_bits[side_to_move]))
 			break ;
 
-		if (board->stack->pinners[opposite_color(side_to_move)] & occupied)
+		if (board->stack->pinners[not_color(side_to_move)] & occupied)
 		{
 			stm_attackers &= ~board->stack->king_blockers[side_to_move];
 			if (!stm_attackers)
@@ -68,7 +68,7 @@ bool	see_greater_than(const board_t *board, move_t m, score_t threshold)
 
 			occupied ^= square_bit(first_square(b));
 			attackers |= bishop_move_bits(to, occupied)
-				& board_pieces(board, BISHOP, QUEEN);
+				& piecetypes_bb(board, BISHOP, QUEEN);
 		}
 		else if ((b = stm_attackers & board->piecetype_bits[KNIGHT]))
 		{
@@ -84,7 +84,7 @@ bool	see_greater_than(const board_t *board, move_t m, score_t threshold)
 
 			occupied ^= square_bit(first_square(b));
 			attackers |= bishop_move_bits(to, occupied)
-				& board_pieces(board, BISHOP, QUEEN);
+				& piecetypes_bb(board, BISHOP, QUEEN);
 		}
 		else if ((b = stm_attackers & board->piecetype_bits[ROOK]))
 		{
@@ -93,7 +93,7 @@ bool	see_greater_than(const board_t *board, move_t m, score_t threshold)
 
 			occupied ^= square_bit(first_square(b));
 			attackers |= rook_move_bits(to, occupied)
-				& board_pieces(board, ROOK, QUEEN);
+				& piecetypes_bb(board, ROOK, QUEEN);
 		}
 		else if ((b = stm_attackers & board->piecetype_bits[QUEEN]))
 		{
@@ -102,9 +102,9 @@ bool	see_greater_than(const board_t *board, move_t m, score_t threshold)
 
 			occupied ^= square_bit(first_square(b));
 			attackers |= bishop_move_bits(to, occupied)
-				& board_pieces(board, BISHOP, QUEEN);
+				& piecetypes_bb(board, BISHOP, QUEEN);
 			attackers |= rook_move_bits(to, occupied)
-				& board_pieces(board, ROOK, QUEEN);
+				& piecetypes_bb(board, ROOK, QUEEN);
 		}
 		else
 			return ((attackers & ~board->color_bits[side_to_move])

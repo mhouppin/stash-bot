@@ -190,7 +190,7 @@ extmove_t	*generate_white_classic(extmove_t *movelist, const board_t *board,
 	movelist = generate_rook_moves(movelist, board, WHITE, target);
 	movelist = generate_queen_moves(movelist, board, WHITE, target);
 
-	square_t	king_square = board->piece_list[WHITE_KING][0];
+	square_t	king_square = board_king_square(board, WHITE);
 	bitboard_t	b = king_moves(king_square) & target;
 
 	while (b)
@@ -222,7 +222,7 @@ extmove_t	*generate_black_classic(extmove_t *movelist, const board_t *board,
 	movelist = generate_rook_moves(movelist, board, BLACK, target);
 	movelist = generate_queen_moves(movelist, board, BLACK, target);
 
-	square_t	king_square = board->piece_list[BLACK_KING][0];
+	square_t	king_square = board_king_square(board, BLACK);
 	bitboard_t	b = king_moves(king_square) & target;
 
 	while (b)

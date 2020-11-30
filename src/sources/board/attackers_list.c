@@ -26,7 +26,7 @@ bitboard_t		attackers_list(const board_t *board, square_t s,
 		| (pawn_moves(s, WHITE) & board->piecetype_bits[PAWN]
 		& board->color_bits[BLACK])
 		| (knight_moves(s) & board->piecetype_bits[KNIGHT])
-		| (rook_move_bits(s, occupied) & board_pieces(board, ROOK, QUEEN))
-		| (bishop_move_bits(s, occupied) & board_pieces(board, BISHOP, QUEEN))
+		| (rook_move_bits(s, occupied) & piecetypes_bb(board, ROOK, QUEEN))
+		| (bishop_move_bits(s, occupied) & piecetypes_bb(board, BISHOP, QUEEN))
 		| (king_moves(s) & board->piecetype_bits[KING]));
 }

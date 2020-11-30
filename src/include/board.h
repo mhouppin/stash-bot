@@ -55,8 +55,6 @@ typedef struct	board_s
 	bitboard_t		piecetype_bits[PIECETYPE_NB];
 	bitboard_t		color_bits[COLOR_NB];
 	int				piece_count[PIECE_NB];
-	square_t		piece_list[PIECE_NB][16];
-	int				piece_index[SQUARE_NB];
 	int				castling_mask[SQUARE_NB];
 	square_t		castling_rook_square[CASTLING_NB];
 	bitboard_t		castling_path[CASTLING_NB];
@@ -121,13 +119,28 @@ INLINED piece_t	moved_piece(const board_t *board, move_t move)
 	return (board->table[move_from_square(move)]);
 }
 
-INLINED bitboard_t	board_pieces(const board_t *board, piecetype_t pt1,
+INLINED bitboard_t	board_king_square(const board_t *board, color_t color)
+{
+	return (first_square(board->piecetype_bits[KING] & board->color_bits[color]));
+}
+
+INLINED bitboard_t	piecetype_bb(const board_t *board, piecetype_t pt)
+{
+	return (board->piecetype_bits[pt]);
+}
+
+INLINED bitboard_t	piecetypes_bb(const board_t *board, piecetype_t pt1,
 					piecetype_t pt2)
 {
 	return (board->piecetype_bits[pt1] | board->piecetype_bits[pt2]);
 }
 
-INLINED bitboard_t	board_colored_pieces(const board_t *board, color_t color,
+INLINED bitboard_t	piece_bb(const board_t *board, color_t color, piecetype_t pt)
+{
+	return (board->piecetype_bits[pt] & board->color_bits[color]);
+}
+
+INLINED bitboard_t	pieces_bb(const board_t *board, color_t color,
 					piecetype_t pt1, piecetype_t pt2)
 {
 	return ((board->piecetype_bits[pt1] | board->piecetype_bits[pt2])
@@ -213,8 +226,7 @@ INLINED void		put_piece(board_t *board, piece_t piece, square_t square)
 	board->piecetype_bits[ALL_PIECES] |= bitsquare;
 	board->piecetype_bits[type_of_piece(piece)] |= bitsquare;
 	board->color_bits[color_of_piece(piece)] |= bitsquare;
-	board->piece_index[square] = board->piece_count[piece]++;
-	board->piece_list[piece][board->piece_index[square]] = square;
+	board->piece_count[piece]++;
 	board->piece_count[create_piece(color_of_piece(piece), ALL_PIECES)]++;
 	board->psq_scorepair += PsqScore[piece][square];
 }
@@ -229,8 +241,6 @@ INLINED void		move_piece(board_t *board, square_t from, square_t to)
 	board->color_bits[color_of_piece(piece)] ^= move_bits;
 	board->table[from] = NO_PIECE;
 	board->table[to] = piece;
-	board->piece_index[to] = board->piece_index[from];
-	board->piece_list[piece][board->piece_index[to]] = to;
 	board->psq_scorepair += PsqScore[piece][to] - PsqScore[piece][from];
 }
 
@@ -242,13 +252,7 @@ INLINED void		remove_piece(board_t *board, square_t square)
 	board->piecetype_bits[ALL_PIECES] ^= bitsquare;
 	board->piecetype_bits[type_of_piece(piece)] ^= bitsquare;
 	board->color_bits[color_of_piece(piece)] ^= bitsquare;
-
-	square_t	last_square = board->piece_list[piece][
-		--board->piece_count[piece]];
-
-	board->piece_index[last_square] = board->piece_index[square];
-	board->piece_list[piece][board->piece_index[last_square]] = last_square;
-	board->piece_list[piece][board->piece_count[piece]] = SQ_NONE;
+	board->piece_count[piece]--;
 	board->piece_count[create_piece(color_of_piece(piece), ALL_PIECES)]--;
 	board->psq_scorepair -= PsqScore[piece][square];
 }

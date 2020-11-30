@@ -43,7 +43,7 @@ void	do_move_gc(board_t *board, move_t move, boardstack_t *next,
 	board->stack->plies_from_null_move += 1;
 
 	color_t		us = board->side_to_move;
-	color_t		them = opposite_color(us);
+	color_t		them = not_color(us);
 	square_t	from = move_from_square(move);
 	square_t	to = move_to_square(move);
 	piece_t		piece = piece_on(board, from);
@@ -137,10 +137,10 @@ void	do_move_gc(board_t *board, move_t move, boardstack_t *next,
 	prefetch(tt_entry_at(key));
 
 	board->stack->checkers = gives_check ? attackers_to(board,
-		board->piece_list[create_piece(them, KING)][0]) & board->color_bits[us]
+		board_king_square(board, them)) & board->color_bits[us]
 		: 0;
 
-	board->side_to_move = opposite_color(board->side_to_move);
+	board->side_to_move = not_color(board->side_to_move);
 
 	set_check(board, board->stack);
 

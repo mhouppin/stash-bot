@@ -38,12 +38,6 @@ void	board_set(board_t *board, char *fen, bool is_chess960,
 	memset(board, 0, sizeof(board_t));
 	memset(bstack, 0, sizeof(boardstack_t));
 
-	// Empties the board.
-
-	for (piece_t piece = 0; piece < PIECE_NB; ++piece)
-		for (int i = 0; i < 16; ++i)
-			board->piece_list[piece][i] = SQ_NONE;
-
 	board->stack = bstack;
 
 	// Scans the piece section of the FEN.
@@ -165,9 +159,9 @@ void	board_set(board_t *board, char *fen, bool is_chess960,
 			& board->piecetype_bits[PAWN]
 			& board->color_bits[board->side_to_move])
 			|| !(board->piecetype_bits[PAWN]
-			& board->color_bits[opposite_color(board->side_to_move)]
+			& board->color_bits[not_color(board->side_to_move)]
 			& square_bit(board->stack->en_passant_square
-			+ pawn_direction(opposite_color(board->side_to_move)))))
+			+ pawn_direction(not_color(board->side_to_move)))))
 			board->stack->en_passant_square = SQ_NONE;
 	}
 	else

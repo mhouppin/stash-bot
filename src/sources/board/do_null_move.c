@@ -43,7 +43,7 @@ void	do_null_move(board_t *board, boardstack_t *stack)
 	++stack->rule50;
 	stack->plies_from_null_move = 0;
 
-	board->side_to_move = opposite_color(board->side_to_move);
+	board->side_to_move = not_color(board->side_to_move);
 
 	set_check(board, stack);
 

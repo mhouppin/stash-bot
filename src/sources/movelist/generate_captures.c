@@ -157,7 +157,7 @@ extmove_t	*generate_white_captures(extmove_t *movelist, const board_t *board,
 	movelist = generate_rook_moves(movelist, board, WHITE, target);
 	movelist = generate_queen_moves(movelist, board, WHITE, target);
 
-	square_t	king_square = board->piece_list[WHITE_KING][0];
+	square_t	king_square = board_king_square(board, WHITE);
 	bitboard_t	b = king_moves(king_square) & target;
 
 	while (b)
@@ -175,7 +175,7 @@ extmove_t	*generate_black_captures(extmove_t *movelist, const board_t *board,
 	movelist = generate_rook_moves(movelist, board, BLACK, target);
 	movelist = generate_queen_moves(movelist, board, BLACK, target);
 
-	square_t	king_square = board->piece_list[BLACK_KING][0];
+	square_t	king_square = board_king_square(board, BLACK);
 	bitboard_t	b = king_moves(king_square) & target;
 
 	while (b)
@@ -187,7 +187,7 @@ extmove_t	*generate_black_captures(extmove_t *movelist, const board_t *board,
 extmove_t	*generate_captures(extmove_t *movelist, const board_t *board)
 {
 	color_t		us = board->side_to_move;
-	bitboard_t	target = board->color_bits[opposite_color(us)];
+	bitboard_t	target = board->color_bits[not_color(us)];
 
 	return (us == WHITE ? generate_white_captures(movelist, board, target)
 		: generate_black_captures(movelist, board, target));

@@ -31,7 +31,7 @@ enum
 	COLOR_NB = 2
 };
 
-INLINED color_t		opposite_color(color_t color)
+INLINED color_t		not_color(color_t color)
 {
 	return (color ^ BLACK);
 }

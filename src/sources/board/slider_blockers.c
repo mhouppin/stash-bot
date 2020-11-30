@@ -23,8 +23,8 @@ bitboard_t		slider_blockers(const board_t *board, bitboard_t sliders,
 {
 	bitboard_t	blockers = *pinners = 0;
 	bitboard_t	snipers = (
-		(PseudoMoves[ROOK][square] & board_pieces(board, QUEEN, ROOK))
-		| (PseudoMoves[BISHOP][square] & board_pieces(board, QUEEN, BISHOP)))
+		(PseudoMoves[ROOK][square] & piecetypes_bb(board, QUEEN, ROOK))
+		| (PseudoMoves[BISHOP][square] & piecetypes_bb(board, QUEEN, BISHOP)))
 		& sliders;
 	bitboard_t	occupied = board->piecetype_bits[ALL_PIECES] ^ snipers;
 

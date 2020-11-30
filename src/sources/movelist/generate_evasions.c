@@ -227,10 +227,10 @@ extmove_t	*generate_black_evasions(extmove_t *movelist, const board_t *board,
 extmove_t	*generate_evasions(extmove_t *movelist, const board_t *board)
 {
 	color_t		us = board->side_to_move;
-	square_t	king_square = board->piece_list[create_piece(us, KING)][0];
+	square_t	king_square = board_king_square(board, us);
 	bitboard_t	slider_attacks = 0;
 	bitboard_t	sliders = board->stack->checkers
-		& ~board_pieces(board, KNIGHT, PAWN);
+		& ~piecetypes_bb(board, KNIGHT, PAWN);
 
 	while (sliders)
 	{

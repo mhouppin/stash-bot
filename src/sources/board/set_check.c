@@ -21,17 +21,16 @@
 void	set_check(board_t *board, boardstack_t *stack)
 {
 	stack->king_blockers[WHITE] = slider_blockers(board,
-		board->color_bits[BLACK], board->piece_list[WHITE_KING][0],
+		board->color_bits[BLACK], board_king_square(board, WHITE),
 		&stack->pinners[BLACK]);
 	stack->king_blockers[BLACK] = slider_blockers(board,
-		board->color_bits[WHITE], board->piece_list[BLACK_KING][0],
+		board->color_bits[WHITE], board_king_square(board, BLACK),
 		&stack->pinners[WHITE]);
 
-	square_t	king_square = board->piece_list[
-		create_piece(opposite_color(board->side_to_move), KING)][0];
+	square_t	king_square = board_king_square(board, not_color(board->side_to_move));
 
 	stack->check_squares[PAWN] = pawn_moves(king_square,
-		opposite_color(board->side_to_move));
+		not_color(board->side_to_move));
 
 	stack->check_squares[KNIGHT] = knight_moves(king_square);
 	stack->check_squares[BISHOP] = bishop_moves(board, king_square);
