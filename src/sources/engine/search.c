@@ -255,7 +255,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
         if (qcount < 64 && is_quiet)
             quiets[qcount++] = currmove;
 
-        if (depth < 4 && qcount > depth * 8)
+        if (depth < 4 && best_value > -MATE_FOUND && qcount > depth * 8)
             break ;
     }
 

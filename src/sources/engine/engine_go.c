@@ -224,9 +224,10 @@ __retry:
 
             sort_root_moves(root_moves + pv_line, root_moves + root_move_count);
 
-            int bound = (abs(root_moves[pv_line].score) == INF_SCORE) ? EXACT_BOUND
-                : (root_moves[pv_line].score >= _beta) ? LOWER_BOUND
-                : (root_moves[pv_line].score <= _alpha) ? UPPER_BOUND : EXACT_BOUND;
+            score_t pv_score = root_moves[pv_line].score;
+            int     bound = (abs(pv_score) == INF_SCORE) ? EXACT_BOUND
+                : (pv_score >= _beta) ? LOWER_BOUND
+                : (pv_score <= _alpha) ? UPPER_BOUND : EXACT_BOUND;
 
             if (bound == EXACT_BOUND)
                 sort_root_moves(root_moves, root_moves + multi_pv);
@@ -274,13 +275,13 @@ __retry:
             if (bound == UPPER_BOUND)
             {
                 _beta = (_alpha + _beta) / 2;
-                _alpha = max(-INF_SCORE, (int)_alpha - _delta);
+                _alpha = max(-INF_SCORE, (int)pv_score - _delta);
                 _delta += _delta / 4;
                 goto __retry;
             }
             else if (bound == LOWER_BOUND)
             {
-                _beta = min(INF_SCORE, (int)_beta + _delta);
+                _beta = min(INF_SCORE, (int)pv_score + _delta);
                 _delta += _delta / 4;
                 goto __retry;
             }
@@ -303,8 +304,6 @@ __retry:
                 && chess_clock() - g_goparams.start >= g_goparams.optimal_time)
                 break ;
 
-        if (g_goparams.mate < 0 && root_moves->previous_score <= mated_in(1 - g_goparams.mate * 2))
-            break ;
         if (g_goparams.mate > 0 && root_moves->previous_score >= mate_in(g_goparams.mate * 2))
             break ;
     }
