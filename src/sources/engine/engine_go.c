@@ -147,8 +147,8 @@ void        *engine_go(void *ptr)
 
             clock_t estimated_time = our_time / g_goparams.movestogo + our_inc;
 
-            g_goparams.maximal_time = estimated_time * 1.2;
-            g_goparams.optimal_time = estimated_time / 1.2;
+            g_goparams.maximal_time = estimated_time * 1.4;
+            g_goparams.optimal_time = estimated_time / 1.1;
 
             g_goparams.maximal_time = min(g_goparams.maximal_time, our_time);
             g_goparams.optimal_time = min(g_goparams.optimal_time, our_time);
