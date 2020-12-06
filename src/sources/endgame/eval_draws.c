@@ -17,35 +17,27 @@
 */
 
 #include "endgame.h"
-#include "init.h"
-#include "lazy_smp.h"
-#include "tt.h"
-#include "uci.h"
-#include <pthread.h>
-#include <stdio.h>
 
-int main(int argc, char **argv)
+score_t eval_draw(const board_t *board, color_t winning)
 {
-    bitboard_init();
-    psq_score_init();
-    zobrist_init();
-    init_endgame_table();
-    tt_resize(16);
-    wpool_init(1);
+    (void)winning;
+    score_t score = endgame_score(board->psq_scorepair);
 
-    pthread_t   engine_pt;
+    return ((15 + (board->side_to_move == WHITE ? score : -score)) / 32);
+}
 
-    if (pthread_create(&engine_pt, NULL, &engine_thread, NULL))
-    {
-        perror("Failed to boot engine thread");
-        return (1);
-    }
+score_t eval_likely_draw(const board_t *board, color_t winning)
+{
+    (void)winning;
+    score_t score = endgame_score(board->psq_scorepair);
 
-    wait_search_end();
+    return ((15 + (board->side_to_move == WHITE ? score : -score)) / 16);
+}
 
-    uci_loop(argc, argv);
+score_t eval_tricky_draw(const board_t *board, color_t winning)
+{
+    (void)winning;
+    score_t score = endgame_score(board->psq_scorepair);
 
-    wpool_quit();
-
-    return (0);
+    return ((15 + (board->side_to_move == WHITE ? score : -score)) / 8);
 }

@@ -16,36 +16,23 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdlib.h>
 #include "endgame.h"
-#include "init.h"
-#include "lazy_smp.h"
-#include "tt.h"
-#include "uci.h"
-#include <pthread.h>
-#include <stdio.h>
 
-int main(int argc, char **argv)
+score_t eval_kbnk(const board_t *board, color_t winning)
 {
-    bitboard_init();
-    psq_score_init();
-    zobrist_init();
-    init_endgame_table();
-    tt_resize(16);
-    wpool_init(1);
+    score_t     base_score = VICTORY + BISHOP_EG_SCORE + KNIGHT_EG_SCORE;
+    square_t    losing_ksq = board_king_square(board, not_color(winning));
+    square_t    winning_ksq = board_king_square(board, winning);
 
-    pthread_t   engine_pt;
+    if (piecetype_bb(board, BISHOP) & DARK_SQUARES)
+        losing_ksq ^= SQ_A8;
 
-    if (pthread_create(&engine_pt, NULL, &engine_thread, NULL))
-    {
-        perror("Failed to boot engine thread");
-        return (1);
-    }
+    file_t      file = file_of_square(losing_ksq);
+    rank_t      rank = rank_of_square(losing_ksq);
 
-    wait_search_end();
+    base_score += abs(file * file - rank * rank) * 10;
+    base_score -= SquareDistance[losing_ksq][winning_ksq] * 16;
 
-    uci_loop(argc, argv);
-
-    wpool_quit();
-
-    return (0);
+    return (15 + (board->side_to_move == winning ? base_score : -base_score));
 }

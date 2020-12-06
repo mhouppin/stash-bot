@@ -259,7 +259,7 @@ __retry:
                             score_to_str(root_score), bound == EXACT_BOUND ? ""
                             : bound == LOWER_BOUND ? " lowerbound" : " upperbound",
                             (info_t)chess_nodes, (info_t)chess_nps,
-                            tt_hashfull() get_tb_hit_count(), (info_t)chess_time);
+                            tt_hashfull(), get_tb_hit_count(), (info_t)chess_time);
     
                         for (size_t k = 0; root_moves[i].pv[k] != NO_MOVE; ++k)
                             printf(" %s", move_to_str(root_moves[i].pv[k],

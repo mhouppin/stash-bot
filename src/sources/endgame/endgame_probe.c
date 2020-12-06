@@ -16,36 +16,12 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stddef.h>
 #include "endgame.h"
-#include "init.h"
-#include "lazy_smp.h"
-#include "tt.h"
-#include "uci.h"
-#include <pthread.h>
-#include <stdio.h>
 
-int main(int argc, char **argv)
+endgame_entry_t *endgame_probe(const board_t *board)
 {
-    bitboard_init();
-    psq_score_init();
-    zobrist_init();
-    init_endgame_table();
-    tt_resize(16);
-    wpool_init(1);
+    endgame_entry_t *entry = &EndgameTable[board->stack->material_key & (EGTB_Size - 1)];
 
-    pthread_t   engine_pt;
-
-    if (pthread_create(&engine_pt, NULL, &engine_thread, NULL))
-    {
-        perror("Failed to boot engine thread");
-        return (1);
-    }
-
-    wait_search_end();
-
-    uci_loop(argc, argv);
-
-    wpool_quit();
-
-    return (0);
+    return (entry->key == board->stack->material_key ? entry : NULL);
 }

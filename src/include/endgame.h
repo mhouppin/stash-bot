@@ -16,36 +16,35 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "endgame.h"
-#include "init.h"
-#include "lazy_smp.h"
-#include "tt.h"
-#include "uci.h"
-#include <pthread.h>
-#include <stdio.h>
+#ifndef ENDGAME_H
+# define ENDGAME_H
 
-int main(int argc, char **argv)
+# include "board.h"
+
+enum
 {
-    bitboard_init();
-    psq_score_init();
-    zobrist_init();
-    init_endgame_table();
-    tt_resize(16);
-    wpool_init(1);
+    EGTB_Size = 8192
+};
 
-    pthread_t   engine_pt;
+typedef score_t (*eg_func_t)(const board_t *, color_t);
 
-    if (pthread_create(&engine_pt, NULL, &engine_thread, NULL))
-    {
-        perror("Failed to boot engine thread");
-        return (1);
-    }
-
-    wait_search_end();
-
-    uci_loop(argc, argv);
-
-    wpool_quit();
-
-    return (0);
+typedef struct
+{
+    hashkey_t   key;
+    eg_func_t   eval;
+    color_t     winning;
 }
+endgame_entry_t;
+
+extern endgame_entry_t  EndgameTable[EGTB_Size];
+
+void    init_endgame_table(void);
+
+score_t eval_draw(const board_t *board, color_t winning);
+score_t eval_likely_draw(const board_t *board, color_t winning);
+score_t eval_tricky_draw(const board_t *board, color_t winning);
+score_t eval_kbnk(const board_t *board, color_t winning);
+
+endgame_entry_t *endgame_probe(const board_t *board);
+
+#endif
