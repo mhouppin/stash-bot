@@ -119,8 +119,8 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
 
     // Futility Pruning.
 
-    if (!pv_node && !in_check && depth <= 4
-        && eval - 285 * depth >= beta && eval < VICTORY)
+    if (!pv_node && !in_check && depth <= 8
+        && eval - 80 * depth >= beta && eval < VICTORY)
         return (eval);
 
     // Null move pruning.
