@@ -115,14 +115,17 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
         }
     }
 
+    bool    in_check = !!board->stack->checkers;
+
     // Futility Pruning.
 
-    if (depth <= 3 && eval - 128 * depth >= beta && eval < VICTORY)
+    if (!pv_node && !in_check && depth <= 4
+        && eval - 285 * depth >= beta && eval < VICTORY)
         return (eval);
 
     // Null move pruning.
 
-    if (!pv_node && depth >= NMP_MinDepth && !board->stack->checkers
+    if (!pv_node && depth >= NMP_MinDepth && !in_check
         && ss->plies >= worker->verif_plies
         && eval >= beta && eval >= ss->static_eval)
     {
