@@ -28,6 +28,7 @@ typedef struct
     int     plies;
     score_t static_eval;
     move_t  killers[2];
+    move_t  excluded_move;
     move_t  *pv;
 }
 searchstack_t;
