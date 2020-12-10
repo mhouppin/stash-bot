@@ -112,6 +112,9 @@ scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, color_t c
     scorepair_t ret = 0;
     bitboard_t  bb = piece_bb(board, c, KNIGHT);
 
+    if (more_than_one(bb))
+        ret += KnightPairPenalty;
+
     while (bb)
     {
         square_t    sq = pop_first_square(&bb);
@@ -133,6 +136,9 @@ scorepair_t evaluate_bishops(const board_t *board, evaluation_t *eval, color_t c
     scorepair_t         ret = 0;
     const bitboard_t    occupancy = board->piecetype_bits[ALL_PIECES];
     bitboard_t          bb = piece_bb(board, c, BISHOP);
+
+    if (more_than_one(bb))
+        ret += BishopPairBonus;
 
     while (bb)
     {
@@ -158,6 +164,9 @@ scorepair_t evaluate_rooks(const board_t *board, evaluation_t *eval, color_t c)
     const bitboard_t    their_pawns = piecetype_bb(board, PAWN) & ~my_pawns;
     const bitboard_t    their_queens = piece_bb(board, not_color(c), QUEEN);
     bitboard_t          bb = piece_bb(board, c, ROOK);
+
+    if (more_than_one(bb))
+        ret += RookPairPenalty;
 
     while (bb)
     {
@@ -215,23 +224,6 @@ scorepair_t evaluate_safety(evaluation_t *eval, color_t c)
     return (bonus);
 }
 
-scorepair_t evaluate_material(const board_t *board, color_t c)
-{
-    scorepair_t         ret = 0;
-    const bitboard_t    b = board->color_bits[c];
-
-    if (more_than_one(b & board->piecetype_bits[BISHOP]))
-        ret += BishopPairBonus;
-
-    if (more_than_one(b & board->piecetype_bits[KNIGHT]))
-        ret += KnightPairPenalty;
-
-    if (more_than_one(b & board->piecetype_bits[ROOK]))
-        ret += RookPairPenalty;
-
-    return (ret);
-}
-
 score_t evaluate(const board_t *board)
 {
     evaluation_t    eval;
@@ -245,9 +237,6 @@ score_t evaluate(const board_t *board)
     eval_init(board, &eval);
 
     tapered += evaluate_pawns(board);
-
-    tapered += evaluate_material(board, WHITE);
-    tapered -= evaluate_material(board, BLACK);
 
     tapered += evaluate_knights(board, &eval, WHITE);
     tapered -= evaluate_knights(board, &eval, BLACK);
