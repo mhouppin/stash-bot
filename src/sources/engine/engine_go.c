@@ -180,7 +180,7 @@ void        *engine_go(void *ptr)
             cur->board.worker = cur;
             cur->nodes = 0;
 
-            if (pthread_create(&cur->thread, NULL, &engine_go, &cur->board))
+            if (pthread_create(&cur->thread, &g_engine_attr, &engine_go, &cur->board))
             {
                 perror("Unable to initialize worker thread");
                 exit(EXIT_FAILURE);

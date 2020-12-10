@@ -68,6 +68,7 @@ typedef struct  ucioptions_s
     bool        chess960;
 }               ucioptions_t;
 
+extern pthread_attr_t   g_engine_attr;
 extern pthread_mutex_t  g_engine_mutex;
 extern pthread_cond_t   g_engine_condvar;
 extern enum e_egn_mode  g_engine_mode;

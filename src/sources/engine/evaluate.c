@@ -209,7 +209,7 @@ scorepair_t evaluate_safety(evaluation_t *eval, color_t c)
 {
     scorepair_t bonus = eval->weights[c];
 
-    if (eval->attackers[c] <= 8)
+    if (eval->attackers[c] < 8)
         bonus -= scorepair_divide(bonus, AttackRescale[eval->attackers[c]]);
 
     return (bonus);

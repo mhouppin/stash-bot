@@ -33,7 +33,10 @@ int main(int argc, char **argv)
 
     pthread_t   engine_pt;
 
-    if (pthread_create(&engine_pt, NULL, &engine_thread, NULL))
+    pthread_attr_init(&g_engine_attr);
+    pthread_attr_setstacksize(&g_engine_attr, 4ul * 1024 * 1024);
+
+    if (pthread_create(&engine_pt, &g_engine_attr, &engine_thread, NULL))
     {
         perror("Failed to boot engine thread");
         return (1);

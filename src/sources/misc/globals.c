@@ -22,6 +22,7 @@
 #include "uci.h"
 
 board_t         g_board;
+pthread_attr_t  g_engine_attr;
 goparams_t      g_goparams;
 option_list_t   g_opthandler;
 movelist_t      g_searchmoves;
