@@ -25,7 +25,7 @@
 enum
 {
     CastlingBonus = SPAIR(85, -43),
-    Initiative = SPAIR(10, 15),
+    Initiative = SPAIR(7, 10),
 
     KnightWeight = SPAIR(26, 8),
     BishopWeight = SPAIR(18, 5),
@@ -87,13 +87,12 @@ typedef struct
     bitboard_t  safe_zone[COLOR_NB];
     int         attackers[COLOR_NB];
     scorepair_t weights[COLOR_NB];
+    int         tempos[COLOR_NB];
 }
 evaluation_t;
 
 void        eval_init(const board_t *board, evaluation_t *eval)
 {
-    const bitboard_t    pawns = board->piecetype_bits[PAWN];
-
     eval->attackers[WHITE] = eval->attackers[BLACK]
         = eval->weights[WHITE] = eval->weights[BLACK] = 0;
 
@@ -101,16 +100,27 @@ void        eval_init(const board_t *board, evaluation_t *eval)
     eval->king_zone[BLACK] = king_moves(board_king_square(board, WHITE));
     eval->king_zone[WHITE] |= shift_down(eval->king_zone[WHITE]);
     eval->king_zone[BLACK] |= shift_up(eval->king_zone[BLACK]);
-    eval->safe_zone[WHITE] = ~black_pawn_attacks(pawns & board->color_bits[BLACK]);
-    eval->safe_zone[BLACK] = ~white_pawn_attacks(pawns & board->color_bits[WHITE]);
+
+    bitboard_t  wattacks = white_pawn_attacks(piece_bb(board, WHITE, PAWN));
+    bitboard_t  battacks = black_pawn_attacks(piece_bb(board, BLACK, PAWN));
+
+    eval->safe_zone[WHITE] = ~battacks;
+    eval->safe_zone[BLACK] = ~wattacks;
     eval->king_zone[WHITE] &= eval->safe_zone[WHITE];
     eval->king_zone[BLACK] &= eval->safe_zone[BLACK];
+
+    eval->tempos[WHITE] = popcount(board->color_bits[BLACK] & ~piecetype_bb(board, PAWN) & wattacks);
+    eval->tempos[BLACK] = popcount(board->color_bits[WHITE] & ~piecetype_bb(board, PAWN) & battacks);
+
+    if (!board->stack->checkers)
+        eval->tempos[board->side_to_move] += 1;
 }
 
 scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, color_t c)
 {
     scorepair_t ret = 0;
     bitboard_t  bb = piece_bb(board, c, KNIGHT);
+    bitboard_t  targets = pieces_bb(board, not_color(c), ROOK, QUEEN);
 
     if (more_than_one(bb))
         ret += KnightPairPenalty;
@@ -127,6 +137,8 @@ scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, color_t c
             eval->attackers[c] += 1;
             eval->weights[c] += popcount(b & eval->king_zone[c]) * KnightWeight;
         }
+        if (b & targets)
+            eval->tempos[c] += popcount(b & targets);
     }
     return (ret);
 }
@@ -136,6 +148,7 @@ scorepair_t evaluate_bishops(const board_t *board, evaluation_t *eval, color_t c
     scorepair_t         ret = 0;
     const bitboard_t    occupancy = board->piecetype_bits[ALL_PIECES];
     bitboard_t          bb = piece_bb(board, c, BISHOP);
+    bitboard_t          targets = pieces_bb(board, not_color(c), ROOK, QUEEN);
 
     if (more_than_one(bb))
         ret += BishopPairBonus;
@@ -152,6 +165,8 @@ scorepair_t evaluate_bishops(const board_t *board, evaluation_t *eval, color_t c
             eval->attackers[c] += 1;
             eval->weights[c] += popcount(b & eval->king_zone[c]) * BishopWeight;
         }
+        if (b & targets)
+            eval->tempos[c] += popcount(b & targets);
     }
     return (ret);
 }
@@ -187,6 +202,8 @@ scorepair_t evaluate_rooks(const board_t *board, evaluation_t *eval, color_t c)
             eval->attackers[c] += 1;
             eval->weights[c] += popcount(b & eval->king_zone[c]) * RookWeight;
         }
+        if (b & their_queens)
+            eval->tempos[c] += popcount(b & their_queens);
     }
     return (ret);
 }
@@ -249,7 +266,8 @@ score_t evaluate(const board_t *board)
 
     tapered += evaluate_safety(&eval, WHITE);
     tapered -= evaluate_safety(&eval, BLACK);
-    tapered += (board->side_to_move == WHITE) ? Initiative : -Initiative;
+
+    tapered += Initiative * (eval.tempos[WHITE] * eval.tempos[WHITE] - eval.tempos[BLACK] * eval.tempos[BLACK]);
 
     score_t mg = midgame_score(tapered);
     score_t eg = endgame_score(tapered);
