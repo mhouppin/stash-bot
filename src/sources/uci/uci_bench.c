@@ -23,7 +23,7 @@
 #include "board.h"
 #include "info.h"
 #include "lazy_smp.h"
-#include "uci.h"
+#include "timeman.h"
 
 void    uci_bench(const char *args)
 {
