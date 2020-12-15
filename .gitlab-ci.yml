@@ -15,9 +15,9 @@ build_all:
     - apt update && apt -y install make
 
   script:
-    - make re -C src/ EXE=stash
-    - make re -C src/ EXE=stash-asan CFLAGS="-g3 -fsanitize=address"
-    - make re -C src/ EXE=stash-ubsan CFLAGS="-g3 -fsanitize=undefined"
+    - make re -C src/ EXE=../stash
+    - make re -C src/ EXE=../stash-asan CFLAGS="-g3 -fsanitize=address"
+    - make re -C src/ EXE=../stash-ubsan CFLAGS="-g3 -fsanitize=undefined"
     - make clean -C src/
 
   artifacts:
@@ -30,7 +30,6 @@ test_sanitize:
   stage: test
 
   script:
-    - trap "echo Sanitize test failed && exit 1" ERR
     - ./stash-asan bench 2>&1 | grep -A50 "ERROR:"
     - ./stash-ubsan bench 2>&1 | grep -A50 "runtime error:"
 
@@ -38,7 +37,7 @@ test_bench:
   stage: test
 
   rules:
-    - if: '$CI_COMMIT_MESSAGE =~ "Bench: [0-9]+"'
+    - if: '$CI_COMMIT_MESSAGE =~ "Bench:"'
 
   script:
     - sh utils/check_bench.sh "$CI_COMMIT_MESSAGE"
