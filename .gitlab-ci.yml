@@ -1,0 +1,48 @@
+image: gcc
+
+workflow:
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
+
+stages:
+  - build
+  - test
+
+build_all:
+  stage: build
+
+  before_script:
+    - apt update && apt -y install make
+
+  script:
+    - make re -C src/ EXE=stash
+    - make re -C src/ EXE=stash-asan CFLAGS="-g3 -fsanitize=address"
+    - make re -C src/ EXE=stash-ubsan CFLAGS="-g3 -fsanitize=undefined"
+    - make clean
+
+  artifacts:
+    paths:
+      - stash
+      - stash-asan
+      - stash-ubsan
+
+test_sanitize:
+  stage: test
+
+  script:
+    - trap "echo Sanitize test failed && exit 1" ERR
+    - ./stash-asan bench 2>&1 | grep -A50 "ERROR:"
+    - ./stash-ubsan bench 2>&1 | grep -A50 "runtime error:"
+
+test_bench:
+  stage: test
+
+  rules:
+    - if: '$CI_COMMIT_MESSAGE' =~ 'Bench: [0-9]+'
+
+  script:
+    - _BENCHMARK=$(echo "$CI_COMMIT_MESSAGE" | fgrep "Bench" | sed "s/Bench: //g")
+    - echo "Expected benchmark is $_BENCHMARK"
+    - _OUTPUT=$(./stash bench | fgrep "NODES:" | sed "s/NODES: //g")
+    - echo "Got $_OUTPUT"
+    - test "$_BENCHMARK" == "$_OUTPUT" || exit 1
