@@ -18,7 +18,7 @@ build_all:
     - make re -C src/ EXE=stash
     - make re -C src/ EXE=stash-asan CFLAGS="-g3 -fsanitize=address"
     - make re -C src/ EXE=stash-ubsan CFLAGS="-g3 -fsanitize=undefined"
-    - make clean
+    - make clean -C src/
 
   artifacts:
     paths:
@@ -41,4 +41,4 @@ test_bench:
     - if: '$CI_COMMIT_MESSAGE =~ "Bench: [0-9]+"'
 
   script:
-    - sh utils/check_bench.sh "$CI_COMMIT_MESSAGE" || exit 1
+    - sh utils/check_bench.sh "$CI_COMMIT_MESSAGE"
