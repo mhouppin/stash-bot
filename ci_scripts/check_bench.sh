@@ -80,7 +80,7 @@ expect eof
 EOF
 
 function check_perft {
-    echo "--- TEST: perft on position \'$1\' at depth \'$2\'"
+    echo "--- TEST: perft on position '$1' at depth '$2'"
     expect perft.exp "$1" "$2" "$3" > /dev/null
     if test $? != 0
     then

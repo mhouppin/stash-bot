@@ -27,9 +27,9 @@ for args in "d" \
     "go wtime 8000 btime 8000 winc 500 binc 500" \
     "bench 8"
 do
-    echo "--- TEST: $name checking, command \'$args\'"
-    eval "./stash \'$args\' $suffix"
-    if $? == 0
+    echo "--- TEST: $name checking, command '$args'"
+    eval "$exe_name '$args' $suffix"
+    if test $? == 0
     then
         echo "--- ERROR: $name failed"
         exit 1
@@ -67,7 +67,7 @@ EOF
 
 echo "TEST: $name checking, pseudo-game"
 eval "expect game.exp $suffix"
-if $? == 0
+if test $? == 0
 then
     echo "--- ERROR: $name failed"
     exit 1

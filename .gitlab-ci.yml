@@ -12,7 +12,7 @@ build_all:
   stage: build
 
   before_script:
-    - apt update && apt -y install make expect
+    - apt update && apt -y install make
 
   script:
     - make re -C src/ EXE=../stash
@@ -29,6 +29,9 @@ build_all:
 
 test_all:
   stage: test
+
+  before_script:
+    - apt update && apt -y install expect
 
   script:
     - bash ci_scripts/sanitize.sh --asan ./stash-asan
