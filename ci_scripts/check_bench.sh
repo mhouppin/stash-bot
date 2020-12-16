@@ -72,7 +72,7 @@ cat << EOF > perft.exp
 set timeout 10
 lassign \$argv pos depth result
 spawn ./stash
-send "position \$pos\n
+send "position \$pos\n"
 send "go perft \$depth\n"
 expect "nodes \$result" {} timeout {exit 1}
 send "quit\n"

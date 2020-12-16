@@ -65,7 +65,7 @@ send "quit\n"
 expect eof
 EOF
 
-echo "TEST: $name checking, pseudo-game"
+echo "--- TEST: $name checking, pseudo-game"
 eval "expect game.exp $suffix"
 if test $? == 0
 then
