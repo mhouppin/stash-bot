@@ -12,13 +12,14 @@ build_all:
   stage: build
 
   before_script:
-    - apt update && apt -y install make
+    - apt update && apt -y install make expect
 
   script:
     - make re -C src/ EXE=../stash
     - make re -C src/ EXE=../stash-asan CFLAGS="-g3 -fsanitize=address"
     - make re -C src/ EXE=../stash-ubsan CFLAGS="-g3 -fsanitize=undefined"
-    - make clean -C src/
+    - make re -C src/ EXE=../stash-bmi2 ARCH=x86-64-bmi2 native=no
+    - make clean -C src/ && rm stash-bmi2
 
   artifacts:
     paths:
@@ -26,18 +27,10 @@ build_all:
       - stash-asan
       - stash-ubsan
 
-test_sanitize:
+test_all:
   stage: test
 
   script:
-    - ./stash-asan bench 2>&1 | grep -A50 "ERROR:"
-    - ./stash-ubsan bench 2>&1 | grep -A50 "runtime error:"
-
-test_bench:
-  stage: test
-
-  rules:
-    - if: '$CI_COMMIT_MESSAGE =~ "Bench:"'
-
-  script:
-    - sh utils/check_bench.sh "$CI_COMMIT_MESSAGE"
+    - bash ci_scripts/sanitize.sh --asan ./stash-asan
+    - bash ci_scripts/sanitize.sh --ubsan ./stash-ubsan
+    - bash ci_scripts/check_bench.sh "$CI_COMMIT_MESSAGE"
