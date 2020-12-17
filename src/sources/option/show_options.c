@@ -1,4 +1,5 @@
 #include "option.h"
+#include <inttypes.h>
 #include <stdio.h>
 
 void    show_options(const option_list_t *list)
@@ -11,8 +12,7 @@ void    show_options(const option_list_t *list)
         {
             case OptionSpinInt:
                 printf("option name %s type spin default %ld min %ld max %ld\n",
-                    cur->name, *(long *)cur->def,
-                    *(long *)cur->min, *(long *)cur->max);
+                    cur->name, *(long *)cur->def, *(long *)cur->min, *(long *)cur->max);
                 break ;
 
             // Tricky case: spins can't be floats, so we show them as strings and
@@ -21,6 +21,13 @@ void    show_options(const option_list_t *list)
             case OptionSpinFlt:
                 printf("option name %s type string default %lf\n",
                     cur->name, *(double *)cur->def);
+                break ;
+
+            case OptionScore:
+            case OptionSpairMG:
+            case OptionSpairEG:
+                printf("option name %s type spin default %" PRId16 " min %" PRId16 " max %" PRId16 "\n",
+                    cur->name, *(score_t *)cur->def, *(score_t *)cur->min, *(score_t *)cur->max);
                 break ;
 
             case OptionCheck:

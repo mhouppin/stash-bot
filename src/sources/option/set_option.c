@@ -1,4 +1,5 @@
 #include "option.h"
+#include <inttypes.h>
 #include <stdio.h>
 
 void    set_option(option_list_t *list, const char *name, const char *value)
@@ -22,6 +23,7 @@ void    set_option(option_list_t *list, const char *name, const char *value)
             option_t    *cur = &list->options[i];
             long        l;
             double      d;
+            score_t     s;
 
             switch (cur->type)
             {
@@ -35,6 +37,24 @@ void    set_option(option_list_t *list, const char *name, const char *value)
                     sscanf(value, "%lf", &d);
                     if (d >= *(double *)cur->min && d <= *(double *)cur->max)
                         *(double *)cur->data = d;
+                    break ;
+
+                case OptionScore:
+                    sscanf(value, "%" SCNd16, &s);
+                    if (s >= *(score_t *)cur->min && s <= *(score_t *)cur->max)
+                        *(score_t *)cur->data = s;
+                    break ;
+
+                case OptionSpairMG:
+                    sscanf(value, "%" SCNd16, &s);
+                    if (s >= *(score_t *)cur->min && s <= *(score_t *)cur->max)
+                        *(scorepair_t *)cur->data = create_scorepair(s, endgame_score(*(scorepair_t *)cur->data));
+                    break ;
+
+                case OptionSpairEG:
+                    sscanf(value, "%" SCNd16, &s);
+                    if (s >= *(score_t *)cur->min && s <= *(score_t *)cur->max)
+                        *(scorepair_t *)cur->data = create_scorepair(midgame_score(*(scorepair_t *)cur->data), s);
                     break ;
 
                 case OptionCheck:
