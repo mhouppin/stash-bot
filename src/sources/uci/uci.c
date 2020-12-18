@@ -97,11 +97,11 @@ void    uci_loop(int argc, char **argv)
     extern ucioptions_t g_options;
 
     init_option_list(&g_opthandler);
-    add_option_spin_int(&g_opthandler, "Threads", &g_options.threads, 1, 1, 256, &on_thread_set);
-    add_option_spin_int(&g_opthandler, "Hash", &g_options.hash, 16, 1, 131072, &on_hash_set);
-    add_option_spin_int(&g_opthandler, "Move Overhead", &g_options.move_overhead, 100, 0, 30000, NULL);
-    add_option_spin_int(&g_opthandler, "MultiPV", &g_options.multi_pv, 1, 1, 500, NULL);
-    add_option_check(&g_opthandler, "UCI_Chess960", &g_options.chess960, false, NULL);
+    add_option_spin_int(&g_opthandler, "Threads", &g_options.threads, 1, 256, &on_thread_set);
+    add_option_spin_int(&g_opthandler, "Hash", &g_options.hash, 1, 131072, &on_hash_set);
+    add_option_spin_int(&g_opthandler, "Move Overhead", &g_options.move_overhead, 0, 30000, NULL);
+    add_option_spin_int(&g_opthandler, "MultiPV", &g_options.multi_pv, 1, 500, NULL);
+    add_option_check(&g_opthandler, "UCI_Chess960", &g_options.chess960, NULL);
     add_option_button(&g_opthandler, "Clear Hash", &on_clear_hash);
 
     uci_position("startpos");

@@ -25,8 +25,8 @@
 #include "info.h"
 #include "lazy_smp.h"
 #include "pawns.h"
+#include "timeman.h"
 #include "tt.h"
-#include "uci.h"
 
 int         Reductions[64][64];
 
@@ -115,54 +115,11 @@ void        *engine_go(void *ptr)
     {
         tt_clear();
 
-        g_goparams.start = chess_clock();
-
         init_reduction_table();
-
-        // Do we have to use the time manager ?
-
-        if (g_goparams.wtime || g_goparams.btime)
-        {
-            if (g_goparams.movestogo == 0)
-            {
-                g_goparams.movestogo = 50;
-
-                // If we have an increment to avoid time burns, decrease
-                // estimated movestogo.
-
-                if (board->side_to_move == WHITE && g_goparams.winc)
-                    g_goparams.movestogo = 35;
-                if (board->side_to_move == BLACK && g_goparams.binc)
-                    g_goparams.movestogo = 35;
-            }
-
-            clock_t our_time = (board->side_to_move == WHITE) ? g_goparams.wtime
-                : g_goparams.btime;
-            clock_t our_inc = (board->side_to_move == WHITE) ? g_goparams.winc
-                : g_goparams.binc;
-
-            // Remove overhead from initial time
-
-            our_time = max(0, our_time - g_options.move_overhead);
-
-            clock_t estimated_time = our_time / g_goparams.movestogo + our_inc;
-
-            g_goparams.maximal_time = estimated_time * 1.4;
-            g_goparams.optimal_time = estimated_time / 1.1;
-
-            g_goparams.maximal_time = min(g_goparams.maximal_time, our_time);
-            g_goparams.optimal_time = min(g_goparams.optimal_time, our_time);
-        }
-        else if (g_goparams.movetime)
-        {
-            g_goparams.maximal_time = max(1, g_goparams.movetime - g_options.move_overhead);
-            g_goparams.optimal_time = g_goparams.maximal_time;
-        }
-        else
-            g_goparams.maximal_time = g_goparams.optimal_time = 0;
+        timeman_init(board, &Timeman, &g_goparams, chess_clock());
 
         if (g_goparams.depth == 0)
-            g_goparams.depth = 240;
+            g_goparams.depth = MAX_PLIES;
 
         if (g_goparams.nodes == 0)
             g_goparams.nodes = SIZE_MAX;
@@ -180,7 +137,7 @@ void        *engine_go(void *ptr)
             cur->board.worker = cur;
             cur->nodes = cur->tb_hits = 0;
 
-            if (pthread_create(&cur->thread, NULL, &engine_go, &cur->board))
+            if (pthread_create(&cur->thread, &g_engine_attr, &engine_go, &cur->board))
             {
                 perror("Unable to initialize worker thread");
                 exit(EXIT_FAILURE);
@@ -234,7 +191,7 @@ __retry:
 
             if (!worker->idx)
             {
-                clock_t     chess_time = chess_clock() - g_goparams.start;
+                clock_t     chess_time = chess_clock() - Timeman.start;
                 uint64_t    chess_nodes = get_node_count();
                 uint64_t    chess_nps = (!chess_time) ? 0 : (chess_nodes * 1000)
                     / chess_time;
@@ -301,11 +258,15 @@ __retry:
         // so we can safely return our bestmove.
 
         if (!worker->idx)
-            if ((g_goparams.wtime || g_goparams.btime)
-                && chess_clock() - g_goparams.start >= g_goparams.optimal_time)
+        {
+            timeman_update(&Timeman, board, root_moves->move,
+                root_moves->previous_score);
+            if (timeman_can_stop_search(&Timeman, chess_clock()))
                 break ;
+        }
 
-        if (g_goparams.mate > 0 && root_moves->previous_score >= mate_in(g_goparams.mate * 2))
+        if (g_goparams.mate > 0
+            && root_moves->previous_score >= mate_in(g_goparams.mate * 2))
             break ;
     }
 

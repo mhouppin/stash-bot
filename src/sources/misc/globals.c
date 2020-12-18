@@ -19,9 +19,10 @@
 #include <pthread.h>
 #include "info.h"
 #include "option.h"
-#include "uci.h"
+#include "timeman.h"
 
 board_t         g_board;
+pthread_attr_t  g_engine_attr;
 goparams_t      g_goparams;
 option_list_t   g_opthandler;
 movelist_t      g_searchmoves;
@@ -35,3 +36,5 @@ uint64_t        g_seed = 1048592ul;
 ucioptions_t    g_options = {
     1, 16, 100, 1, false
 };
+
+timeman_t       Timeman;

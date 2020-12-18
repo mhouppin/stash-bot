@@ -54,18 +54,6 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
 
     bool        found;
     tt_entry_t  *entry = tt_probe(board->stack->board_key, &found);
-    score_t     eval = found ? entry->eval : evaluate(board);
-    score_t     best_value = eval;
-
-    // If not playing a capture is better because of better quiet moves,
-    // allow for a simple eval return.
-
-    if (!board->stack->checkers && alpha < best_value)
-    {
-        alpha = best_value;
-        if (alpha >= beta)
-            return (alpha);
-    }
 
     if (found)
     {
@@ -76,6 +64,20 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
             || (bound == LOWER_BOUND && tt_score >= beta)
             || (bound == UPPER_BOUND && tt_score <= alpha))
             return (tt_score);
+    }
+
+    score_t     eval = found ? entry->eval : evaluate(board);
+    score_t     best_value = -INF_SCORE;
+
+    // If not playing a capture is better because of better quiet moves,
+    // allow for a simple eval return.
+
+    if (!board->stack->checkers)
+    {
+        best_value = eval;
+        alpha = max(alpha, eval);
+        if (alpha >= beta)
+            return (alpha);
     }
 
     move_t  tt_move = entry->bestmove;
@@ -106,7 +108,7 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
 
         bool    gives_check = move_gives_check(board, currmove);
 
-        if (delta_pruning && !gives_check
+        if (best_value > -MATE_FOUND && delta_pruning && !gives_check
             && type_of_move(currmove) == NORMAL_MOVE)
         {
             score_t delta = delta_base + PieceScores[ENDGAME]

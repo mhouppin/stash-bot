@@ -1,0 +1,39 @@
+image: gcc
+
+workflow:
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
+
+stages:
+  - build
+  - test
+
+build_all:
+  stage: build
+
+  before_script:
+    - apt update && apt -y install make
+
+  script:
+    - make re -C src/ EXE=../stash
+    - make re -C src/ EXE=../stash-asan CFLAGS="-g3 -fsanitize=address"
+    - make re -C src/ EXE=../stash-ubsan CFLAGS="-g3 -fsanitize=undefined"
+    - make re -C src/ EXE=../stash-bmi2 ARCH=x86-64-bmi2 native=no
+    - make clean -C src/ && rm stash-bmi2
+
+  artifacts:
+    paths:
+      - stash
+      - stash-asan
+      - stash-ubsan
+
+test_all:
+  stage: test
+
+  before_script:
+    - apt update && apt -y install expect
+
+  script:
+    - bash ci_scripts/sanitize.sh --asan ./stash-asan
+    - bash ci_scripts/sanitize.sh --ubsan ./stash-ubsan
+    - bash ci_scripts/check_bench.sh "$CI_COMMIT_MESSAGE"

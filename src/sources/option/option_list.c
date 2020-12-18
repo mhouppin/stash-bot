@@ -19,6 +19,9 @@ void    quit_option_list(option_list_t *list)
         {
             case OptionSpinInt:
             case OptionSpinFlt:
+            case OptionScore:
+            case OptionSpairMG:
+            case OptionSpairEG:
                 free(cur->def);
                 free(cur->min);
                 free(cur->max);

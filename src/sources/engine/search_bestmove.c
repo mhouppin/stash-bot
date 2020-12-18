@@ -26,13 +26,12 @@
 #include "info.h"
 #include "lazy_smp.h"
 #include "movelist.h"
+#include "timeman.h"
 #include "tt.h"
-#include "uci.h"
 
 void    search_bestmove(board_t *board, int depth, score_t alpha, score_t beta,
         root_move_t *begin, root_move_t *end, int pv_line)
 {
-    extern goparams_t   g_goparams;
     searchstack_t       sstack[512];
     move_t              pv[512];
 
@@ -57,9 +56,7 @@ void    search_bestmove(board_t *board, int depth, score_t alpha, score_t beta,
 
         move_count++;
 
-        clock_t elapsed = chess_clock() - g_goparams.start;
-
-        if (!get_worker(board)->idx && elapsed > 3000)
+        if (!get_worker(board)->idx && chess_clock() - Timeman.start > 3000)
         {
             printf("info depth %d currmove %s currmovenumber %d\n",
                 depth, move_to_str(cur->move, board->chess960),

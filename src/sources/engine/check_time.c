@@ -18,7 +18,7 @@
 
 #include "engine.h"
 #include "lazy_smp.h"
-#include "uci.h"
+#include "timeman.h"
 
 void    check_time(void)
 {
@@ -40,12 +40,8 @@ void    check_time(void)
     if (get_node_count() >= g_goparams.nodes)
         goto __set_stop;
 
-    if (g_goparams.movetime || g_goparams.wtime || g_goparams.winc)
-    {
-        clock_t end = g_goparams.start + g_goparams.maximal_time;
-        if (chess_clock() > end)
-            goto __set_stop;
-    }
+    if (timeman_must_stop_search(&Timeman, chess_clock()))
+        goto __set_stop;
 
     return ;
 
