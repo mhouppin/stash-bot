@@ -42,7 +42,7 @@ kpk_position_t;
 
 uint8_t KPK_Bitbase[KPK_SIZE / 8];
 
-inline unsigned int kpk_index(color_t stm, square_t bksq, square_t wksq, square_t psq)
+INLINED unsigned int    kpk_index(color_t stm, square_t bksq, square_t wksq, square_t psq)
 {
     return (
             (unsigned int)wksq
