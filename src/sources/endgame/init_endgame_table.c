@@ -69,6 +69,8 @@ void    add_endgame_entry(const char *pieces, eg_func_t eval)
 
 void    init_endgame_table(void)
 {
+    init_kpk_bitbase();
+
     memset(EndgameTable, 0, sizeof(EndgameTable));
 
     add_colored_entry(WHITE, "K", "K", &eval_draw);
@@ -83,5 +85,12 @@ void    init_endgame_table(void)
 
     add_endgame_entry("KBNvKN", &eval_tricky_draw);
 
+    add_endgame_entry("KRvKB", &eval_krkb);
+    add_endgame_entry("KRvKN", &eval_krkn);
+    add_endgame_entry("KNNvKP", &eval_knnkp);
+
+    add_endgame_entry("KQvKR", &eval_kqkr);
+
+    add_endgame_entry("KPvK", &eval_kpk);
     add_endgame_entry("KBNvK", &eval_kbnk);
 }

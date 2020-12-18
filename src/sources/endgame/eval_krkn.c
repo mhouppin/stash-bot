@@ -16,23 +16,13 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdlib.h>
 #include "endgame.h"
 
-score_t eval_kbnk(const board_t *board, color_t winning)
+score_t eval_krkn(const board_t *board, color_t winning)
 {
-    score_t     base_score = VICTORY + BISHOP_EG_SCORE + KNIGHT_EG_SCORE;
-    square_t    losing_ksq = board_king_square(board, not_color(winning));
-    square_t    winning_ksq = board_king_square(board, winning);
+    square_t    lksq = board_king_square(board, not_color(winning));
+    square_t    lnsq = first_square(piecetype_bb(board, KNIGHT));
+    score_t     score = edge_bonus(lksq) + away_bonus(lksq, lnsq);
 
-    if (piecetype_bb(board, BISHOP) & DARK_SQUARES)
-        losing_ksq ^= SQ_A8;
-
-    file_t      file = file_of_square(losing_ksq);
-    rank_t      rank = rank_of_square(losing_ksq);
-
-    base_score += abs(file - rank) * 200;
-    base_score += close_bonus(winning_ksq, losing_ksq);
-
-    return (board->side_to_move == winning ? base_score : -base_score);
+    return (board->side_to_move == winning ? score : -score);
 }

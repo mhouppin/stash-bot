@@ -38,12 +38,50 @@ endgame_entry_t;
 
 extern endgame_entry_t  EndgameTable[EGTB_Size];
 
+INLINED square_t    normalize_square(const board_t *board, color_t winning, square_t sq)
+{
+    if (file_of_square(first_square(piece_bb(board, winning, PAWN))) >= FILE_E)
+        sq ^= FILE_H;
+
+    return (relative_square(sq, winning));
+}
+
+INLINED score_t     edge_bonus(square_t sq)
+{
+    int     rank = rank_of_square(sq);
+    int     file = file_of_square(sq);
+
+    if (rank > 3) rank ^= 7;
+    if (file > 3) file ^= 7;
+
+    return (50 - 2 * (file * file + rank * rank));
+}
+
+INLINED score_t     close_bonus(square_t sq1, square_t sq2)
+{
+    return (70 - 10 * SquareDistance[sq1][sq2]);
+}
+
+INLINED score_t     away_bonus(square_t sq1, square_t sq2)
+{
+    return (10 + 10 * SquareDistance[sq1][sq2]);
+}
+
+void    init_kpk_bitbase(void);
 void    init_endgame_table(void);
 
 score_t eval_draw(const board_t *board, color_t winning);
 score_t eval_likely_draw(const board_t *board, color_t winning);
 score_t eval_tricky_draw(const board_t *board, color_t winning);
+
+score_t eval_krkb(const board_t *board, color_t winning);
+score_t eval_krkn(const board_t *board, color_t winning);
+score_t eval_knnkp(const board_t *board, color_t winning);
+
+score_t eval_kqkr(const board_t *board, color_t winning);
+
 score_t eval_kbnk(const board_t *board, color_t winning);
+score_t eval_kpk(const board_t *board, color_t winning);
 
 endgame_entry_t *endgame_probe(const board_t *board);
 

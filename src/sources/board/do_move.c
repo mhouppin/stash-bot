@@ -73,9 +73,6 @@ void    do_move_gc(board_t *board, move_t move, boardstack_t *next,
             if (type_of_move(move) == EN_PASSANT)
                 captured_square -= pawn_direction(us);
 
-            board->stack->material_key ^=
-                ZobristPsq[captured_piece][board->piece_count[captured_piece]];
-
             board->stack->pawn_key ^= ZobristPsq[captured_piece][captured_square];
         }
 
@@ -85,7 +82,8 @@ void    do_move_gc(board_t *board, move_t move, boardstack_t *next,
             board->table[captured_square] = NO_PIECE;
 
         key ^= ZobristPsq[captured_piece][captured_square];
-
+        board->stack->material_key ^=
+            ZobristPsq[captured_piece][board->piece_count[captured_piece]];
         board->stack->rule50 = 0;
     }
 
@@ -115,8 +113,7 @@ void    do_move_gc(board_t *board, move_t move, boardstack_t *next,
             & board->piecetype_bits[PAWN] & board->color_bits[them]))
         {
             board->stack->en_passant_square = to - pawn_direction(us);
-            key ^= ZobristEnPassant[
-                file_of_square(board->stack->en_passant_square)];
+            key ^= ZobristEnPassant[file_of_square(board->stack->en_passant_square)];
         }
         else if (type_of_move(move) == PROMOTION)
         {

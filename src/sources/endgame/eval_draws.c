@@ -23,7 +23,7 @@ score_t eval_draw(const board_t *board, color_t winning)
     (void)winning;
     score_t score = endgame_score(board->psq_scorepair);
 
-    return ((15 + (board->side_to_move == WHITE ? score : -score)) / 32);
+    return ((board->side_to_move == WHITE ? score : -score) / 128);
 }
 
 score_t eval_likely_draw(const board_t *board, color_t winning)
@@ -31,7 +31,7 @@ score_t eval_likely_draw(const board_t *board, color_t winning)
     (void)winning;
     score_t score = endgame_score(board->psq_scorepair);
 
-    return ((15 + (board->side_to_move == WHITE ? score : -score)) / 16);
+    return ((board->side_to_move == WHITE ? score : -score) / 32);
 }
 
 score_t eval_tricky_draw(const board_t *board, color_t winning)
@@ -39,5 +39,5 @@ score_t eval_tricky_draw(const board_t *board, color_t winning)
     (void)winning;
     score_t score = endgame_score(board->psq_scorepair);
 
-    return ((15 + (board->side_to_move == WHITE ? score : -score)) / 8);
+    return ((board->side_to_move == WHITE ? score : -score) / 8);
 }

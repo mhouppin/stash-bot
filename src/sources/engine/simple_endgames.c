@@ -63,5 +63,5 @@ score_t eval_kxk(const board_t *board, color_t c)
         + (c == WHITE ? VICTORY : -VICTORY);
 
     // Add a small Initiative bonus to the side to move
-    return (15 + (board->side_to_move == WHITE ? score : -score));
+    return (board->side_to_move == WHITE ? score : -score);
 }
