@@ -34,6 +34,7 @@ void    do_move_gc(board_t *board, move_t move, boardstack_t *next,
     next->plies_from_null_move = board->stack->plies_from_null_move;
     next->en_passant_square = board->stack->en_passant_square;
     next->pawn_key = board->stack->pawn_key;
+    next->material_key = board->stack->material_key;
 
     next->prev = board->stack;
     board->stack = next;
@@ -81,7 +82,8 @@ void    do_move_gc(board_t *board, move_t move, boardstack_t *next,
             board->table[captured_square] = NO_PIECE;
 
         key ^= ZobristPsq[captured_piece][captured_square];
-
+        board->stack->material_key ^=
+            ZobristPsq[captured_piece][board->piece_count[captured_piece]];
         board->stack->rule50 = 0;
     }
 
@@ -111,8 +113,7 @@ void    do_move_gc(board_t *board, move_t move, boardstack_t *next,
             & board->piecetype_bits[PAWN] & board->color_bits[them]))
         {
             board->stack->en_passant_square = to - pawn_direction(us);
-            key ^= ZobristEnPassant[
-                file_of_square(board->stack->en_passant_square)];
+            key ^= ZobristEnPassant[file_of_square(board->stack->en_passant_square)];
         }
         else if (type_of_move(move) == PROMOTION)
         {
@@ -123,6 +124,9 @@ void    do_move_gc(board_t *board, move_t move, boardstack_t *next,
 
             key ^= ZobristPsq[piece][to] ^ ZobristPsq[new_piece][to];
             board->stack->pawn_key ^= ZobristPsq[piece][to];
+            board->stack->material_key ^=
+                ZobristPsq[new_piece][board->piece_count[new_piece] - 1]
+                ^ ZobristPsq[piece][board->piece_count[piece]];
         }
 
         board->stack->pawn_key ^= ZobristPsq[piece][from]

@@ -17,9 +17,11 @@
 */
 
 #include <stdlib.h>
+#include "endgame.h"
 #include "engine.h"
 #include "imath.h"
 #include "info.h"
+#include "lazy_smp.h"
 #include "pawns.h"
 
 enum
@@ -243,6 +245,20 @@ scorepair_t evaluate_safety(evaluation_t *eval, color_t c)
 
 score_t evaluate(const board_t *board)
 {
+    if (is_kxk(board, WHITE))
+        return (eval_kxk(board, WHITE));
+    if (is_kxk(board, BLACK))
+        return (eval_kxk(board, BLACK));
+
+    {
+        endgame_entry_t *entry = endgame_probe(board);
+        if (entry)
+        {
+            get_worker(board)->tb_hits++;
+            return (entry->eval(board, entry->winning));
+        }
+    }
+
     evaluation_t    eval;
     scorepair_t     tapered = board->psq_scorepair;
 
@@ -280,23 +296,13 @@ score_t evaluate(const board_t *board)
 
         int pieces = popcount(board->color_bits[WHITE]);
 
-        if (eg > 0)
-        {
-            if (pieces == 1)
-                return (0);
-            else if (pieces == 2 && pieces_bb(board, WHITE, KNIGHT, BISHOP))
-                return (0);
-        }
+        if (eg > 0 && pieces == 2 && pieces_bb(board, WHITE, KNIGHT, BISHOP))
+            return (0);
 
         pieces = piece_count - pieces;
 
-        if (eg < 0)
-        {
-            if (pieces == 1)
-                return (0);
-            else if (pieces == 2 && pieces_bb(board, BLACK, KNIGHT, BISHOP))
-                return (0);
-        }
+        if (eg < 0 && pieces == 2 && pieces_bb(board, BLACK, KNIGHT, BISHOP))
+            return (0);
     }
 
     {

@@ -125,7 +125,7 @@ void        *engine_go(void *ptr)
             g_goparams.nodes = SIZE_MAX;
 
         WPool.checks = 1000;
-        worker->nodes = 0;
+        worker->nodes = worker->tb_hits = 0;
 
         for (int i = 1; i < WPool.size; ++i)
         {
@@ -135,7 +135,7 @@ void        *engine_go(void *ptr)
             cur->stack = boardstack_dup(worker->stack);
             cur->board.stack = cur->stack;
             cur->board.worker = cur;
-            cur->nodes = 0;
+            cur->nodes = cur->tb_hits = 0;
 
             if (pthread_create(&cur->thread, &g_engine_attr, &engine_go, &cur->board))
             {
@@ -209,13 +209,14 @@ __retry:
                         score_t root_score = (searched) ? root_moves[i].score
                             : root_moves[i].previous_score;
 
-                        printf("info depth %d seldepth %d multipv %d score %s%s nodes %" FMT_INFO
-                            " nps %" FMT_INFO " hashfull %d time %" FMT_INFO " pv",
+                        printf("info depth %d seldepth %d multipv %d score %s%s nodes %"
+                            FMT_INFO " nps %" FMT_INFO " hashfull %d tbhits %" FMT_INFO
+                            " time %" FMT_INFO " pv",
                             max(iter_depth + (int)searched, 1), root_moves[i].seldepth, i + 1,
                             score_to_str(root_score), bound == EXACT_BOUND ? ""
                             : bound == LOWER_BOUND ? " lowerbound" : " upperbound",
                             (info_t)chess_nodes, (info_t)chess_nps,
-                            tt_hashfull(), (info_t)chess_time);
+                            tt_hashfull(), get_tb_hit_count(), (info_t)chess_time);
     
                         for (size_t k = 0; root_moves[i].pv[k] != NO_MOVE; ++k)
                             printf(" %s", move_to_str(root_moves[i].pv[k],

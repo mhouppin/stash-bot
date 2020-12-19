@@ -16,18 +16,28 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "option.h"
-#include "uci.h"
-#include <stdio.h>
+#include "endgame.h"
 
-void    uci_uci(const char *args)
+score_t eval_draw(const board_t *board, color_t winning)
 {
-    (void)args;
-    puts("id name Stash v25.5");
-    puts("id author Morgan Houppin");
+    (void)winning;
+    score_t score = endgame_score(board->psq_scorepair);
 
-    show_options(&g_opthandler);
+    return ((board->side_to_move == WHITE ? score : -score) / 128);
+}
 
-    puts("uciok");
-    fflush(stdout);
+score_t eval_likely_draw(const board_t *board, color_t winning)
+{
+    (void)winning;
+    score_t score = endgame_score(board->psq_scorepair);
+
+    return ((board->side_to_move == WHITE ? score : -score) / 32);
+}
+
+score_t eval_tricky_draw(const board_t *board, color_t winning)
+{
+    (void)winning;
+    score_t score = endgame_score(board->psq_scorepair);
+
+    return ((board->side_to_move == WHITE ? score : -score) / 8);
 }

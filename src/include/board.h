@@ -40,6 +40,7 @@ struct  boardstack_s
     square_t        en_passant_square;
     hashkey_t       board_key;
     hashkey_t       pawn_key;
+    hashkey_t       material_key;
     bitboard_t      checkers;
     piece_t         captured_piece;
     boardstack_t    *prev;

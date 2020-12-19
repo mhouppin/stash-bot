@@ -16,18 +16,12 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "option.h"
-#include "uci.h"
-#include <stdio.h>
+#include <stddef.h>
+#include "endgame.h"
 
-void    uci_uci(const char *args)
+endgame_entry_t *endgame_probe(const board_t *board)
 {
-    (void)args;
-    puts("id name Stash v25.5");
-    puts("id author Morgan Houppin");
+    endgame_entry_t *entry = &EndgameTable[board->stack->material_key & (EGTB_Size - 1)];
 
-    show_options(&g_opthandler);
-
-    puts("uciok");
-    fflush(stdout);
+    return (entry->key == board->stack->material_key ? entry : NULL);
 }

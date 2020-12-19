@@ -16,18 +16,11 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "option.h"
-#include "uci.h"
-#include <stdio.h>
+#include "endgame.h"
 
-void    uci_uci(const char *args)
+score_t eval_krkb(const board_t *board, color_t winning)
 {
-    (void)args;
-    puts("id name Stash v25.5");
-    puts("id author Morgan Houppin");
+    score_t score = edge_bonus(board_king_square(board, not_color(winning)));
 
-    show_options(&g_opthandler);
-
-    puts("uciok");
-    fflush(stdout);
+    return (board->side_to_move == winning ? score : -score);
 }

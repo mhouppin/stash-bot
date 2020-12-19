@@ -16,18 +16,14 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "option.h"
-#include "uci.h"
-#include <stdio.h>
+#include "endgame.h"
 
-void    uci_uci(const char *args)
+score_t eval_knnkp(const board_t *board, color_t winning)
 {
-    (void)args;
-    puts("id name Stash v25.5");
-    puts("id author Morgan Houppin");
+    square_t    losing_king = board_king_square(board, not_color(winning));
+    square_t    losing_pawn = first_square(piecetype_bb(board, PAWN));
+    score_t     score = PAWN_EG_SCORE + edge_bonus(losing_king)
+        - 4 * relative_square_rank(losing_pawn, not_color(winning));
 
-    show_options(&g_opthandler);
-
-    puts("uciok");
-    fflush(stdout);
+    return (board->side_to_move == winning ? score : -score);
 }
