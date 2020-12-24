@@ -27,6 +27,8 @@ build_all:
       - stash-asan
       - stash-ubsan
 
+    expire_in: 1 day
+
 test_all:
   stage: test
 
