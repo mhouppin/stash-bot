@@ -53,7 +53,7 @@ score_t scale_endgame(const board_t *board, score_t eg)
     bitboard_t  strong_pawns = piece_bb(board, strong_side, PAWN);
     bitboard_t  weak_pawns = piece_bb(board, weak_side, PAWN);
 
-    // One minor + no pawns, the endgame is unwinnable
+    // Zero/one minor + no pawns, the endgame is unwinnable
     if (strong_mat <= BISHOP_MG_SCORE && !strong_pawns)
         factor = 0;
 
@@ -63,6 +63,67 @@ score_t scale_endgame(const board_t *board, score_t eg)
         // If the losing side has no pawns, it is likely impossible to force a mate.
 
         factor = !weak_pawns ? 0 : 16;
+    }
+
+    // No pawns and weak side has pieces, scale based on the remaining material
+    else if (!strong_pawns && weak_mat)
+    {
+        score_t s = strong_mat, w = weak_mat + popcount(weak_pawns) * PAWN_MG_SCORE;
+        factor = clamp((s + s - w) / 25, 16, 72);
+    }
+
+    // KPK endgame. Try to find out if the position is won or drawn via general heuristics
+    else if (!strong_mat && !weak_mat && !weak_pawns && popcount(strong_pawns) == 1)
+    {
+        square_t    strong_ksq = board_king_square(board, strong_side);
+        square_t    weak_ksq = board_king_square(board, weak_side);
+        square_t    psq = first_square(strong_pawns);
+        file_t      file = file_of_square(psq);
+        square_t    queening = create_square(file, relative_rank(RANK_8, strong_side));
+
+        // Start by setting a low factor to avoid scoring too high unknown positions
+        factor = 60;
+
+        // Rule of the square: if the defending king cannot reach the pawn queening square before
+        // it promotes, and the strong king is not on the path of the pawn, it's a win.
+        if (SquareDistance[queening][psq] < SquareDistance[queening][weak_ksq]
+            - (board->side_to_move == weak_side) && (!aligned(psq, queening, strong_ksq)))
+            factor = 256;
+
+        else if (file == FILE_A || file == FILE_H)
+        {
+            // For rook pawns, the defending king draws if he can intercept the pawn
+            if (aligned(psq, queening, weak_ksq))
+                factor = 0;
+
+            // The strong side wins if the king can reach one of the key squares
+            // (g7 or g8 for a pawn on the h-file, b7 or b8 for a pawn on the a-file
+            else if (relative_square_rank(strong_ksq, strong_side) >= RANK_7
+                && ((file == FILE_A && file_of_square(strong_ksq) == FILE_B)
+                || (file == FILE_H && file_of_square(strong_ksq) == FILE_G)))
+                factor = 256;
+        }
+
+        else
+        {
+            bitboard_t  key_squares = PawnMoves[strong_side][psq]
+                | square_bit(psq + pawn_direction(strong_side));
+
+            if (relative_square_rank(psq, strong_side) == RANK_7)
+                key_squares |= (strong_side == WHITE ? shift_down(key_squares) : shift_up(key_squares));
+
+            else if (relative_square_rank(psq, strong_side) == RANK_6)
+                key_squares |= (strong_side == WHITE ? shift_up(key_squares) : shift_down(key_squares));
+
+            else
+            {
+                key_squares |= (strong_side == WHITE ? shift_up(key_squares) : shift_down(key_squares));
+                key_squares = (strong_side == WHITE ? shift_up(key_squares) : shift_down(key_squares));
+            }
+
+            if (square_bit(strong_ksq) & key_squares)
+                factor = 256;
+        }
     }
 
     // OCB endgames: scale based on the number of remaining pieces of the strong side.
@@ -78,11 +139,13 @@ score_t scale_endgame(const board_t *board, score_t eg)
         && (king_moves(board_king_square(board, weak_side)) & weak_pawns))
         factor = 64;
 
+    // Naked weak king versus mating material: use a large value for scaling
+    else if (!weak_mat && !weak_pawns && piecetypes_bb(board, ROOK, QUEEN))
+        factor = 256;
+
     // Other endgames: scale based on the number of remaining pawns for the strong side.
     else
-        factor = 72 + 14 * popcount(strong_pawns);
-
-    factor = min(factor, 128);
+        factor = min(72 + 14 * popcount(strong_pawns), 128);
 
     eg = (score_t)((int32_t)eg * factor / 128);
 
