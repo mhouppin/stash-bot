@@ -203,7 +203,14 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
 
         // Can we apply LMR ?
         if (depth >= LMR_MinDepth && move_count > LMR_MinMoves && !board->stack->checkers)
-            reduction = max(0, Reductions[min(depth, 63)][min(move_count, 63)]);
+        {
+            reduction = Reductions[min(depth, 63)][min(move_count, 63)];
+
+            // Increase for non-PV nodes
+            reduction += !pv_node;
+
+            reduction = max(reduction, 0);
+        }
         else
             reduction = 0;
 
