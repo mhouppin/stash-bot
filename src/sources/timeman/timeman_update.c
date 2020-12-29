@@ -67,12 +67,10 @@ void    timeman_update(timeman_t *tm, const board_t *board, move_t bestmove,
         tm->prev_bestmove = bestmove;
         tm->stability = 0;
 
+        // Do we only have one legal move ? Don't burn much time on these
         list_all(&list, board);
         if (movelist_size(&list) == 1)
             tm->type = OneLegalMove;
-
-        else if (abs(score) > MATE_FOUND)
-            tm->type = MatingMove;
 
         else if (type_of_move(bestmove) == PROMOTION)
             tm->type = Promotion;
@@ -98,13 +96,24 @@ void    timeman_update(timeman_t *tm, const board_t *board, move_t bestmove,
     else
         tm->stability = min(tm->stability + 1, 4);
 
+    // Does the move mates, or are we getting mated ? We use very small
+    // thinking times for these, because the game result is already known.
+    if (abs(score) > MATE_FOUND)
+        tm->type = MatingMove;
+
+    // Scale the time usage based on the type of bestmove we have
     double  scale = BestmoveTypeScale[tm->type];
-    
+
+    // Scale the time usage based on how long this bestmove has held
+    // through search iterations
     scale *= BestmoveStabilityScale[tm->stability];
 
+    // Scale the time usage based on how the score changed from the
+    // previous iteration (the higher it goes, the quicker we stop searching)
     if (tm->prev_score != NO_SCORE)
         scale *= score_difference_scale(tm->prev_score - score);
 
+    // Update score + optimal time usage
     tm->prev_score = score;
     tm->optimal_time = min(tm->maximal_time, tm->average_time * scale);
 }
