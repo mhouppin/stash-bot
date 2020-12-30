@@ -190,10 +190,9 @@ extmove_t   *generate_white_evasions(extmove_t *movelist, const board_t *board,
             bitboard_t block_squares)
 {
     movelist = generate_white_pawn_evasion_moves(movelist, board, block_squares);
-    movelist = generate_knight_moves(movelist, board, WHITE, block_squares);
-    movelist = generate_bishop_moves(movelist, board, WHITE, block_squares);
-    movelist = generate_rook_moves(movelist, board, WHITE, block_squares);
-    movelist = generate_queen_moves(movelist, board, WHITE, block_squares);
+
+    for (piecetype_t pt = KNIGHT; pt <= QUEEN; ++pt)
+        movelist = generate_piece_moves(movelist, board, WHITE, pt, block_squares);
 
     return (movelist);
 }
@@ -202,10 +201,9 @@ extmove_t   *generate_black_evasions(extmove_t *movelist, const board_t *board,
             bitboard_t block_squares)
 {
     movelist = generate_black_pawn_evasion_moves(movelist, board, block_squares);
-    movelist = generate_knight_moves(movelist, board, BLACK, block_squares);
-    movelist = generate_bishop_moves(movelist, board, BLACK, block_squares);
-    movelist = generate_rook_moves(movelist, board, BLACK, block_squares);
-    movelist = generate_queen_moves(movelist, board, BLACK, block_squares);
+
+    for (piecetype_t pt = KNIGHT; pt <= QUEEN; ++pt)
+        movelist = generate_piece_moves(movelist, board, BLACK, pt, block_squares);
 
     return (movelist);
 }

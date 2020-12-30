@@ -46,14 +46,8 @@ extmove_t   *generate_classic(extmove_t *movelist, const board_t *board);
 extmove_t   *generate_evasions(extmove_t *movelist, const board_t *board);
 extmove_t   *generate_captures(extmove_t *movelist, const board_t *board);
 
-extmove_t   *generate_knight_moves(extmove_t *movelist, const board_t *board,
-            color_t us, bitboard_t target_squares);
-extmove_t   *generate_bishop_moves(extmove_t *movelist, const board_t *board,
-            color_t us, bitboard_t target_squares);
-extmove_t   *generate_rook_moves(extmove_t *movelist, const board_t *board,
-            color_t us, bitboard_t target_squares);
-extmove_t   *generate_queen_moves(extmove_t *movelist, const board_t *board,
-            color_t us, bitboard_t target_squares);
+extmove_t   *generate_piece_moves(extmove_t *movelist, const board_t *board,
+            color_t us, piecetype_t pt, bitboard_t target_squares);
 
 void        sort_moves(extmove_t *begin, extmove_t *end);
 void        place_top_move(extmove_t *begin, extmove_t *end);
@@ -67,12 +61,16 @@ INLINED void    list_all(movelist_t *movelist, const board_t *board)
 
 INLINED void    list_instable(movelist_t *movelist, const board_t *board)
 {
-    movelist->last = generate_instable(movelist->moves, board);
+    movelist->last = board->stack->checkers
+        ? generate_evasions(movelist->moves, board)
+        : generate_captures(movelist->moves, board);
 }
 
 INLINED void    list_pseudo(movelist_t *movelist, const board_t *board)
 {
-    movelist->last = generate_pseudo(movelist->moves, board);
+    movelist->last = board->stack->checkers
+        ? generate_evasions(movelist->moves, board)
+        : generate_classic(movelist->moves, board);
 }
 
 INLINED size_t  movelist_size(const movelist_t *movelist)

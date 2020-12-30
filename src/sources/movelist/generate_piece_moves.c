@@ -18,10 +18,20 @@
 
 #include "movelist.h"
 
-extmove_t   *generate_instable(extmove_t *movelist, const board_t *board)
+extmove_t   *generate_piece_moves(extmove_t *movelist, const board_t *board,
+            color_t us, piecetype_t pt, bitboard_t target)
 {
-    movelist = board->stack->checkers ? generate_evasions(movelist, board)
-        : generate_captures(movelist, board);
+    bitboard_t  bb = piece_bb(board, us, pt);
+    bitboard_t  occupancy = piecetype_bb(board, ALL_PIECES);
+
+    while (bb)
+    {
+        square_t    from = pop_first_square(&bb);
+        bitboard_t  b = piece_moves(pt, from, occupancy) & target;
+
+        while (b)
+            (movelist++)->move = create_move(from, pop_first_square(&b));
+    }
 
     return (movelist);
 }

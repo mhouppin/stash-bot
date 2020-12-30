@@ -173,10 +173,9 @@ extmove_t   *generate_white_classic(extmove_t *movelist, const board_t *board,
             bitboard_t target)
 {
     movelist = generate_classic_white_pawn_moves(movelist, board);
-    movelist = generate_knight_moves(movelist, board, WHITE, target);
-    movelist = generate_bishop_moves(movelist, board, WHITE, target);
-    movelist = generate_rook_moves(movelist, board, WHITE, target);
-    movelist = generate_queen_moves(movelist, board, WHITE, target);
+
+    for (piecetype_t pt = KNIGHT; pt <= QUEEN; ++pt)
+        movelist = generate_piece_moves(movelist, board, WHITE, pt, target);
 
     square_t    king_square = board_king_square(board, WHITE);
     bitboard_t  b = king_moves(king_square) & target;
@@ -205,10 +204,9 @@ extmove_t   *generate_black_classic(extmove_t *movelist, const board_t *board,
             bitboard_t target)
 {
     movelist = generate_classic_black_pawn_moves(movelist, board);
-    movelist = generate_knight_moves(movelist, board, BLACK, target);
-    movelist = generate_bishop_moves(movelist, board, BLACK, target);
-    movelist = generate_rook_moves(movelist, board, BLACK, target);
-    movelist = generate_queen_moves(movelist, board, BLACK, target);
+
+    for (piecetype_t pt = KNIGHT; pt <= QUEEN; ++pt)
+        movelist = generate_piece_moves(movelist, board, BLACK, pt, target);
 
     square_t    king_square = board_king_square(board, BLACK);
     bitboard_t  b = king_moves(king_square) & target;
