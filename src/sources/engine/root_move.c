@@ -18,7 +18,7 @@
 
 #include "engine.h"
 
-static int  rtm_greater_than(root_move_t *right, root_move_t *left)
+INLINED int rtm_greater_than(root_move_t *right, root_move_t *left)
 {
     if (right->score != left->score)
         return (right->score > left->score);
@@ -26,7 +26,7 @@ static int  rtm_greater_than(root_move_t *right, root_move_t *left)
         return (right->previous_score > left->previous_score);
 }
 
-void    sort_root_moves(root_move_t *begin, root_move_t *end)
+void        sort_root_moves(root_move_t *begin, root_move_t *end)
 {
     const int   size = (int)(end - begin);
 
@@ -41,4 +41,15 @@ void    sort_root_moves(root_move_t *begin, root_move_t *end)
         }
         begin[j + 1] = tmp;
     }
+}
+
+root_move_t *find_root_move(root_move_t *begin, root_move_t *end, move_t move)
+{
+    while (begin < end)
+    {
+        if (begin->move == move)
+            return (begin);
+        ++begin;
+    }
+    return (NULL);
 }

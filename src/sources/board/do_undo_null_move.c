@@ -49,3 +49,9 @@ void    do_null_move(board_t *board, boardstack_t *stack)
 
     stack->repetition = 0;
 }
+
+void    undo_null_move(board_t *board)
+{
+    board->stack = board->stack->prev;
+    board->side_to_move = not_color(board->side_to_move);
+}

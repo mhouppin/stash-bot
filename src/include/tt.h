@@ -45,7 +45,6 @@ typedef struct
 {
     size_t      cluster_count;
     cluster_t   *table;
-    void        *allocated;
     uint8_t     generation;
 }        transposition_t;
 
@@ -67,7 +66,7 @@ INLINED void        tt_bzero(void)
 {
     extern transposition_t  g_hashtable;
 
-    memset(g_hashtable.allocated, 0, sizeof(cluster_t) * g_hashtable.cluster_count);
+    memset(g_hashtable.table, 0, sizeof(cluster_t) * g_hashtable.cluster_count);
 }
 
 INLINED score_t     score_to_tt(score_t s, int plies)

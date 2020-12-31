@@ -16,7 +16,6 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <unistd.h>
 #include "uci.h"
 
 void    wait_search_end(void)

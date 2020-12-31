@@ -17,17 +17,51 @@
 */
 
 #include "option.h"
+#include "tt.h"
 #include "uci.h"
 #include <stdio.h>
+
+void    uci_isready(const char *args)
+{
+    (void)args;
+    puts("readyok");
+    fflush(stdout);
+}
+
+void    uci_quit(const char *args)
+{
+    (void)args;
+    pthread_mutex_lock(&g_engine_mutex);
+    g_engine_send = DO_ABORT;
+    pthread_mutex_unlock(&g_engine_mutex);
+    pthread_cond_signal(&g_engine_condvar);
+}
+
+void    uci_stop(const char *args)
+{
+    (void)args;
+    pthread_mutex_lock(&g_engine_mutex);
+    g_engine_send = DO_EXIT;
+    pthread_mutex_unlock(&g_engine_mutex);
+    pthread_cond_signal(&g_engine_condvar);
+}
 
 void    uci_uci(const char *args)
 {
     (void)args;
-    puts("id name Stash v26.0");
+    puts("id name Stash v26.1");
     puts("id author Morgan Houppin");
 
     show_options(&g_opthandler);
 
     puts("uciok");
     fflush(stdout);
+}
+
+void    uci_ucinewgame(const char *args)
+{
+    wait_search_end();
+
+    (void)args;
+    tt_bzero();
 }

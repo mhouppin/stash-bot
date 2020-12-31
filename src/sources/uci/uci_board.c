@@ -24,6 +24,36 @@
 #include "info.h"
 #include "lazy_smp.h"
 #include "uci.h"
+#include "engine.h"
+
+void    uci_d(const char *args)
+{
+    (void)args;
+    extern board_t  g_board;
+    const char      *grid = "+---+---+---+---+---+---+---+---+";
+    const char      *piece_to_char = " PNBRQK  pnbrqk";
+
+    puts(grid);
+
+    for (file_t rank = RANK_8; rank >= RANK_1; --rank)
+    {
+        for (file_t file = FILE_A; file <= FILE_H; ++file)
+            printf("| %c ", piece_to_char[piece_on(&g_board,
+                create_square(file, rank))]);
+
+        puts("|");
+        puts(grid);
+    }
+
+    printf("\nKey: 0x%lx\n", (unsigned long)g_board.stack->board_key);
+
+    double  eval = (double)evaluate(&g_board) / 100.0;
+    printf("Eval (from %s's POV): %+.2lf\n\n",
+        g_board.side_to_move == WHITE ? "White" : "Black",
+        eval);
+    
+    fflush(stdout);
+}
 
 void    uci_position(const char *args)
 {

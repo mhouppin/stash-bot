@@ -16,6 +16,27 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// I have no idea what this function purpose was in the first place.
+#include <stdlib.h>
+#include "board.h"
 
-void    board_init(void){}
+boardstack_t    *boardstack_dup(const boardstack_t *stack)
+{
+    if (!stack)
+        return (NULL);
+
+    boardstack_t    *new_stack = malloc(sizeof(boardstack_t));
+
+    *new_stack = *stack;
+    new_stack->prev = boardstack_dup(stack->prev);
+    return (new_stack);
+}
+
+void    boardstack_free(boardstack_t *stack)
+{
+    while (stack)
+    {
+        boardstack_t    *next = stack->prev;
+        free(stack);
+        stack = next;
+    }
+}
