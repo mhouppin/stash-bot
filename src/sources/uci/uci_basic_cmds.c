@@ -49,7 +49,7 @@ void    uci_stop(const char *args)
 void    uci_uci(const char *args)
 {
     (void)args;
-    puts("id name Stash v26.1");
+    puts("id name Stash " UCI_VERSION);
     puts("id author Morgan Houppin");
 
     show_options(&g_opthandler);
