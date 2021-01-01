@@ -28,6 +28,7 @@ typedef struct
     int     plies;
     score_t static_eval;
     move_t  killers[2];
+    move_t  current_move;
     move_t  *pv;
 }
 searchstack_t;
@@ -74,7 +75,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
 
 void    check_time(void);
 
-void    update_quiet_history(history_t hist, const board_t *board, int depth,
+void    update_quiet_history(const board_t *board, int depth,
         move_t bestmove, const move_t quiets[64], int qcount, searchstack_t *ss);
 
 score_t evaluate(const board_t *board);

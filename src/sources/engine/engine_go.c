@@ -107,7 +107,8 @@ void        *engine_go(void *ptr)
         root_moves[i].pv[0] = NO_MOVE;
     }
 
-    memset(worker->history, 0, sizeof(history_t));
+    memset(worker->bf_history, 0, sizeof(bf_history_t));
+    memset(worker->cm_history, 0, sizeof(cm_history_t));
     memset(worker->pawns_cache, 0, sizeof(pawns_table_t));
     worker->verif_plies = 0;
 

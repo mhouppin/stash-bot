@@ -85,7 +85,7 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
     (ss + 1)->plies = ss->plies + 1;
 
     list_instable(&list, board);
-    generate_move_values(&list, board, tt_move, ss->killers);
+    generate_move_values(&list, board, tt_move, ss->killers, (ss - 1)->current_move);
 
     move_t  bestmove = NO_MOVE;
     int     move_count = 0;

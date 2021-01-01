@@ -17,13 +17,26 @@
 */
 
 #include "engine.h"
+#include "lazy_smp.h"
 
-void    update_quiet_history(history_t hist, const board_t *board, int depth,
+void    update_quiet_history(const board_t *board, int depth,
         move_t bestmove, const move_t quiets[64], int qcount, searchstack_t *ss)
 {
+    bf_history_t    *hist = &get_worker(board)->bf_history;
+
     int bonus = (depth <= 12) ? 16 * depth * depth : 20;
 
-    add_history(hist, piece_on(board, move_from_square(bestmove)),
+    move_t  previous_move = (ss - 1)->current_move;
+
+    if (is_valid_move(previous_move))
+    {
+        square_t        to = move_to_square(previous_move);
+        piece_t         pc = piece_on(board, to);
+
+        get_worker(board)->cm_history[pc][to] = bestmove;
+    }
+
+    add_bf_history(*hist, piece_on(board, move_from_square(bestmove)),
         bestmove, bonus);
 
     if (ss->killers[0] == NO_MOVE)
@@ -32,6 +45,6 @@ void    update_quiet_history(history_t hist, const board_t *board, int depth,
         ss->killers[1] = bestmove;
 
     for (int i = 0; i < qcount; ++i)
-        add_history(hist, piece_on(board, move_from_square(quiets[i])),
+        add_bf_history(*hist, piece_on(board, move_from_square(quiets[i])),
         quiets[i], -bonus);
 }

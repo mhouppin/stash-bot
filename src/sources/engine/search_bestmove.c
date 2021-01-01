@@ -33,7 +33,7 @@ void    search_bestmove(board_t *board, int depth, score_t alpha, score_t beta,
         root_move_t *begin, root_move_t *end, int pv_line)
 {
     searchstack_t       sstack[256];
-    searchstack_t       *ss = sstack;
+    searchstack_t       *ss = &sstack[1];
     worker_t            *worker = get_worker(board);
     move_t              pv[256];
 
@@ -48,7 +48,7 @@ void    search_bestmove(board_t *board, int depth, score_t alpha, score_t beta,
     int         qcount = 0;
 
     list_pseudo(&list, board);
-    generate_move_values(&list, board, begin->move, ss->killers);
+    generate_move_values(&list, board, begin->move, ss->killers, NO_MOVE);
 
     for (extmove_t *extmove = list.moves; extmove < list.last; ++extmove)
     {
@@ -118,8 +118,7 @@ void    search_bestmove(board_t *board, int depth, score_t alpha, score_t beta,
             if (next >= beta)
             {
                 if (is_quiet)
-                    update_quiet_history(worker->history, board, depth, cur->move,
-                        quiets, qcount, ss);
+                    update_quiet_history(board, depth, cur->move, quiets, qcount, ss);
                 return ;
             }
         }

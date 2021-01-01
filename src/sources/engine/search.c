@@ -135,6 +135,8 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
             + min((eval - beta) / NMP_EvalScale, NMP_MaxEvalReduction)
             + (depth / 4);
 
+        ss->current_move = NULL_MOVE;
+
         do_null_move(board, &stack);
 
         score_t score = -search(board, depth - nmp_reduction, -beta, -beta + 1,
@@ -172,7 +174,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
         --depth;
 
     list_pseudo(&list, board);
-    generate_move_values(&list, board, tt_move, ss->killers);
+    generate_move_values(&list, board, tt_move, ss->killers, (ss - 1)->current_move);
 
     move_t  bestmove = NO_MOVE;
     int     move_count = 0;
@@ -198,6 +200,8 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
         bool            gives_check = move_gives_check(board, currmove);
 
         extension = gives_check ? 1 : 0;
+
+        ss->current_move = currmove;
 
         do_move_gc(board, currmove, &stack, gives_check);
 
@@ -255,8 +259,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
                 if (alpha >= beta)
                 {
                     if (is_quiet)
-                        update_quiet_history(worker->history, board, depth,
-                            bestmove, quiets, qcount, ss);
+                        update_quiet_history(board, depth, bestmove, quiets, qcount, ss);
                     break ;
                 }
             }

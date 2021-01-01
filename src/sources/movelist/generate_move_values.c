@@ -21,10 +21,21 @@
 #include "movelist.h"
 
 void    generate_move_values(movelist_t *movelist, const board_t *board,
-        move_t tt_move, move_t *killers)
+        move_t tt_move, move_t *killers, move_t previous_move)
 {
     worker_t *const     worker = get_worker(board);
     extmove_t *const    end = movelist->last;
+    move_t              counter;
+
+    if (is_valid_move(previous_move))
+    {
+        square_t        to = move_to_square(previous_move);
+        piece_t         pc = piece_on(board, to);
+
+        counter = worker->cm_history[pc][to];
+    }
+    else
+        counter = NO_MOVE;
 
     for (extmove_t *extmove = movelist->moves; extmove < end; ++extmove)
     {
@@ -59,9 +70,11 @@ void    generate_move_values(movelist_t *movelist, const board_t *board,
                         - type_of_piece(moved_piece);
                 }
                 else if (move == killers[0] || move == killers[1])
+                    extmove->score = 1537;
+                else if (move == counter)
                     extmove->score = 1536;
                 else
-                    extmove->score = get_history_score(worker->history, moved_piece, move);
+                    extmove->score = get_bf_history_score(worker->bf_history, moved_piece, move);
                 break ;
         }
     }
