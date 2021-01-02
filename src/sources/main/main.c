@@ -25,6 +25,7 @@
 
 int main(int argc, char **argv)
 {
+    setlinebuf(stdout);
     bitboard_init();
     psq_score_init();
     zobrist_init();

@@ -61,12 +61,9 @@ void    search_bestmove(board_t *board, int depth, score_t alpha, score_t beta,
         move_count++;
 
         if (!worker->idx && chess_clock() - Timeman.start > 3000)
-        {
             printf("info depth %d currmove %s currmovenumber %d\n",
                 depth, move_to_str(cur->move, board->chess960),
                 move_count + pv_line);
-            fflush(stdout);
-        }
 
         boardstack_t    stack;
         score_t         next = -NO_SCORE;

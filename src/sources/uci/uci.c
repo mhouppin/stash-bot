@@ -74,7 +74,6 @@ void    on_hash_set(void *data)
 {
     tt_resize((size_t)*(long *)data);
     printf("info string set Hash to %lu MB\n", *(long *)data);
-    fflush(stdout);
 }
 
 void    on_clear_hash(void *nothing)
@@ -82,14 +81,12 @@ void    on_clear_hash(void *nothing)
     (void)nothing;
     tt_bzero();
     puts("info string cleared hash");
-    fflush(stdout);
 }
 
 void    on_thread_set(void *data)
 {
     wpool_init((int)*(long *)data);
     printf("info string set Threads to %lu\n", *(long *)data);
-    fflush(stdout);
 }
 
 void    uci_loop(int argc, char **argv)

@@ -51,8 +51,6 @@ void    uci_d(const char *args)
     printf("Eval (from %s's POV): %+.2lf\n\n",
         g_board.side_to_move == WHITE ? "White" : "Black",
         eval);
-    
-    fflush(stdout);
 }
 
 void    uci_position(const char *args)
