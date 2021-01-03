@@ -25,6 +25,7 @@ void    uci_isready(const char *args)
 {
     (void)args;
     puts("readyok");
+    fflush(stdout);
 }
 
 void    uci_quit(const char *args)
@@ -54,6 +55,7 @@ void    uci_uci(const char *args)
     show_options(&g_opthandler);
 
     puts("uciok");
+    fflush(stdout);
 }
 
 void    uci_ucinewgame(const char *args)

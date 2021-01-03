@@ -88,7 +88,11 @@ void        *engine_go(void *ptr)
 
     if (root_move_count == 0)
     {
-        printf("info depth 0 score %s 0\nbestmove 0000\n", board->stack->checkers ? "mate" : "cp");
+        if (board->stack->checkers)
+            printf("info depth 0 score mate 0\nbestmove 0000\n");
+        else
+            printf("info depth 0 score cp 0\nbestmove 0000\n");
+        fflush(stdout);
         return (NULL);
     }
 
@@ -219,6 +223,7 @@ __retry:
                                 board->chess960));
                         puts("");
                     }
+                    fflush(stdout);
                 }
             }
 
@@ -276,6 +281,7 @@ __retry:
     if (!worker->idx)
     {
         printf("bestmove %s\n", move_to_str(root_moves->move, board->chess960));
+        fflush(stdout);
 
         if (g_engine_send != DO_ABORT)
         {

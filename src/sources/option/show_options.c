@@ -54,4 +54,5 @@ void    show_options(const option_list_t *list)
                 break ;
         }
     }
+    fflush(stdout);
 }

@@ -108,4 +108,5 @@ void    uci_bench(const char *args)
     printf("TIME:  %" FMT_INFO " milliseconds\n", (info_t)bench_time);
     printf("NODES: %" FMT_INFO "\n", (info_t)total_nodes);
     printf("NPS:   %" FMT_INFO "\n", (info_t)((total_nodes * 1000) / bench_time));
+    fflush(stdout);
 }
