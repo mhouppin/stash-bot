@@ -16,6 +16,7 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "info.h"
 #include "lazy_smp.h"
 #include "option.h"
 #include "tt.h"
@@ -98,7 +99,7 @@ void    uci_loop(int argc, char **argv)
 
     init_option_list(&g_opthandler);
     add_option_spin_int(&g_opthandler, "Threads", &g_options.threads, 1, 256, &on_thread_set);
-    add_option_spin_int(&g_opthandler, "Hash", &g_options.hash, 1, 131072, &on_hash_set);
+    add_option_spin_int(&g_opthandler, "Hash", &g_options.hash, 1, MAX_HASH, &on_hash_set);
     add_option_spin_int(&g_opthandler, "Move Overhead", &g_options.move_overhead, 0, 30000, NULL);
     add_option_spin_int(&g_opthandler, "MultiPV", &g_options.multi_pv, 1, 500, NULL);
     add_option_check(&g_opthandler, "UCI_Chess960", &g_options.chess960, NULL);

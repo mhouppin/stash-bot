@@ -27,9 +27,11 @@
 # ifdef PRIu64
 #  define FMT_INFO  PRIu64
 typedef uint64_t    info_t;
+# define MAX_HASH   33554432
 # else
 #  define FMT_INFO  PRIu32
 typedef uint32_t    info_t;
+# define MAX_HASH   2048
 # endif
 
 const char  *move_to_str(move_t move, bool is_chess960);

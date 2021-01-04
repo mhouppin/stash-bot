@@ -52,7 +52,7 @@ INLINED tt_entry_t  *tt_entry_at(hashkey_t k)
 {
     extern transposition_t  g_hashtable;
 
-    return (g_hashtable.table[((uint32_t)k * (uint64_t)g_hashtable.cluster_count) >> 32]);
+    return (g_hashtable.table[mul_hi64(k, g_hashtable.cluster_count)]);
 }
 
 INLINED void        tt_clear(void)
