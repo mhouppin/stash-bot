@@ -50,7 +50,7 @@ INLINED score_t get_bf_history_score(bf_history_t hist, piece_t piece, move_t mo
 INLINED void    add_ct_history(ct_history_t hist, piece_t pc, square_t to,
                 piece_t lpc, square_t lto, int32_t bonus)
 {
-    int32_t *entry = &hist[pc][to][lpc][lto];
+    int32_t *entry = &hist[pc][to][type_of_piece(lpc)][lto];
 
     *entry += bonus - *entry * abs(bonus) / HistoryResolution;
 }
