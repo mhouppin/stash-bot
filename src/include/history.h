@@ -32,11 +32,12 @@ enum
 };
 
 typedef int32_t bf_history_t[PIECE_NB][SQUARE_NB * SQUARE_NB];
+typedef int32_t ct_history_t[PIECE_NB][SQUARE_NB][PIECETYPE_NB][SQUARE_NB];
 typedef move_t  cm_history_t[PIECE_NB][SQUARE_NB];
 
 INLINED void    add_bf_history(bf_history_t hist, piece_t piece, move_t move, int32_t bonus)
 {
-    int32_t        *entry = &hist[piece][move_squares(move)];
+    int32_t *entry = &hist[piece][move_squares(move)];
 
     *entry += bonus - *entry * abs(bonus) / HistoryResolution;
 }
@@ -44,6 +45,20 @@ INLINED void    add_bf_history(bf_history_t hist, piece_t piece, move_t move, in
 INLINED score_t get_bf_history_score(bf_history_t hist, piece_t piece, move_t move)
 {
     return (hist[piece][move_squares(move)] / HistoryScale);
+}
+
+INLINED void    add_ct_history(ct_history_t hist, piece_t pc, square_t to,
+                piece_t lpc, square_t lto, int32_t bonus)
+{
+    int32_t *entry = &hist[pc][to][lpc][lto];
+
+    *entry += bonus - *entry * abs(bonus) / HistoryResolution;
+}
+
+INLINED score_t get_ct_history_score(ct_history_t hist, piece_t pc, square_t to,
+                piece_t lpc, square_t lto)
+{
+    return (hist[pc][to][type_of_piece(lpc)][lto] / HistoryScale);
 }
 
 #endif

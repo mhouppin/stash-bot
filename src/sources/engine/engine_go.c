@@ -108,6 +108,7 @@ void        *engine_go(void *ptr)
     }
 
     memset(worker->bf_history, 0, sizeof(bf_history_t));
+    memset(worker->ct_history, 0, sizeof(ct_history_t));
     memset(worker->cm_history, 0, sizeof(cm_history_t));
     memset(worker->pawns_cache, 0, sizeof(pawns_table_t));
     worker->verif_plies = 0;

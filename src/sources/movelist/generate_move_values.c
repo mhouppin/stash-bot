@@ -26,13 +26,15 @@ void    generate_move_values(movelist_t *movelist, const board_t *board,
     worker_t *const     worker = get_worker(board);
     extmove_t *const    end = movelist->last;
     move_t              counter;
+    square_t            lto = SQ_A1;
+    piece_t             lpc = NO_PIECE;
 
     if (is_valid_move(previous_move))
     {
-        square_t        to = move_to_square(previous_move);
-        piece_t         pc = piece_on(board, to);
+        lto = move_to_square(previous_move);
+        lpc = piece_on(board, lto);
 
-        counter = worker->cm_history[pc][to];
+        counter = worker->cm_history[lpc][lto];
     }
     else
         counter = NO_MOVE;
@@ -74,7 +76,8 @@ void    generate_move_values(movelist_t *movelist, const board_t *board,
                 else if (move == counter)
                     extmove->score = 1536;
                 else
-                    extmove->score = get_bf_history_score(worker->bf_history, moved_piece, move);
+                    extmove->score = get_bf_history_score(worker->bf_history, moved_piece, move)
+                        + get_ct_history_score(worker->ct_history, moved_piece, to, lpc, lto);
                 break ;
         }
     }

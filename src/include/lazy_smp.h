@@ -33,6 +33,7 @@ typedef struct
     board_t             board;
     boardstack_t        *stack;
     bf_history_t        bf_history;
+    ct_history_t        ct_history;
     cm_history_t        cm_history;
     pawns_table_t       pawns_cache;
 
