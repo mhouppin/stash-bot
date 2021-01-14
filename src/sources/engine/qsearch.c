@@ -120,6 +120,11 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
                 continue ;
         }
 
+        // Only analyse good capture moves.
+
+        if (best_value > -MATE_FOUND && !see_greater_than(board, currmove, 0))
+            continue ;
+
         boardstack_t    stack;
 
         do_move_gc(board, currmove, &stack, gives_check);
