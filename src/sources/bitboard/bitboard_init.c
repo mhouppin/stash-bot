@@ -98,7 +98,7 @@ void    magic_init(bitboard_t *table, magic_t *magics,
 
 #ifndef USE_PEXT
 
-        srand(17);
+        qseed(4);
 
         for (int i = 0; i < size; )
         {
