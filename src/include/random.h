@@ -22,20 +22,20 @@
 # include <stdint.h>
 # include "inlining.h"
 
-extern uint64_t     g_seed;
+extern uint64_t     Seed;
 
 INLINED void        qseed(uint64_t value)
 {
-    g_seed = value;
+    Seed = value;
 }
 
 INLINED uint64_t    qrandom(void)
 {
-    g_seed ^= g_seed << 13;
-    g_seed ^= g_seed >> 7;
-    g_seed ^= g_seed << 17;
+    Seed ^= Seed << 13;
+    Seed ^= Seed >> 7;
+    Seed ^= Seed << 17;
 
-    return (g_seed);
+    return (Seed);
 }
 
 #endif

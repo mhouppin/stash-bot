@@ -19,7 +19,7 @@
 #include <stdlib.h>
 #include "board.h"
 
-boardstack_t    *boardstack_dup(const boardstack_t *stack)
+boardstack_t    *dup_boardstack(const boardstack_t *stack)
 {
     if (!stack)
         return (NULL);
@@ -27,11 +27,11 @@ boardstack_t    *boardstack_dup(const boardstack_t *stack)
     boardstack_t    *new_stack = malloc(sizeof(boardstack_t));
 
     *new_stack = *stack;
-    new_stack->prev = boardstack_dup(stack->prev);
+    new_stack->prev = dup_boardstack(stack->prev);
     return (new_stack);
 }
 
-void    boardstack_free(boardstack_t *stack)
+void    free_boardstack(boardstack_t *stack)
 {
     while (stack)
     {

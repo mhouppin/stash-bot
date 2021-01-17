@@ -39,22 +39,22 @@ enum
     MOVETYPE_MASK = 3 << 14
 };
 
-INLINED square_t    move_from_square(move_t move)
+INLINED square_t    from_sq(move_t move)
 {
     return ((square_t)((move >> 6) & SQ_H8));
 }
 
-INLINED square_t    move_to_square(move_t move)
+INLINED square_t    to_sq(move_t move)
 {
     return ((square_t)(move & SQ_H8));
 }
 
-INLINED int         move_squares(move_t move)
+INLINED int         square_mask(move_t move)
 {
     return (move & 0xFFF);
 }
 
-INLINED movetype_t  type_of_move(move_t move)
+INLINED movetype_t  move_type(move_t move)
 {
     return (move & MOVETYPE_MASK);
 }
@@ -71,7 +71,7 @@ INLINED move_t      create_move(square_t from, square_t to)
 
 INLINED move_t      reverse_move(move_t move)
 {
-    return (create_move(move_to_square(move), move_from_square(move)));
+    return (create_move(to_sq(move), from_sq(move)));
 }
 
 INLINED move_t      create_promotion(square_t from, square_t to,
@@ -93,7 +93,7 @@ INLINED move_t      create_castling(square_t from, square_t to)
 
 INLINED bool        is_valid_move(move_t move)
 {
-    return (move_from_square(move) != move_to_square(move));
+    return (from_sq(move) != to_sq(move));
 }
 
 #endif

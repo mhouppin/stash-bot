@@ -34,17 +34,16 @@ bitboard_t  HiddenBishopTable[0x1480];
 // Returns a bitboard representing all the reachable squares by a bishop
 // (or rook) from given square and given occupied squares.
 
-bitboard_t  sliding_attack(const direction_t *directions, square_t square,
-            bitboard_t occupied)
+bitboard_t  sliding_attack(const direction_t *directions, square_t square, bitboard_t occupied)
 {
     bitboard_t  attack = 0;
 
     for (int i = 0; i < 4; ++i)
-        for (square_t s = square + directions[i]; is_valid_square(s)
-            && SquareDistance[s][s - directions[i]] == 1; s += directions[i])
+        for (square_t s = square + directions[i];
+            is_valid_sq(s) && SquareDistance[s][s - directions[i]] == 1; s += directions[i])
         {
-            attack |= square_bit(s);
-            if (occupied & square_bit(s))
+            attack |= square_bb(s);
+            if (occupied & square_bb(s))
                 break ;
         }
 
@@ -53,8 +52,7 @@ bitboard_t  sliding_attack(const direction_t *directions, square_t square,
 
 // Initializes magic bitboard tables necessary for bishop, rook and queen moves.
 
-void    magic_init(bitboard_t *table, magic_t *magics,
-        const direction_t *directions)
+void    magic_init(bitboard_t *table, magic_t *magics, const direction_t *directions)
 {
     bitboard_t  reference[4096];
     bitboard_t  edges;
@@ -70,8 +68,8 @@ void    magic_init(bitboard_t *table, magic_t *magics,
 
     for (square_t square = SQ_A1; square <= SQ_H8; ++square)
     {
-        edges = ((RANK_1_BITS | RANK_8_BITS) & ~rank_square_bits(square))
-            | ((FILE_A_BITS | FILE_H_BITS) & ~file_square_bits(square));
+        edges = ((RANK_1_BITS | RANK_8_BITS) & ~sq_rank_bb(square))
+            | ((FILE_A_BITS | FILE_H_BITS) & ~sq_file_bb(square));
 
         magic_t *m = magics + square;
 
@@ -144,8 +142,8 @@ void    bitboard_init(void)
     for (square_t sq1 = SQ_A1; sq1 <= SQ_H8; ++sq1)
         for (square_t sq2 = SQ_A1; sq2 <= SQ_H8; ++sq2)
         {
-            int file_distance = abs(file_of_square(sq1) - file_of_square(sq2));
-            int rank_distance = abs(rank_of_square(sq1) - rank_of_square(sq2));
+            int file_distance = abs(sq_file(sq1) - sq_file(sq2));
+            int rank_distance = abs(sq_rank(sq1) - sq_rank(sq2));
 
             SquareDistance[sq1][sq2] = max(file_distance, rank_distance);
         }
@@ -154,7 +152,7 @@ void    bitboard_init(void)
 
     for (square_t square = SQ_A1; square <= SQ_H8; ++square)
     {
-        bitboard_t  b = square_bit(square);
+        bitboard_t  b = square_bb(square);
 
         PawnMoves[WHITE][square] = (shift_up_left(b) | shift_up_right(b));
         PawnMoves[BLACK][square] = (shift_down_left(b) | shift_down_right(b));
@@ -168,16 +166,16 @@ void    bitboard_init(void)
         {
             square_t    to = square + _king_directions[i];
 
-            if (is_valid_square(to) && SquareDistance[square][to] <= 2)
-                PseudoMoves[KING][square] |= square_bit(to);
+            if (is_valid_sq(to) && SquareDistance[square][to] <= 2)
+                PseudoMoves[KING][square] |= square_bb(to);
         }
 
         for (int i = 0; i < 8; ++i)
         {
             square_t    to = square + _knight_directions[i];
 
-            if (is_valid_square(to) && SquareDistance[square][to] <= 2)
-                PseudoMoves[KNIGHT][square] |= square_bit(to);
+            if (is_valid_sq(to) && SquareDistance[square][to] <= 2)
+                PseudoMoves[KNIGHT][square] |= square_bb(to);
         }
     }
 
@@ -188,22 +186,18 @@ void    bitboard_init(void)
 
     for (square_t sq1 = SQ_A1; sq1 <= SQ_H8; ++sq1)
     {
-        PseudoMoves[QUEEN][sq1] = PseudoMoves[BISHOP][sq1]
-            = bishop_move_bits(sq1, 0);
-        PseudoMoves[QUEEN][sq1] |= PseudoMoves[ROOK][sq1]
-            = rook_move_bits(sq1, 0);
+        PseudoMoves[QUEEN][sq1] = PseudoMoves[BISHOP][sq1] = bishop_moves_bb(sq1, 0);
+        PseudoMoves[QUEEN][sq1] |= PseudoMoves[ROOK][sq1] = rook_moves_bb(sq1, 0);
 
         for (square_t sq2 = SQ_A1; sq2 <= SQ_H8; ++sq2)
         {
-            if (PseudoMoves[BISHOP][sq1] & square_bit(sq2))
-                LineBits[sq1][sq2] = (bishop_move_bits(sq1, 0)
-                    & bishop_move_bits(sq2, 0)) | square_bit(sq1)
-                    | square_bit(sq2);
+            if (PseudoMoves[BISHOP][sq1] & square_bb(sq2))
+                LineBits[sq1][sq2] = (bishop_moves_bb(sq1, 0) & bishop_moves_bb(sq2, 0))
+                    | square_bb(sq1) | square_bb(sq2);
 
-            if (PseudoMoves[ROOK][sq1] & square_bit(sq2))
-                LineBits[sq1][sq2] = (rook_move_bits(sq1, 0)
-                    & rook_move_bits(sq2, 0)) | square_bit(sq1)
-                    | square_bit(sq2);
+            if (PseudoMoves[ROOK][sq1] & square_bb(sq2))
+                LineBits[sq1][sq2] = (rook_moves_bb(sq1, 0) & rook_moves_bb(sq2, 0))
+                    | square_bb(sq1) | square_bb(sq2);
         }
     }
 }

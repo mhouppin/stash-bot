@@ -26,10 +26,10 @@
 #include "uci.h"
 #include "engine.h"
 
-void    uci_d(const char *args)
+// Pretty prints the board, along with the hash key and the eval.
+
+void    uci_d(const char *args __attribute__((unused)))
 {
-    (void)args;
-    extern board_t  g_board;
     const char      *grid = "+---+---+---+---+---+---+---+---+";
     const char      *piece_to_char = " PNBRQK  pnbrqk";
 
@@ -38,20 +38,17 @@ void    uci_d(const char *args)
     for (file_t rank = RANK_8; rank >= RANK_1; --rank)
     {
         for (file_t file = FILE_A; file <= FILE_H; ++file)
-            printf("| %c ", piece_to_char[piece_on(&g_board,
-                create_square(file, rank))]);
+            printf("| %c ", piece_to_char[piece_on(&Board, create_sq(file, rank))]);
 
         puts("|");
         puts(grid);
     }
 
-    printf("\nKey: 0x%lx\n", (unsigned long)g_board.stack->board_key);
+    printf("\nKey: 0x%" KEY_INFO "\n", (info_t)Board.stack->board_key);
 
-    double  eval = (double)evaluate(&g_board) / 100.0;
-    printf("Eval (from %s's POV): %+.2lf\n\n",
-        g_board.side_to_move == WHITE ? "White" : "Black",
-        eval);
-    
+    double  eval = (double)evaluate(&Board) / 100.0;
+
+    printf("Eval (from %s's POV): %+.2lf\n\n", Board.side_to_move == WHITE ? "White" : "Black", eval);
     fflush(stdout);
 }
 
@@ -59,8 +56,6 @@ void    uci_position(const char *args)
 {
     static boardstack_t **hidden_list = NULL;
     static size_t       hidden_size = 0;
-    extern board_t      g_board;
-    extern ucioptions_t g_options;
 
     wait_search_end();
 
@@ -88,7 +83,6 @@ void    uci_position(const char *args)
     else if (!strcmp(token, "fen"))
     {
         fen = strdup("");
-
         token = get_next_token(&ptr);
 
         while (token && strcmp(token, "moves"))
@@ -98,7 +92,6 @@ void    uci_position(const char *args)
             strcpy(tmp, fen);
             strcat(tmp, " ");
             strcat(tmp, token);
-
             free(fen);
             fen = tmp;
             token = get_next_token(&ptr);
@@ -107,22 +100,19 @@ void    uci_position(const char *args)
     else
         return ;
 
-    board_set(&g_board, fen, g_options.chess960, *hidden_list);
-    g_board.worker = WPool.list;
+    set_board(&Board, fen, Options.chess960, *hidden_list);
+    Board.worker = WPool.list;
     free(fen);
-
     token = get_next_token(&ptr);
 
     move_t  move;
 
-    while (token && (move = str_to_move(&g_board, token)) != NO_MOVE)
+    while (token && (move = str_to_move(&Board, token)) != NO_MOVE)
     {
-        hidden_list = realloc(hidden_list,
-            sizeof(boardstack_t *) * ++hidden_size);
+        hidden_list = realloc(hidden_list, sizeof(boardstack_t *) * ++hidden_size);
         hidden_list[hidden_size - 1] = malloc(sizeof(boardstack_t));
 
-        do_move(&g_board, move, hidden_list[hidden_size - 1]);
-
+        do_move(&Board, move, hidden_list[hidden_size - 1]);
         token = get_next_token(&ptr);
     }
 

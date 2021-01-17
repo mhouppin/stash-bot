@@ -21,47 +21,40 @@
 #include "uci.h"
 #include <stdio.h>
 
-void    uci_isready(const char *args)
+void    uci_isready(const char *args __attribute__((unused)))
 {
-    (void)args;
     puts("readyok");
     fflush(stdout);
 }
 
-void    uci_quit(const char *args)
+void    uci_quit(const char *args __attribute__((unused)))
 {
-    (void)args;
-    pthread_mutex_lock(&g_engine_mutex);
-    g_engine_send = DO_ABORT;
-    pthread_mutex_unlock(&g_engine_mutex);
-    pthread_cond_signal(&g_engine_condvar);
+    pthread_mutex_lock(&EngineMutex);
+    EngineSend = DO_ABORT;
+    pthread_mutex_unlock(&EngineMutex);
+    pthread_cond_signal(&EngineCond);
 }
 
-void    uci_stop(const char *args)
+void    uci_stop(const char *args __attribute__((unused)))
 {
-    (void)args;
-    pthread_mutex_lock(&g_engine_mutex);
-    g_engine_send = DO_EXIT;
-    pthread_mutex_unlock(&g_engine_mutex);
-    pthread_cond_signal(&g_engine_condvar);
+    pthread_mutex_lock(&EngineMutex);
+    EngineSend = DO_EXIT;
+    pthread_mutex_unlock(&EngineMutex);
+    pthread_cond_signal(&EngineCond);
 }
 
-void    uci_uci(const char *args)
+void    uci_uci(const char *args __attribute__((unused)))
 {
-    (void)args;
     puts("id name Stash " UCI_VERSION);
     puts("id author Morgan Houppin");
-
-    show_options(&g_opthandler);
-
+    show_options(&OptionList);
     puts("uciok");
     fflush(stdout);
 }
 
 void    uci_ucinewgame(const char *args)
 {
-    wait_search_end();
-
     (void)args;
+    wait_search_end();
     tt_bzero();
 }

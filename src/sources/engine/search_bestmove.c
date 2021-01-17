@@ -99,7 +99,7 @@ void    search_bestmove(board_t *board, int depth, score_t alpha, score_t beta,
 
         undo_move(board, cur->move);
 
-        if (g_engine_send == DO_ABORT || g_engine_send == DO_EXIT)
+        if (search_should_abort())
             return ;
 
         else if (move_count == 1 || next > alpha)

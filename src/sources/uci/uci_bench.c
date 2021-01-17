@@ -27,9 +27,11 @@
 
 void    uci_bench(const char *args)
 {
+    // If bench depth isn't given, use default depth of 13
     if (!args || !atoi(args))
         args = "13";
 
+    // List of positions to search
     const char  *positions[] = {
         "fen r3k2r/2pb1ppp/2pp1q2/p7/1nP1B3/1P2P3/P2N1PPP/R2QK2R w KQkq a6 0 14",
         "fen 4rrk1/2p1b1p1/p1p3q1/4p3/2P2n1p/1P1NR2P/PB3PP1/3R1QK1 b - - 2 24",
@@ -96,9 +98,9 @@ void    uci_bench(const char *args)
         uci_ucinewgame(NULL);
         uci_position(positions[i]);
         uci_go(buf);
-
         wait_search_end();
 
+        // Retrieve the node counter
         total_nodes += get_node_count();
     }
 

@@ -99,16 +99,16 @@ void        eval_init(const board_t *board, evaluation_t *eval)
     // Set the King Attack zone as the 3x4 square surrounding the king
     // (counting an additional rank in front of the king)
 
-    eval->king_zone[WHITE] = king_moves(board_king_square(board, BLACK));
-    eval->king_zone[BLACK] = king_moves(board_king_square(board, WHITE));
+    eval->king_zone[WHITE] = king_moves(get_king_square(board, BLACK));
+    eval->king_zone[BLACK] = king_moves(get_king_square(board, WHITE));
     eval->king_zone[WHITE] |= shift_down(eval->king_zone[WHITE]);
     eval->king_zone[BLACK] |= shift_up(eval->king_zone[BLACK]);
 
-    bitboard_t  occupied = piecetype_bb(board, ALL_PIECES);
+    bitboard_t  occupied = occupancy_bb(board);
     bitboard_t  wpawns = piece_bb(board, WHITE, PAWN);
     bitboard_t  bpawns = piece_bb(board, BLACK, PAWN);
-    bitboard_t  wattacks = white_pawn_attacks(wpawns);
-    bitboard_t  battacks = black_pawn_attacks(bpawns);
+    bitboard_t  wattacks = wpawns_attacks_bb(wpawns);
+    bitboard_t  battacks = bpawns_attacks_bb(bpawns);
 
     // Exclude opponent pawns' attacks from the Mobility and King Attack zones
 
@@ -124,13 +124,12 @@ void        eval_init(const board_t *board, evaluation_t *eval)
 
     // Add pawn attacks on opponent's pieces as tempos
 
-    eval->tempos[WHITE] = popcount(board->color_bits[BLACK] & ~piecetype_bb(board, PAWN) & wattacks);
-    eval->tempos[BLACK] = popcount(board->color_bits[WHITE] & ~piecetype_bb(board, PAWN) & battacks);
+    eval->tempos[WHITE] = popcount(color_bb(board, BLACK) & ~piecetype_bb(board, PAWN) & wattacks);
+    eval->tempos[BLACK] = popcount(color_bb(board, WHITE) & ~piecetype_bb(board, PAWN) & battacks);
 
     // If not in check, add one tempo to the side to move
 
-    if (!board->stack->checkers)
-        eval->tempos[board->side_to_move] += 1;
+    eval->tempos[board->side_to_move] += !board->stack->checkers;
 }
 
 scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, color_t c)
@@ -146,7 +145,7 @@ scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, color_t c
 
     while (bb)
     {
-        square_t    sq = pop_first_square(&bb);
+        square_t    sq = bb_pop_first_sq(&bb);
         bitboard_t  b = knight_moves(sq);
 
         // Bonus for Knight mobility
@@ -172,7 +171,7 @@ scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, color_t c
 scorepair_t evaluate_bishops(const board_t *board, evaluation_t *eval, color_t c)
 {
     scorepair_t         ret = 0;
-    const bitboard_t    occupancy = board->piecetype_bits[ALL_PIECES];
+    const bitboard_t    occupancy = occupancy_bb(board);
     bitboard_t          bb = piece_bb(board, c, BISHOP);
     bitboard_t          targets = pieces_bb(board, not_color(c), ROOK, QUEEN);
 
@@ -183,8 +182,8 @@ scorepair_t evaluate_bishops(const board_t *board, evaluation_t *eval, color_t c
 
     while (bb)
     {
-        square_t    sq = pop_first_square(&bb);
-        bitboard_t  b = bishop_move_bits(sq, occupancy);
+        square_t    sq = bb_pop_first_sq(&bb);
+        bitboard_t  b = bishop_moves_bb(sq, occupancy);
 
         // Bonus for Bishop mobility
 
@@ -209,9 +208,9 @@ scorepair_t evaluate_bishops(const board_t *board, evaluation_t *eval, color_t c
 scorepair_t evaluate_rooks(const board_t *board, evaluation_t *eval, color_t c)
 {
     scorepair_t         ret = 0;
-    const bitboard_t    occupancy = board->piecetype_bits[ALL_PIECES];
+    const bitboard_t    occupancy = occupancy_bb(board);
     const bitboard_t    my_pawns = piece_bb(board, c, PAWN);
-    const bitboard_t    their_pawns = piecetype_bb(board, PAWN) & ~my_pawns;
+    const bitboard_t    their_pawns = piece_bb(board, not_color(c), PAWN);
     const bitboard_t    their_queens = piece_bb(board, not_color(c), QUEEN);
     bitboard_t          bb = piece_bb(board, c, ROOK);
 
@@ -222,9 +221,9 @@ scorepair_t evaluate_rooks(const board_t *board, evaluation_t *eval, color_t c)
 
     while (bb)
     {
-        square_t    sq = pop_first_square(&bb);
-        bitboard_t  rook_file = file_square_bits(sq);
-        bitboard_t  b = rook_move_bits(sq, occupancy);
+        square_t    sq = bb_pop_first_sq(&bb);
+        bitboard_t  rook_file = sq_file_bb(sq);
+        bitboard_t  b = rook_moves_bb(sq, occupancy);
 
         // Bonus for a Rook on an open (or semi-open) file
 
@@ -259,14 +258,13 @@ scorepair_t evaluate_rooks(const board_t *board, evaluation_t *eval, color_t c)
 scorepair_t evaluate_queens(const board_t *board, evaluation_t *eval, color_t c)
 {
     scorepair_t         ret = 0;
-    const bitboard_t    occupancy = board->piecetype_bits[ALL_PIECES];
+    const bitboard_t    occupancy = occupancy_bb(board);
     bitboard_t          bb = piece_bb(board, c, QUEEN);
 
     while (bb)
     {
-        square_t    sq = pop_first_square(&bb);
-        bitboard_t  b = bishop_move_bits(sq, occupancy)
-            | rook_move_bits(sq, occupancy);
+        square_t    sq = bb_pop_first_sq(&bb);
+        bitboard_t  b = bishop_moves_bb(sq, occupancy) | rook_moves_bb(sq, occupancy);
 
         // Bonus for Queen mobility
 

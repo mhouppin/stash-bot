@@ -43,7 +43,7 @@ void    zobrist_init(void)
         bitboard_t  b = cr;
         while (b)
         {
-            hashkey_t   k = ZobristCastling[1ull << pop_first_square(&b)];
+            hashkey_t   k = ZobristCastling[1ull << bb_pop_first_sq(&b)];
             ZobristCastling[cr] ^= k ? k : qrandom();
         }
     }

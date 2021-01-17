@@ -22,8 +22,6 @@
 
 void    check_time(void)
 {
-    extern goparams_t   g_goparams;
-
     if (--WPool.checks > 0)
         return ;
 
@@ -34,10 +32,10 @@ void    check_time(void)
     // If we are in infinite mode, or the stop has already been set,
     // we can safely return.
 
-    if (g_goparams.infinite || g_engine_send == DO_ABORT || g_engine_send == DO_EXIT)
+    if (SearchParams.infinite || search_should_abort())
         return ;
 
-    if (get_node_count() >= g_goparams.nodes)
+    if (get_node_count() >= SearchParams.nodes)
         goto __set_stop;
 
     if (timeman_must_stop_search(&Timeman, chess_clock()))
@@ -46,7 +44,7 @@ void    check_time(void)
     return ;
 
 __set_stop:
-    pthread_mutex_lock(&g_engine_mutex);
-    g_engine_send = DO_EXIT;
-    pthread_mutex_unlock(&g_engine_mutex);
+    pthread_mutex_lock(&EngineMutex);
+    EngineSend = DO_EXIT;
+    pthread_mutex_unlock(&EngineMutex);
 }

@@ -25,8 +25,8 @@ void    do_castling(board_t *board, color_t us, square_t king_from,
     bool    kingside = *king_to > king_from;
 
     *rook_from = *king_to;
-    *rook_to = relative_square(kingside ? SQ_F1 : SQ_D1, us);
-    *king_to = relative_square(kingside ? SQ_G1 : SQ_C1, us);
+    *rook_to = relative_sq(kingside ? SQ_F1 : SQ_D1, us);
+    *king_to = relative_sq(kingside ? SQ_G1 : SQ_C1, us);
 
     remove_piece(board, king_from);
     remove_piece(board, *rook_from);
@@ -41,8 +41,8 @@ void    undo_castling(board_t *board, color_t us, square_t king_from,
     bool    kingside = *king_to > king_from;
 
     *rook_from = *king_to;
-    *rook_to = relative_square(kingside ? SQ_F1 : SQ_D1, us);
-    *king_to = relative_square(kingside ? SQ_G1 : SQ_C1, us);
+    *rook_to = relative_sq(kingside ? SQ_F1 : SQ_D1, us);
+    *king_to = relative_sq(kingside ? SQ_G1 : SQ_C1, us);
 
     remove_piece(board, *king_to);
     remove_piece(board, *rook_to);

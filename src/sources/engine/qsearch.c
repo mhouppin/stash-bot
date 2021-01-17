@@ -35,8 +35,7 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
     if (!worker->idx)
         check_time();
 
-    if (g_engine_send == DO_EXIT || g_engine_send == DO_ABORT
-        || is_draw(board, ss->plies))
+    if (search_should_abort() || game_is_drawn(board, ss->plies))
         return (0);
 
     if (ss->plies >= MAX_PLIES)
@@ -101,7 +100,7 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
         place_top_move(extmove, list.last);
         const move_t    currmove = extmove->move;
 
-        if (!board_legal(board, currmove))
+        if (!move_is_legal(board, currmove))
             continue ;
 
         move_count++;
@@ -109,10 +108,10 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
         bool    gives_check = move_gives_check(board, currmove);
 
         if (best_value > -MATE_FOUND && delta_pruning && !gives_check
-            && type_of_move(currmove) == NORMAL_MOVE)
+            && move_type(currmove) == NORMAL_MOVE)
         {
             score_t delta = delta_base + PieceScores[ENDGAME]
-                [type_of_piece(piece_on(board, move_to_square(currmove)))];
+                [piece_type(piece_on(board, to_sq(currmove)))];
 
             // Check if the move is very unlikely to improve alpha.
 
@@ -133,7 +132,7 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
 
         undo_move(board, currmove);
 
-        if (g_engine_send == DO_ABORT || g_engine_send == DO_EXIT)
+        if (search_should_abort())
             return (0);
 
         if (best_value < next)
@@ -152,15 +151,11 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
     if (move_count == 0 && board->stack->checkers)
         best_value = mated_in(ss->plies);
 
-    // Do not erase entries with higher depth for same position.
+    int bound = (best_value >= beta) ? LOWER_BOUND
+        : (best_value <= old_alpha) ? UPPER_BOUND : EXACT_BOUND;
 
-    if (entry->key != board->stack->board_key || entry->depth == 0)
-    {
-        int bound = (best_value >= beta) ? LOWER_BOUND
-            : (best_value <= old_alpha) ? UPPER_BOUND : EXACT_BOUND;
-
-        tt_save(entry, board->stack->board_key, score_to_tt(best_value, ss->plies), eval, 0, bound, bestmove);
-    }
+    tt_save(entry, board->stack->board_key, score_to_tt(best_value, ss->plies),
+        eval, 0, bound, bestmove);
 
     return (best_value);
 }

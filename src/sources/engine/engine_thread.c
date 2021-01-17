@@ -23,38 +23,37 @@
 
 void    *engine_thread(void *nothing __attribute__((unused)))
 {
-    pthread_mutex_lock(&g_engine_mutex);
-    g_engine_mode = WAITING;
-    pthread_cond_broadcast(&g_engine_condvar);
+    pthread_mutex_lock(&EngineMutex);
+    EngineMode = WAITING;
+    pthread_cond_broadcast(&EngineCond);
 
-    while (g_engine_send != DO_ABORT)
+    while (EngineSend != DO_ABORT)
     {
-        pthread_cond_wait(&g_engine_condvar, &g_engine_mutex);
+        pthread_cond_wait(&EngineCond, &EngineMutex);
 
-        if (g_engine_send == DO_THINK)
+        if (EngineSend == DO_THINK)
         {
-            g_engine_send = DO_NOTHING;
+            EngineSend = DO_NOTHING;
 
-            extern board_t  g_board;
             board_t         *my_board = &WPool.list->board;
 
-            *my_board = g_board;
-            my_board->stack = boardstack_dup(g_board.stack);
+            *my_board = Board;
+            my_board->stack = dup_boardstack(Board.stack);
             WPool.list->stack = my_board->stack;
 
             // Only unlock the mutex once we're not using the global board
 
-            pthread_mutex_unlock(&g_engine_mutex);
+            pthread_mutex_unlock(&EngineMutex);
 
             engine_go(my_board);
 
-            pthread_mutex_lock(&g_engine_mutex);
-            g_engine_mode = WAITING;
-            pthread_cond_broadcast(&g_engine_condvar);
+            pthread_mutex_lock(&EngineMutex);
+            EngineMode = WAITING;
+            pthread_cond_broadcast(&EngineCond);
         }
     }
 
-    pthread_mutex_unlock(&g_engine_mutex);
+    pthread_mutex_unlock(&EngineMutex);
 
     return (NULL);
 }

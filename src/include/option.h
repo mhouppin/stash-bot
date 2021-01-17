@@ -44,7 +44,7 @@ typedef struct
 }
 option_list_t;
 
-extern option_list_t    g_opthandler;
+extern option_list_t    OptionList;
 
 void    init_option_list(option_list_t *list);
 void    quit_option_list(option_list_t *list);

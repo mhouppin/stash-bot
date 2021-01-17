@@ -22,17 +22,21 @@
 #include "timeman.h"
 #include "movelist.h"
 
+// Scaling table based on the move type
+
 const double   BestmoveTypeScale[BM_TYPE_NB] = {
-    0.20,
-    0.35,
-    0.45,
-    0.50,
-    0.85,
-    0.95,
-    1.00,
-    1.20,
-    1.40,
+    0.20, // One legal move
+    0.35, // Mating / getting mated
+    0.45, // Promoting a piece
+    0.50, // Capture with a very high SEE
+    0.85, // Check not throwing away material
+    0.95, // Capture
+    1.00, // Quiet move not throwing away material
+    1.20, // Check losing material
+    1.40, // Quiet losing material
 };
+
+// Scaling table based on the number of consecutive iterations the bestmove held
 
 const double    BestmoveStabilityScale[5] = {
     2.50,
@@ -47,11 +51,18 @@ double  score_difference_scale(score_t s)
     const score_t   X = 100;
     const double    T = 2.0;
 
+    // Clamp score to the range [-100, 100], and convert it to a time scale [0.5, 2.0]
+    // Examples:
+    // -100 -> 2.000x time
+    //  -50 -> 1.414x time
+    //    0 -> 1.000x time
+    //  +50 -> 0.707x time
+    // +100 -> 0.500x time
+
     return (pow(T, clamp(s, -X, X) / (double)X));
 }
 
-void    timeman_update(timeman_t *tm, const board_t *board, move_t bestmove,
-        score_t score)
+void    timeman_update(timeman_t *tm, const board_t *board, move_t bestmove, score_t score)
 {
     // Only update timeman when we need one
     if (tm->mode != Tournament)
@@ -72,7 +83,7 @@ void    timeman_update(timeman_t *tm, const board_t *board, move_t bestmove,
         if (movelist_size(&list) == 1)
             tm->type = OneLegalMove;
 
-        else if (type_of_move(bestmove) == PROMOTION)
+        else if (move_type(bestmove) == PROMOTION)
             tm->type = Promotion;
 
         else if (!is_quiet && see_greater_than(board, bestmove, KNIGHT_MG_SCORE))

@@ -64,17 +64,15 @@ uint64_t    perft(board_t *board, unsigned int depth)
 
 void        *engine_go(void *ptr)
 {
-    extern goparams_t   g_goparams;
-    extern ucioptions_t g_options;
-    extern movelist_t   g_searchmoves;
-    const size_t        root_move_count = movelist_size(&g_searchmoves);
+    extern goparams_t   SearchParams;
+    const size_t        root_move_count = movelist_size(&SearchMoves);
     board_t             *board = ptr;
     worker_t            *worker = get_worker(board);
 
-    if (g_goparams.perft)
+    if (SearchParams.perft)
     {
         clock_t     time = chess_clock();
-        uint64_t    nodes = perft(board, (unsigned int)g_goparams.perft);
+        uint64_t    nodes = perft(board, (unsigned int)SearchParams.perft);
 
         time = chess_clock() - time;
 
@@ -99,9 +97,9 @@ void        *engine_go(void *ptr)
     // Init root move struct here
 
     root_move_t *root_moves = malloc(sizeof(root_move_t) * root_move_count);
-    for (size_t i = 0; i < movelist_size(&g_searchmoves); ++i)
+    for (size_t i = 0; i < movelist_size(&SearchMoves); ++i)
     {
-        root_moves[i].move = g_searchmoves.moves[i].move;
+        root_moves[i].move = SearchMoves.moves[i].move;
         root_moves[i].seldepth = 0;
         root_moves[i].previous_score = root_moves[i].score = -INF_SCORE;
         root_moves[i].pv[0] = NO_MOVE;
@@ -118,13 +116,13 @@ void        *engine_go(void *ptr)
         tt_clear();
 
         init_reduction_table();
-        timeman_init(board, &Timeman, &g_goparams, chess_clock());
+        timeman_init(board, &Timeman, &SearchParams, chess_clock());
 
-        if (g_goparams.depth == 0)
-            g_goparams.depth = MAX_PLIES;
+        if (SearchParams.depth == 0)
+            SearchParams.depth = MAX_PLIES;
 
-        if (g_goparams.nodes == 0)
-            g_goparams.nodes = SIZE_MAX;
+        if (SearchParams.nodes == 0)
+            SearchParams.nodes = SIZE_MAX;
 
         WPool.checks = 1000;
         worker->nodes = 0;
@@ -134,12 +132,12 @@ void        *engine_go(void *ptr)
             worker_t    *cur = WPool.list + i;
 
             cur->board = worker->board;
-            cur->stack = boardstack_dup(worker->stack);
+            cur->stack = dup_boardstack(worker->stack);
             cur->board.stack = cur->stack;
             cur->board.worker = cur;
             cur->nodes = 0;
 
-            if (pthread_create(&cur->thread, &g_engine_attr, &engine_go, &cur->board))
+            if (pthread_create(&cur->thread, &WorkerSettings, &engine_go, &cur->board))
             {
                 perror("Unable to initialize worker thread");
                 exit(EXIT_FAILURE);
@@ -147,9 +145,9 @@ void        *engine_go(void *ptr)
         }
     }
 
-    const int   multi_pv = min(g_options.multi_pv, root_move_count);
+    const int   multi_pv = min(Options.multi_pv, root_move_count);
 
-    for (int iter_depth = 0; iter_depth < g_goparams.depth; ++iter_depth)
+    for (int iter_depth = 0; iter_depth < SearchParams.depth; ++iter_depth)
     {
         bool    has_search_aborted;
 
@@ -179,7 +177,7 @@ __retry:
 
             // Catch search aborting
 
-            has_search_aborted = (g_engine_send == DO_ABORT || g_engine_send == DO_EXIT);
+            has_search_aborted = search_should_abort();
 
             sort_root_moves(root_moves + pv_line, root_moves + root_move_count);
 
@@ -195,8 +193,7 @@ __retry:
             {
                 clock_t     chess_time = chess_clock() - Timeman.start;
                 uint64_t    chess_nodes = get_node_count();
-                uint64_t    chess_nps = (!chess_time) ? 0 : (chess_nodes * 1000)
-                    / chess_time;
+                uint64_t    chess_nps = (!chess_time) ? 0 : (chess_nodes * 1000) / chess_time;
 
                 // Don't update Multi-PV lines if not all analysed at current depth
                 // and not enough time elapsed
@@ -266,16 +263,16 @@ __retry:
                 break ;
         }
 
-        if (g_goparams.mate > 0
-            && root_moves->previous_score >= mate_in(g_goparams.mate * 2))
+        if (SearchParams.mate > 0
+            && root_moves->previous_score >= mate_in(SearchParams.mate * 2))
             break ;
     }
 
     // UCI protocol specifies that we shouldn't send the bestmove command
     // before the GUI sends us the "stop" in infinite mode.
 
-    if (g_goparams.infinite)
-        while (!(g_engine_send == DO_ABORT || g_engine_send == DO_EXIT))
+    if (SearchParams.infinite)
+        while (!search_should_abort())
             if (!worker->idx)
                 check_time();
 
@@ -284,11 +281,11 @@ __retry:
         printf("bestmove %s\n", move_to_str(root_moves->move, board->chess960));
         fflush(stdout);
 
-        if (g_engine_send != DO_ABORT)
+        if (EngineSend != DO_ABORT)
         {
-            pthread_mutex_lock(&g_engine_mutex);
-            g_engine_send = DO_EXIT;
-            pthread_mutex_unlock(&g_engine_mutex);
+            pthread_mutex_lock(&EngineMutex);
+            EngineSend = DO_EXIT;
+            pthread_mutex_unlock(&EngineMutex);
 
             for (int i = 1; i < WPool.size; ++i)
                 pthread_join(WPool.list[i].thread, NULL);
@@ -296,6 +293,6 @@ __retry:
     }
 
     free(root_moves);
-    boardstack_free(worker->stack);
+    free_boardstack(worker->stack);
     return (NULL);
 }

@@ -32,8 +32,7 @@ void    do_null_move(board_t *board, boardstack_t *stack)
 
     if (stack->en_passant_square != SQ_NONE)
     {
-        stack->board_key ^= ZobristEnPassant[
-            file_of_square(stack->en_passant_square)];
+        stack->board_key ^= ZobristEnPassant[sq_file(stack->en_passant_square)];
         stack->en_passant_square = SQ_NONE;
     }
 

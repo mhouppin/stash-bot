@@ -16,6 +16,7 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "info.h"
 #include "tt.h"
 #include "uci.h"
 #include "option.h"
@@ -26,8 +27,6 @@ void    uci_setoption(const char *args)
 {
     if (!args)
         return ;
-
-    const char  *delim = " \t\n";
 
     char    *copy = strdup(args);
     char    *name_token = strstr(copy, "name");
@@ -57,15 +56,15 @@ void    uci_setoption(const char *args)
 
     char    *token;
 
-    token = strtok(name_token + 4, delim);
+    token = strtok(name_token + 4, Delimiters);
     while (token)
     {
         strcat(namebuf, token);
-        token = strtok(NULL, delim);
+        token = strtok(NULL, Delimiters);
         if (token)
             strcat(namebuf, " ");
     }
 
-    set_option(&g_opthandler, namebuf, valuebuf);
+    set_option(&OptionList, namebuf, valuebuf);
     free(copy);
 }

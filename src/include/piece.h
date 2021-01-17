@@ -57,12 +57,12 @@ enum
     PIECETYPE_NB = 8
 };
 
-INLINED piecetype_t type_of_piece(piece_t piece)
+INLINED piecetype_t piece_type(piece_t piece)
 {
     return (piece & 7);
 }
 
-INLINED color_t     color_of_piece(piece_t piece)
+INLINED color_t     piece_color(piece_t piece)
 {
     return (piece >> 3);
 }

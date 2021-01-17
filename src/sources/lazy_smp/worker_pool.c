@@ -41,9 +41,7 @@ void    wpool_init(int threads)
         worker->stack = NULL;
     }
 
-    extern board_t  g_board;
-
-    g_board.worker = WPool.list;
+    Board.worker = WPool.list;
 }
 
 void    wpool_quit(void)

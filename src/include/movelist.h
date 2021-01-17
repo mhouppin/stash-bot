@@ -38,6 +38,8 @@ typedef struct  movelist_s
     extmove_t   *last;
 }               movelist_t;
 
+extern movelist_t   SearchMoves;
+
 extmove_t   *generate_all(extmove_t *movelist, const board_t *board);
 extmove_t   *generate_instable(extmove_t *movelist, const board_t *board);
 extmove_t   *generate_pseudo(extmove_t *movelist, const board_t *board);
@@ -49,7 +51,6 @@ extmove_t   *generate_captures(extmove_t *movelist, const board_t *board);
 extmove_t   *generate_piece_moves(extmove_t *movelist, const board_t *board,
             color_t us, piecetype_t pt, bitboard_t target_squares);
 
-void        sort_moves(extmove_t *begin, extmove_t *end);
 void        place_top_move(extmove_t *begin, extmove_t *end);
 void        generate_move_values(movelist_t *movelist, const board_t *board,
             move_t tt_move, move_t *killers, move_t previous_move);

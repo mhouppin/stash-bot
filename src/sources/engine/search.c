@@ -44,8 +44,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
     if (pv_node && worker->seldepth < ss->plies + 1)
         worker->seldepth = ss->plies + 1;
 
-    if (g_engine_send == DO_EXIT || g_engine_send == DO_ABORT
-        || is_draw(board, ss->plies))
+    if (search_should_abort() || game_is_drawn(board, ss->plies))
         return (0);
 
     if (ss->plies >= MAX_PLIES)
@@ -119,14 +118,12 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
 
     // Futility Pruning.
 
-    if (!pv_node && !in_check && depth <= 8
-        && eval - 80 * depth >= beta && eval < VICTORY)
+    if (!pv_node && !in_check && depth <= 8 && eval - 80 * depth >= beta && eval < VICTORY)
         return (eval);
 
     // Null move pruning.
 
-    if (!pv_node && depth >= NMP_MinDepth && !in_check
-        && ss->plies >= worker->verif_plies
+    if (!pv_node && depth >= NMP_MinDepth && !in_check && ss->plies >= worker->verif_plies
         && eval >= beta && eval >= ss->static_eval)
     {
         boardstack_t    stack;
@@ -139,8 +136,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
 
         do_null_move(board, &stack);
 
-        score_t score = -search(board, depth - nmp_reduction, -beta, -beta + 1,
-                ss + 1, false);
+        score_t score = -search(board, depth - nmp_reduction, -beta, -beta + 1, ss + 1, false);
 
         undo_null_move(board);
 
@@ -160,8 +156,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
 
             worker->verif_plies = ss->plies + (depth - nmp_reduction) * 3 / 4;
 
-            score_t zzscore = search(board, depth - nmp_reduction, beta - 1, beta,
-                ss, false);
+            score_t zzscore = search(board, depth - nmp_reduction, beta - 1, beta, ss, false);
 
             worker->verif_plies = 0;
 
@@ -186,7 +181,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
         place_top_move(extmove, list.last);
         const move_t    currmove = extmove->move;
 
-        if (!board_legal(board, currmove))
+        if (!move_is_legal(board, currmove))
             continue ;
 
         move_count++;
@@ -233,7 +228,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
 
         undo_move(board, currmove);
 
-        if (g_engine_send == DO_ABORT || g_engine_send == DO_EXIT)
+        if (search_should_abort())
             return (0);
 
         if (best_value < next)
@@ -277,16 +272,12 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
     if (move_count == 0)
         best_value = (board->stack->checkers) ? mated_in(ss->plies) : 0;
 
-    // Do not erase entries with higher depth for same position.
+    
+    int bound = (best_value >= beta) ? LOWER_BOUND
+        : (pv_node && bestmove) ? EXACT_BOUND : UPPER_BOUND;
 
-    if (entry->key != board->stack->board_key || entry->depth <= depth)
-    {
-        int bound = (best_value >= beta) ? LOWER_BOUND
-            : (pv_node && bestmove) ? EXACT_BOUND : UPPER_BOUND;
-
-        tt_save(entry, board->stack->board_key, score_to_tt(best_value, ss->plies),
-            ss->static_eval, depth, bound, bestmove);
-    }
+    tt_save(entry, board->stack->board_key, score_to_tt(best_value, ss->plies), ss->static_eval,
+        depth, bound, bestmove);
 
     return (best_value);
 }

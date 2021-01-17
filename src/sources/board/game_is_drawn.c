@@ -16,22 +16,26 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "board.h"
 #include "movelist.h"
-#include <unistd.h>
 
-void    sort_moves(extmove_t *begin, extmove_t *end)
+bool    game_is_drawn(const board_t *board, int ply)
 {
-    const ssize_t   size = (ssize_t)(end - begin);
-
-    for (ssize_t i = 1; i < size; ++i)
+    if (board->stack->rule50 > 99)
     {
-        extmove_t   tmp = begin[i];
-        ssize_t     j = i - 1;
-        while (j >= 0 && begin[j].score < tmp.score)
-        {
-            begin[j + 1] = begin[j];
-            --j;
-        }
-        begin[j + 1] = tmp;
+        if (!board->stack->checkers)
+            return (true);
+
+        movelist_t  movelist;
+
+        list_all(&movelist, board);
+
+        if (movelist_size(&movelist) != 0)
+            return (true);
     }
+
+    if (board->stack->repetition && board->stack->repetition < ply)
+        return (true);
+
+    return (false);
 }

@@ -48,25 +48,21 @@ typedef struct
     uint8_t     generation;
 }        transposition_t;
 
+extern transposition_t  TT;
+
 INLINED tt_entry_t  *tt_entry_at(hashkey_t k)
 {
-    extern transposition_t  g_hashtable;
-
-    return (g_hashtable.table[mul_hi64(k, g_hashtable.cluster_count)]);
+    return (TT.table[mul_hi64(k, TT.cluster_count)]);
 }
 
 INLINED void        tt_clear(void)
 {
-    extern transposition_t  g_hashtable;
-
-    g_hashtable.generation += 4;
+    TT.generation += 4;
 }
 
 INLINED void        tt_bzero(void)
 {
-    extern transposition_t  g_hashtable;
-
-    memset(g_hashtable.table, 0, sizeof(cluster_t) * g_hashtable.cluster_count);
+    memset(TT.table, 0, sizeof(cluster_t) * TT.cluster_count);
 }
 
 INLINED score_t     score_to_tt(score_t s, int plies)

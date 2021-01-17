@@ -65,18 +65,24 @@ typedef struct  ucioptions_s
     bool        chess960;
 }               ucioptions_t;
 
-extern pthread_attr_t   g_engine_attr;
-extern pthread_mutex_t  g_engine_mutex;
-extern pthread_cond_t   g_engine_condvar;
-extern enum e_egn_mode  g_engine_mode;
-extern enum e_egn_send  g_engine_send;
-extern goparams_t       g_goparams;
+extern pthread_attr_t   WorkerSettings;
+extern ucioptions_t     Options;
+extern pthread_mutex_t  EngineMutex;
+extern pthread_cond_t   EngineCond;
+extern enum e_egn_mode  EngineMode;
+extern enum e_egn_send  EngineSend;
+extern goparams_t       SearchParams;
 
 typedef struct  cmdlink_s
 {
     const char  *cmd_name;
     void        (*call)(const char *);
 }               cmdlink_t;
+
+INLINED bool    search_should_abort(void)
+{
+    return (EngineSend == DO_EXIT || EngineSend == DO_ABORT);
+}
 
 void    wait_search_end(void);
 char    *get_next_token(char **str);

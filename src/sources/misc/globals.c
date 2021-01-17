@@ -21,20 +21,22 @@
 #include "option.h"
 #include "timeman.h"
 
-board_t         g_board;
-pthread_attr_t  g_engine_attr;
-goparams_t      g_goparams;
-option_list_t   g_opthandler;
-movelist_t      g_searchmoves;
+board_t         Board;
+pthread_attr_t  WorkerSettings;
+goparams_t      SearchParams;
+option_list_t   OptionList;
+movelist_t      SearchMoves;
 
-pthread_cond_t  g_engine_condvar = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t g_engine_mutex = PTHREAD_MUTEX_INITIALIZER;
-enum e_egn_mode g_engine_mode = THINKING;
-enum e_egn_send g_engine_send = DO_NOTHING;
-uint64_t        g_seed = 1048592ul;
+pthread_cond_t  EngineCond = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t EngineMutex = PTHREAD_MUTEX_INITIALIZER;
+enum e_egn_mode EngineMode = THINKING;
+enum e_egn_send EngineSend = DO_NOTHING;
+uint64_t        Seed = 1048592ul;
 
-ucioptions_t    g_options = {
+ucioptions_t    Options = {
     1, 16, 100, 1, false
 };
 
 timeman_t       Timeman;
+
+const char      *Delimiters = " \t\n";

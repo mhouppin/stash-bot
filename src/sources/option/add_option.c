@@ -12,7 +12,6 @@ option_t    *insert_option(option_list_t *list, const char *name)
     if (list->size == list->max_size)
     {
         list->max_size += (!list->max_size) ? 16 : list->max_size;
-
         list->options = realloc(list->options, list->max_size * sizeof(option_t));
 
         if (!list->options)
@@ -33,8 +32,7 @@ option_t    *insert_option(option_list_t *list, const char *name)
         else
             left = i + 1;
     }
-    memmove(&list->options[left + 1], &list->options[left],
-        sizeof(option_t) * (list->size - left));
+    memmove(&list->options[left + 1], &list->options[left], sizeof(option_t) * (list->size - left));
     memset(&list->options[left], 0, sizeof(option_t));
 
     list->options[left].name = strdup(name);

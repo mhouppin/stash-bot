@@ -132,16 +132,16 @@ void    psq_score_init(void)
             scorepair_t psq_entry;
 
             if (piece == WHITE_PAWN)
-                psq_entry = piece_value + PawnBonus[rank_of_square(square)][file_of_square(square)];
+                psq_entry = piece_value + PawnBonus[sq_rank(square)][sq_file(square)];
             else
             {
-                file_t  qside_file = min(file_of_square(square), file_of_square(square) ^ 7);
+                file_t  qside_file = min(sq_file(square), sq_file(square) ^ 7);
 
-                psq_entry = piece_value + PieceBonus[piece][rank_of_square(square)][qside_file];
+                psq_entry = piece_value + PieceBonus[piece][sq_rank(square)][qside_file];
             }
 
             PsqScore[piece][square] = psq_entry;
-            PsqScore[opposite_piece(piece)][opposite_square(square)] = -psq_entry;
+            PsqScore[opposite_piece(piece)][opposite_sq(square)] = -psq_entry;
         }
     }
 }

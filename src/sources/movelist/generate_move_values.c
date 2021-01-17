@@ -28,10 +28,12 @@ void    generate_move_values(movelist_t *movelist, const board_t *board,
     move_t              counter;
     square_t            lto = SQ_A1;
     piece_t             lpc = NO_PIECE;
+    square_t            from, to;
+    piece_t             moved_piece, captured_piece;
 
     if (is_valid_move(previous_move))
     {
-        lto = move_to_square(previous_move);
+        lto = to_sq(previous_move);
         lpc = piece_on(board, lto);
 
         counter = worker->cm_history[lpc][lto];
@@ -49,7 +51,7 @@ void    generate_move_values(movelist_t *movelist, const board_t *board,
             continue ;
         }
 
-        switch (type_of_move(move))
+        switch (move_type(move))
         {
             case PROMOTION:
                 extmove->score = promotion_type(move) == QUEEN ? 4096 : -4096;
@@ -59,22 +61,24 @@ void    generate_move_values(movelist_t *movelist, const board_t *board,
                 extmove->score = 2048 + PAWN * 8 - PAWN;
                 break ;
 
-            default: ; // Statement issue
-                const square_t  from = move_from_square(move);
-                const square_t  to = move_to_square(move);
-                const piece_t   moved_piece = piece_on(board, from);
-                const piece_t   captured_piece = piece_on(board, to);
+            default:
+                from = from_sq(move);
+                to = to_sq(move);
+                moved_piece = piece_on(board, from);
+                captured_piece = piece_on(board, to);
 
                 if (captured_piece != NO_PIECE)
                 {
                     extmove->score = see_greater_than(board, move, -30) ? 2048 : 1024;
-                    extmove->score += type_of_piece(captured_piece) * 8
-                        - type_of_piece(moved_piece);
+                    extmove->score += piece_type(captured_piece) * 8;
+                    extmove->score -= piece_type(moved_piece);
                 }
                 else if (move == killers[0] || move == killers[1])
                     extmove->score = 1537;
+
                 else if (move == counter)
                     extmove->score = 1536;
+
                 else
                     extmove->score = get_bf_history_score(worker->bf_history, moved_piece, move)
                         + get_ct_history_score(worker->ct_history, moved_piece, to, lpc, lto);

@@ -22,15 +22,15 @@ extmove_t   *generate_piece_moves(extmove_t *movelist, const board_t *board,
             color_t us, piecetype_t pt, bitboard_t target)
 {
     bitboard_t  bb = piece_bb(board, us, pt);
-    bitboard_t  occupancy = piecetype_bb(board, ALL_PIECES);
+    bitboard_t  occupancy = occupancy_bb(board);
 
     while (bb)
     {
-        square_t    from = pop_first_square(&bb);
+        square_t    from = bb_pop_first_sq(&bb);
         bitboard_t  b = piece_moves(pt, from, occupancy) & target;
 
         while (b)
-            (movelist++)->move = create_move(from, pop_first_square(&b));
+            (movelist++)->move = create_move(from, bb_pop_first_sq(&b));
     }
 
     return (movelist);

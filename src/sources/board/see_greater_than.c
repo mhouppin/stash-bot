@@ -20,24 +20,23 @@
 
 bool    see_greater_than(const board_t *board, move_t m, score_t threshold)
 {
-    if (type_of_move(m) != NORMAL_MOVE)
+    if (move_type(m) != NORMAL_MOVE)
         return (threshold <= 0);
 
-    square_t    from = move_from_square(m);
-    square_t    to = move_to_square(m);
-    score_t     next_score = PieceScores[MIDGAME][type_of_piece(piece_on(board, to))] - threshold;
+    square_t    from = from_sq(m);
+    square_t    to = to_sq(m);
+    score_t     next_score = PieceScores[MIDGAME][piece_type(piece_on(board, to))] - threshold;
 
     if (next_score < 0)
         return (false);
 
-    next_score = PieceScores[MIDGAME][type_of_piece(piece_on(board, from))] - next_score;
+    next_score = PieceScores[MIDGAME][piece_type(piece_on(board, from))] - next_score;
 
     if (next_score <= 0)
         return (true);
 
-    bitboard_t  occupied = board->piecetype_bits[ALL_PIECES]
-        ^ square_bit(from) ^ square_bit(to);
-    color_t     side_to_move = color_of_piece(piece_on(board, from));
+    bitboard_t  occupied = occupancy_bb(board) ^ square_bb(from) ^ square_bb(to);
+    color_t     side_to_move = piece_color(piece_on(board, from));
     bitboard_t  attackers = attackers_list(board, to, occupied);
     bitboard_t  stm_attackers;
     bitboard_t  b;
@@ -48,7 +47,7 @@ bool    see_greater_than(const board_t *board, move_t m, score_t threshold)
         side_to_move = not_color(side_to_move);
         attackers &= occupied;
 
-        if (!(stm_attackers = attackers & board->color_bits[side_to_move]))
+        if (!(stm_attackers = attackers & color_bb(board, side_to_move)))
             break ;
 
         if (board->stack->pinners[not_color(side_to_move)] & occupied)
@@ -60,54 +59,48 @@ bool    see_greater_than(const board_t *board, move_t m, score_t threshold)
 
         result ^= 1;
 
-        if ((b = stm_attackers & board->piecetype_bits[PAWN]))
+        if ((b = stm_attackers & piecetype_bb(board, PAWN)))
         {
             if ((next_score = PAWN_MG_SCORE - next_score) < result)
                 break ;
 
-            occupied ^= square_bit(first_square(b));
-            attackers |= bishop_move_bits(to, occupied)
-                & piecetypes_bb(board, BISHOP, QUEEN);
+            occupied ^= square_bb(bb_first_sq(b));
+            attackers |= bishop_moves_bb(to, occupied) & piecetypes_bb(board, BISHOP, QUEEN);
         }
-        else if ((b = stm_attackers & board->piecetype_bits[KNIGHT]))
+        else if ((b = stm_attackers & piecetype_bb(board, KNIGHT)))
         {
             if ((next_score = KNIGHT_MG_SCORE - next_score) < result)
                 break ;
 
-            occupied ^= square_bit(first_square(b));
+            occupied ^= square_bb(bb_first_sq(b));
         }
-        else if ((b = stm_attackers & board->piecetype_bits[BISHOP]))
+        else if ((b = stm_attackers & piecetype_bb(board, BISHOP)))
         {
             if ((next_score = BISHOP_MG_SCORE - next_score) < result)
                 break ;
 
-            occupied ^= square_bit(first_square(b));
-            attackers |= bishop_move_bits(to, occupied)
-                & piecetypes_bb(board, BISHOP, QUEEN);
+            occupied ^= square_bb(bb_first_sq(b));
+            attackers |= bishop_moves_bb(to, occupied) & piecetypes_bb(board, BISHOP, QUEEN);
         }
-        else if ((b = stm_attackers & board->piecetype_bits[ROOK]))
+        else if ((b = stm_attackers & piecetype_bb(board, ROOK)))
         {
             if ((next_score = ROOK_MG_SCORE - next_score) < result)
                 break ;
 
-            occupied ^= square_bit(first_square(b));
-            attackers |= rook_move_bits(to, occupied)
-                & piecetypes_bb(board, ROOK, QUEEN);
+            occupied ^= square_bb(bb_first_sq(b));
+            attackers |= rook_moves_bb(to, occupied) & piecetypes_bb(board, ROOK, QUEEN);
         }
-        else if ((b = stm_attackers & board->piecetype_bits[QUEEN]))
+        else if ((b = stm_attackers & piecetype_bb(board, QUEEN)))
         {
             if ((next_score = QUEEN_MG_SCORE - next_score) < result)
                 break ;
 
-            occupied ^= square_bit(first_square(b));
-            attackers |= bishop_move_bits(to, occupied)
-                & piecetypes_bb(board, BISHOP, QUEEN);
-            attackers |= rook_move_bits(to, occupied)
-                & piecetypes_bb(board, ROOK, QUEEN);
+            occupied ^= square_bb(bb_first_sq(b));
+            attackers |= bishop_moves_bb(to, occupied) & piecetypes_bb(board, BISHOP, QUEEN);
+            attackers |= rook_moves_bb(to, occupied) & piecetypes_bb(board, ROOK, QUEEN);
         }
         else
-            return ((attackers & ~board->color_bits[side_to_move])
-                ? result ^ 1 : result);
+            return ((attackers & ~color_bb(board, side_to_move)) ? result ^ 1 : result);
     }
     return (result);
 }

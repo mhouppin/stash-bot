@@ -32,18 +32,18 @@ const char  *move_to_str(move_t move, bool is_chess960)
     if (move == NULL_MOVE)
         return ("0000");
 
-    square_t    from = move_from_square(move);
-    square_t    to = move_to_square(move);
+    square_t    from = from_sq(move);
+    square_t    to = to_sq(move);
 
-    if (type_of_move(move) == CASTLING && !is_chess960)
-        to = create_square(to > from ? FILE_G : FILE_C, rank_of_square(from));
+    if (move_type(move) == CASTLING && !is_chess960)
+        to = create_sq(to > from ? FILE_G : FILE_C, sq_rank(from));
 
-    buf[0] = file_of_square(from) + 'a';
-    buf[1] = rank_of_square(from) + '1';
-    buf[2] = file_of_square(to) + 'a';
-    buf[3] = rank_of_square(to) + '1';
+    buf[0] = sq_file(from) + 'a';
+    buf[1] = sq_rank(from) + '1';
+    buf[2] = sq_file(to) + 'a';
+    buf[3] = sq_rank(to) + '1';
 
-    if (type_of_move(move) == PROMOTION)
+    if (move_type(move) == PROMOTION)
     {
         buf[4] = " pnbrqk"[promotion_type(move)];
         buf[5] = '\0';
@@ -65,8 +65,7 @@ move_t      str_to_move(const board_t *board, const char *str)
 
     list_all(&movelist, board);
 
-    for (const extmove_t *m = movelist_begin(&movelist);
-        m < movelist_end(&movelist); ++m)
+    for (const extmove_t *m = movelist_begin(&movelist); m < movelist_end(&movelist); ++m)
     {
         const char  *s = move_to_str(m->move, board->chess960);
         if (!strcmp(trick, s))

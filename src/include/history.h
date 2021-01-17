@@ -37,20 +37,20 @@ typedef move_t  cm_history_t[PIECE_NB][SQUARE_NB];
 
 INLINED void    add_bf_history(bf_history_t hist, piece_t piece, move_t move, int32_t bonus)
 {
-    int32_t *entry = &hist[piece][move_squares(move)];
+    int32_t *entry = &hist[piece][square_mask(move)];
 
     *entry += bonus - *entry * abs(bonus) / HistoryResolution;
 }
 
 INLINED score_t get_bf_history_score(bf_history_t hist, piece_t piece, move_t move)
 {
-    return (hist[piece][move_squares(move)] / HistoryScale);
+    return (hist[piece][square_mask(move)] / HistoryScale);
 }
 
 INLINED void    add_ct_history(ct_history_t hist, piece_t pc, square_t to,
                 piece_t lpc, square_t lto, int32_t bonus)
 {
-    int32_t *entry = &hist[pc][to][type_of_piece(lpc)][lto];
+    int32_t *entry = &hist[pc][to][piece_type(lpc)][lto];
 
     *entry += bonus - *entry * abs(bonus) / HistoryResolution;
 }
@@ -58,7 +58,7 @@ INLINED void    add_ct_history(ct_history_t hist, piece_t pc, square_t to,
 INLINED score_t get_ct_history_score(ct_history_t hist, piece_t pc, square_t to,
                 piece_t lpc, square_t lto)
 {
-    return (hist[pc][to][type_of_piece(lpc)][lto] / HistoryScale);
+    return (hist[pc][to][piece_type(lpc)][lto] / HistoryScale);
 }
 
 #endif

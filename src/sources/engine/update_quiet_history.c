@@ -33,14 +33,14 @@ void    update_quiet_history(const board_t *board, int depth,
 
     if (is_valid_move(previous_move))
     {
-        lto = move_to_square(previous_move);
+        lto = to_sq(previous_move);
         lpc = piece_on(board, lto);
 
         get_worker(board)->cm_history[lpc][lto] = bestmove;
     }
 
-    pc = piece_on(board, move_from_square(bestmove));
-    to = move_to_square(bestmove);
+    pc = piece_on(board, from_sq(bestmove));
+    to = to_sq(bestmove);
 
     add_bf_history(*bf_hist, pc, bestmove, bonus);
     add_ct_history(*ct_hist, pc, to, lpc, lto, bonus);
@@ -52,8 +52,8 @@ void    update_quiet_history(const board_t *board, int depth,
 
     for (int i = 0; i < qcount; ++i)
     {
-        pc = piece_on(board, move_from_square(quiets[i]));
-        to = move_to_square(quiets[i]);
+        pc = piece_on(board, from_sq(quiets[i]));
+        to = to_sq(quiets[i]);
         add_bf_history(*bf_hist, pc, quiets[i], -bonus);
         add_ct_history(*ct_hist, pc, to, lpc, lto, -bonus);
     }

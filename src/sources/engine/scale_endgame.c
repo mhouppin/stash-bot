@@ -32,10 +32,10 @@ bool    ocb_endgame(const board_t *board)
     if (popcount(bbishop) != 1)
         return (false);
 
-    square_t    wbsq = first_square(wbishop);
-    square_t    bbsq = first_square(bbishop);
+    square_t    wbsq = bb_first_sq(wbishop);
+    square_t    bbsq = bb_first_sq(bbishop);
 
-    return ((wbsq + rank_of_square(wbsq) + bbsq + rank_of_square(bbsq)) & 1);
+    return ((wbsq + sq_rank(wbsq) + bbsq + sq_rank(bbsq)) & 1);
 }
 
 score_t scale_endgame(const board_t *board, score_t eg)
@@ -44,10 +44,9 @@ score_t scale_endgame(const board_t *board, score_t eg)
     // This allows us to quickly filter out positions which shouldn't be scaled,
     // even though they have a theoretical scaling factor in our code (like KNvKPPPP).
 
-    color_t strong_side = (eg > 0) ? WHITE : BLACK;
-    color_t weak_side = not_color(strong_side);
-    int     factor;
-
+    color_t     strong_side = (eg > 0) ? WHITE : BLACK;
+    color_t     weak_side = not_color(strong_side);
+    int         factor;
     score_t     strong_mat = board->stack->material[strong_side];
     score_t     weak_mat = board->stack->material[weak_side];
     bitboard_t  strong_pawns = piece_bb(board, strong_side, PAWN);
@@ -74,7 +73,7 @@ score_t scale_endgame(const board_t *board, score_t eg)
 
     // OCB endgames: scale based on the number of remaining pieces of the strong side.
     else if (ocb_endgame(board))
-        factor = 36 + popcount(board->color_bits[strong_side]) * 6;
+        factor = 36 + popcount(color_bb(board, strong_side)) * 6;
 
     // Rook endgames: drawish if the pawn advantage is small, and all strong side pawns
     // are on the same side of the board. Don't scale if the defending king is far from
@@ -82,7 +81,7 @@ score_t scale_endgame(const board_t *board, score_t eg)
     else if (strong_mat == ROOK_MG_SCORE && weak_mat == ROOK_MG_SCORE
         && (popcount(strong_pawns) - popcount(weak_pawns) < 2)
         && !!(KINGSIDE_BITS & strong_pawns) != !!(QUEENSIDE_BITS & strong_pawns)
-        && (king_moves(board_king_square(board, weak_side)) & weak_pawns))
+        && (king_moves(get_king_square(board, weak_side)) & weak_pawns))
         factor = 64;
 
     // Naked weak king versus mating material: use a large value for scaling

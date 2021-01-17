@@ -21,11 +21,9 @@
 #include "imath.h"
 #include "timeman.h"
 
-void    timeman_init(const board_t *board, timeman_t *tm,
-        goparams_t *params, clock_t start)
+void    timeman_init(const board_t *board, timeman_t *tm, goparams_t *params, clock_t start)
 {
-    extern ucioptions_t g_options;
-    clock_t             overhead = g_options.move_overhead;
+    clock_t overhead = Options.move_overhead;
 
     tm->start = start;
 
@@ -48,8 +46,7 @@ void    timeman_init(const board_t *board, timeman_t *tm,
     else if (params->movetime)
     {
         tm->mode = Movetime;
-        tm->average_time = tm->maximal_time = tm->optimal_time
-            = max(1, params->movetime - overhead);
+        tm->average_time = tm->maximal_time = tm->optimal_time = max(1, params->movetime - overhead);
     }
     else
         tm->mode = NoTimeman;

@@ -20,14 +20,11 @@
 
 int tt_hashfull(void)
 {
-    extern transposition_t  g_hashtable;
-
     int count = 0;
 
     for (int i = 0; i < 1000; ++i)
         for (int j = 0; j < ClusterSize; ++j)
-            count += (g_hashtable.table[i][j].genbound & 0xFC)
-                == g_hashtable.generation;
+            count += (TT.table[i][j].genbound & 0xFC) == TT.generation;
 
     return (count / ClusterSize);
 }

@@ -44,9 +44,9 @@ scorepair_t evaluate_passers(color_t c, bitboard_t us, bitboard_t them)
 
     while (us)
     {
-        square_t    sq = pop_first_square(&us);
-        if (!(passed_pawn_span(c, sq) & them))
-            ret += PassedBonus[relative_square_rank(sq, c)];
+        square_t    sq = bb_pop_first_sq(&us);
+        if (!(passed_pawn_span_bb(c, sq) & them))
+            ret += PassedBonus[relative_sq_rank(sq, c)];
     }
     return (ret);
 }
@@ -55,14 +55,12 @@ scorepair_t evaluate_backward(color_t c, bitboard_t us, bitboard_t them)
 {
     bitboard_t  stops = (c == WHITE) ? shift_up(us) : shift_down(us);
     bitboard_t  our_attack_spans = 0;
-
     bitboard_t  bb = us;
+
     while (bb)
-        our_attack_spans |= pawn_attack_span(c, pop_first_square(&bb));
+        our_attack_spans |= pawn_attack_span_bb(c, bb_pop_first_sq(&bb));
 
-    bitboard_t  their_attacks = (c == WHITE)
-        ? black_pawn_attacks(them) : white_pawn_attacks(them);
-
+    bitboard_t  their_attacks = (c == WHITE) ? bpawns_attacks_bb(them) : wpawns_attacks_bb(them);
     bitboard_t  backward = (stops & their_attacks & ~our_attack_spans);
     backward = (c == WHITE) ? shift_down(backward) : shift_up(backward);
 
@@ -82,7 +80,7 @@ scorepair_t evaluate_backward(color_t c, bitboard_t us, bitboard_t them)
 
     bb = them;
     while (bb)
-        their_files |= forward_file_bits(not_color(c), pop_first_square(&bb));
+        their_files |= forward_file_bb(not_color(c), bb_pop_first_sq(&bb));
 
     backward &= ~their_files;
 
@@ -100,13 +98,13 @@ scorepair_t evaluate_doubled_isolated(bitboard_t us)
 
     for (square_t s = SQ_A2; s <= SQ_H2; ++s)
     {
-        bitboard_t  b = us & file_square_bits(s);
+        bitboard_t  b = us & sq_file_bb(s);
 
         if (b)
         {
             if (more_than_one(b))
                 ret += DoubledPenalty;
-            if (!(adjacent_files_bits(s) & us))
+            if (!(adjacent_files_bb(s) & us))
                 ret += IsolatedPenalty;
         }
     }
@@ -117,8 +115,7 @@ scorepair_t evaluate_doubled_isolated(bitboard_t us)
 scorepair_t evaluate_pawns(const board_t *board)
 {
     pawns_cache_t   *entry =
-        &(get_worker(board)->pawns_cache[board->stack->pawn_key
-        & (PawnCacheSize - 1)]);
+        &(get_worker(board)->pawns_cache[board->stack->pawn_key & (PawnCacheSize - 1)]);
 
     if (entry->key == board->stack->pawn_key)
         return (entry->value);

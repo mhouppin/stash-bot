@@ -75,15 +75,14 @@ INLINED unsigned int    magic_index(const magic_t *magic, bitboard_t occupied)
 # ifdef USE_PEXT
     return (_pext_u64(occupied, magic->mask));
 # else
-    return ((unsigned int)(((occupied & magic->mask) * magic->magic)
-        >> magic->shift));
+    return ((unsigned int)(((occupied & magic->mask) * magic->magic) >> magic->shift));
 #endif
 }
 
 extern magic_t  RookMagics[SQUARE_NB];
 extern magic_t  BishopMagics[SQUARE_NB];
 
-INLINED bitboard_t  square_bit(square_t square)
+INLINED bitboard_t  square_bb(square_t square)
 {
     return (1ull << square);
 }
@@ -133,100 +132,97 @@ INLINED bool        more_than_one(bitboard_t b)
     return (b & (b - 1));
 }
 
-INLINED bitboard_t  file_bits(file_t file)
+INLINED bitboard_t  file_bb(file_t file)
 {
     return (FILE_A_BITS << file);
 }
 
-INLINED bitboard_t  file_square_bits(square_t square)
+INLINED bitboard_t  sq_file_bb(square_t square)
 {
-    return (file_bits(file_of_square(square)));
+    return (file_bb(sq_file(square)));
 }
 
-INLINED bitboard_t  rank_bits(rank_t rank)
+INLINED bitboard_t  rank_bb(rank_t rank)
 {
     return (RANK_1_BITS << (8 * rank));
 }
 
-INLINED bitboard_t  rank_square_bits(square_t square)
+INLINED bitboard_t  sq_rank_bb(square_t square)
 {
-    return (rank_bits(rank_of_square(square)));
+    return (rank_bb(sq_rank(square)));
 }
 
-INLINED bitboard_t  squares_between(square_t sq1, square_t sq2)
+INLINED bitboard_t  between_bb(square_t sq1, square_t sq2)
 {
-    return (LineBits[sq1][sq2]
-        & ((FULL_BITS << (sq1 + (sq1 < sq2)))
-        ^ (FULL_BITS << (sq2 + !(sq1 < sq2)))));
+    return (LineBits[sq1][sq2] & ((FULL_BITS << (sq1 + (sq1 < sq2))) ^ (FULL_BITS << (sq2 + !(sq1 < sq2)))));
 }
 
-INLINED bool        aligned(square_t sq1, square_t sq2, square_t sq3)
+INLINED bool        sq_aligned(square_t sq1, square_t sq2, square_t sq3)
 {
-    return (LineBits[sq1][sq2] & square_bit(sq3));
+    return (LineBits[sq1][sq2] & square_bb(sq3));
 }
 
-INLINED bitboard_t  bishop_move_bits(square_t square, bitboard_t occupied)
+INLINED bitboard_t  bishop_moves_bb(square_t square, bitboard_t occupied)
 {
     const magic_t    *magic = &BishopMagics[square];
 
     return magic->moves[magic_index(magic, occupied)];
 }
 
-INLINED bitboard_t  rook_move_bits(square_t square, bitboard_t occupied)
+INLINED bitboard_t  rook_moves_bb(square_t square, bitboard_t occupied)
 {
     const magic_t    *magic = &RookMagics[square];
 
     return magic->moves[magic_index(magic, occupied)];
 }
 
-INLINED bitboard_t  white_pawn_attacks(bitboard_t b)
+INLINED bitboard_t  wpawns_attacks_bb(bitboard_t b)
 {
     return (shift_up_left(b) | shift_up_right(b));
 }
 
-INLINED bitboard_t  black_pawn_attacks(bitboard_t b)
+INLINED bitboard_t  bpawns_attacks_bb(bitboard_t b)
 {
     return (shift_down_left(b) | shift_down_right(b));
 }
 
-INLINED bitboard_t  white_pawn_dattacks(bitboard_t b)
+INLINED bitboard_t  wpawns_2attacks_bb(bitboard_t b)
 {
     return (shift_up_left(b) & shift_up_right(b));
 }
 
-INLINED bitboard_t  black_pawn_dattacks(bitboard_t b)
+INLINED bitboard_t  bpawns_2attacks_bb(bitboard_t b)
 {
     return (shift_down_left(b) & shift_down_right(b));
 }
 
-INLINED bitboard_t  adjacent_files_bits(square_t s)
+INLINED bitboard_t  adjacent_files_bb(square_t s)
 {
-    bitboard_t    fbb = file_square_bits(s);
+    bitboard_t    fbb = sq_file_bb(s);
     return (shift_left(fbb) | shift_right(fbb));
 }
 
-INLINED bitboard_t  forward_ranks_bits(color_t c, square_t s)
+INLINED bitboard_t  forward_ranks_bb(color_t c, square_t s)
 {
     if (c == WHITE)
-        return (~RANK_1_BITS << 8 * rank_of_square(s));
+        return (~RANK_1_BITS << 8 * sq_rank(s));
     else
-        return (~RANK_8_BITS >> 8 * (RANK_8 - rank_of_square(s)));
+        return (~RANK_8_BITS >> 8 * (RANK_8 - sq_rank(s)));
 }
 
-INLINED bitboard_t  forward_file_bits(color_t c, square_t s)
+INLINED bitboard_t  forward_file_bb(color_t c, square_t s)
 {
-    return (forward_ranks_bits(c, s) & file_square_bits(s));
+    return (forward_ranks_bb(c, s) & sq_file_bb(s));
 }
 
-INLINED bitboard_t  pawn_attack_span(color_t c, square_t s)
+INLINED bitboard_t  pawn_attack_span_bb(color_t c, square_t s)
 {
-    return (forward_ranks_bits(c, s) & adjacent_files_bits(s));
+    return (forward_ranks_bb(c, s) & adjacent_files_bb(s));
 }
 
-INLINED bitboard_t  passed_pawn_span(color_t c, square_t s)
+INLINED bitboard_t  passed_pawn_span_bb(color_t c, square_t s)
 {
-    return (forward_ranks_bits(c, s)
-        & (adjacent_files_bits(s) | file_square_bits(s)));
+    return (forward_ranks_bb(c, s) & (adjacent_files_bb(s) | sq_file_bb(s)));
 }
 
 INLINED int         popcount(bitboard_t b)
@@ -255,26 +251,26 @@ INLINED int         popcount(bitboard_t b)
 
 # if defined(__GNUC__)
 
-INLINED square_t    first_square(bitboard_t b)
+INLINED square_t    bb_first_sq(bitboard_t b)
 {
     return (__builtin_ctzll(b));
 }
 
-INLINED square_t    last_square(bitboard_t b)
+INLINED square_t    bb_last_sq(bitboard_t b)
 {
     return (SQ_A8 ^ __builtin_clzll(b));
 }
 
 # elif defined(_MSC_VER)
 
-INLINED square_t    first_square(bitboard_t b)
+INLINED square_t    bb_first_sq(bitboard_t b)
 {
     unsigned long    index;
     _BitScanForward64(&index, b);
     return ((square_t)index);
 }
 
-INLINED square_t    last_square(bitboard_t b)
+INLINED square_t    bb_last_sq(bitboard_t b)
 {
     unsigned long    index;
     _BitScanReverse64(&index, b);
@@ -285,24 +281,24 @@ INLINED square_t    last_square(bitboard_t b)
 #  error "Unsupported compiler."
 # endif
 
-INLINED square_t    pop_first_square(bitboard_t *b)
+INLINED square_t    bb_pop_first_sq(bitboard_t *b)
 {
-    const square_t    square = first_square(*b);
+    const square_t    square = bb_first_sq(*b);
     *b &= *b - 1;
     return (square);
 }
 
-INLINED square_t    relative_last_square(color_t c, bitboard_t b)
+INLINED square_t    bb_relative_last_sq(color_t c, bitboard_t b)
 {
-    return (c == WHITE ? last_square(b) : first_square(b));
+    return (c == WHITE ? bb_last_sq(b) : bb_first_sq(b));
 }
 
-INLINED void        prefetch(void *ptr)
+INLINED void        prefetch(const void *ptr __attribute__((unused)))
 {
-#ifdef USE_POPCNT
+#ifdef USE_PREFETCH
     _mm_prefetch(ptr, _MM_HINT_T0);
-#else
-    (void)ptr;
+#elif defined(__GNUC__)
+    __builtin_prefetch(ptr);
 #endif
 }
 
