@@ -24,18 +24,17 @@ bool    ocb_endgame(const board_t *board)
 {
     bitboard_t  wbishop = piece_bb(board, WHITE, BISHOP);
 
-    if (popcount(wbishop) != 1)
+    if (!wbishop || more_than_one(wbishop))
         return (false);
 
     bitboard_t  bbishop = piece_bb(board, BLACK, BISHOP);
 
-    if (popcount(bbishop) != 1)
+    if (!bbishop || more_than_one(bbishop))
         return (false);
 
-    square_t    wbsq = bb_first_sq(wbishop);
-    square_t    bbsq = bb_first_sq(bbishop);
+    bitboard_t  dsq_mask = (wbishop | bbishop) & DARK_SQUARES;
 
-    return ((wbsq + sq_rank(wbsq) + bbsq + sq_rank(bbsq)) & 1);
+    return (!!dsq_mask && !more_than_one(dsq_mask));
 }
 
 score_t scale_endgame(const board_t *board, score_t eg)

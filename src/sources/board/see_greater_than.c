@@ -25,12 +25,12 @@ bool    see_greater_than(const board_t *board, move_t m, score_t threshold)
 
     square_t    from = from_sq(m);
     square_t    to = to_sq(m);
-    score_t     next_score = PieceScores[MIDGAME][piece_type(piece_on(board, to))] - threshold;
+    score_t     next_score = PieceScores[MIDGAME][piece_on(board, to)] - threshold;
 
     if (next_score < 0)
         return (false);
 
-    next_score = PieceScores[MIDGAME][piece_type(piece_on(board, from))] - next_score;
+    next_score = PieceScores[MIDGAME][piece_on(board, from)] - next_score;
 
     if (next_score <= 0)
         return (true);

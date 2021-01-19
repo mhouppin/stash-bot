@@ -271,7 +271,6 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
 
     if (move_count == 0)
         best_value = (board->stack->checkers) ? mated_in(ss->plies) : 0;
-
     
     int bound = (best_value >= beta) ? LOWER_BOUND
         : (pv_node && bestmove) ? EXACT_BOUND : UPPER_BOUND;

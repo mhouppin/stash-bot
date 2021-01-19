@@ -78,7 +78,7 @@ const scorepair_t   MobilityQ[28] = {
 };
 
 const int   AttackRescale[8] = {
-    1, 1, 2, 4, 8, 16, 32, 64
+    0, 0, 2, 4, 8, 16, 32, 64
 };
 
 typedef struct
@@ -283,14 +283,18 @@ scorepair_t evaluate_queens(const board_t *board, evaluation_t *eval, color_t c)
 
 scorepair_t evaluate_safety(evaluation_t *eval, color_t c)
 {
-    scorepair_t bonus = eval->weights[c];
-
     // Add a bonus if we have 2 pieces (or more) on the King Attack zone
 
-    if (eval->attackers[c] < 8)
-        bonus -= scorepair_divide(bonus, AttackRescale[eval->attackers[c]]);
+    if (eval->attackers[c] >= 2)
+    {
+        scorepair_t bonus = eval->weights[c];
 
-    return (bonus);
+        if (eval->attackers[c] < 8)
+            bonus -= scorepair_divide(bonus, AttackRescale[eval->attackers[c]]);
+
+        return (bonus);
+    }
+    return (0);
 }
 
 score_t evaluate(const board_t *board)
@@ -346,9 +350,9 @@ score_t evaluate(const board_t *board)
     // Compute the eval by interpolating between the middlegame and endgame scores
 
     {
-        int phase = QueenPhase * popcount(board->piecetype_bits[QUEEN])
-            + RookPhase * popcount(board->piecetype_bits[ROOK])
-            + MinorPhase * popcount(board->piecetype_bits[KNIGHT] | board->piecetype_bits[BISHOP]);
+        int phase = QueenPhase * popcount(piecetype_bb(board, QUEEN))
+            + RookPhase * popcount(piecetype_bb(board, ROOK))
+            + MinorPhase * popcount(piecetypes_bb(board, KNIGHT, BISHOP));
 
         if (phase >= MidgamePhase)
             score = mg;

@@ -38,7 +38,7 @@ void    set_boardstack(board_t *board, boardstack_t *stack)
             stack->pawn_key ^= ZobristPsq[piece][square];
 
         else if (piece_type(piece) != KING)
-            stack->material[piece_color(piece)] += PieceScores[MIDGAME][piece_type(piece)];
+            stack->material[piece_color(piece)] += PieceScores[MIDGAME][piece];
     }
 
     if (stack->en_passant_square != SQ_NONE)

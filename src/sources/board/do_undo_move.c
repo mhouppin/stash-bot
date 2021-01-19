@@ -77,7 +77,7 @@ void    do_move_gc(board_t *board, move_t move, boardstack_t *next,
             board->stack->pawn_key ^= ZobristPsq[captured_piece][captured_square];
         }
         else
-            board->stack->material[them] -= PieceScores[MIDGAME][piece_type(captured_piece)];
+            board->stack->material[them] -= PieceScores[MIDGAME][captured_piece];
 
         remove_piece(board, captured_square);
 
