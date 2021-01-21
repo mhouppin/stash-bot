@@ -45,14 +45,17 @@ uint64_t    perft(board_t *board, unsigned int depth)
     {
         movelist_t  list;
         list_all(&list, board);
+
+        // Bulk counting: the perft number at depth 1 equals the number of legal moves.
+        // Large perft speedup from not having to do the make/unmake move stuff.
+
         if (depth == 1)
             return (movelist_size(&list));
 
         uint64_t        sum = 0;
         boardstack_t    stack;
 
-        for (const extmove_t *extmove = movelist_begin(&list);
-            extmove < movelist_end(&list); ++extmove)
+        for (extmove_t *extmove = list.moves; extmove < list.last; ++extmove)
         {
             do_move(board, extmove->move, &stack);
             sum += perft(board, depth - 1);
@@ -69,6 +72,8 @@ void        *engine_go(void *ptr)
     board_t             *board = ptr;
     worker_t            *worker = get_worker(board);
 
+    // Code for running perft tests
+
     if (SearchParams.perft)
     {
         clock_t     time = chess_clock();
@@ -76,7 +81,7 @@ void        *engine_go(void *ptr)
 
         time = chess_clock() - time;
 
-        uint64_t    nps = (!time) ? 0 : (nodes * 1000) / time;
+        uint64_t    nps = nodes / (time + !time) * 1000;
 
         printf("info nodes %" FMT_INFO " nps %" FMT_INFO " time %" FMT_INFO "\n",
             (info_t)nodes, (info_t)nps, (info_t)time);
@@ -84,26 +89,28 @@ void        *engine_go(void *ptr)
         return (NULL);
     }
 
+    // If we don't have any move here, we're (stale)mated, so we can abort the search now.
+
     if (root_move_count == 0)
     {
-        if (board->stack->checkers)
-            printf("info depth 0 score mate 0\nbestmove 0000\n");
-        else
-            printf("info depth 0 score cp 0\nbestmove 0000\n");
+        printf("info depth 0 score %s 0\nbestmove 0000\n", (board->stack->checkers) ? "mate" : "cp");
         fflush(stdout);
         return (NULL);
     }
 
-    // Init root move struct here
+    // Init root move structure here
 
     root_move_t *root_moves = malloc(sizeof(root_move_t) * root_move_count);
-    for (size_t i = 0; i < movelist_size(&SearchMoves); ++i)
+    for (size_t i = 0; i < root_move_count; ++i)
     {
         root_moves[i].move = SearchMoves.moves[i].move;
         root_moves[i].seldepth = 0;
         root_moves[i].previous_score = root_moves[i].score = -INF_SCORE;
         root_moves[i].pv[0] = NO_MOVE;
     }
+
+    // Reset all history/cache related stuff. TODO: test if disabling the pawn
+    // table reset gains Elo because of speed gain from previous iterations.
 
     memset(worker->bf_history, 0, sizeof(bf_history_t));
     memset(worker->ct_history, 0, sizeof(ct_history_t));
@@ -114,18 +121,18 @@ void        *engine_go(void *ptr)
     if (!worker->idx)
     {
         tt_clear();
-
-        init_reduction_table();
         timeman_init(board, &Timeman, &SearchParams, chess_clock());
 
         if (SearchParams.depth == 0)
             SearchParams.depth = MAX_PLIES;
 
         if (SearchParams.nodes == 0)
-            SearchParams.nodes = SIZE_MAX;
+            SearchParams.nodes = (uint64_t)-1;
 
         WPool.checks = 1000;
         worker->nodes = 0;
+
+        // Initialize other workers' data
 
         for (int i = 1; i < WPool.size; ++i)
         {
@@ -145,6 +152,8 @@ void        *engine_go(void *ptr)
         }
     }
 
+    // Clamp MultiPV to the maximal number of lines available
+
     const int   multi_pv = min(Options.multi_pv, root_move_count);
 
     for (int iter_depth = 0; iter_depth < SearchParams.depth; ++iter_depth)
@@ -153,9 +162,10 @@ void        *engine_go(void *ptr)
 
         for (int pv_line = 0; pv_line < multi_pv; ++pv_line)
         {
-            worker->seldepth = 1;
-
             score_t _alpha, _beta, _delta;
+
+            // Don't set aspiration window bounds for low depths, as the scores are
+            // very volatile
 
             if (iter_depth <= 9)
             {
@@ -171,7 +181,6 @@ void        *engine_go(void *ptr)
             }
 
 __retry:
-
             search_bestmove(board, iter_depth + 1, _alpha, _beta,
                 root_moves + pv_line, root_moves + root_move_count, pv_line);
 
@@ -191,42 +200,29 @@ __retry:
 
             if (!worker->idx)
             {
-                clock_t     chess_time = chess_clock() - Timeman.start;
-                uint64_t    chess_nodes = get_node_count();
-                uint64_t    chess_nps = (!chess_time) ? 0 : (chess_nodes * 1000) / chess_time;
+                clock_t time = chess_clock() - Timeman.start;
 
                 // Don't update Multi-PV lines if not all analysed at current depth
                 // and not enough time elapsed
 
-                if ((multi_pv == 1 && (bound == EXACT_BOUND || chess_time > 3000))
-                    || (multi_pv > 1 && bound == EXACT_BOUND
-                        && (pv_line == multi_pv - 1 || chess_time > 3000)))
+                if (multi_pv == 1 && (bound == EXACT_BOUND || time > 3000))
+                {
+                    print_pv(board, root_moves, 1, iter_depth, time, bound);
+                    fflush(stdout);
+                }
+                else if (multi_pv > 1 && bound == EXACT_BOUND && (pv_line == multi_pv - 1  || time > 3000))
                 {
                     for (int i = 0; i < multi_pv; ++i)
-                    {
-                        bool    searched = (root_moves[i].score != -INF_SCORE);
-                        score_t root_score = (searched) ? root_moves[i].score
-                            : root_moves[i].previous_score;
+                        print_pv(board, root_moves + i, i + 1, iter_depth, time, bound);
 
-                        printf("info depth %d seldepth %d multipv %d score %s%s nodes %"
-                            FMT_INFO " nps %" FMT_INFO " hashfull %d time %" FMT_INFO " pv",
-                            max(iter_depth + (int)searched, 1), root_moves[i].seldepth, i + 1,
-                            score_to_str(root_score), bound == EXACT_BOUND ? ""
-                            : bound == LOWER_BOUND ? " lowerbound" : " upperbound",
-                            (info_t)chess_nodes, (info_t)chess_nps,
-                            tt_hashfull(), (info_t)chess_time);
-    
-                        for (size_t k = 0; root_moves[i].pv[k] != NO_MOVE; ++k)
-                            printf(" %s", move_to_str(root_moves[i].pv[k],
-                                board->chess960));
-                        puts("");
-                    }
                     fflush(stdout);
                 }
             }
 
             if (has_search_aborted)
                 break ;
+
+            // Update aspiration window bounds in case of fail low/high
 
             if (bound == UPPER_BOUND)
             {
@@ -257,14 +253,12 @@ __retry:
 
         if (!worker->idx)
         {
-            timeman_update(&Timeman, board, root_moves->move,
-                root_moves->previous_score);
+            timeman_update(&Timeman, board, root_moves->move, root_moves->previous_score);
             if (timeman_can_stop_search(&Timeman, chess_clock()))
                 break ;
         }
 
-        if (SearchParams.mate > 0
-            && root_moves->previous_score >= mate_in(SearchParams.mate * 2))
+        if (SearchParams.mate && root_moves->previous_score >= mate_in(SearchParams.mate * 2))
             break ;
     }
 

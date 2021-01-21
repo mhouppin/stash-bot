@@ -107,21 +107,23 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
 
         bool    gives_check = move_gives_check(board, currmove);
 
-        if (best_value > -MATE_FOUND && delta_pruning && !gives_check
-            && move_type(currmove) == NORMAL_MOVE)
+        if (best_value > -MATE_FOUND)
         {
-            score_t delta = delta_base + PieceScores[ENDGAME][piece_on(board, to_sq(currmove))];
+            if (delta_pruning && !gives_check && move_type(currmove) == NORMAL_MOVE)
+            {
+                score_t delta = delta_base + PieceScores[ENDGAME][piece_on(board, to_sq(currmove))];
 
-            // Check if the move is very unlikely to improve alpha.
+                // Check if the move is very unlikely to improve alpha.
 
-            if (delta < alpha)
+                if (delta < alpha)
+                    continue ;
+            }
+
+            // Only analyse good capture moves.
+
+            if (!see_greater_than(board, currmove, 0))
                 continue ;
         }
-
-        // Only analyse good capture moves.
-
-        if (best_value > -MATE_FOUND && !see_greater_than(board, currmove, 0))
-            continue ;
 
         boardstack_t    stack;
 

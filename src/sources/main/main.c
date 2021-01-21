@@ -16,6 +16,7 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "engine.h"
 #include "init.h"
 #include "lazy_smp.h"
 #include "tt.h"
@@ -30,6 +31,7 @@ int main(int argc, char **argv)
     zobrist_init();
     tt_resize(16);
     wpool_init(1);
+    init_reduction_table();
 
     pthread_t   engine_pt;
 

@@ -41,6 +41,7 @@ void    search_bestmove(board_t *board, int depth, score_t alpha, score_t beta,
 
     (ss + 1)->pv = pv;
     (ss + 1)->plies = 1;
+    worker->seldepth = 1;
 
     movelist_t  list;
     int         move_count = 0;

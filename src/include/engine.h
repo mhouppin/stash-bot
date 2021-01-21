@@ -46,17 +46,25 @@ root_move_t;
 // All search components are here
 enum
 {
+    Razor_LightMargin = 150,
+    Razor_HeavyMargin = 300,
+
+    FP_MaxDepth = 8,
+    FP_DepthMargin = 80,
+
     NMP_MinDepth = 3,
     NMP_BaseReduction = 3,
     NMP_EvalScale = 128,
     NMP_MaxEvalReduction = 3,
+    NMP_DepthScale = 4,
     NMP_TrustDepth = 10,
+
+    IIR_MinDepth = 7,
 
     LMR_MinDepth = 3,
     LMR_MinMoves = 4,
 
-    Razor_LightMargin = 150,
-    Razor_HeavyMargin = 300,
+    LMP_DepthScale = 8,
 
     MAX_PLIES = 240
 };
@@ -80,5 +88,10 @@ void    update_quiet_history(const board_t *board, int depth,
 
 score_t evaluate(const board_t *board);
 score_t scale_endgame(const board_t *board, score_t eg);
+
+void    print_pv(const board_t *board, root_move_t *root_move, int multi_pv,
+        int depth, clock_t time, int bound);
+
+void    init_reduction_table(void);
 
 #endif

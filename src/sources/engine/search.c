@@ -99,14 +99,14 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
 
     // Razoring.
 
-    if (!pv_node && ss->static_eval + Razor_LightMargin < beta)
+    if (!pv_node && depth <= 3 && ss->static_eval + Razor_LightMargin < beta)
     {
         if (depth == 1)
         {
             score_t max_score = qsearch(board, alpha, beta, ss);
             return (max(ss->static_eval + Razor_LightMargin, max_score));
         }
-        if (ss->static_eval + Razor_HeavyMargin < beta && depth <= 3)
+        if (ss->static_eval + Razor_HeavyMargin < beta)
         {
             score_t max_score = qsearch(board, alpha, beta, ss);
             if (max_score < beta)
@@ -118,19 +118,20 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
 
     // Futility Pruning.
 
-    if (!pv_node && !in_check && depth <= 8 && eval - 80 * depth >= beta && eval < VICTORY)
+    if (!pv_node && !in_check && depth <= FP_MaxDepth
+        && eval - FP_DepthMargin * depth >= beta && eval < VICTORY)
         return (eval);
 
     // Null move pruning.
 
-    if (!pv_node && depth >= NMP_MinDepth && !in_check && ss->plies >= worker->verif_plies
+    if (!pv_node && !in_check && depth >= NMP_MinDepth && ss->plies >= worker->verif_plies
         && eval >= beta && eval >= ss->static_eval)
     {
         boardstack_t    stack;
 
         int    nmp_reduction = NMP_BaseReduction
             + min((eval - beta) / NMP_EvalScale, NMP_MaxEvalReduction)
-            + (depth / 4);
+            + (depth / NMP_DepthScale);
 
         ss->current_move = NULL_MOVE;
 
@@ -165,7 +166,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
         }
     }
 
-    if (depth > 7 && !tt_move)
+    if (depth > IIR_MinDepth && !tt_move)
         --depth;
 
     list_pseudo(&list, board);
@@ -263,7 +264,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
         if (qcount < 64 && is_quiet)
             quiets[qcount++] = currmove;
 
-        if (depth < 4 && best_value > -MATE_FOUND && qcount > depth * 8)
+        if (depth < 4 && best_value > -MATE_FOUND && qcount > depth * LMP_DepthScale)
             break ;
     }
 
