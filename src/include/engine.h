@@ -49,22 +49,14 @@ enum
     Razor_LightMargin = 150,
     Razor_HeavyMargin = 300,
 
-    FP_MaxDepth = 8,
-    FP_DepthMargin = 80,
-
     NMP_MinDepth = 3,
     NMP_BaseReduction = 3,
     NMP_EvalScale = 128,
     NMP_MaxEvalReduction = 3,
-    NMP_DepthScale = 4,
     NMP_TrustDepth = 10,
-
-    IIR_MinDepth = 7,
 
     LMR_MinDepth = 3,
     LMR_MinMoves = 4,
-
-    LMP_DepthScale = 8,
 
     MAX_PLIES = 240
 };
