@@ -173,7 +173,7 @@ scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, color_t c
 
 		// Bonus for Knight with a pawn above it
 
-		if (square_bb(sq + pawn_direction(c)) & our_pawns)
+		if (relative_shift_up(square_bb(sq), c) & our_pawns)
 			ret += KnightShielded;
 
 		// Bonus for Knight on Outpost, with higher scores if the Knight is on
@@ -238,7 +238,7 @@ scorepair_t evaluate_bishops(const board_t *board, evaluation_t *eval, color_t c
 
 		// Bonus for Bishop with a pawn above it
 
-		if (square_bb(sq + pawn_direction(c)) & our_pawns)
+		if (relative_shift_up(square_bb(sq), c) & our_pawns)
 			ret += BishopShielded;
 
         // Bonus for a Bishop on King Attack zone
