@@ -127,9 +127,9 @@ INLINED bitboard_t  shift_down_right(bitboard_t b)
     return ((b & ~FILE_H_BITS) >> 7);
 }
 
-INLINED bitboard_t	relative_shift_up(bitboard_t b, color_t c)
+INLINED bitboard_t  relative_shift_up(bitboard_t b, color_t c)
 {
-	return ((c == WHITE) ? shift_up(b) : shift_down(b));
+    return ((c == WHITE) ? shift_up(b) : shift_down(b));
 }
 
 INLINED bool        more_than_one(bitboard_t b)
