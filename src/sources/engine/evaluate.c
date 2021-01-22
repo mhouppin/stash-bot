@@ -24,18 +24,35 @@
 
 enum
 {
+	// Special eval terms
+
     CastlingBonus = SPAIR(85, -43),
     Initiative = SPAIR(7, 10),
+
+	// King Safety eval terms
 
     KnightWeight = SPAIR(26, 8),
     BishopWeight = SPAIR(18, 5),
     RookWeight = SPAIR(51, -4),
     QueenWeight = SPAIR(51, 72),
 
-    BishopPairBonus = SPAIR(12, 103),
-    KnightPairPenalty = SPAIR(-7, 7),
-    RookPairPenalty = SPAIR(-39, 24),
+	// Knight eval terms
 
+    KnightPairPenalty = SPAIR(-7, 7),
+	KnightShielded = SPAIR(10, 10),
+	KnightOutpost = SPAIR(10, 6),
+	KnightFarOutpost = SPAIR(10, 6),
+	KnightCenterOutpost = SPAIR(10, 6),
+	KnightSolidOutpost = SPAIR(10, 6),
+
+	// Bishop eval terms
+
+    BishopPairBonus = SPAIR(12, 103),
+	BishopShielded = SPAIR(15, 15),
+
+	// Rook eval terms
+
+    RookPairPenalty = SPAIR(-39, 24),
     RookOnSemiOpenFile = SPAIR(19, 17),
     RookOnOpenFile = SPAIR(38, 16),
     RookXrayQueen = SPAIR(7, 9),
@@ -137,6 +154,8 @@ scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, color_t c
     scorepair_t ret = 0;
     bitboard_t  bb = piece_bb(board, c, KNIGHT);
     bitboard_t  targets = pieces_bb(board, not_color(c), ROOK, QUEEN);
+	bitboard_t	our_pawns = piece_bb(board, c, PAWN);
+	bitboard_t  their_pawns = piece_bb(board, not_color(c), PAWN);
 
     // Penalty for having the Knight pair
 
@@ -151,6 +170,33 @@ scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, color_t c
         // Bonus for Knight mobility
 
         ret += MobilityN[popcount(b & eval->mobility_zone[c])];
+
+		// Bonus for Knight with a pawn above it
+
+		if (square_bb(sq + pawn_direction(c)) & our_pawns)
+			ret += KnightShielded;
+
+		// Bonus for Knight on Outpost, with higher scores if the Knight is on
+		// a center file, on the 6th-7th rank, or supported by a pawn.
+
+		if (!(pawn_attack_span_bb(c, sq) & their_pawns))
+		{
+			rank_t	rank = relative_sq_rank(sq, c);
+
+			if (rank >= RANK_4)
+			{
+				ret += KnightOutpost;
+
+				if (rank >= RANK_6)
+					ret += KnightFarOutpost;
+
+				if (pawn_moves(sq, not_color(c)) & our_pawns)
+					ret += KnightSolidOutpost;
+
+				if (square_bb(sq) & (FILE_C | FILE_D | FILE_E | FILE_F))
+					ret += KnightCenterOutpost;
+			}
+		}
 
         // Bonus for a Knight on King Attack zone
 
@@ -173,6 +219,7 @@ scorepair_t evaluate_bishops(const board_t *board, evaluation_t *eval, color_t c
     scorepair_t         ret = 0;
     const bitboard_t    occupancy = occupancy_bb(board);
     bitboard_t          bb = piece_bb(board, c, BISHOP);
+	bitboard_t			our_pawns = piece_bb(board, c, PAWN);
     bitboard_t          targets = pieces_bb(board, not_color(c), ROOK, QUEEN);
 
     // Bonus for the Bishop pair
@@ -188,6 +235,11 @@ scorepair_t evaluate_bishops(const board_t *board, evaluation_t *eval, color_t c
         // Bonus for Bishop mobility
 
         ret += MobilityB[popcount(b & eval->mobility_zone[c])];
+
+		// Bonus for Bishop with a pawn above it
+
+		if (square_bb(sq + pawn_direction(c)) & our_pawns)
+			ret += BishopShielded;
 
         // Bonus for a Bishop on King Attack zone
 
