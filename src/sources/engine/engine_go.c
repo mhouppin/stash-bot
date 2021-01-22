@@ -162,6 +162,8 @@ void        *engine_go(void *ptr)
 
         for (int pv_line = 0; pv_line < multi_pv; ++pv_line)
         {
+            worker->seldepth = 1;
+
             score_t _alpha, _beta, _delta;
 
             // Don't set aspiration window bounds for low depths, as the scores are
