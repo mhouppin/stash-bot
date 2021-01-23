@@ -108,6 +108,72 @@ typedef struct
 }
 evaluation_t;
 
+bool        is_kxk_endgame(const board_t *board, color_t c)
+{
+    // Weak side has pieces or pawns, this is not a KXK endgame
+
+    if (more_than_one(color_bb(board, not_color(c))))
+        return (false);
+
+    // We have at least a major piece, this is a KXK endgame
+
+    if (piecetypes_bb(board, ROOK, QUEEN))
+        return (true);
+
+    bitboard_t  bishop = piecetype_bb(board, BISHOP);
+
+    // We have at least two opposite colored bishops, this is a KXK endgame
+
+    if ((bishop & DARK_SQUARES) && (bishop & ~DARK_SQUARES))
+        return (true);
+
+    bitboard_t  knight = piecetype_bb(board, KNIGHT);
+
+    // We have either 3+ knights, or a knight and a bishop, this is a KXK endgame
+
+    if ((knight && bishop) || popcount(knight) >= 3)
+        return (true);
+
+    return (false);
+}
+
+score_t     eval_kxk(const board_t *board, color_t c)
+{
+    bitboard_t  pawns = piecetype_bb(board, PAWN);
+    score_t     base_score = VICTORY + board->stack->material[c] + popcount(pawns) * PAWN_MG_SCORE;
+    square_t    winning_ksq = get_king_square(board, c);
+    square_t    losing_ksq = get_king_square(board, not_color(c));
+
+    // KNB endgame, drive the king to the right corner
+
+    if (board->stack->material[c] == KNIGHT_MG_SCORE + BISHOP_MG_SCORE && !pawns)
+    {
+        if (piecetype_bb(board, BISHOP) & DARK_SQUARES)
+            losing_ksq ^= SQ_A8;
+
+        file_t  file = sq_file(losing_ksq);
+        rank_t  rank = sq_rank(losing_ksq);
+
+        base_score += abs(file - rank) * 100;
+    }
+    else
+    {
+        file_t  file = sq_file(losing_ksq);
+        rank_t  rank = sq_rank(losing_ksq);
+
+        file = min(file, file ^ 7);
+        rank = min(rank, rank ^ 7);
+
+        base_score += 720 - (file * file + rank * rank) * 40;
+    }
+
+    // Give a bonus for close kings
+
+    base_score += 70 - 10 * SquareDistance[losing_ksq][winning_ksq];
+
+    return (base_score);
+}
+
 void        eval_init(const board_t *board, evaluation_t *eval)
 {
     eval->attackers[WHITE] = eval->attackers[BLACK]
@@ -351,6 +417,11 @@ scorepair_t evaluate_safety(evaluation_t *eval, color_t c)
 
 score_t evaluate(const board_t *board)
 {
+    if (is_kxk_endgame(board, WHITE))
+        return (eval_kxk(board, WHITE));
+    if (is_kxk_endgame(board, BLACK))
+        return (eval_kxk(board, BLACK));
+
     evaluation_t    eval;
     scorepair_t     tapered = board->psq_scorepair;
 

@@ -83,11 +83,7 @@ score_t scale_endgame(const board_t *board, score_t eg)
         && (king_moves(get_king_square(board, weak_side)) & weak_pawns))
         factor = 64;
 
-    // Naked weak king versus mating material: use a large value for scaling
-    else if (!weak_mat && !weak_pawns && piecetypes_bb(board, ROOK, QUEEN))
-        factor = 256;
-
-    // Other endgames: scale based on the number of remaining pawns for the strong side.
+    // Other endgames.
     else
         factor = 128;
 
