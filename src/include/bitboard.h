@@ -55,8 +55,9 @@ typedef uint64_t    bitboard_t;
 
 # define DARK_SQUARES   0xAA55AA55AA55AA55ull
 
-# define KINGSIDE_BITS  0xF0F0F0F0F0F0F0F0ull
-# define QUEENSIDE_BITS 0x0F0F0F0F0F0F0F0Full
+# define KINGSIDE_BITS      0xF0F0F0F0F0F0F0F0ull
+# define QUEENSIDE_BITS     0x0F0F0F0F0F0F0F0Full
+# define CENTER_FILES_BITS  0x3C3C3C3C3C3C3C3Cull
 
 extern bitboard_t   LineBits[SQUARE_NB][SQUARE_NB];
 extern bitboard_t   PseudoMoves[PIECETYPE_NB][SQUARE_NB];

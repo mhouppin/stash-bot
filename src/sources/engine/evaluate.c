@@ -156,6 +156,8 @@ scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, color_t c
     bitboard_t  targets = pieces_bb(board, not_color(c), ROOK, QUEEN);
     bitboard_t  our_pawns = piece_bb(board, c, PAWN);
     bitboard_t  their_pawns = piece_bb(board, not_color(c), PAWN);
+    bitboard_t  far_outpost = (c == WHITE) ? RANK_6_BITS : RANK_3_BITS;
+    bitboard_t  outpost = (RANK_4_BITS | RANK_5_BITS | far_outpost);
 
     // Penalty for having the Knight pair
 
@@ -165,6 +167,7 @@ scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, color_t c
     while (bb)
     {
         square_t    sq = bb_pop_first_sq(&bb);
+        bitboard_t  sqbb = square_bb(sq);
         bitboard_t  b = knight_moves(sq);
 
         // Bonus for Knight mobility
@@ -173,29 +176,24 @@ scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, color_t c
 
         // Bonus for Knight with a pawn above it
 
-        if (relative_shift_up(square_bb(sq), c) & our_pawns)
+        if (relative_shift_up(sqbb, c) & our_pawns)
             ret += KnightShielded;
 
         // Bonus for Knight on Outpost, with higher scores if the Knight is on
-        // a center file, on the 6th-7th rank, or supported by a pawn.
+        // a center file, on the 6th rank, or supported by a pawn.
 
-        if (!(pawn_attack_span_bb(c, sq) & their_pawns))
+        if ((sqbb & outpost) && !(pawn_attack_span_bb(c, sq) & their_pawns))
         {
-            rank_t	rank = relative_sq_rank(sq, c);
+            ret += KnightOutpost;
 
-            if (rank >= RANK_4)
-            {
-                ret += KnightOutpost;
+            if (sqbb & far_outpost)
+                ret += KnightFarOutpost;
 
-                if (rank >= RANK_6)
-                    ret += KnightFarOutpost;
+            if (pawn_moves(sq, not_color(c)) & our_pawns)
+                ret += KnightSolidOutpost;
 
-                if (pawn_moves(sq, not_color(c)) & our_pawns)
-                    ret += KnightSolidOutpost;
-
-                if (square_bb(sq) & (FILE_C | FILE_D | FILE_E | FILE_F))
-                    ret += KnightCenterOutpost;
-            }
+            if (sqbb & CENTER_FILES_BITS)
+                ret += KnightCenterOutpost;
         }
 
         // Bonus for a Knight on King Attack zone
