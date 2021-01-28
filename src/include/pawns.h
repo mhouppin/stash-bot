@@ -24,6 +24,7 @@
 typedef struct  pawn_entry_s
 {
     hashkey_t   key;
+    bitboard_t  attack_span[COLOR_NB];
     scorepair_t value;
 }
 pawn_entry_t;
@@ -33,6 +34,6 @@ enum
     PawnTableSize = 1 << 15
 };
 
-scorepair_t evaluate_pawns(const board_t *board);
+pawn_entry_t    *pawn_probe(const board_t *board);
 
 #endif

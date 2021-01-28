@@ -149,13 +149,13 @@ void        eval_init(const board_t *board, evaluation_t *eval)
     eval->tempos[board->side_to_move] += !board->stack->checkers;
 }
 
-scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, color_t c)
+scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, const pawn_entry_t *pe,
+            color_t c)
 {
     scorepair_t ret = 0;
     bitboard_t  bb = piece_bb(board, c, KNIGHT);
     bitboard_t  targets = pieces_bb(board, not_color(c), ROOK, QUEEN);
     bitboard_t  our_pawns = piece_bb(board, c, PAWN);
-    bitboard_t  their_pawns = piece_bb(board, not_color(c), PAWN);
     bitboard_t  far_outpost = (c == WHITE) ? RANK_6_BITS : RANK_3_BITS;
     bitboard_t  outpost = (RANK_4_BITS | RANK_5_BITS | far_outpost);
 
@@ -182,7 +182,7 @@ scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, color_t c
         // Bonus for Knight on Outpost, with higher scores if the Knight is on
         // a center file, on the 6th rank, or supported by a pawn.
 
-        if ((sqbb & outpost) && !(pawn_attack_span_bb(c, sq) & their_pawns))
+        if (sqbb & outpost & ~pe->attack_span[not_color(c)])
         {
             ret += KnightOutpost;
 
@@ -351,6 +351,8 @@ score_t evaluate(const board_t *board)
 {
     evaluation_t    eval;
     scorepair_t     tapered = board->psq_scorepair;
+    pawn_entry_t    *pe;
+    score_t         mg, eg, score;
 
     // Bonus for having castling rights in the middlegame
     // (castled King bonus values more than castling right bonus to incite
@@ -365,12 +367,13 @@ score_t evaluate(const board_t *board)
 
     // Add the pawn structure evaluation
 
-    tapered += evaluate_pawns(board);
+    pe = pawn_probe(board);
+    tapered += pe->value;
 
     // Add the pieces' evaluation
 
-    tapered += evaluate_knights(board, &eval, WHITE);
-    tapered -= evaluate_knights(board, &eval, BLACK);
+    tapered += evaluate_knights(board, &eval, pe, WHITE);
+    tapered -= evaluate_knights(board, &eval, pe, BLACK);
     tapered += evaluate_bishops(board, &eval, WHITE);
     tapered -= evaluate_bishops(board, &eval, BLACK);
     tapered += evaluate_rooks(board, &eval, WHITE);
@@ -389,13 +392,10 @@ score_t evaluate(const board_t *board)
 
     tapered += Initiative * (eval.tempos[WHITE] * eval.tempos[WHITE] - eval.tempos[BLACK] * eval.tempos[BLACK]);
 
-    score_t mg = midgame_score(tapered);
-    score_t eg = endgame_score(tapered);
-    score_t score;
+    mg = midgame_score(tapered);
 
     // Scale endgame score based on remaining material + pawns
-
-    eg = scale_endgame(board, eg);
+    eg = scale_endgame(board, endgame_score(tapered));
 
     // Compute the eval by interpolating between the middlegame and endgame scores
 
