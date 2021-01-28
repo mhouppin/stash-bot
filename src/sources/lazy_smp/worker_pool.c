@@ -65,6 +65,13 @@ void    wpool_reset(void)
 
 void    wpool_quit(void)
 {
+    for (int i = 0; i < WPool.size; ++i)
+    {
+        worker_t    *worker = WPool.list + i;
+
+        free(worker->pawn_table);
+    }
+
     free(WPool.list);
     WPool.list = NULL;
     WPool.size = 0;
