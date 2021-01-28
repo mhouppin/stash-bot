@@ -109,13 +109,11 @@ void        *engine_go(void *ptr)
         root_moves[i].pv[0] = NO_MOVE;
     }
 
-    // Reset all history/cache related stuff. TODO: test if disabling the pawn
-    // table reset gains Elo because of speed gain from previous iterations.
+    // Reset all history related stuff.
 
     memset(worker->bf_history, 0, sizeof(bf_history_t));
     memset(worker->ct_history, 0, sizeof(ct_history_t));
     memset(worker->cm_history, 0, sizeof(cm_history_t));
-    memset(worker->pawns_cache, 0, sizeof(pawns_table_t));
     worker->verif_plies = 0;
 
     if (!worker->idx)

@@ -114,8 +114,8 @@ scorepair_t evaluate_doubled_isolated(bitboard_t us)
 
 scorepair_t evaluate_pawns(const board_t *board)
 {
-    pawns_cache_t   *entry =
-        &(get_worker(board)->pawns_cache[board->stack->pawn_key & (PawnCacheSize - 1)]);
+    pawn_entry_t   *entry =
+        get_worker(board)->pawn_table + (board->stack->pawn_key % PawnTableSize);
 
     if (entry->key == board->stack->pawn_key)
         return (entry->value);

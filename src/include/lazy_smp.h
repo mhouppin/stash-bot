@@ -35,7 +35,7 @@ typedef struct
     bf_history_t        bf_history;
     ct_history_t        ct_history;
     cm_history_t        cm_history;
-    pawns_table_t       pawns_cache;
+    pawn_entry_t        *pawn_table;
 
     int                 seldepth;
     int                 verif_plies;
@@ -71,6 +71,7 @@ INLINED uint64_t    get_node_count(void)
 }
 
 void    wpool_init(int threads);
+void    wpool_reset(void);
 void    wpool_quit(void);
 
 #endif
