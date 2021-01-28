@@ -38,17 +38,13 @@ const scorepair_t   PassedBonus[RANK_NB] = {
     0
 };
 
-scorepair_t evaluate_passed(pawn_entry_t *entry, color_t us, bitboard_t our_pawns,
-            bitboard_t their_pawns)
+scorepair_t evaluate_passed(color_t us, bitboard_t our_pawns, bitboard_t their_pawns)
 {
     scorepair_t     ret = 0;
 
     while (our_pawns)
     {
         square_t    sq = bb_pop_first_sq(&our_pawns);
-
-        // Save the pawn attack span to the entry
-        entry->attack_span[us] |= pawn_attack_span_bb(us, sq);
 
         if ((passed_pawn_span_bb(us, sq) & their_pawns) == 0)
             ret += PassedBonus[relative_sq_rank(sq, us)];
@@ -57,13 +53,22 @@ scorepair_t evaluate_passed(pawn_entry_t *entry, color_t us, bitboard_t our_pawn
     return (ret);
 }
 
-scorepair_t evaluate_backward(const pawn_entry_t *entry, color_t us, bitboard_t our_pawns,
+scorepair_t evaluate_backward(pawn_entry_t *entry, color_t us, bitboard_t our_pawns,
             bitboard_t their_pawns)
 {
     color_t     them = not_color(us);
     bitboard_t  stops = relative_shift_up(our_pawns, us);
+    bitboard_t  our_attack_span = 0;
+    bitboard_t  bb = our_pawns;
+
+    while (bb)
+        our_attack_span |= pawn_attack_span_bb(us, bb_pop_first_sq(&bb));
+
+    // Save the pawn attack span to the entry
+    entry->attack_span[us] = our_attack_span;
+
     bitboard_t  their_attacks = pawns_attacks_bb(their_pawns, them);
-    bitboard_t  backward = relative_shift_down(stops & their_attacks & ~entry->attack_span[us], us);
+    bitboard_t  backward = relative_shift_down(stops & their_attacks & ~our_attack_span, us);
     scorepair_t ret = 0;
 
     if (!backward)
@@ -126,8 +131,8 @@ pawn_entry_t    *pawn_probe(const board_t *board)
     const bitboard_t    wpawns = piece_bb(board, WHITE, PAWN);
     const bitboard_t    bpawns = piece_bb(board, BLACK, PAWN);
 
-    entry->value += evaluate_passed(entry, WHITE, wpawns, bpawns);
-    entry->value -= evaluate_passed(entry, BLACK, bpawns, wpawns);
+    entry->value += evaluate_passed(WHITE, wpawns, bpawns);
+    entry->value -= evaluate_passed(BLACK, bpawns, wpawns);
     entry->value += evaluate_backward(entry, WHITE, wpawns, bpawns);
     entry->value -= evaluate_backward(entry, BLACK, bpawns, wpawns);
     entry->value += evaluate_doubled_isolated(wpawns);
