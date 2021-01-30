@@ -197,11 +197,6 @@ INLINED bitboard_t  bpawns_attacks_bb(bitboard_t b)
     return (shift_down_left(b) | shift_down_right(b));
 }
 
-INLINED bitboard_t  pawns_attacks_bb(bitboard_t b, color_t c)
-{
-    return ((c == WHITE) ? wpawns_attacks_bb(b) : bpawns_attacks_bb(b));
-}
-
 INLINED bitboard_t  wpawns_2attacks_bb(bitboard_t b)
 {
     return (shift_up_left(b) & shift_up_right(b));

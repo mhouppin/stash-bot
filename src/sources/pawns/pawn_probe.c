@@ -56,8 +56,7 @@ scorepair_t evaluate_passed(color_t us, bitboard_t our_pawns, bitboard_t their_p
 scorepair_t evaluate_backward(pawn_entry_t *entry, color_t us, bitboard_t our_pawns,
             bitboard_t their_pawns)
 {
-    color_t     them = not_color(us);
-    bitboard_t  stops = relative_shift_up(our_pawns, us);
+    bitboard_t  stop_squares = (us == WHITE) ? shift_up(our_pawns) : shift_down(our_pawns);
     bitboard_t  our_attack_span = 0;
     bitboard_t  bb = our_pawns;
 
@@ -67,8 +66,12 @@ scorepair_t evaluate_backward(pawn_entry_t *entry, color_t us, bitboard_t our_pa
     // Save the pawn attack span to the entry
     entry->attack_span[us] = our_attack_span;
 
-    bitboard_t  their_attacks = pawns_attacks_bb(their_pawns, them);
-    bitboard_t  backward = relative_shift_down(stops & their_attacks & ~our_attack_span, us);
+    bitboard_t  their_attacks = (us == WHITE)
+        ? bpawns_attacks_bb(their_pawns) : wpawns_attacks_bb(their_pawns);
+    bitboard_t  backward = stop_squares & their_attacks & ~our_attack_span;
+
+    backward = (us == WHITE) ? shift_down(backward) : shift_up(backward);
+
     scorepair_t ret = 0;
 
     if (!backward)
@@ -84,7 +87,7 @@ scorepair_t evaluate_backward(pawn_entry_t *entry, color_t us, bitboard_t our_pa
     bitboard_t  their_files = 0;
 
     while (their_pawns)
-        their_files |= forward_file_bb(them, bb_pop_first_sq(&their_pawns));
+        their_files |= forward_file_bb(not_color(us), bb_pop_first_sq(&their_pawns));
 
     backward &= ~their_files;
 
