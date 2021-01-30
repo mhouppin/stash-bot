@@ -40,8 +40,7 @@ enum
 
     KnightPairPenalty = SPAIR(-7, 7),
     KnightShielded = SPAIR(10, 10),
-    KnightOutpost = SPAIR(10, 6),
-    KnightFarOutpost = SPAIR(10, 6),
+    KnightOutpost = SPAIR(15, 9),
     KnightCenterOutpost = SPAIR(10, 6),
     KnightSolidOutpost = SPAIR(10, 6),
 
@@ -156,8 +155,7 @@ scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, const paw
     bitboard_t  bb = piece_bb(board, c, KNIGHT);
     bitboard_t  targets = pieces_bb(board, not_color(c), ROOK, QUEEN);
     bitboard_t  our_pawns = piece_bb(board, c, PAWN);
-    bitboard_t  far_outpost = (c == WHITE) ? RANK_6_BITS : RANK_3_BITS;
-    bitboard_t  outpost = (RANK_4_BITS | RANK_5_BITS | far_outpost);
+    bitboard_t  outpost = RANK_4_BITS | RANK_5_BITS | (c == WHITE ? RANK_6_BITS : RANK_3_BITS);
 
     // Penalty for having the Knight pair
 
@@ -185,9 +183,6 @@ scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, const paw
         if (sqbb & outpost & ~pe->attack_span[not_color(c)])
         {
             ret += KnightOutpost;
-
-            if (sqbb & far_outpost)
-                ret += KnightFarOutpost;
 
             if (pawn_moves(sq, not_color(c)) & our_pawns)
                 ret += KnightSolidOutpost;
