@@ -28,7 +28,7 @@ void    update_quiet_history(const board_t *board, int depth,
     piece_t         lpc = NO_PIECE;
     square_t        to;
     piece_t         pc;
-    int             bonus = (depth <= 12) ? 16 * depth * depth : 20;
+    int             bonus = (depth <= 12) ? 32 * depth * depth : 40;
     move_t          previous_move = (ss - 1)->current_move;
 
     if (is_valid_move(previous_move))
