@@ -27,7 +27,7 @@ enum
     // Special eval terms
 
     CastlingBonus = SPAIR(85, -43),
-    Initiative = SPAIR(7, 10),
+    Initiative = SPAIR(21, 15),
 
     // King Safety eval terms
 
@@ -39,15 +39,15 @@ enum
 	// Knight eval terms
 
     KnightPairPenalty = SPAIR(-7, 7),
-    KnightShielded = SPAIR(10, 10),
-    KnightOutpost = SPAIR(15, 9),
-    KnightCenterOutpost = SPAIR(10, 6),
-    KnightSolidOutpost = SPAIR(10, 6),
+    KnightShielded = SPAIR(4, 12),
+    KnightOutpost = SPAIR(15, -3),
+    KnightCenterOutpost = SPAIR(17, -1),
+    KnightSolidOutpost = SPAIR(12, 1),
 
     // Bishop eval terms
 
     BishopPairBonus = SPAIR(12, 103),
-    BishopShielded = SPAIR(15, 15),
+    BishopShielded = SPAIR(12, 6),
 
     // Rook eval terms
 
