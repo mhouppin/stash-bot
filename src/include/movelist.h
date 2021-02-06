@@ -99,4 +99,14 @@ INLINED bool    movelist_has_move(const movelist_t *movelist, move_t move)
     return (false);
 }
 
+INLINED extmove_t   *create_promotions(extmove_t *movelist, square_t to, direction_t direction)
+{
+    (movelist++)->move = create_promotion(to - direction, to, QUEEN);
+    (movelist++)->move = create_promotion(to - direction, to, ROOK);
+    (movelist++)->move = create_promotion(to - direction, to, BISHOP);
+    (movelist++)->move = create_promotion(to - direction, to, KNIGHT);
+
+    return (movelist);
+}
+
 #endif
