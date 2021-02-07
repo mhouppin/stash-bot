@@ -187,7 +187,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
         move_count++;
 
         boardstack_t    stack;
-        score_t         next;
+        score_t         next = -NO_SCORE;
         int             reduction;
         int             extension;
         int             new_depth = depth - 1;

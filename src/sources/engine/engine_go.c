@@ -125,7 +125,7 @@ void        *engine_go(void *ptr)
             SearchParams.depth = MAX_PLIES;
 
         if (SearchParams.nodes == 0)
-            SearchParams.nodes = (uint64_t)-1;
+            --SearchParams.nodes;
 
         WPool.checks = 1000;
         worker->nodes = 0;
