@@ -97,7 +97,7 @@ fclean: clean
 	$(REMOVE) $(EXE) $(SILENCE)
 
 re:
-	+make fclean
-	+make all
+	+$(MAKE) fclean
+	+$(MAKE) all
 
 .PHONY: all clean fclean re
