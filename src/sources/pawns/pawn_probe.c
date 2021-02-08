@@ -38,15 +38,18 @@ const scorepair_t   PassedBonus[RANK_NB] = {
     0
 };
 
-scorepair_t evaluate_passed(color_t us, bitboard_t our_pawns, bitboard_t their_pawns)
+scorepair_t evaluate_passed(pawn_entry_t *entry, color_t us, bitboard_t our_pawns, bitboard_t their_pawns)
 {
     scorepair_t     ret = 0;
 
     while (our_pawns)
     {
         square_t    sq = bb_pop_first_sq(&our_pawns);
+        bitboard_t  queening = forward_file_bb(us, sq);
 
-        if ((passed_pawn_span_bb(us, sq) & their_pawns) == 0)
+        if ((queening & their_pawns) == 0
+            && (queening & entry->attacks[not_color(us)] & ~entry->attacks[us]) == 0
+            && (queening & entry->attacks2[not_color(us)] & ~entry->attacks2[us]) == 0)
             ret += PassedBonus[relative_sq_rank(sq, us)];
     }
 
@@ -134,10 +137,15 @@ pawn_entry_t    *pawn_probe(const board_t *board)
     const bitboard_t    wpawns = piece_bb(board, WHITE, PAWN);
     const bitboard_t    bpawns = piece_bb(board, BLACK, PAWN);
 
-    entry->value += evaluate_passed(WHITE, wpawns, bpawns);
-    entry->value -= evaluate_passed(BLACK, bpawns, wpawns);
+    entry->attacks[WHITE] = wpawns_attacks_bb(wpawns);
+    entry->attacks[BLACK] = bpawns_attacks_bb(bpawns);
+    entry->attacks2[WHITE] = wpawns_2attacks_bb(wpawns);
+    entry->attacks2[BLACK] = bpawns_2attacks_bb(bpawns);
+
     entry->value += evaluate_backward(entry, WHITE, wpawns, bpawns);
     entry->value -= evaluate_backward(entry, BLACK, bpawns, wpawns);
+    entry->value += evaluate_passed(entry, WHITE, wpawns, bpawns);
+    entry->value -= evaluate_passed(entry, BLACK, bpawns, wpawns);
     entry->value += evaluate_doubled_isolated(wpawns);
     entry->value -= evaluate_doubled_isolated(bpawns);
 

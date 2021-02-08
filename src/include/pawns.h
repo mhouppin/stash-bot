@@ -25,6 +25,8 @@ typedef struct  pawn_entry_s
 {
     hashkey_t   key;
     bitboard_t  attack_span[COLOR_NB];
+    bitboard_t  attacks[COLOR_NB];
+    bitboard_t  attacks2[COLOR_NB];
     scorepair_t value;
 }
 pawn_entry_t;
