@@ -185,7 +185,7 @@ void        *engine_go(void *ptr)
             }
 
 __retry:
-            search(board, iter_depth + 1, _alpha, _beta, sstack, true);
+            search(board, iter_depth + 1, _alpha, _beta, &sstack[1], true);
 
             // Catch search aborting
 
