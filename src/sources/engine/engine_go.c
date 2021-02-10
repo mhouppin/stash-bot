@@ -68,7 +68,6 @@ uint64_t    perft(board_t *board, unsigned int depth)
 void        *engine_go(void *ptr)
 {
     extern goparams_t   SearchParams;
-    const size_t        root_move_count = movelist_size(&SearchMoves);
     board_t             *board = ptr;
     worker_t            *worker = get_worker(board);
 
@@ -89,9 +88,9 @@ void        *engine_go(void *ptr)
         return (NULL);
     }
 
+    worker->root_count = movelist_size(&SearchMoves);
     // If we don't have any move here, we're (stale)mated, so we can abort the search now.
-
-    if (root_move_count == 0)
+    if (worker->root_count == 0)
     {
         printf("info depth 0 score %s 0\nbestmove 0000\n", (board->stack->checkers) ? "mate" : "cp");
         fflush(stdout);
@@ -100,13 +99,14 @@ void        *engine_go(void *ptr)
 
     // Init root move structure here
 
-    root_move_t *root_moves = malloc(sizeof(root_move_t) * root_move_count);
-    for (size_t i = 0; i < root_move_count; ++i)
+    worker->root_moves = malloc(sizeof(root_move_t) * worker->root_count);
+    for (size_t i = 0; i < worker->root_count; ++i)
     {
-        root_moves[i].move = SearchMoves.moves[i].move;
-        root_moves[i].seldepth = 0;
-        root_moves[i].previous_score = root_moves[i].score = -INF_SCORE;
-        root_moves[i].pv[0] = NO_MOVE;
+        worker->root_moves[i].move = SearchMoves.moves[i].move;
+        worker->root_moves[i].seldepth = 0;
+        worker->root_moves[i].previous_score = -INF_SCORE;
+        worker->root_moves[i].score = -INF_SCORE;
+        worker->root_moves[i].pv[0] = NO_MOVE;
     }
 
     // Reset all history related stuff.
@@ -152,17 +152,21 @@ void        *engine_go(void *ptr)
 
     // Clamp MultiPV to the maximal number of lines available
 
-    const int   multi_pv = min(Options.multi_pv, root_move_count);
+    const int   multi_pv = min(Options.multi_pv, worker->root_count);
 
     for (int iter_depth = 0; iter_depth < SearchParams.depth; ++iter_depth)
     {
-        bool    has_search_aborted;
+        bool            has_search_aborted;
+        searchstack_t   sstack[256];
 
-        for (int pv_line = 0; pv_line < multi_pv; ++pv_line)
+        memset(sstack, 0, sizeof(sstack));
+
+        for (worker->pv_line = 0; worker->pv_line < multi_pv; ++worker->pv_line)
         {
-            worker->seldepth = 1;
+            worker->seldepth = 0;
 
             score_t _alpha, _beta, _delta;
+            score_t pv_score = worker->root_moves[worker->pv_line].previous_score;
 
             // Don't set aspiration window bounds for low depths, as the scores are
             // very volatile
@@ -176,27 +180,27 @@ void        *engine_go(void *ptr)
             else
             {
                 _delta = 15;
-                _alpha = max(-INF_SCORE, root_moves[pv_line].previous_score - _delta);
-                _beta = min(INF_SCORE, root_moves[pv_line].previous_score + _delta);
+                _alpha = max(-INF_SCORE, pv_score - _delta);
+                _beta = min(INF_SCORE, pv_score + _delta);
             }
 
 __retry:
-            search_bestmove(board, iter_depth + 1, _alpha, _beta,
-                root_moves + pv_line, root_moves + root_move_count, pv_line);
+            search(board, iter_depth + 1, _alpha, _beta, sstack, true);
 
             // Catch search aborting
 
             has_search_aborted = search_should_abort();
 
-            sort_root_moves(root_moves + pv_line, root_moves + root_move_count);
+            sort_root_moves(worker->root_moves + worker->pv_line,
+                    worker->root_moves + worker->root_count);
+            pv_score = worker->root_moves[worker->pv_line].score;
 
-            score_t pv_score = root_moves[pv_line].score;
             int     bound = (abs(pv_score) == INF_SCORE) ? EXACT_BOUND
                 : (pv_score >= _beta) ? LOWER_BOUND
                 : (pv_score <= _alpha) ? UPPER_BOUND : EXACT_BOUND;
 
             if (bound == EXACT_BOUND)
-                sort_root_moves(root_moves, root_moves + multi_pv);
+                sort_root_moves(worker->root_moves, worker->root_moves + multi_pv);
 
             if (!worker->idx)
             {
@@ -207,13 +211,13 @@ __retry:
 
                 if (multi_pv == 1 && (bound == EXACT_BOUND || time > 3000))
                 {
-                    print_pv(board, root_moves, 1, iter_depth, time, bound);
+                    print_pv(board, worker->root_moves, 1, iter_depth, time, bound);
                     fflush(stdout);
                 }
-                else if (multi_pv > 1 && bound == EXACT_BOUND && (pv_line == multi_pv - 1  || time > 3000))
+                else if (multi_pv > 1 && bound == EXACT_BOUND && (worker->pv_line == multi_pv - 1  || time > 3000))
                 {
                     for (int i = 0; i < multi_pv; ++i)
-                        print_pv(board, root_moves + i, i + 1, iter_depth, time, bound);
+                        print_pv(board, worker->root_moves + i, i + 1, iter_depth, time, bound);
 
                     fflush(stdout);
                 }
@@ -239,7 +243,7 @@ __retry:
             }
         }
 
-        for (root_move_t *i = root_moves; i < root_moves + root_move_count; ++i)
+        for (root_move_t *i = worker->root_moves; i < worker->root_moves + worker->root_count; ++i)
         {
             i->previous_score = i->score;
             i->score = -INF_SCORE;
@@ -253,12 +257,12 @@ __retry:
 
         if (!worker->idx)
         {
-            timeman_update(&Timeman, board, root_moves->move, root_moves->previous_score);
+            timeman_update(&Timeman, board, worker->root_moves->move, worker->root_moves->previous_score);
             if (timeman_can_stop_search(&Timeman, chess_clock()))
                 break ;
         }
 
-        if (SearchParams.mate && root_moves->previous_score >= mate_in(SearchParams.mate * 2))
+        if (SearchParams.mate && worker->root_moves->previous_score >= mate_in(SearchParams.mate * 2))
             break ;
     }
 
@@ -272,7 +276,7 @@ __retry:
 
     if (!worker->idx)
     {
-        printf("bestmove %s\n", move_to_str(root_moves->move, board->chess960));
+        printf("bestmove %s\n", move_to_str(worker->root_moves->move, board->chess960));
         fflush(stdout);
 
         if (EngineSend != DO_ABORT)
@@ -286,7 +290,7 @@ __retry:
         }
     }
 
-    free(root_moves);
+    free(worker->root_moves);
     free_boardstack(worker->stack);
     return (NULL);
 }

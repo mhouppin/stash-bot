@@ -17,6 +17,7 @@
 */
 
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include "engine.h"
 #include "history.h"
@@ -24,8 +25,20 @@
 #include "info.h"
 #include "lazy_smp.h"
 #include "movelist.h"
+#include "timeman.h"
 #include "tt.h"
 #include "uci.h"
+
+void    update_pv(move_t *pv, move_t bestmove, move_t *sub_pv)
+{
+    size_t  i;
+
+    pv[0] = bestmove;
+    for (i = 0; sub_pv[i] != NO_MOVE; ++i)
+        pv[i + 1] = sub_pv[i];
+
+    pv[i + 1] = NO_MOVE;
+}
 
 score_t search(board_t *board, int depth, score_t alpha, score_t beta,
         searchstack_t *ss, bool pv_node)
@@ -37,6 +50,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
     movelist_t  list;
     move_t      pv[256];
     score_t     best_value = -INF_SCORE;
+    bool        root_node = (ss->plies == 0);
 
     if (!worker->idx)
         check_time();
@@ -92,6 +106,9 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
 
         tt_save(entry, board->stack->board_key, NO_SCORE, eval, 0, NO_BOUND, NO_MOVE);
     }
+
+    if (root_node && worker->pv_line)
+        tt_move = worker->root_moves[worker->pv_line].move;
 
     (ss + 1)->pv = pv;
     (ss + 1)->plies = ss->plies + 1;
@@ -165,7 +182,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
         }
     }
 
-    if (depth > 7 && !tt_move)
+    if (!root_node && depth > 7 && !tt_move)
         --depth;
 
     list_pseudo(&list, board);
@@ -181,10 +198,28 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
         place_top_move(extmove, list.last);
         const move_t    currmove = extmove->move;
 
-        if (!move_is_legal(board, currmove))
-            continue ;
+        if (root_node)
+        {
+            // Exclude already searched PV lines for root nodes
+
+            if (find_root_move(worker->root_moves + worker->pv_line,
+                worker->root_moves + worker->root_count, currmove) == NULL)
+                continue ;
+        }
+        else
+        {
+            if (!move_is_legal(board, currmove))
+                continue ;
+        }
 
         move_count++;
+
+        if (root_node && !worker->idx && chess_clock() - Timeman.start > 3000)
+        {
+            printf("info depth %d currmove %s currmovenumber %d\n",
+                depth, move_to_str(currmove, board->chess960), move_count + worker->pv_line);
+            fflush(stdout);
+        }
 
         boardstack_t    stack;
         score_t         next = -NO_SCORE;
@@ -194,7 +229,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
         bool            is_quiet = !is_capture_or_promotion(board, currmove);
         bool            gives_check = move_gives_check(board, currmove);
 
-        extension = gives_check ? 1 : 0;
+        extension = !root_node && gives_check ? 1 : 0;
 
         ss->current_move = currmove;
 
@@ -231,6 +266,25 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
         if (search_should_abort())
             return (0);
 
+        if (root_node)
+        {
+            root_move_t *cur = find_root_move(worker->root_moves + worker->pv_line,
+                worker->root_moves + worker->root_count, currmove);
+
+            // Update PV for root
+
+            if (move_count == 1 || alpha < next)
+            {
+                cur->score = next;
+                cur->seldepth = worker->seldepth;
+                cur->pv[0] = currmove;
+
+                update_pv(cur->pv, currmove, (ss + 1)->pv);
+            }
+            else
+                cur->score = -INF_SCORE;
+        }
+
         if (best_value < next)
         {
             best_value = next;
@@ -240,16 +294,8 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
                 bestmove = currmove;
                 alpha = best_value;
 
-                if (pv_node)
-                {
-                    ss->pv[0] = bestmove = currmove;
-
-                    size_t  j;
-                    for (j = 0; (ss + 1)->pv[j] != NO_MOVE; ++j)
-                        ss->pv[j + 1] = (ss + 1)->pv[j];
-
-                    ss->pv[j + 1] = NO_MOVE;
-                }
+                if (pv_node && !root_node)
+                    update_pv(ss->pv, currmove, (ss + 1)->pv);
 
                 if (alpha >= beta)
                 {
@@ -263,7 +309,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
         if (qcount < 64 && is_quiet)
             quiets[qcount++] = currmove;
 
-        if (depth < 4 && best_value > -MATE_FOUND && qcount > depth * 8)
+        if (!root_node && depth < 4 && best_value > -MATE_FOUND && qcount > depth * 8)
             break ;
     }
 
@@ -272,11 +318,14 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
     if (move_count == 0)
         best_value = (board->stack->checkers) ? mated_in(ss->plies) : 0;
     
-    int bound = (best_value >= beta) ? LOWER_BOUND
-        : (pv_node && bestmove) ? EXACT_BOUND : UPPER_BOUND;
+    if (!root_node || worker->pv_line == 0)
+    {
+        int bound = (best_value >= beta) ? LOWER_BOUND
+            : (pv_node && bestmove) ? EXACT_BOUND : UPPER_BOUND;
 
-    tt_save(entry, board->stack->board_key, score_to_tt(best_value, ss->plies), ss->static_eval,
-        depth, bound, bestmove);
+        tt_save(entry, board->stack->board_key, score_to_tt(best_value, ss->plies), ss->static_eval,
+            depth, bound, bestmove);
+    }
 
     return (best_value);
 }
