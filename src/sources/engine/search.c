@@ -58,19 +58,22 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
     if (pv_node && worker->seldepth < ss->plies + 1)
         worker->seldepth = ss->plies + 1;
 
-    if (search_should_abort() || game_is_drawn(board, ss->plies))
-        return (0);
+    if (!root_node)
+    {
+        if (search_should_abort() || game_is_drawn(board, ss->plies))
+            return (0);
 
-    if (ss->plies >= MAX_PLIES)
-        return (!board->stack->checkers ? evaluate(board) : 0);
+        if (ss->plies >= MAX_PLIES)
+            return (!board->stack->checkers ? evaluate(board) : 0);
 
-    // Mate pruning.
+        // Mate pruning.
 
-    alpha = max(alpha, mated_in(ss->plies));
-    beta = min(beta, mate_in(ss->plies + 1));
+        alpha = max(alpha, mated_in(ss->plies));
+        beta = min(beta, mate_in(ss->plies + 1));
 
-    if (alpha >= beta)
-        return (alpha);
+        if (alpha >= beta)
+            return (alpha);
+    }
 
     // Check for interesting tt values
 
