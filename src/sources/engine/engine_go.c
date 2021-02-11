@@ -70,7 +70,6 @@ void        *engine_go(void *ptr)
     extern goparams_t   SearchParams;
     board_t             *board = ptr;
     worker_t            *worker = get_worker(board);
-    searchstack_t       sstack[256];
 
     // Code for running perft tests
 
@@ -110,9 +109,8 @@ void        *engine_go(void *ptr)
         worker->root_moves[i].pv[0] = NO_MOVE;
     }
 
-    // Reset all history related stuff, and zero-fill the searck stack.
+    // Reset all history related stuff.
 
-    memset(sstack, 0, sizeof(sstack));
     memset(worker->bf_history, 0, sizeof(bf_history_t));
     memset(worker->ct_history, 0, sizeof(ct_history_t));
     memset(worker->cm_history, 0, sizeof(cm_history_t));
@@ -159,6 +157,9 @@ void        *engine_go(void *ptr)
     for (int iter_depth = 0; iter_depth < SearchParams.depth; ++iter_depth)
     {
         bool            has_search_aborted;
+        searchstack_t   sstack[256];
+
+        memset(sstack, 0, sizeof(sstack));
 
         for (worker->pv_line = 0; worker->pv_line < multi_pv; ++worker->pv_line)
         {
