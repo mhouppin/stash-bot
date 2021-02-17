@@ -181,7 +181,7 @@ score_t     eval_kxk(const board_t *board, color_t c)
 
     base_score += 70 - 10 * SquareDistance[losing_ksq][winning_ksq];
 
-    return (base_score);
+    return (board->side_to_move == c ? base_score : -base_score);
 }
 
 void        eval_init(const board_t *board, evaluation_t *eval)
