@@ -21,20 +21,21 @@
 
 # include "board.h"
 
-typedef struct  pawns_cache_s
+typedef struct  pawn_entry_s
 {
     hashkey_t   key;
+    bitboard_t  attack_span[COLOR_NB];
+    bitboard_t  attacks[COLOR_NB];
+    bitboard_t  attacks2[COLOR_NB];
     scorepair_t value;
 }
-pawns_cache_t;
+pawn_entry_t;
 
 enum
 {
-    PawnCacheSize = 8192
+    PawnTableSize = 1 << 15
 };
 
-typedef pawns_cache_t   pawns_table_t[PawnCacheSize];
-
-scorepair_t evaluate_pawns(const board_t *board);
+pawn_entry_t    *pawn_probe(const board_t *board);
 
 #endif

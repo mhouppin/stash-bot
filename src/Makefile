@@ -35,15 +35,23 @@ ifeq ($(ARCH),)
 	ARCH=x86-64-modern
 endif
 
-# Check if we can accelerate a bit the build process when using -jXX
+# Check if CC is correctly pointing to a working compiler, and if not, set it
+# to gcc
 
-compiler_version = $(shell $(CC) --version)
+ifeq ($(shell $(CC) --version),)
+	CC=gcc
+endif
 
-# Add .exe to the executable name if we are on Windows
+# Add .exe to the executable name if we are on Windows, and change the cleanup
+# commands
 
-EXE=stash-bot
 ifeq ($(OS),Windows_NT)
-	EXE=stash-bot.exe
+	EXE = stash-bot.exe
+	REMOVE = del
+	SILENCE = >nul 2>&1 || (exit 0)
+else
+	EXE = stash-bot
+	REMOVE = rm -f
 endif
 
 # Enable use of PREFETCH instruction
@@ -83,11 +91,13 @@ $(EXE): $(OBJECTS)
 -include $(DEPENDS)
 
 clean:
-	rm -f $(OBJECTS) $(DEPENDS)
+	$(REMOVE) $(OBJECTS) $(DEPENDS) $(SILENCE)
 
 fclean: clean
-	rm -f $(EXE)
+	$(REMOVE) $(EXE) $(SILENCE)
 
-re: fclean all
+re:
+	+$(MAKE) fclean
+	+$(MAKE) all
 
 .PHONY: all clean fclean re

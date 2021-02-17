@@ -55,8 +55,9 @@ typedef uint64_t    bitboard_t;
 
 # define DARK_SQUARES   0xAA55AA55AA55AA55ull
 
-# define KINGSIDE_BITS  0xF0F0F0F0F0F0F0F0ull
-# define QUEENSIDE_BITS 0x0F0F0F0F0F0F0F0Full
+# define KINGSIDE_BITS      0xF0F0F0F0F0F0F0F0ull
+# define QUEENSIDE_BITS     0x0F0F0F0F0F0F0F0Full
+# define CENTER_FILES_BITS  0x3C3C3C3C3C3C3C3Cull
 
 extern bitboard_t   LineBits[SQUARE_NB][SQUARE_NB];
 extern bitboard_t   PseudoMoves[PIECETYPE_NB][SQUARE_NB];
@@ -130,6 +131,11 @@ INLINED bitboard_t  shift_down_right(bitboard_t b)
 INLINED bitboard_t  relative_shift_up(bitboard_t b, color_t c)
 {
     return ((c == WHITE) ? shift_up(b) : shift_down(b));
+}
+
+INLINED bitboard_t  relative_shift_down(bitboard_t b, color_t c)
+{
+    return ((c == WHITE) ? shift_down(b) : shift_up(b));
 }
 
 INLINED bool        more_than_one(bitboard_t b)

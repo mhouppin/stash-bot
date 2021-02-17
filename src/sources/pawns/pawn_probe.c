@@ -38,31 +38,42 @@ const scorepair_t   PassedBonus[RANK_NB] = {
     0
 };
 
-scorepair_t evaluate_passers(color_t c, bitboard_t us, bitboard_t them)
+scorepair_t evaluate_passed(pawn_entry_t *entry, color_t us, bitboard_t our_pawns, bitboard_t their_pawns)
 {
-    scorepair_t ret = 0;
+    scorepair_t     ret = 0;
 
-    while (us)
+    while (our_pawns)
     {
-        square_t    sq = bb_pop_first_sq(&us);
-        if (!(passed_pawn_span_bb(c, sq) & them))
-            ret += PassedBonus[relative_sq_rank(sq, c)];
+        square_t    sq = bb_pop_first_sq(&our_pawns);
+        bitboard_t  queening = forward_file_bb(us, sq);
+
+        if ((queening & their_pawns) == 0
+            && (queening & entry->attacks[not_color(us)] & ~entry->attacks[us]) == 0
+            && (queening & entry->attacks2[not_color(us)] & ~entry->attacks2[us]) == 0)
+            ret += PassedBonus[relative_sq_rank(sq, us)];
     }
+
     return (ret);
 }
 
-scorepair_t evaluate_backward(color_t c, bitboard_t us, bitboard_t them)
+scorepair_t evaluate_backward(pawn_entry_t *entry, color_t us, bitboard_t our_pawns,
+            bitboard_t their_pawns)
 {
-    bitboard_t  stops = (c == WHITE) ? shift_up(us) : shift_down(us);
-    bitboard_t  our_attack_spans = 0;
-    bitboard_t  bb = us;
+    bitboard_t  stop_squares = (us == WHITE) ? shift_up(our_pawns) : shift_down(our_pawns);
+    bitboard_t  our_attack_span = 0;
+    bitboard_t  bb = our_pawns;
 
     while (bb)
-        our_attack_spans |= pawn_attack_span_bb(c, bb_pop_first_sq(&bb));
+        our_attack_span |= pawn_attack_span_bb(us, bb_pop_first_sq(&bb));
 
-    bitboard_t  their_attacks = (c == WHITE) ? bpawns_attacks_bb(them) : wpawns_attacks_bb(them);
-    bitboard_t  backward = (stops & their_attacks & ~our_attack_spans);
-    backward = (c == WHITE) ? shift_down(backward) : shift_up(backward);
+    // Save the pawn attack span to the entry
+    entry->attack_span[us] = our_attack_span;
+
+    bitboard_t  their_attacks = (us == WHITE)
+        ? bpawns_attacks_bb(their_pawns) : wpawns_attacks_bb(their_pawns);
+    bitboard_t  backward = stop_squares & their_attacks & ~our_attack_span;
+
+    backward = (us == WHITE) ? shift_down(backward) : shift_up(backward);
 
     scorepair_t ret = 0;
 
@@ -71,16 +82,15 @@ scorepair_t evaluate_backward(color_t c, bitboard_t us, bitboard_t them)
 
     ret += BackwardPenalty * popcount(backward);
 
-    backward &= (c == WHITE) ? (RANK_2_BITS | RANK_3_BITS) : (RANK_6_BITS | RANK_7_BITS);
+    backward &= (us == WHITE) ? (RANK_2_BITS | RANK_3_BITS) : (RANK_6_BITS | RANK_7_BITS);
 
     if (!backward)
         return (ret);
 
     bitboard_t  their_files = 0;
 
-    bb = them;
-    while (bb)
-        their_files |= forward_file_bb(not_color(c), bb_pop_first_sq(&bb));
+    while (their_pawns)
+        their_files |= forward_file_bb(not_color(us), bb_pop_first_sq(&their_pawns));
 
     backward &= ~their_files;
 
@@ -112,26 +122,32 @@ scorepair_t evaluate_doubled_isolated(bitboard_t us)
     return (ret);
 }
 
-scorepair_t evaluate_pawns(const board_t *board)
+pawn_entry_t    *pawn_probe(const board_t *board)
 {
-    pawns_cache_t   *entry =
-        &(get_worker(board)->pawns_cache[board->stack->pawn_key & (PawnCacheSize - 1)]);
+    pawn_entry_t   *entry =
+        get_worker(board)->pawn_table + (board->stack->pawn_key % PawnTableSize);
 
     if (entry->key == board->stack->pawn_key)
-        return (entry->value);
+        return (entry);
 
     entry->key = board->stack->pawn_key;
     entry->value = 0;
+    entry->attack_span[WHITE] = entry->attack_span[BLACK] = 0;
 
     const bitboard_t    wpawns = piece_bb(board, WHITE, PAWN);
     const bitboard_t    bpawns = piece_bb(board, BLACK, PAWN);
 
-    entry->value += evaluate_backward(WHITE, wpawns, bpawns);
-    entry->value -= evaluate_backward(BLACK, bpawns, wpawns);
-    entry->value += evaluate_passers(WHITE, wpawns, bpawns);
-    entry->value -= evaluate_passers(BLACK, bpawns, wpawns);
+    entry->attacks[WHITE] = wpawns_attacks_bb(wpawns);
+    entry->attacks[BLACK] = bpawns_attacks_bb(bpawns);
+    entry->attacks2[WHITE] = wpawns_2attacks_bb(wpawns);
+    entry->attacks2[BLACK] = bpawns_2attacks_bb(bpawns);
+
+    entry->value += evaluate_backward(entry, WHITE, wpawns, bpawns);
+    entry->value -= evaluate_backward(entry, BLACK, bpawns, wpawns);
+    entry->value += evaluate_passed(entry, WHITE, wpawns, bpawns);
+    entry->value -= evaluate_passed(entry, BLACK, bpawns, wpawns);
     entry->value += evaluate_doubled_isolated(wpawns);
     entry->value -= evaluate_doubled_isolated(bpawns);
 
-    return (entry->value);
+    return (entry);
 }

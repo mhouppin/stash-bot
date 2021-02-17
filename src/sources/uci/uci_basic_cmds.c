@@ -16,6 +16,7 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "lazy_smp.h"
 #include "option.h"
 #include "tt.h"
 #include "uci.h"
@@ -57,4 +58,5 @@ void    uci_ucinewgame(const char *args)
     (void)args;
     wait_search_end();
     tt_bzero();
+    wpool_reset();
 }

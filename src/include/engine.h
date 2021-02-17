@@ -67,8 +67,6 @@ void        sort_root_moves(root_move_t *begin, root_move_t *end);
 root_move_t *find_root_move(root_move_t *begin, root_move_t *end, move_t move);
 
 void    *engine_go(void *ptr);
-void    search_bestmove(board_t *board, int depth, score_t alpha, score_t beta,
-        root_move_t *begin, root_move_t *end, int pv_line);
 score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss);
 score_t search(board_t *board, int depth, score_t alpha, score_t beta,
         searchstack_t *ss, bool pv_node);

@@ -47,18 +47,18 @@ void    generate_move_values(movelist_t *movelist, const board_t *board,
 
         if (move == tt_move)
         {
-            extmove->score = 8192;
+            extmove->score = 16384;
             continue ;
         }
 
         switch (move_type(move))
         {
             case PROMOTION:
-                extmove->score = promotion_type(move) == QUEEN ? 4096 : -4096;
+                extmove->score = promotion_type(move) == QUEEN ? 8192 : -4096;
                 break ;
 
             case EN_PASSANT:
-                extmove->score = 2048 + PAWN * 8 - PAWN;
+                extmove->score = 4096 + PAWN * 8 - PAWN;
                 break ;
 
             default:
@@ -69,15 +69,15 @@ void    generate_move_values(movelist_t *movelist, const board_t *board,
 
                 if (captured_piece != NO_PIECE)
                 {
-                    extmove->score = see_greater_than(board, move, -30) ? 2048 : 1024;
+                    extmove->score = see_greater_than(board, move, -30) ? 4096 : 2048;
                     extmove->score += piece_type(captured_piece) * 8;
                     extmove->score -= piece_type(moved_piece);
                 }
                 else if (move == killers[0] || move == killers[1])
-                    extmove->score = 1537;
+                    extmove->score = 3073;
 
                 else if (move == counter)
-                    extmove->score = 1536;
+                    extmove->score = 3072;
 
                 else
                     extmove->score = get_bf_history_score(worker->bf_history, moved_piece, move)

@@ -21,6 +21,7 @@
 
 # include <pthread.h>
 # include "board.h"
+# include "engine.h"
 # include "history.h"
 # include "pawns.h"
 
@@ -28,20 +29,24 @@
 
 typedef struct
 {
-    int                 idx;
+    int idx;
 
-    board_t             board;
-    boardstack_t        *stack;
-    bf_history_t        bf_history;
-    ct_history_t        ct_history;
-    cm_history_t        cm_history;
-    pawns_table_t       pawns_cache;
+    board_t         board;
+    boardstack_t    *stack;
+    bf_history_t    bf_history;
+    ct_history_t    ct_history;
+    cm_history_t    cm_history;
+    pawn_entry_t    *pawn_table;
 
     int                 seldepth;
     int                 verif_plies;
     _Atomic uint64_t    nodes;
 
-    pthread_t           thread;
+    root_move_t *root_moves;
+    size_t      root_count;
+    int         pv_line;
+
+    pthread_t   thread;
 }
 worker_t;
 
@@ -71,6 +76,7 @@ INLINED uint64_t    get_node_count(void)
 }
 
 void    wpool_init(int threads);
+void    wpool_reset(void);
 void    wpool_quit(void);
 
 #endif
