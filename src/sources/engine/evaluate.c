@@ -143,15 +143,26 @@ score_t     eval_kxk(const board_t *board, color_t c)
     square_t    winning_ksq = get_king_square(board, c);
     square_t    losing_ksq = get_king_square(board, not_color(c));
 
+    // Be careful to avoid stalemating the weak king
+    if (board->side_to_move != c)
+    {
+        movelist_t  list;
+
+        list_all(&list, board);
+        if (movelist_size(&list) == 0)
+            return (0);
+    }
+
     // KNB endgame, drive the king to the right corner
 
     if (board->stack->material[c] == KNIGHT_MG_SCORE + BISHOP_MG_SCORE && !pawns)
     {
+        square_t    sq = losing_ksq;
         if (piecetype_bb(board, BISHOP) & DARK_SQUARES)
-            losing_ksq ^= SQ_A8;
+            sq ^= SQ_A8;
 
-        file_t  file = sq_file(losing_ksq);
-        rank_t  rank = sq_rank(losing_ksq);
+        file_t  file = sq_file(sq);
+        rank_t  rank = sq_rank(sq);
 
         base_score += abs(file - rank) * 100;
     }
