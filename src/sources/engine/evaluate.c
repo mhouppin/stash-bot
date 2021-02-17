@@ -144,7 +144,7 @@ score_t     eval_kxk(const board_t *board, color_t c)
     square_t    losing_ksq = get_king_square(board, not_color(c));
 
     // Be careful to avoid stalemating the weak king
-    if (board->side_to_move != c)
+    if (board->side_to_move != c && !board->stack->checkers)
     {
         movelist_t  list;
 
