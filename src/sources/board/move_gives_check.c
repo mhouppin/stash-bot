@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -20,58 +20,51 @@
 
 bool    move_gives_check(const board_t *board, move_t move)
 {
-    square_t    from = move_from_square(move);
-    square_t    to = move_to_square(move);
+    square_t    from = from_sq(move);
+    square_t    to = to_sq(move);
+    square_t    capture_square;
+    square_t    king_from, rook_from, king_to, rook_to;
+    bitboard_t  occupied;
 
-    if (board->stack->check_squares[type_of_piece(piece_on(board, from))]
-        & square_bit(to))
+    if (board->stack->check_squares[piece_type(piece_on(board, from))] & square_bb(to))
         return (true);
 
-    square_t    their_king = board_king_square(board, not_color(board->side_to_move));
+    square_t    their_king = get_king_square(board, not_color(board->side_to_move));
 
-    if ((board->stack->king_blockers[not_color(board->side_to_move)]
-        & square_bit(from)) && !aligned(from, to, their_king))
+    if ((board->stack->king_blockers[not_color(board->side_to_move)] & square_bb(from))
+        && !sq_aligned(from, to, their_king))
         return (true);
 
-    switch (type_of_move(move))
+    switch (move_type(move))
     {
         case NORMAL_MOVE:
             return (false);
 
         case PROMOTION:
-            return (piece_moves(promotion_type(move), to,
-                board->piecetype_bits[ALL_PIECES] ^ square_bit(from))
-                & square_bit(their_king));
+            return (piece_moves(promotion_type(move), to, occupancy_bb(board) ^ square_bb(from))
+                & square_bb(their_king));
 
         case EN_PASSANT:
-            (void)0;
-            square_t    capture_square = create_square(file_of_square(to),
-                rank_of_square(from));
+            capture_square = create_sq(sq_file(to), sq_rank(from));
 
-            bitboard_t  occupied = (board->piecetype_bits[ALL_PIECES]
-                ^ square_bit(from) ^ square_bit(capture_square))
-                | square_bit(to);
+            occupied = (occupancy_bb(board) ^ square_bb(from) ^ square_bb(capture_square))
+                | square_bb(to);
 
-            return ((rook_move_bits(their_king, occupied)
+            return ((rook_moves_bb(their_king, occupied)
                 & pieces_bb(board, board->side_to_move, QUEEN, ROOK))
-                | (bishop_move_bits(their_king, occupied)
-                & pieces_bb(board, board->side_to_move, QUEEN,
-                BISHOP)));
+                | (bishop_moves_bb(their_king, occupied)
+                & pieces_bb(board, board->side_to_move, QUEEN, BISHOP)));
 
         case CASTLING:
-            (void)0;
-            square_t    king_from = from;
-            square_t    rook_from = to;
-            square_t    king_to = relative_square(
-                rook_from > king_from ? SQ_G1 : SQ_C1, board->side_to_move);
-            square_t    rook_to = relative_square(
-                rook_from > king_from ? SQ_F1 : SQ_D1, board->side_to_move);
+            king_from = from;
+            rook_from = to;
+            king_to = relative_sq(rook_from > king_from ? SQ_G1 : SQ_C1, board->side_to_move);
+            rook_to = relative_sq(rook_from > king_from ? SQ_F1 : SQ_D1, board->side_to_move);
 
-            return ((PseudoMoves[ROOK][rook_to] & square_bit(their_king))
-                && (rook_move_bits(rook_to, (board->piecetype_bits[ALL_PIECES]
-                ^ square_bit(king_from) ^ square_bit(rook_from))
-                | square_bit(king_to) | square_bit(rook_to))
-                & square_bit(their_king)));
+            return ((PseudoMoves[ROOK][rook_to] & square_bb(their_king))
+                && (rook_moves_bb(rook_to,
+                (occupancy_bb(board) ^ square_bb(king_from) ^ square_bb(rook_from))
+                | square_bb(king_to) | square_bb(rook_to)) & square_bb(their_king)));
 
         default:
             __builtin_unreachable();

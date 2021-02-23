@@ -1,6 +1,6 @@
 #
 #    Stash, a UCI chess playing engine developed from scratch
-#    Copyright (C) 2019-2020 Morgan Houppin
+#    Copyright (C) 2019-2021 Morgan Houppin
 #
 #    Stash is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -18,27 +18,43 @@
 
 SOURCES := $(wildcard sources/*/*.c)
 
-ifeq ($(OS),Windows_NT)
-    REMOVE := del
-    SILENCE := >nul 2>&1 || (exit 0)
-    ifeq ($(EXE),)
-        EXE=stash-bot.exe
-    endif
-    SOURCES := $(subst /,\,$(SOURCES))
-else
-    REMOVE := rm -f
-    SILENCE := >/dev/null 2>&1
-    ifeq ($(EXE),)
-        EXE=stash-bot
-    endif
-endif
-
 OBJECTS := $(SOURCES:%.c=%.o)
 DEPENDS := $(SOURCES:%.c=%.d)
-native = yes
+native = no
 
 CFLAGS += -Wall -Wextra -Werror -O3 -flto
+CPPFLAGS += -MMD -I include
 LDFLAGS += -lpthread -lm
+
+# If no arch is specified, we select a prefetch+popcnt build by default.
+# If you want to build on a different architecture, please specify it in the
+# command with ARCH=something. If you want to disable all arch-specific
+# optimizations, use ARCH=unknown.
+
+ifeq ($(ARCH),)
+	ARCH=x86-64-modern
+endif
+
+# Check if CC is correctly pointing to a working compiler, and if not, set it
+# to gcc
+
+ifeq ($(shell $(CC) --version),)
+	CC=gcc
+endif
+
+# Add .exe to the executable name if we are on Windows, and change the cleanup
+# commands
+
+ifeq ($(OS),Windows_NT)
+	EXE = stash-bot.exe
+	REMOVE = del
+	SILENCE = >nul 2>&1 || (exit 0)
+else
+	EXE = stash-bot
+	REMOVE = rm -f
+endif
+
+# Enable use of PREFETCH instruction
 
 ifeq ($(ARCH),x86-64)
     CFLAGS += -DUSE_PREFETCH
@@ -70,14 +86,18 @@ endif
 all: $(EXE)
 
 $(EXE): $(OBJECTS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
-
-%.o: %.c
-	$(CC) $(CFLAGS) -c -MMD -I include -o $@ $<
+	+$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 -include $(DEPENDS)
 
 clean:
 	$(REMOVE) $(OBJECTS) $(DEPENDS) $(SILENCE)
 
-re: clean all
+fclean: clean
+	$(REMOVE) $(EXE) $(SILENCE)
+
+re:
+	+$(MAKE) fclean
+	+$(MAKE) all
+
+.PHONY: all clean fclean re

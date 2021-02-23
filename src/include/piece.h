@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -57,12 +57,12 @@ enum
     PIECETYPE_NB = 8
 };
 
-INLINED piecetype_t type_of_piece(piece_t piece)
+INLINED piecetype_t piece_type(piece_t piece)
 {
     return (piece & 7);
 }
 
-INLINED color_t     color_of_piece(piece_t piece)
+INLINED color_t     piece_color(piece_t piece)
 {
     return (piece >> 3);
 }

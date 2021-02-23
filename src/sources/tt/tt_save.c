@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -23,14 +23,14 @@ void    tt_save(tt_entry_t *entry, hashkey_t k, score_t s, score_t e, int d, int
     if (m || k != entry->key)
         entry->bestmove = (uint16_t)m;
 
-    if (k != entry->key || d > entry->depth || b == EXACT_BOUND)
-    {
-        extern transposition_t  g_hashtable;
+    // Do not erase entries with higher depth for same position.
 
+    if (b == EXACT_BOUND || k != entry->key || d > entry->depth)
+    {
         entry->key = k;
         entry->score = s;
         entry->eval = e;
-        entry->genbound = g_hashtable.generation | (uint8_t)b;
+        entry->genbound = TT.generation | (uint8_t)b;
         entry->depth = d;
     }
 }

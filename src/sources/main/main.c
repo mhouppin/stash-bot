@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "engine.h"
 #include "init.h"
 #include "lazy_smp.h"
 #include "tt.h"
@@ -30,10 +31,14 @@ int main(int argc, char **argv)
     zobrist_init();
     tt_resize(16);
     wpool_init(1);
+    init_reduction_table();
 
     pthread_t   engine_pt;
 
-    if (pthread_create(&engine_pt, NULL, &engine_thread, NULL))
+    pthread_attr_init(&WorkerSettings);
+    pthread_attr_setstacksize(&WorkerSettings, 4ul * 1024 * 1024);
+
+    if (pthread_create(&engine_pt, &WorkerSettings, &engine_thread, NULL))
     {
         perror("Failed to boot engine thread");
         return (1);

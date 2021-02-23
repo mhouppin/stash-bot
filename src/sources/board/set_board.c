@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 #include "board.h"
 #include "uci.h"
 
-void    board_set(board_t *board, char *fen, bool is_chess960,
+void    set_board(board_t *board, char *fen, bool is_chess960,
         boardstack_t *bstack)
 {
     square_t    square = SQ_A8;
@@ -126,15 +126,15 @@ void    board_set(board_t *board, char *fen, bool is_chess960,
         fen_castlings[i] = toupper(fen_castlings[i]);
 
         if (fen_castlings[i] == 'K')
-            for (rook_square = relative_square(SQ_H1, color);
+            for (rook_square = relative_sq(SQ_H1, color);
                 piece_on(board, rook_square) != rook; --rook_square) {}
 
         else if (fen_castlings[i] == 'Q')
-            for (rook_square = relative_square(SQ_A1, color);
+            for (rook_square = relative_sq(SQ_A1, color);
                 piece_on(board, rook_square) != rook; ++rook_square) {}
 
         else if (fen_castlings[i] >= 'A' && fen_castlings[i] <= 'H')
-            rook_square = create_square((file_t)(fen_castlings[i] - 'A'),
+            rook_square = create_sq((file_t)(fen_castlings[i] - 'A'),
                 relative_rank(RANK_1, color));
 
         else
@@ -148,7 +148,7 @@ void    board_set(board_t *board, char *fen, bool is_chess960,
     if (fen_en_passant[0] >= 'a' && fen_en_passant[0] <= 'h'
         && (fen_en_passant[1] == '3' || fen_en_passant[1] == '6'))
     {
-        board->stack->en_passant_square = create_square(
+        board->stack->en_passant_square = create_sq(
             fen_en_passant[0] - 'a', fen_en_passant[1] - '1');
 
         // If no pawn is able to make the en passant capture,
@@ -156,12 +156,10 @@ void    board_set(board_t *board, char *fen, bool is_chess960,
         // remove it.
 
         if (!(attackers_to(board, board->stack->en_passant_square)
-            & board->piecetype_bits[PAWN]
-            & board->color_bits[board->side_to_move])
-            || !(board->piecetype_bits[PAWN]
-            & board->color_bits[not_color(board->side_to_move)]
-            & square_bit(board->stack->en_passant_square
-            + pawn_direction(not_color(board->side_to_move)))))
+                & piece_bb(board, board->side_to_move, PAWN))
+            || !(piece_bb(board, not_color(board->side_to_move), PAWN)
+                & square_bb(board->stack->en_passant_square
+                    + pawn_direction(not_color(board->side_to_move)))))
             board->stack->en_passant_square = SQ_NONE;
     }
     else

@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "info.h"
 #include "lazy_smp.h"
 #include "option.h"
 #include "tt.h"
@@ -43,7 +44,7 @@ const cmdlink_t commands[] =
 int execute_uci_cmd(const char *command)
 {
     char    *dup = strdup(command);
-    char    *cmd = strtok(dup, " \t\n");
+    char    *cmd = strtok(dup, Delimiters);
 
     if (!cmd)
     {
@@ -77,9 +78,8 @@ void    on_hash_set(void *data)
     fflush(stdout);
 }
 
-void    on_clear_hash(void *nothing)
+void    on_clear_hash(void *nothing __attribute__((unused)))
 {
-    (void)nothing;
     tt_bzero();
     puts("info string cleared hash");
     fflush(stdout);
@@ -94,15 +94,13 @@ void    on_thread_set(void *data)
 
 void    uci_loop(int argc, char **argv)
 {
-    extern ucioptions_t g_options;
-
-    init_option_list(&g_opthandler);
-    add_option_spin_int(&g_opthandler, "Threads", &g_options.threads, 1, 1, 256, &on_thread_set);
-    add_option_spin_int(&g_opthandler, "Hash", &g_options.hash, 16, 1, 131072, &on_hash_set);
-    add_option_spin_int(&g_opthandler, "Move Overhead", &g_options.move_overhead, 100, 0, 30000, NULL);
-    add_option_spin_int(&g_opthandler, "MultiPV", &g_options.multi_pv, 1, 1, 500, NULL);
-    add_option_check(&g_opthandler, "UCI_Chess960", &g_options.chess960, false, NULL);
-    add_option_button(&g_opthandler, "Clear Hash", &on_clear_hash);
+    init_option_list(&OptionList);
+    add_option_spin_int(&OptionList, "Threads", &Options.threads, 1, 256, &on_thread_set);
+    add_option_spin_int(&OptionList, "Hash", &Options.hash, 1, MAX_HASH, &on_hash_set);
+    add_option_spin_int(&OptionList, "Move Overhead", &Options.move_overhead, 0, 30000, NULL);
+    add_option_spin_int(&OptionList, "MultiPV", &Options.multi_pv, 1, 500, NULL);
+    add_option_check(&OptionList, "UCI_Chess960", &Options.chess960, NULL);
+    add_option_button(&OptionList, "Clear Hash", &on_clear_hash);
 
     uci_position("startpos");
 
@@ -111,9 +109,9 @@ void    uci_loop(int argc, char **argv)
             execute_uci_cmd(argv[i]);
     else
     {
-        char    *line = malloc(8192);
+        char    *line = malloc(16384);
 
-        while (fgets(line, 8192, stdin) != NULL)
+        while (fgets(line, 16384, stdin) != NULL)
             if (execute_uci_cmd(line) == 0)
                 break ;
 
@@ -122,6 +120,6 @@ void    uci_loop(int argc, char **argv)
 
     wait_search_end();
     uci_quit(NULL);
-    quit_option_list(&g_opthandler);
+    quit_option_list(&OptionList);
 }
 

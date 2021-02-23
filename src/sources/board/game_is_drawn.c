@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -16,18 +16,26 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "option.h"
-#include "uci.h"
-#include <stdio.h>
+#include "board.h"
+#include "movelist.h"
 
-void    uci_uci(const char *args)
+bool    game_is_drawn(const board_t *board, int ply)
 {
-    (void)args;
-    puts("id name Stash v25.0");
-    puts("id author Morgan Houppin");
+    if (board->stack->rule50 > 99)
+    {
+        if (!board->stack->checkers)
+            return (true);
 
-    show_options(&g_opthandler);
+        movelist_t  movelist;
 
-    puts("uciok");
-    fflush(stdout);
+        list_all(&movelist, board);
+
+        if (movelist_size(&movelist) != 0)
+            return (true);
+    }
+
+    if (board->stack->repetition && board->stack->repetition < ply)
+        return (true);
+
+    return (false);
 }

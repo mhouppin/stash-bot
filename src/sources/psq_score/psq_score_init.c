@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -24,14 +24,14 @@ const score_t   PieceScores[PHASE_NB][PIECE_NB] = {
     {
         0, PAWN_MG_SCORE, KNIGHT_MG_SCORE, BISHOP_MG_SCORE,
         ROOK_MG_SCORE, QUEEN_MG_SCORE, 0, 0,
-        0, -PAWN_MG_SCORE, -KNIGHT_MG_SCORE, -BISHOP_MG_SCORE,
-        -ROOK_MG_SCORE, -QUEEN_MG_SCORE, 0, 0
+        0, PAWN_MG_SCORE, KNIGHT_MG_SCORE, BISHOP_MG_SCORE,
+        ROOK_MG_SCORE, QUEEN_MG_SCORE, 0, 0
     },
     {
         0, PAWN_EG_SCORE, KNIGHT_EG_SCORE, BISHOP_EG_SCORE,
         ROOK_EG_SCORE, QUEEN_EG_SCORE, 0, 0,
-        0, -PAWN_EG_SCORE, -KNIGHT_EG_SCORE, -BISHOP_EG_SCORE,
-        -ROOK_EG_SCORE, -QUEEN_EG_SCORE, 0, 0,
+        0, PAWN_EG_SCORE, KNIGHT_EG_SCORE, BISHOP_EG_SCORE,
+        ROOK_EG_SCORE, QUEEN_EG_SCORE, 0, 0,
     }
 };
 
@@ -132,16 +132,16 @@ void    psq_score_init(void)
             scorepair_t psq_entry;
 
             if (piece == WHITE_PAWN)
-                psq_entry = piece_value + PawnBonus[rank_of_square(square)][file_of_square(square)];
+                psq_entry = piece_value + PawnBonus[sq_rank(square)][sq_file(square)];
             else
             {
-                file_t  qside_file = min(file_of_square(square), file_of_square(square) ^ 7);
+                file_t  qside_file = min(sq_file(square), sq_file(square) ^ 7);
 
-                psq_entry = piece_value + PieceBonus[piece][rank_of_square(square)][qside_file];
+                psq_entry = piece_value + PieceBonus[piece][sq_rank(square)][qside_file];
             }
 
             PsqScore[piece][square] = psq_entry;
-            PsqScore[opposite_piece(piece)][opposite_square(square)] = -psq_entry;
+            PsqScore[opposite_piece(piece)][opposite_sq(square)] = -psq_entry;
         }
     }
 }

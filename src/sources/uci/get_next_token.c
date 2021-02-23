@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -18,6 +18,11 @@
 
 #include <ctype.h>
 #include "uci.h"
+
+// Finds the next token in the given string, writes a nullbyte to its end,
+// and returns it (after incrementing the string pointer).
+// This is mainly used as a replacement to strtok_r(), which isn't available
+// on MinGW.
 
 char    *get_next_token(char **str)
 {

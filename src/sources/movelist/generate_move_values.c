@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -21,10 +21,25 @@
 #include "movelist.h"
 
 void    generate_move_values(movelist_t *movelist, const board_t *board,
-        move_t tt_move, move_t *killers)
+        move_t tt_move, move_t *killers, move_t previous_move)
 {
     worker_t *const     worker = get_worker(board);
     extmove_t *const    end = movelist->last;
+    move_t              counter;
+    square_t            lto = SQ_A1;
+    piece_t             lpc = NO_PIECE;
+    square_t            from, to;
+    piece_t             moved_piece, captured_piece;
+
+    if (is_valid_move(previous_move))
+    {
+        lto = to_sq(previous_move);
+        lpc = piece_on(board, lto);
+
+        counter = worker->cm_history[lpc][lto];
+    }
+    else
+        counter = NO_MOVE;
 
     for (extmove_t *extmove = movelist->moves; extmove < end; ++extmove)
     {
@@ -32,36 +47,41 @@ void    generate_move_values(movelist_t *movelist, const board_t *board,
 
         if (move == tt_move)
         {
-            extmove->score = 8192;
+            extmove->score = 16384;
             continue ;
         }
 
-        switch (type_of_move(move))
+        switch (move_type(move))
         {
             case PROMOTION:
-                extmove->score = promotion_type(move) == QUEEN ? 4096 : -4096;
+                extmove->score = promotion_type(move) == QUEEN ? 8192 : -4096;
                 break ;
 
             case EN_PASSANT:
-                extmove->score = 2048 + PAWN * 8 - PAWN;
+                extmove->score = 4096 + PAWN * 8 - PAWN;
                 break ;
 
-            default: ; // Statement issue
-                const square_t  from = move_from_square(move);
-                const square_t  to = move_to_square(move);
-                const piece_t   moved_piece = piece_on(board, from);
-                const piece_t   captured_piece = piece_on(board, to);
+            default:
+                from = from_sq(move);
+                to = to_sq(move);
+                moved_piece = piece_on(board, from);
+                captured_piece = piece_on(board, to);
 
                 if (captured_piece != NO_PIECE)
                 {
-                    extmove->score = see_greater_than(board, move, -30) ? 2048 : 1024;
-                    extmove->score += type_of_piece(captured_piece) * 8
-                        - type_of_piece(moved_piece);
+                    extmove->score = see_greater_than(board, move, -30) ? 4096 : 2048;
+                    extmove->score += piece_type(captured_piece) * 8;
+                    extmove->score -= piece_type(moved_piece);
                 }
                 else if (move == killers[0] || move == killers[1])
-                    extmove->score = 1536;
+                    extmove->score = 3073;
+
+                else if (move == counter)
+                    extmove->score = 3072;
+
                 else
-                    extmove->score = get_history_score(worker->history, moved_piece, move);
+                    extmove->score = get_bf_history_score(worker->bf_history, moved_piece, move)
+                        + get_ct_history_score(worker->ct_history, moved_piece, to, lpc, lto);
                 break ;
         }
     }

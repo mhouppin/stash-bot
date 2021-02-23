@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -18,194 +18,95 @@
 
 #include "movelist.h"
 
-extmove_t   *create_evasion_promotions(extmove_t *movelist, square_t to,
-            direction_t direction)
+extmove_t   *generate_pawn_evasion_moves(extmove_t *movelist, const board_t *board,
+            bitboard_t block_squares, color_t us)
 {
-    (movelist++)->move = create_promotion(to - direction, to, QUEEN);
-    (movelist++)->move = create_promotion(to - direction, to, ROOK);
-    (movelist++)->move = create_promotion(to - direction, to, BISHOP);
-    (movelist++)->move = create_promotion(to - direction, to, KNIGHT);
-
-    return (movelist);
-}
-
-extmove_t   *generate_white_pawn_evasion_moves(extmove_t *movelist,
-            const board_t *board, bitboard_t block_squares)
-{
-    bitboard_t  empty_squares = ~board->piecetype_bits[ALL_PIECES];
-    bitboard_t  pawns_on_rank_7 = piece_bb(board, WHITE, PAWN) & RANK_7_BITS;
-    bitboard_t  pawns_not_on_rank_7 = piece_bb(board, WHITE, PAWN) & ~RANK_7_BITS;
-    bitboard_t  enemies = board->color_bits[BLACK] & block_squares;
-    bitboard_t  push = shift_up(pawns_not_on_rank_7) & empty_squares;
-    bitboard_t  push2 = shift_up(push & RANK_3_BITS) & empty_squares;
+    int         pawn_push = pawn_direction(us);
+    bitboard_t  pawns_on_last_rank = piece_bb(board, us, PAWN) & (us == WHITE ? RANK_7_BITS : RANK_2_BITS);
+    bitboard_t  pawns_not_on_last_rank = piece_bb(board, us, PAWN) & ~pawns_on_last_rank;
+    bitboard_t  empty = ~occupancy_bb(board);
+    bitboard_t  their_pieces = color_bb(board, not_color(us)) & block_squares;
+    bitboard_t  push = relative_shift_up(pawns_not_on_last_rank, us) & empty;
+    bitboard_t  push2 = relative_shift_up(push & (us == WHITE ? RANK_3_BITS : RANK_6_BITS), us) & empty;
 
     push &= block_squares;
     push2 &= block_squares;
 
     while (push)
     {
-        square_t    to = pop_first_square(&push);
-        (movelist++)->move = create_move(to - NORTH, to);
+        square_t    to = bb_pop_first_sq(&push);
+        (movelist++)->move = create_move(to - pawn_push, to);
     }
 
     while (push2)
     {
-        square_t    to = pop_first_square(&push2);
-        (movelist++)->move = create_move(to - NORTH * 2, to);
+        square_t    to = bb_pop_first_sq(&push2);
+        (movelist++)->move = create_move(to - pawn_push - pawn_push, to);
     }
 
-    if (pawns_on_rank_7)
+    if (pawns_on_last_rank)
     {
-        empty_squares &= block_squares;
+        empty &= block_squares;
 
-        bitboard_t  promote = shift_up(pawns_on_rank_7) & empty_squares;
-        bitboard_t  promote_left = shift_up_left(pawns_on_rank_7) & enemies;
-        bitboard_t  promote_right = shift_up_right(pawns_on_rank_7) & enemies;
+        bitboard_t  promote = relative_shift_up(pawns_on_last_rank, us);
 
-        while (promote)
-            movelist = create_evasion_promotions(movelist,
-                pop_first_square(&promote), NORTH);
+        for (bitboard_t b = promote & empty; b; )
+            movelist = create_promotions(movelist, bb_pop_first_sq(&b), pawn_push);
 
-        while (promote_left)
-            movelist = create_evasion_promotions(movelist,
-                pop_first_square(&promote_left), NORTH_WEST);
+        for (bitboard_t b = shift_left(promote) & their_pieces; b; )
+            movelist = create_promotions(movelist, bb_pop_first_sq(&b), pawn_push + WEST);
 
-        while (promote_right)
-            movelist = create_evasion_promotions(movelist,
-                pop_first_square(&promote_right), NORTH_EAST);
+        for (bitboard_t b = shift_right(promote) & their_pieces; b; )
+            movelist = create_promotions(movelist, bb_pop_first_sq(&b), pawn_push + EAST);
     }
 
-    bitboard_t  capture_left = shift_up_left(pawns_not_on_rank_7) & enemies;
-    bitboard_t  capture_right = shift_up_right(pawns_not_on_rank_7) & enemies;
+    bitboard_t  capture = relative_shift_up(pawns_not_on_last_rank, us);
 
-    while (capture_left)
+    for (bitboard_t b = shift_left(capture) & their_pieces; b; )
     {
-        square_t    to = pop_first_square(&capture_left);
-        (movelist++)->move = create_move(to - NORTH_WEST, to);
+        square_t    to = bb_pop_first_sq(&b);
+        (movelist++)->move = create_move(to - pawn_push - WEST, to);
     }
 
-    while (capture_right)
+    for (bitboard_t b = shift_right(capture) & their_pieces; b; )
     {
-        square_t    to = pop_first_square(&capture_right);
-        (movelist++)->move = create_move(to - NORTH_EAST, to);
+        square_t    to = bb_pop_first_sq(&b);
+        (movelist++)->move = create_move(to - pawn_push - EAST, to);
     }
 
     if (board->stack->en_passant_square != SQ_NONE)
     {
-        if (!(block_squares & square_bit(board->stack->en_passant_square - NORTH)))
+        if (!(block_squares & square_bb(board->stack->en_passant_square - pawn_push)))
             return (movelist);
 
-        bitboard_t  capture_en_passant = pawns_not_on_rank_7
-            & pawn_moves(board->stack->en_passant_square, BLACK);
+        bitboard_t  capture_en_passant = pawns_not_on_last_rank
+            & pawn_moves(board->stack->en_passant_square, not_color(us));
 
         while (capture_en_passant)
             (movelist++)->move = create_en_passant(
-                pop_first_square(&capture_en_passant),
+                bb_pop_first_sq(&capture_en_passant),
                 board->stack->en_passant_square);
     }
 
     return (movelist);
 }
 
-extmove_t   *generate_black_pawn_evasion_moves(extmove_t *movelist,
-            const board_t *board, bitboard_t block_squares)
+extmove_t   *generate_white_evasions(extmove_t *movelist, const board_t *board, bitboard_t block_squares)
 {
-    bitboard_t  empty_squares = ~board->piecetype_bits[ALL_PIECES];
-    bitboard_t  pawns_on_rank_7 = piece_bb(board, BLACK, PAWN) & RANK_2_BITS;
-    bitboard_t  pawns_not_on_rank_7 = piece_bb(board, BLACK, PAWN) & ~RANK_2_BITS;
-    bitboard_t  enemies = board->color_bits[WHITE] & block_squares;
-    bitboard_t  push = shift_down(pawns_not_on_rank_7) & empty_squares;
-    bitboard_t  push2 = shift_down(push & RANK_6_BITS) & empty_squares;
+    movelist = generate_pawn_evasion_moves(movelist, board, block_squares, WHITE);
 
-    push &= block_squares;
-    push2 &= block_squares;
-
-    while (push)
-    {
-        square_t    to = pop_first_square(&push);
-        (movelist++)->move = create_move(to - SOUTH, to);
-    }
-
-    while (push2)
-    {
-        square_t    to = pop_first_square(&push2);
-        (movelist++)->move = create_move(to - SOUTH * 2, to);
-    }
-
-    if (pawns_on_rank_7)
-    {
-        empty_squares &= block_squares;
-
-        bitboard_t  promote = shift_down(pawns_on_rank_7) & empty_squares;
-        bitboard_t  promote_left = shift_down_left(pawns_on_rank_7) & enemies;
-        bitboard_t  promote_right = shift_down_right(pawns_on_rank_7) & enemies;
-
-        while (promote)
-            movelist = create_evasion_promotions(movelist,
-                pop_first_square(&promote), SOUTH);
-
-        while (promote_left)
-            movelist = create_evasion_promotions(movelist,
-                pop_first_square(&promote_left), SOUTH_WEST);
-
-        while (promote_right)
-            movelist = create_evasion_promotions(movelist,
-                pop_first_square(&promote_right), SOUTH_EAST);
-    }
-
-    bitboard_t  capture_left = shift_down_left(pawns_not_on_rank_7) & enemies;
-    bitboard_t  capture_right = shift_down_right(pawns_not_on_rank_7) & enemies;
-
-    while (capture_left)
-    {
-        square_t    to = pop_first_square(&capture_left);
-        (movelist++)->move = create_move(to - SOUTH_WEST, to);
-    }
-
-    while (capture_right)
-    {
-        square_t    to = pop_first_square(&capture_right);
-        (movelist++)->move = create_move(to - SOUTH_EAST, to);
-    }
-
-    if (board->stack->en_passant_square != SQ_NONE)
-    {
-        if (!(block_squares & square_bit(board->stack->en_passant_square - SOUTH)))
-            return (movelist);
-
-        bitboard_t  capture_en_passant = pawns_not_on_rank_7
-            & pawn_moves(board->stack->en_passant_square, WHITE);
-
-        while (capture_en_passant)
-            (movelist++)->move = create_en_passant(
-                pop_first_square(&capture_en_passant),
-                board->stack->en_passant_square);
-    }
-
-    return (movelist);
-
-}
-
-extmove_t   *generate_white_evasions(extmove_t *movelist, const board_t *board,
-            bitboard_t block_squares)
-{
-    movelist = generate_white_pawn_evasion_moves(movelist, board, block_squares);
-    movelist = generate_knight_moves(movelist, board, WHITE, block_squares);
-    movelist = generate_bishop_moves(movelist, board, WHITE, block_squares);
-    movelist = generate_rook_moves(movelist, board, WHITE, block_squares);
-    movelist = generate_queen_moves(movelist, board, WHITE, block_squares);
+    for (piecetype_t pt = KNIGHT; pt <= QUEEN; ++pt)
+        movelist = generate_piece_moves(movelist, board, WHITE, pt, block_squares);
 
     return (movelist);
 }
 
-extmove_t   *generate_black_evasions(extmove_t *movelist, const board_t *board,
-            bitboard_t block_squares)
+extmove_t   *generate_black_evasions(extmove_t *movelist, const board_t *board, bitboard_t block_squares)
 {
-    movelist = generate_black_pawn_evasion_moves(movelist, board, block_squares);
-    movelist = generate_knight_moves(movelist, board, BLACK, block_squares);
-    movelist = generate_bishop_moves(movelist, board, BLACK, block_squares);
-    movelist = generate_rook_moves(movelist, board, BLACK, block_squares);
-    movelist = generate_queen_moves(movelist, board, BLACK, block_squares);
+    movelist = generate_pawn_evasion_moves(movelist, board, block_squares, BLACK);
+
+    for (piecetype_t pt = KNIGHT; pt <= QUEEN; ++pt)
+        movelist = generate_piece_moves(movelist, board, BLACK, pt, block_squares);
 
     return (movelist);
 }
@@ -213,29 +114,26 @@ extmove_t   *generate_black_evasions(extmove_t *movelist, const board_t *board,
 extmove_t   *generate_evasions(extmove_t *movelist, const board_t *board)
 {
     color_t     us = board->side_to_move;
-    square_t    king_square = board_king_square(board, us);
+    square_t    king_square = get_king_square(board, us);
     bitboard_t  slider_attacks = 0;
     bitboard_t  sliders = board->stack->checkers & ~piecetypes_bb(board, KNIGHT, PAWN);
 
     while (sliders)
     {
-        square_t    check_square = pop_first_square(&sliders);
-        slider_attacks |= LineBits[check_square][king_square]
-            ^ square_bit(check_square);
+        square_t    check_square = bb_pop_first_sq(&sliders);
+        slider_attacks |= LineBits[check_square][king_square] ^ square_bb(check_square);
     }
 
-    bitboard_t  b = king_moves(king_square) & ~board->color_bits[us]
-        & ~slider_attacks;
+    bitboard_t  b = king_moves(king_square) & ~color_bb(board, us) & ~slider_attacks;
 
     while (b)
-        (movelist++)->move = create_move(king_square, pop_first_square(&b));
+        (movelist++)->move = create_move(king_square, bb_pop_first_sq(&b));
 
     if (more_than_one(board->stack->checkers))
         return (movelist);
 
-    square_t    check_square = first_square(board->stack->checkers);
-    bitboard_t  target = squares_between(check_square, king_square)
-        | square_bit(check_square);
+    square_t    check_square = bb_first_sq(board->stack->checkers);
+    bitboard_t  target = between_bb(check_square, king_square) | square_bb(check_square);
 
     if (us == WHITE)
         return (generate_white_evasions(movelist, board, target));

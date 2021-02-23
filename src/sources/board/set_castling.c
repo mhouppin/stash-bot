@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 
 void    set_castling(board_t *board, color_t color, square_t rook_square)
 {
-    square_t    king_square = board_king_square(board, color);
+    square_t    king_square = get_king_square(board, color);
     int         castling = (color == WHITE ? WHITE_CASTLING : BLACK_CASTLING)
         & (king_square < rook_square ? KINGSIDE_CASTLING : QUEENSIDE_CASTLING);
 
@@ -30,13 +30,11 @@ void    set_castling(board_t *board, color_t color, square_t rook_square)
     board->castling_mask[rook_square] |= castling;
     board->castling_rook_square[castling] = rook_square;
 
-    square_t    king_after = relative_square(
-        castling & KINGSIDE_CASTLING ? SQ_G1 : SQ_C1, color);
-    square_t    rook_after = relative_square(
-        castling & KINGSIDE_CASTLING ? SQ_F1 : SQ_D1, color);
+    square_t    king_after = relative_sq(castling & KINGSIDE_CASTLING ? SQ_G1 : SQ_C1, color);
+    square_t    rook_after = relative_sq(castling & KINGSIDE_CASTLING ? SQ_F1 : SQ_D1, color);
 
-    board->castling_path[castling] = (squares_between(rook_square, rook_after)
-        | squares_between(king_square, king_after) | square_bit(rook_after)
-        | square_bit(king_after)) & ~(square_bit(king_square)
-        | square_bit(rook_square));
+    board->castling_path[castling] =
+        (between_bb(rook_square, rook_after) | between_bb(king_square, king_after)
+        | square_bb(rook_after) | square_bb(king_after))
+        & ~(square_bb(king_square) | square_bb(rook_square));
 }

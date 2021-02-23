@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -21,25 +21,28 @@
 void    set_boardstack(board_t *board, boardstack_t *stack)
 {
     stack->board_key = stack->pawn_key = 0;
-    stack->checkers = attackers_to(board, board_king_square(board, board->side_to_move))
-        & board->color_bits[not_color(board->side_to_move)];
+    stack->material[WHITE] = stack->material[BLACK] = 0;
+    stack->checkers = attackers_to(board, get_king_square(board, board->side_to_move))
+        & color_bb(board, not_color(board->side_to_move));
 
     set_check(board, stack);
 
     for (bitboard_t b = board->piecetype_bits[ALL_PIECES]; b; )
     {
-        square_t    square = pop_first_square(&b);
+        square_t    square = bb_pop_first_sq(&b);
         piece_t     piece = piece_on(board, square);
 
         stack->board_key ^= ZobristPsq[piece][square];
 
-        if (type_of_piece(piece) == PAWN)
+        if (piece_type(piece) == PAWN)
             stack->pawn_key ^= ZobristPsq[piece][square];
+
+        else if (piece_type(piece) != KING)
+            stack->material[piece_color(piece)] += PieceScores[MIDGAME][piece];
     }
 
     if (stack->en_passant_square != SQ_NONE)
-        stack->board_key ^= ZobristEnPassant[
-            file_of_square(stack->en_passant_square)];
+        stack->board_key ^= ZobristEnPassant[sq_file(stack->en_passant_square)];
 
     if (board->side_to_move == BLACK)
         stack->board_key ^= ZobristBlackToMove;

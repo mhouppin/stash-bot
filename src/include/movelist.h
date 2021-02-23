@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -38,6 +38,8 @@ typedef struct  movelist_s
     extmove_t   *last;
 }               movelist_t;
 
+extern movelist_t   SearchMoves;
+
 extmove_t   *generate_all(extmove_t *movelist, const board_t *board);
 extmove_t   *generate_instable(extmove_t *movelist, const board_t *board);
 extmove_t   *generate_pseudo(extmove_t *movelist, const board_t *board);
@@ -46,19 +48,12 @@ extmove_t   *generate_classic(extmove_t *movelist, const board_t *board);
 extmove_t   *generate_evasions(extmove_t *movelist, const board_t *board);
 extmove_t   *generate_captures(extmove_t *movelist, const board_t *board);
 
-extmove_t   *generate_knight_moves(extmove_t *movelist, const board_t *board,
-            color_t us, bitboard_t target_squares);
-extmove_t   *generate_bishop_moves(extmove_t *movelist, const board_t *board,
-            color_t us, bitboard_t target_squares);
-extmove_t   *generate_rook_moves(extmove_t *movelist, const board_t *board,
-            color_t us, bitboard_t target_squares);
-extmove_t   *generate_queen_moves(extmove_t *movelist, const board_t *board,
-            color_t us, bitboard_t target_squares);
+extmove_t   *generate_piece_moves(extmove_t *movelist, const board_t *board,
+            color_t us, piecetype_t pt, bitboard_t target_squares);
 
-void        sort_moves(extmove_t *begin, extmove_t *end);
 void        place_top_move(extmove_t *begin, extmove_t *end);
 void        generate_move_values(movelist_t *movelist, const board_t *board,
-            move_t tt_move, move_t *killers);
+            move_t tt_move, move_t *killers, move_t previous_move);
 
 INLINED void    list_all(movelist_t *movelist, const board_t *board)
 {
@@ -67,12 +62,16 @@ INLINED void    list_all(movelist_t *movelist, const board_t *board)
 
 INLINED void    list_instable(movelist_t *movelist, const board_t *board)
 {
-    movelist->last = generate_instable(movelist->moves, board);
+    movelist->last = board->stack->checkers
+        ? generate_evasions(movelist->moves, board)
+        : generate_captures(movelist->moves, board);
 }
 
 INLINED void    list_pseudo(movelist_t *movelist, const board_t *board)
 {
-    movelist->last = generate_pseudo(movelist->moves, board);
+    movelist->last = board->stack->checkers
+        ? generate_evasions(movelist->moves, board)
+        : generate_classic(movelist->moves, board);
 }
 
 INLINED size_t  movelist_size(const movelist_t *movelist)
@@ -98,6 +97,16 @@ INLINED bool    movelist_has_move(const movelist_t *movelist, move_t move)
             return (true);
 
     return (false);
+}
+
+INLINED extmove_t   *create_promotions(extmove_t *movelist, square_t to, direction_t direction)
+{
+    (movelist++)->move = create_promotion(to - direction, to, QUEEN);
+    (movelist++)->move = create_promotion(to - direction, to, ROOK);
+    (movelist++)->move = create_promotion(to - direction, to, BISHOP);
+    (movelist++)->move = create_promotion(to - direction, to, KNIGHT);
+
+    return (movelist);
 }
 
 #endif

@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -23,8 +23,9 @@
 # include <stdbool.h>
 # include <stddef.h>
 # include <time.h>
-# include <sys/timeb.h>
 # include "inlining.h"
+
+# define UCI_VERSION    "v27.12"
 
 enum    e_egn_mode
 {
@@ -53,10 +54,6 @@ typedef struct  goparams_s
     int         infinite;
     int         perft;
     clock_t     movetime;
-
-    clock_t     start;
-    clock_t     maximal_time;
-    clock_t     optimal_time;
 }               goparams_t;
 
 typedef struct  ucioptions_s
@@ -68,11 +65,13 @@ typedef struct  ucioptions_s
     bool        chess960;
 }               ucioptions_t;
 
-extern pthread_mutex_t  g_engine_mutex;
-extern pthread_cond_t   g_engine_condvar;
-extern enum e_egn_mode  g_engine_mode;
-extern enum e_egn_send  g_engine_send;
-extern goparams_t       g_goparams;
+extern pthread_attr_t   WorkerSettings;
+extern ucioptions_t     Options;
+extern pthread_mutex_t  EngineMutex;
+extern pthread_cond_t   EngineCond;
+extern enum e_egn_mode  EngineMode;
+extern enum e_egn_send  EngineSend;
+extern goparams_t       SearchParams;
 
 typedef struct  cmdlink_s
 {
@@ -80,19 +79,9 @@ typedef struct  cmdlink_s
     void        (*call)(const char *);
 }               cmdlink_t;
 
-INLINED clock_t chess_clock(void)
+INLINED bool    search_should_abort(void)
 {
-#if defined(_WIN32) || defined(_WIN64)
-    struct timeb    tp;
-
-    ftime(&tp);
-    return ((clock_t)tp.time * 1000 + tp.millitm);
-#else
-    struct timespec tp;
-
-    clock_gettime(CLOCK_REALTIME, &tp);
-    return ((clock_t)tp.tv_sec * 1000 + tp.tv_nsec / 1000000);
-#endif
+    return (EngineSend == DO_EXIT || EngineSend == DO_ABORT);
 }
 
 void    wait_search_end(void);

@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -21,12 +21,10 @@
 bitboard_t  attackers_list(const board_t *board, square_t s,
             bitboard_t occupied)
 {
-    return ((pawn_moves(s, BLACK) & board->piecetype_bits[PAWN]
-        & board->color_bits[WHITE])
-        | (pawn_moves(s, WHITE) & board->piecetype_bits[PAWN]
-        & board->color_bits[BLACK])
-        | (knight_moves(s) & board->piecetype_bits[KNIGHT])
-        | (rook_move_bits(s, occupied) & piecetypes_bb(board, ROOK, QUEEN))
-        | (bishop_move_bits(s, occupied) & piecetypes_bb(board, BISHOP, QUEEN))
-        | (king_moves(s) & board->piecetype_bits[KING]));
+    return ((pawn_moves(s, BLACK) & piece_bb(board, WHITE, PAWN))
+        | (pawn_moves(s, WHITE) & piece_bb(board, BLACK, PAWN))
+        | (knight_moves(s) & piecetype_bb(board, KNIGHT))
+        | (rook_moves_bb(s, occupied) & piecetypes_bb(board, ROOK, QUEEN))
+        | (bishop_moves_bb(s, occupied) & piecetypes_bb(board, BISHOP, QUEEN))
+        | (king_moves(s) & piecetype_bb(board, KING)));
 }

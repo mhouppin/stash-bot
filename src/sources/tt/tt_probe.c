@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -20,14 +20,12 @@
 
 tt_entry_t  *tt_probe(hashkey_t key, bool *found)
 {
-    extern transposition_t  g_hashtable;
-
     tt_entry_t  *entry = tt_entry_at(key);
 
     for (int i = 0; i < ClusterSize; ++i)
         if (!entry[i].key || entry[i].key == key)
         {
-            entry[i].genbound = (uint8_t)(g_hashtable.generation | (entry[i].genbound & 0x3));
+            entry[i].genbound = (uint8_t)(TT.generation | (entry[i].genbound & 0x3));
             *found = (bool)entry[i].key;
             return (entry + i);
         }
@@ -35,10 +33,8 @@ tt_entry_t  *tt_probe(hashkey_t key, bool *found)
     tt_entry_t  *replace = entry;
 
     for (int i = 1; i < ClusterSize; ++i)
-        if (replace->depth
-                - ((259 + g_hashtable.generation - replace->genbound) & 0xFC)
-            > entry[i].depth
-                - ((259 + g_hashtable.generation - entry[i].genbound) & 0xFC))
+        if (replace->depth - ((259 + TT.generation - replace->genbound) & 0xFC)
+            > entry[i].depth - ((259 + TT.generation - entry[i].genbound) & 0xFC))
             replace = entry + i;
 
     *found = false;

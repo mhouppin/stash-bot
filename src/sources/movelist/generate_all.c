@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -21,9 +21,8 @@
 extmove_t   *generate_all(extmove_t *movelist, const board_t *board)
 {
     color_t     us = board->side_to_move;
-    bitboard_t  pinned = board->stack->king_blockers[us]
-        & board->color_bits[us];
-    square_t    king_square = board_king_square(board, us);
+    bitboard_t  pinned = board->stack->king_blockers[us] & color_bb(board, us);
+    square_t    king_square = get_king_square(board, us);
     extmove_t   *current = movelist;
 
     movelist = board->stack->checkers ? generate_evasions(movelist, board)
@@ -31,9 +30,9 @@ extmove_t   *generate_all(extmove_t *movelist, const board_t *board)
 
     while (current < movelist)
     {
-        if ((pinned || move_from_square(current->move) == king_square
-            || type_of_move(current->move) == EN_PASSANT)
-            && !board_legal(board, current->move))
+        if ((pinned || from_sq(current->move) == king_square
+            || move_type(current->move) == EN_PASSANT)
+            && !move_is_legal(board, current->move))
             current->move = (--movelist)->move;
         else
             ++current;

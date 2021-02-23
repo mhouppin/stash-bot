@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -16,6 +16,27 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// I have no idea what this function purpose was in the first place.
+#include <stdlib.h>
+#include "board.h"
 
-void    board_init(void){}
+boardstack_t    *dup_boardstack(const boardstack_t *stack)
+{
+    if (!stack)
+        return (NULL);
+
+    boardstack_t    *new_stack = malloc(sizeof(boardstack_t));
+
+    *new_stack = *stack;
+    new_stack->prev = dup_boardstack(stack->prev);
+    return (new_stack);
+}
+
+void    free_boardstack(boardstack_t *stack)
+{
+    while (stack)
+    {
+        boardstack_t    *next = stack->prev;
+        free(stack);
+        stack = next;
+    }
+}

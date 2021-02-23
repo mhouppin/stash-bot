@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -20,14 +20,11 @@
 
 int tt_hashfull(void)
 {
-    extern transposition_t  g_hashtable;
-
     int count = 0;
 
     for (int i = 0; i < 1000; ++i)
         for (int j = 0; j < ClusterSize; ++j)
-            count += (g_hashtable.table[i][j].genbound & 0xFC)
-                == g_hashtable.generation;
+            count += (TT.table[i][j].genbound & 0xFC) == TT.generation;
 
     return (count / ClusterSize);
 }

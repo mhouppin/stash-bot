@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -26,11 +26,17 @@
 
 # ifdef PRIu64
 #  define FMT_INFO  PRIu64
+#  define KEY_INFO  PRIx64
 typedef uint64_t    info_t;
+# define MAX_HASH   33554432
 # else
 #  define FMT_INFO  PRIu32
+#  define KEY_INFO  PRIx32
 typedef uint32_t    info_t;
+# define MAX_HASH   2048
 # endif
+
+extern const char   *Delimiters;
 
 const char  *move_to_str(move_t move, bool is_chess960);
 const char  *score_to_str(score_t score);

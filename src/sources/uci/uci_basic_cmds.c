@@ -16,12 +16,47 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "lazy_smp.h"
+#include "option.h"
+#include "tt.h"
 #include "uci.h"
+#include <stdio.h>
 
-void    wait_search_end(void)
+void    uci_isready(const char *args __attribute__((unused)))
+{
+    puts("readyok");
+    fflush(stdout);
+}
+
+void    uci_quit(const char *args __attribute__((unused)))
 {
     pthread_mutex_lock(&EngineMutex);
-    while (EngineMode != WAITING)
-        pthread_cond_wait(&EngineCond, &EngineMutex);
+    EngineSend = DO_ABORT;
     pthread_mutex_unlock(&EngineMutex);
+    pthread_cond_signal(&EngineCond);
+}
+
+void    uci_stop(const char *args __attribute__((unused)))
+{
+    pthread_mutex_lock(&EngineMutex);
+    EngineSend = DO_EXIT;
+    pthread_mutex_unlock(&EngineMutex);
+    pthread_cond_signal(&EngineCond);
+}
+
+void    uci_uci(const char *args __attribute__((unused)))
+{
+    puts("id name Stash " UCI_VERSION);
+    puts("id author Morgan Houppin");
+    show_options(&OptionList);
+    puts("uciok");
+    fflush(stdout);
+}
+
+void    uci_ucinewgame(const char *args)
+{
+    (void)args;
+    wait_search_end();
+    tt_bzero();
+    wpool_reset();
 }

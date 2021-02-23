@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -20,27 +20,23 @@
 #include <stdlib.h>
 #include "tt.h"
 
-transposition_t g_hashtable = {
-    0, NULL, NULL, 0
+transposition_t TT = {
+    0, NULL, 0
 };
 
 void    tt_resize(size_t mbsize)
 {
-    extern transposition_t  g_hashtable;
+    if (TT.table)
+        free(TT.table);
 
-    if (g_hashtable.allocated)
-        free(g_hashtable.allocated);
+    TT.cluster_count = mbsize * 1024 * 1024 / sizeof(cluster_t);
+    TT.table = malloc(TT.cluster_count * sizeof(cluster_t));
 
-    g_hashtable.cluster_count = mbsize * 1024 * 1024 / sizeof(cluster_t);
-    g_hashtable.allocated = malloc(g_hashtable.cluster_count * sizeof(cluster_t));
-
-    if (g_hashtable.allocated == NULL)
+    if (TT.table == NULL)
     {
         perror("Failed to allocate hashtable");
         exit(EXIT_FAILURE);
     }
-
-    g_hashtable.table = g_hashtable.allocated;
 
     tt_bzero();
 }

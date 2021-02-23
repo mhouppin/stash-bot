@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "lazy_smp.h"
 
 worker_pool_t   WPool;
@@ -39,15 +40,38 @@ void    wpool_init(int threads)
 
         worker->idx = i;
         worker->stack = NULL;
+        worker->pawn_table = malloc(sizeof(pawn_entry_t) * PawnTableSize);
+        if (worker->pawn_table == NULL)
+        {
+            perror("Unable to allocate pawn table");
+            exit(EXIT_FAILURE);
+        }
     }
 
-    extern board_t  g_board;
+    wpool_reset();
 
-    g_board.worker = WPool.list;
+    Board.worker = WPool.list;
+}
+
+void    wpool_reset(void)
+{
+    for (int i = 0; i < WPool.size; ++i)
+    {
+        worker_t    *worker = WPool.list + i;
+
+        memset(worker->pawn_table, 0, sizeof(pawn_entry_t) * PawnTableSize);
+    }
 }
 
 void    wpool_quit(void)
 {
+    for (int i = 0; i < WPool.size; ++i)
+    {
+        worker_t    *worker = WPool.list + i;
+
+        free(worker->pawn_table);
+    }
+
     free(WPool.list);
     WPool.list = NULL;
     WPool.size = 0;

@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -45,29 +45,24 @@ typedef struct
 {
     size_t      cluster_count;
     cluster_t   *table;
-    void        *allocated;
     uint8_t     generation;
 }        transposition_t;
 
+extern transposition_t  TT;
+
 INLINED tt_entry_t  *tt_entry_at(hashkey_t k)
 {
-    extern transposition_t  g_hashtable;
-
-    return (g_hashtable.table[((uint32_t)k * (uint64_t)g_hashtable.cluster_count) >> 32]);
+    return (TT.table[mul_hi64(k, TT.cluster_count)]);
 }
 
 INLINED void        tt_clear(void)
 {
-    extern transposition_t  g_hashtable;
-
-    g_hashtable.generation += 4;
+    TT.generation += 4;
 }
 
 INLINED void        tt_bzero(void)
 {
-    extern transposition_t  g_hashtable;
-
-    memset(g_hashtable.allocated, 0, sizeof(cluster_t) * g_hashtable.cluster_count);
+    memset(TT.table, 0, sizeof(cluster_t) * TT.cluster_count);
 }
 
 INLINED score_t     score_to_tt(score_t s, int plies)

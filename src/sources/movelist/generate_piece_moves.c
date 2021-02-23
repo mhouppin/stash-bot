@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -18,10 +18,20 @@
 
 #include "movelist.h"
 
-extmove_t   *generate_instable(extmove_t *movelist, const board_t *board)
+extmove_t   *generate_piece_moves(extmove_t *movelist, const board_t *board,
+            color_t us, piecetype_t pt, bitboard_t target)
 {
-    movelist = board->stack->checkers ? generate_evasions(movelist, board)
-        : generate_captures(movelist, board);
+    bitboard_t  bb = piece_bb(board, us, pt);
+    bitboard_t  occupancy = occupancy_bb(board);
+
+    while (bb)
+    {
+        square_t    from = bb_pop_first_sq(&bb);
+        bitboard_t  b = piece_moves(pt, from, occupancy) & target;
+
+        while (b)
+            (movelist++)->move = create_move(from, bb_pop_first_sq(&b));
+    }
 
     return (movelist);
 }

@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -32,8 +32,7 @@ void    do_null_move(board_t *board, boardstack_t *stack)
 
     if (stack->en_passant_square != SQ_NONE)
     {
-        stack->board_key ^= ZobristEnPassant[
-            file_of_square(stack->en_passant_square)];
+        stack->board_key ^= ZobristEnPassant[sq_file(stack->en_passant_square)];
         stack->en_passant_square = SQ_NONE;
     }
 
@@ -48,4 +47,10 @@ void    do_null_move(board_t *board, boardstack_t *stack)
     set_check(board, stack);
 
     stack->repetition = 0;
+}
+
+void    undo_null_move(board_t *board)
+{
+    board->stack = board->stack->prev;
+    board->side_to_move = not_color(board->side_to_move);
 }

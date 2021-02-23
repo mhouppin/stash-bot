@@ -4,6 +4,7 @@
 # include <stdbool.h>
 # include <stdlib.h>
 # include <string.h>
+# include "score.h"
 
 typedef enum
 {
@@ -12,7 +13,10 @@ typedef enum
     OptionCheck,
     OptionCombo,
     OptionButton,
-    OptionString
+    OptionString,
+    OptionScore,
+    OptionSpairMG,
+    OptionSpairEG
 }
 option_type_t;
 
@@ -40,23 +44,28 @@ typedef struct
 }
 option_list_t;
 
-extern option_list_t    g_opthandler;
+extern option_list_t    OptionList;
 
 void    init_option_list(option_list_t *list);
 void    quit_option_list(option_list_t *list);
 
 void    add_option_spin_int(option_list_t *list, const char *name, long *data,
-        long def, long min, long max, void (*callback)(void *));
+        long min, long max, void (*callback)(void *));
 void    add_option_spin_flt(option_list_t *list, const char *name, double *data,
-        double def, double min, double max, void (*callback)(void *));
+        double min, double max, void (*callback)(void *));
 void    add_option_check(option_list_t *list, const char *name, bool *data,
-        bool def, void (*callback)(void *));
+        void (*callback)(void *));
 void    add_option_combo(option_list_t *list, const char *name, char **data,
-        const char *def, const char *const *combo_list, void (*callback)(void *));
+        const char *const *combo_list, void (*callback)(void *));
 void    add_option_button(option_list_t *list, const char *name,
         void (*callback)(void *));
 void    add_option_string(option_list_t *list, const char *name, char **data,
-        const char *def, void (*callback)(void *));
+        void (*callback)(void *));
+void    add_option_score(option_list_t *list, const char *name, score_t *data,
+        score_t min, score_t max, void (*callback)(void *));
+void    add_option_scorepair(option_list_t *list, const char *name,
+        scorepair_t *data, scorepair_t min, scorepair_t max,
+        void (*callback)(void *));
 
 void    show_options(const option_list_t *list);
 void    set_option(option_list_t *list, const char *name, const char *value);

@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -22,22 +22,22 @@ bitboard_t  slider_blockers(const board_t *board, bitboard_t sliders,
             square_t square, bitboard_t *pinners)
 {
     bitboard_t  blockers = *pinners = 0;
-    bitboard_t  snipers = (
-        (PseudoMoves[ROOK][square] & piecetypes_bb(board, QUEEN, ROOK))
+    bitboard_t  snipers =
+        ((PseudoMoves[ROOK][square] & piecetypes_bb(board, QUEEN, ROOK))
         | (PseudoMoves[BISHOP][square] & piecetypes_bb(board, QUEEN, BISHOP)))
         & sliders;
-    bitboard_t  occupied = board->piecetype_bits[ALL_PIECES] ^ snipers;
+    bitboard_t  occupied = occupancy_bb(board) ^ snipers;
 
     while (snipers)
     {
-        square_t    sniper_square = pop_first_square(&snipers);
-        bitboard_t  between = squares_between(square, sniper_square) & occupied;
+        square_t    sniper_square = bb_pop_first_sq(&snipers);
+        bitboard_t  between = between_bb(square, sniper_square) & occupied;
 
         if (between && !more_than_one(between))
         {
             blockers |= between;
-            if (between & board->color_bits[color_of_piece(piece_on(board, square))])
-                *pinners |= square_bit(sniper_square);
+            if (between & color_bb(board, piece_color(piece_on(board, square))))
+                *pinners |= square_bb(sniper_square);
         }
     }
 

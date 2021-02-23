@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2020 Morgan Houppin
+**    Copyright (C) 2019-2021 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -17,14 +17,33 @@
 */
 
 #include "engine.h"
+#include "lazy_smp.h"
 
-void    update_quiet_history(history_t hist, const board_t *board, int depth,
+void    update_quiet_history(const board_t *board, int depth,
         move_t bestmove, const move_t quiets[64], int qcount, searchstack_t *ss)
 {
-    int bonus = (depth <= 12) ? 16 * depth * depth : 20;
+    bf_history_t    *bf_hist = &get_worker(board)->bf_history;
+    ct_history_t    *ct_hist = &get_worker(board)->ct_history;
+    square_t        lto = SQ_A1;
+    piece_t         lpc = NO_PIECE;
+    square_t        to;
+    piece_t         pc;
+    int             bonus = (depth <= 12) ? 32 * depth * depth : 40;
+    move_t          previous_move = (ss - 1)->current_move;
 
-    add_history(hist, piece_on(board, move_from_square(bestmove)),
-        bestmove, bonus);
+    if (is_valid_move(previous_move))
+    {
+        lto = to_sq(previous_move);
+        lpc = piece_on(board, lto);
+
+        get_worker(board)->cm_history[lpc][lto] = bestmove;
+    }
+
+    pc = piece_on(board, from_sq(bestmove));
+    to = to_sq(bestmove);
+
+    add_bf_history(*bf_hist, pc, bestmove, bonus);
+    add_ct_history(*ct_hist, pc, to, lpc, lto, bonus);
 
     if (ss->killers[0] == NO_MOVE)
         ss->killers[0] = bestmove;
@@ -32,6 +51,10 @@ void    update_quiet_history(history_t hist, const board_t *board, int depth,
         ss->killers[1] = bestmove;
 
     for (int i = 0; i < qcount; ++i)
-        add_history(hist, piece_on(board, move_from_square(quiets[i])),
-        quiets[i], -bonus);
+    {
+        pc = piece_on(board, from_sq(quiets[i]));
+        to = to_sq(quiets[i]);
+        add_bf_history(*bf_hist, pc, quiets[i], -bonus);
+        add_ct_history(*ct_hist, pc, to, lpc, lto, -bonus);
+    }
 }
