@@ -1,4 +1,4 @@
-## 28.0 (2021-02-23)
+## v28.0 (2021-02-23)
 
 ### Regression test
 
@@ -22,7 +22,7 @@
   Games | N: 23019 W: 5513 L: 5450 D: 12056
   ```
 
-### Performance (6 changes)
+### Performance (12 changes)
 
 - Simplified TT saving by removing redundant checks.
   ```
@@ -144,7 +144,7 @@
   Games | N: 3708 W: 773 L: 629 D: 2306
   ```
 
-### Changed (3 changes)
+### Changed (5 changes)
 
 - Changed seeding to accelerate magic bb generation.
 - Changed a lot of function prototypes to make the code cleaner.
@@ -157,3 +157,81 @@
   LLR   | -2.97 (-2.94, 2.94) [-4.00, 1.00]
   Games | N: 36119 W: 8354 L: 8601 D: 19164
   ```
+
+## v27.0 (2021-01-14)
+
+### Regression test
+
+- LTC:
+  ```
+  ELO   | 76.51 +- 14.31 (95%)
+  SPRT  | 60.0+0.6s Threads=1 Hash=64MB
+  LLR   | 3.01 (-2.94, 2.94) [45.00, 50.00]
+  Games | N: 992 W: 325 L: 110 D: 557
+  ```
+
+### Removed (1 change)
+
+- Removed scaling for KPK and pawnful endgames.
+  ```
+  ELO   | -1.73 +- 1.73 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | -2.96 (-2.94, 2.94) [-4.00, 1.00]
+  Games | N: 76000 W: 18423 L: 18802 D: 38775
+  ```
+
+### Performance (4 changes)
+
+- Improved the mobility zone by excluding rammed pawns and pawns on low ranks.
+  ```
+  ELO   | 19.95 +- 9.63 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.95 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 2720 W: 817 L: 661 D: 1242
+  ```
+
+- Added a countermove history.
+  ```
+  ELO   | 6.07 +- 4.51 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.98 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 11504 W: 3004 L: 2803 D: 5697
+  ```
+
+- Added a continuation history.
+  ```
+  ELO   | 6.06 +- 4.51 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.95 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 11232 W: 2873 L: 2677 D: 5682
+  ```
+
+- Stopped searching bad captures in Quiescence Search, except if best\_value
+  suggests that we're getting mated. (negative-SEE pruning)
+  ```
+  ELO   | 67.39 +- 18.03 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 3.00 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 736 W: 257 L: 116 D: 363
+  ```
+
+### Changed (4 changes)
+
+- Merged some files with very small functions (like the UCI command handlers).
+- Merged the piece functions in movegen to a single generic one.
+  ```
+  ELO   | 1.33 +- 3.44 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.95 (-2.94, 2.94) [-4.00, 1.00]
+  Games | N: 19360 W: 4831 L: 4757 D: 9772
+  ```
+
+- Added support for large transposition tables, up to 32 terabytes of memory.
+  ```
+  ELO   | -0.63 +- 1.54 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.98 (-2.94, 2.94) [-4.00, 1.00]
+  Games | N: 96928 W: 24036 L: 24211 D: 48681
+  ```
+
+- Changed Makefile to include x86-64-modern compilation flags by default.
