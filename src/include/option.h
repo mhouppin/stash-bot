@@ -27,12 +27,12 @@ option_type_t;
     add_option_scorepair(&OptionList, #x, &x, SPAIR(minval, minval), SPAIR(maxval, maxval), NULL); \
 } while (0);
 
-#define TUNE_SP_ARRAY(x, start, end, minval, maxval) do { \
-    extern scorepair_t *x; \
+#define TUNE_SP_ARRAY(x, len, start, end, minval, maxval) do { \
+    extern scorepair_t x[len]; \
     char __buf[128]; \
-    for (int __i = start; i < end; ++__i) { \
-        sprintf(__buf, #x "_%02d", i); \
-        add_option_scorepair(&OptionList, __buf, &x[i], SPAIR(minval, minval), SPAIR(maxval, maxval), NULL); \
+    for (int __i = start; __i < end; ++__i) { \
+        sprintf(__buf, #x "_%02d", __i); \
+        add_option_scorepair(&OptionList, __buf, &x[__i], SPAIR(minval, minval), SPAIR(maxval, maxval), NULL); \
     } \
 } while (0);
 
