@@ -20,6 +20,37 @@ typedef enum
 }
 option_type_t;
 
+// Some helper macros for tuning stuff
+
+#define TUNE_SP(x, minval, maxval) do { \
+    extern scorepair_t x; \
+    add_option_scorepair(&OptionList, #x, &x, SPAIR(minval, minval), SPAIR(maxval, maxval), NULL); \
+} while (0);
+
+#define TUNE_SP_ARRAY(x, start, end, minval, maxval) do { \
+    extern scorepair_t *x; \
+    char __buf[128]; \
+    for (int __i = start; i < end; ++__i) { \
+        sprintf(__buf, #x "_%02d", i); \
+        add_option_scorepair(&OptionList, __buf, &x[i], SPAIR(minval, minval), SPAIR(maxval, maxval), NULL); \
+    } \
+} while (0);
+
+#define TUNE_LONG(x, minval, maxval) do { \
+    extern long x; \
+    add_option_spin_int(&OptionList, #x, &x, minval, maxval, NULL); \
+} while (0);
+
+#define TUNE_BOOL(x) do { \
+    extern bool x; \
+    add_option_check(&OptionList, #x, &x, NULL); \
+} while (0);
+
+#define TUNE_DOUBLE(x, minval, maxval) do { \
+    extern double x; \
+    add_option_spin_flt(&OptionList, #x, &x, minval, maxval, NULL); \
+} while (0);
+
 // Warning: int spins are always treated as long
 // and flt spins are always treated as double.
 

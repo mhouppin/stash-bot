@@ -145,6 +145,7 @@ void    add_option_scorepair(option_list_t *list, const char *name,
     *(score_t *)cur->def = endgame_score(*data);
     *(score_t *)cur->min = endgame_score(min);
     *(score_t *)cur->max = endgame_score(max);
+    free(buffer);
 }
 
 void    add_option_check(option_list_t *list, const char *name, bool *data,
