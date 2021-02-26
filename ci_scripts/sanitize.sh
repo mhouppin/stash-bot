@@ -58,7 +58,7 @@ expect "bestmove"
 
 send "ucinewgame\n"
 send "position fen 5rk1/1K4p1/8/8/3B4/8/8/8 b - - 0 1\n"
-send "go depth 20\n"
+send "go depth 20 movetime 45000\n"
 expect "bestmove"
 
 send "quit\n"
