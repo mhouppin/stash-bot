@@ -43,7 +43,6 @@ typedef enum
 {
     NO_BM_TYPE = -1,
     OneLegalMove,
-    MatingMove,
     Promotion,
     SoundCapture,
     SoundCheck,

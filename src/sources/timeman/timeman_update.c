@@ -26,7 +26,6 @@
 
 const double   BestmoveTypeScale[BM_TYPE_NB] = {
     0.20, // One legal move
-    0.35, // Mating / getting mated
     0.45, // Promoting a piece
     0.50, // Capture with a very high SEE
     0.85, // Check not throwing away material
@@ -106,11 +105,6 @@ void    timeman_update(timeman_t *tm, const board_t *board, move_t bestmove, sco
     }
     else
         tm->stability = min(tm->stability + 1, 4);
-
-    // Does the move mates, or are we getting mated ? We use very small
-    // thinking times for these, because the game result is already known.
-    if (abs(score) > MATE_FOUND)
-        tm->type = MatingMove;
 
     // Scale the time usage based on the type of bestmove we have
     double  scale = BestmoveTypeScale[tm->type];
