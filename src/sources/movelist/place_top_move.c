@@ -28,7 +28,7 @@ void    place_top_move(extmove_t *begin, extmove_t *end)
             top = i;
 
     extmove_t   tmp = *top;
-    for (extmove_t *i = top; i > begin; --i)
-        *i = *(i - 1);
+
+    *top = *begin;
     *begin = tmp;
 }
