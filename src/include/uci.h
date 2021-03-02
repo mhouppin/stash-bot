@@ -25,7 +25,7 @@
 # include <time.h>
 # include "inlining.h"
 
-# define UCI_VERSION    "v28.1"
+# define UCI_VERSION    "v28.2"
 
 enum    e_egn_mode
 {
