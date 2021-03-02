@@ -67,9 +67,6 @@ void    do_move_gc(board_t *board, move_t move, boardstack_t *next,
 
     if (captured_piece)
     {
-        if (piece_type(captured_piece) == KING)
-            assert(0);
-
         square_t    captured_square = to;
 
         if (piece_type(captured_piece) == PAWN)
