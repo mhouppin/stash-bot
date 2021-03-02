@@ -76,6 +76,7 @@ void        do_move_gc(board_t *board, move_t move, boardstack_t *stack, bool gi
 void        do_null_move(board_t *board, boardstack_t *stack);
 bool        game_is_drawn(const board_t *board, int ply);
 bool        move_is_legal(const board_t *board, move_t move);
+bool        move_is_pseudo_legal(const board_t *board, move_t move);
 bool        move_gives_check(const board_t *board, move_t move);
 bool        see_greater_than(const board_t *board, move_t move, score_t threshold);
 void        set_board(board_t *board, char *fen, bool is_chess960, boardstack_t *bstack);
@@ -189,6 +190,9 @@ INLINED bitboard_t  piece_moves(piecetype_t piecetype, square_t square,
 
         case QUEEN:
             return (bishop_moves_bb(square, occupied) | rook_moves_bb(square, occupied));
+
+        case KING:
+            return (PseudoMoves[KING][square]);
 
         default:
             __builtin_unreachable();

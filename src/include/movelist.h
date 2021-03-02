@@ -41,12 +41,10 @@ typedef struct  movelist_s
 extern movelist_t   SearchMoves;
 
 extmove_t   *generate_all(extmove_t *movelist, const board_t *board);
-extmove_t   *generate_instable(extmove_t *movelist, const board_t *board);
-extmove_t   *generate_pseudo(extmove_t *movelist, const board_t *board);
-
 extmove_t   *generate_classic(extmove_t *movelist, const board_t *board);
 extmove_t   *generate_evasions(extmove_t *movelist, const board_t *board);
 extmove_t   *generate_captures(extmove_t *movelist, const board_t *board);
+extmove_t   *generate_quiet(extmove_t *movelist, const board_t *board);
 
 extmove_t   *generate_piece_moves(extmove_t *movelist, const board_t *board,
             color_t us, piecetype_t pt, bitboard_t target_squares);

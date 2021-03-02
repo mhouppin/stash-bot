@@ -22,7 +22,7 @@
 #include "imath.h"
 #include "info.h"
 #include "lazy_smp.h"
-#include "movelist.h"
+#include "movepick.h"
 #include "tt.h"
 #include "uci.h"
 
@@ -30,7 +30,7 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
 {
     worker_t        *worker = get_worker(board);
     const score_t   old_alpha = alpha;
-    movelist_t      list;
+    movepick_t      mp;
 
     if (!worker->idx)
         check_time();
@@ -83,9 +83,9 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
 
     (ss + 1)->plies = ss->plies + 1;
 
-    list_instable(&list, board);
-    generate_move_values(&list, board, tt_move, ss->killers, (ss - 1)->current_move);
+    movepick_init(&mp, true, board, worker, tt_move, ss);
 
+    move_t  currmove;
     move_t  bestmove = NO_MOVE;
     int     move_count = 0;
 
@@ -95,11 +95,8 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
         && popcount(board->piecetype_bits[ALL_PIECES]) > 6);
     const score_t   delta_base = eval + PAWN_EG_SCORE * 2;
 
-    for (extmove_t *extmove = list.moves; extmove < list.last; ++extmove)
+    while ((currmove = movepick_next_move(&mp, false)) != NO_MOVE)
     {
-        place_top_move(extmove, list.last);
-        const move_t    currmove = extmove->move;
-
         if (!move_is_legal(board, currmove))
             continue ;
 

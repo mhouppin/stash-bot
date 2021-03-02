@@ -21,9 +21,20 @@
 
 # include <pthread.h>
 # include "board.h"
-# include "engine.h"
 # include "history.h"
 # include "pawns.h"
+
+// Struct for root moves.
+
+typedef struct
+{
+    move_t  move;
+    int     seldepth;
+    score_t previous_score;
+    score_t score;
+    move_t  pv[512];
+}
+root_move_t;
 
 // Struct for worker thread data.
 

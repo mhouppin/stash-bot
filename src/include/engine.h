@@ -22,27 +22,7 @@
 # include <time.h>
 # include "board.h"
 # include "history.h"
-
-typedef struct
-{
-    int     plies;
-    score_t static_eval;
-    move_t  killers[2];
-    move_t  excluded_move;
-    move_t  current_move;
-    move_t  *pv;
-}
-searchstack_t;
-
-typedef struct
-{
-    move_t  move;
-    int     seldepth;
-    score_t previous_score;
-    score_t score;
-    move_t  pv[512];
-}
-root_move_t;
+# include "movepick.h"
 
 // All search components are here
 enum

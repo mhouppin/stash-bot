@@ -24,7 +24,7 @@
 #include "imath.h"
 #include "info.h"
 #include "lazy_smp.h"
-#include "movelist.h"
+#include "movepick.h"
 #include "timeman.h"
 #include "tt.h"
 #include "uci.h"
@@ -47,7 +47,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
         return (qsearch(board, alpha, beta, ss));
 
     worker_t    *worker = get_worker(board);
-    movelist_t  list;
+    movepick_t  mp;
     move_t      pv[256];
     score_t     best_value = -INF_SCORE;
     bool        root_node = (ss->plies == 0);
@@ -191,19 +191,17 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
     if (!root_node && depth > 7 && !tt_move)
         --depth;
 
-    list_pseudo(&list, board);
-    generate_move_values(&list, board, tt_move, ss->killers, (ss - 1)->current_move);
+    movepick_init(&mp, false, board, worker, tt_move, ss);
 
+    move_t  currmove;
     move_t  bestmove = NO_MOVE;
     int     move_count = 0;
     move_t  quiets[64];
     int     qcount = 0;
+    bool    skip_quiets = false;
 
-    for (extmove_t *extmove = list.moves; extmove < list.last; ++extmove)
+    while ((currmove = movepick_next_move(&mp, skip_quiets)) != NO_MOVE)
     {
-        place_top_move(extmove, list.last);
-        const move_t    currmove = extmove->move;
-
         if (root_node)
         {
             // Exclude already searched PV lines for root nodes

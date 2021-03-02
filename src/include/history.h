@@ -42,7 +42,7 @@ INLINED void    add_bf_history(bf_history_t hist, piece_t piece, move_t move, in
     *entry += bonus - *entry * abs(bonus) / HistoryResolution;
 }
 
-INLINED score_t get_bf_history_score(bf_history_t hist, piece_t piece, move_t move)
+INLINED score_t get_bf_history_score(const bf_history_t hist, piece_t piece, move_t move)
 {
     return (hist[piece][square_mask(move)] / HistoryScale);
 }
@@ -55,7 +55,7 @@ INLINED void    add_ct_history(ct_history_t hist, piece_t pc, square_t to,
     *entry += bonus - *entry * abs(bonus) / HistoryResolution;
 }
 
-INLINED score_t get_ct_history_score(ct_history_t hist, piece_t pc, square_t to,
+INLINED score_t get_ct_history_score(const ct_history_t hist, piece_t pc, square_t to,
                 piece_t lpc, square_t lto)
 {
     return (hist[pc][to][piece_type(lpc)][lto] / HistoryScale);
