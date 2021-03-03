@@ -224,6 +224,9 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
         {
             if (depth < 5 && !is_quiet && !see_greater_than(board, currmove, -25 * depth * depth))
                 continue ;
+
+            if (depth < 5 && is_quiet && !see_greater_than(board, currmove, -80 * depth))
+                continue ;
         }
 
         // Report currmove info if enough time has passed
