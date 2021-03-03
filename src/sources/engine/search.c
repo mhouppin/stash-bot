@@ -218,6 +218,14 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
 
         move_count++;
 
+        bool    is_quiet = !is_capture_or_promotion(board, currmove);
+
+        if (!root_node && best_value > -MATE_FOUND)
+        {
+            if (depth < 5 && !is_quiet && !see_greater_than(board, currmove, -25 * depth * depth))
+                continue ;
+        }
+
         // Report currmove info if enough time has passed
 
         if (root_node && !worker->idx && chess_clock() - Timeman.start > 3000)
@@ -232,7 +240,6 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
         int             reduction;
         int             extension = 0;
         int             new_depth = depth - 1;
-        bool            is_quiet = !is_capture_or_promotion(board, currmove);
         bool            gives_check = move_gives_check(board, currmove);
         int             hist_score = is_quiet ? get_bf_history_score(worker->bf_history,
             piece_on(board, from_sq(currmove)), currmove) : 0;
