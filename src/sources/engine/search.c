@@ -222,7 +222,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
 
         if (!root_node && best_value > -MATE_FOUND)
         {
-            if (depth < 4 && qcount > depth * 8)
+            if (depth < 4 && move_count > depth * 8)
                 skip_quiets = true;
 
             if (depth < 5 && !is_quiet && !see_greater_than(board, currmove, -25 * depth * depth))
