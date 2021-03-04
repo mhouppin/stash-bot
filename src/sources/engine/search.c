@@ -222,6 +222,9 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
 
         if (!root_node && best_value > -MATE_FOUND)
         {
+            if (depth < 4 && qcount > depth * 8)
+                skip_quiets = true;
+
             if (depth < 5 && !is_quiet && !see_greater_than(board, currmove, -25 * depth * depth))
                 continue ;
 
@@ -348,9 +351,6 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
 
         if (qcount < 64 && is_quiet)
             quiets[qcount++] = currmove;
-
-        if (!root_node && depth < 4 && best_value > -MATE_FOUND && qcount > depth * 8)
-            break ;
     }
 
     // Checkmate/Stalemate ?
