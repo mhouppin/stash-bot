@@ -226,7 +226,7 @@
   Games | N: 19360 W: 4831 L: 4757 D: 9772
   ```
 
-- Added support for large transposition tables, up to 32 terabytes of memory.
+- Added support for large transposition tables, currently up to 32 TB of memory.
   ```
   ELO   | -0.63 +- 1.54 (95%)
   SPRT  | 10.0+0.1s Threads=1 Hash=16MB
@@ -235,3 +235,127 @@
   ```
 
 - Changed Makefile to include x86-64-modern compilation flags by default.
+
+## v26.0
+
+### Regression test
+
+- LTC:
+  ```
+  ELO   | 68.36 +- 12.97 (95%)
+  SPRT  | 60.0+0.6s Threads=1 Hash=64MB
+  LLR   | 2.96 (-2.94, 2.94) [45.00, 50.00]
+  Games | N: 1184 W: 370 L: 140 D: 674
+  ```
+
+### Fixed (2 changes)
+
+- Fixed a stack overflow on some systems when the search got too deep. (As
+  a result each worker uses a minimum of 8 MB for its stack.)
+
+- Fixed an array overflow in King Safety when the opponent has exactly 8 pieces
+  attacking the King.
+
+### Performance (4 changes)
+
+- Changed some eval terms' positions (like the piece pair bonus/malus in the
+  corresponding piece eval function) to gain some speed.
+  ```
+  ELO   | 2.59 +- 1.72 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.99 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 88480 W: 25262 L: 24602 D: 38616
+  ```
+
+- Changed the Initiative static value to a dynamic one, based on all pieces
+  that are threatened by lower-valued ones. The final score is given like this:
+  ```
+  stm_iv = !in_check + stm_threats;
+  opp_iv = opp_threats;
+  bonus = Initiative * (stm_iv * stm_iv - opp_iv * opp_iv);
+  ```
+  so that having attacks on the opponent's pieces is rewarded even more if we
+  are the side to move.
+  ```
+  ELO   | 10.13 +- 6.50 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.99 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 6208 W: 1849 L: 1668 D: 2691
+
+  ELO   | 7.77 +- 5.23 (95%)
+  SPRT  | 60.0+0.6s Threads=1 Hash=64MB
+  LLR   | 2.95 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 7600 W: 1790 L: 1620 D: 4190
+  ```
+
+- Created a "real" time managenement system, using the type of bestmove found
+  (capture with very large SEE, checking move, only-move, etc.), the eval
+  direction (the more it raises, the quicker the move is played), and the
+  bestmove stability (stable bestmoves being played quicker). Increased
+  max time usage to time / sqrt(movestogo) so that iterations have a high
+  chance of being finished before sending the bestmove.
+  ```
+  ELO   | 30.96 +- 12.32 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 3.00 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 1744 W: 572 L: 417 D: 755
+
+  ELO   | 29.02 +- 11.82 (95%)
+  SPRT  | 40/10.0s Threads=1 Hash=16MB
+  LLR   | 3.02 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 1872 W: 603 L: 447 D: 822
+  ```
+
+- Moved stand-pat evaluation after TT probing in Quiescence Search.
+  ```
+  ELO   | 35.68 +- 13.22 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.96 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 1456 W: 471 L: 322 D: 663
+
+  ELO   | 28.46 +- 10.64 (95%)
+  SPRT  | 60.0+0.6s Threads=1 Hash=64MB
+  LLR   | 2.96 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 1664 W: 406 L: 270 D: 988
+  ```
+
+- Added a scaling function for endgames. (Note: this patch has been done via two
+  different methods, the first one was using a material key and mapping endgames
+  to specialized evals, the second only used the material quantity to evaluate
+  the "drawishness" of the eval. The second one looked slightly worse, but
+  allowed me to remove about 550+ lines of code with little to no effect. Here's
+  the result for the initial version:
+  ```
+  ELO   | 3.94 +- 3.09 (95%)
+  SPRT  | 60.0+0.6s Threads=1 Hash=64MB
+  LLR   | 3.03 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 20192 W: 4330 L: 4101 D: 11761
+  ```
+  And here's the result for the massive simplification relative to the initial
+  version:
+  ```
+  ELO   | -1.65 +- 4.12 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | -2.95 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 13472 W: 3295 L: 3359 D: 6818
+  ```
+  So the overall gain is likely about 2-3 Elo.)
+
+- Increased LMR by one ply for non-PV nodes.
+  ```
+  ELO   | 5.09 +- 3.92 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 3.00 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 14944 W: 3819 L: 3600 D: 7525
+
+  ELO   | 4.57 +- 3.48 (95%)
+  SPRT  | 60.0+0.6s Threads=1 Hash=64MB
+  LLR   | 3.01 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 15354 W: 3190 L: 2988 D: 9176
+  ```
+
+### Changed (1 change)
+
+- Added a new option structure to easily add UCI options for tuning sessions,
+  with any framework like SPSA, chess-tuning-tools or such.
+
