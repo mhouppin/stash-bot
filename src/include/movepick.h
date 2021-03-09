@@ -30,6 +30,7 @@ typedef struct
     move_t  excluded_move;
     move_t  current_move;
     move_t  *pv;
+    piece_history_t *pc_history;
 }
 searchstack_t;
 
@@ -60,11 +61,9 @@ typedef struct movepick_s
     move_t          killer1;
     move_t          killer2;
     move_t          counter;
-    move_t          last_move;
-    piece_t         last_piece;
-    square_t        last_to;
     const board_t   *board;
     const worker_t  *worker;
+    piece_history_t *pc_history[2];
 }
 movepick_t;
 

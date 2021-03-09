@@ -156,6 +156,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
             + (depth / 4);
 
         ss->current_move = NULL_MOVE;
+        ss->pc_history = NULL;
 
         do_null_move(board, &stack);
 
@@ -271,6 +272,10 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
             extension = 1;
 
         ss->current_move = currmove;
+        {
+            square_t    to = to_sq(currmove);
+            ss->pc_history = &worker->ct_history[piece_on(board, to)][to];
+        }
 
         do_move_gc(board, currmove, &stack, gives_check);
 

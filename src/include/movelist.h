@@ -50,8 +50,6 @@ extmove_t   *generate_piece_moves(extmove_t *movelist, const board_t *board,
             color_t us, piecetype_t pt, bitboard_t target_squares);
 
 void        place_top_move(extmove_t *begin, extmove_t *end);
-void        generate_move_values(movelist_t *movelist, const board_t *board,
-            move_t tt_move, move_t *killers, move_t previous_move);
 
 INLINED void    list_all(movelist_t *movelist, const board_t *board)
 {

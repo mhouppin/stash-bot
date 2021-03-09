@@ -120,6 +120,12 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
         if (best_value > -MATE_FOUND && !see_greater_than(board, currmove, 0))
             continue ;
 
+        ss->current_move = currmove;
+        {
+            square_t    to = to_sq(currmove);
+            ss->pc_history = &worker->ct_history[piece_on(board, to)][to];
+        }
+
         boardstack_t    stack;
 
         do_move_gc(board, currmove, &stack, gives_check);

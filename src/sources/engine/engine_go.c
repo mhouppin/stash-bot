@@ -111,9 +111,9 @@ void        *engine_go(void *ptr)
 
     // Reset all history related stuff.
 
-    memset(worker->bf_history, 0, sizeof(bf_history_t));
-    memset(worker->ct_history, 0, sizeof(ct_history_t));
-    memset(worker->cm_history, 0, sizeof(cm_history_t));
+    memset(worker->bf_history, 0, sizeof(butterfly_history_t));
+    memset(worker->ct_history, 0, sizeof(continuation_history_t));
+    memset(worker->cm_history, 0, sizeof(countermove_history_t));
     worker->verif_plies = 0;
 
     if (!worker->idx)
@@ -185,7 +185,7 @@ void        *engine_go(void *ptr)
             }
 
 __retry:
-            search(board, iter_depth + 1, _alpha, _beta, &sstack[1], true);
+            search(board, iter_depth + 1, _alpha, _beta, &sstack[2], true);
 
             // Catch search aborting
 

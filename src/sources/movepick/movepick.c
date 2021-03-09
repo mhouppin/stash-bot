@@ -36,20 +36,18 @@ void    movepick_init(movepick_t *mp, bool in_qsearch, const board_t *board,
     mp->tt_move = tt_move;
     mp->killer1 = ss->killers[0];
     mp->killer2 = ss->killers[1];
-    mp->last_move = (ss - 1)->current_move;
 
-    if (is_valid_move(mp->last_move))
+    if ((ss - 1)->pc_history != NULL)
     {
-        mp->last_to = to_sq(mp->last_move);
-        mp->last_piece = piece_on(board, mp->last_to);
-        mp->counter = worker->cm_history[mp->last_piece][mp->last_to];
+        square_t    last_to = to_sq((ss - 1)->current_move);
+        square_t    last_piece = piece_on(board, last_to);
+        mp->counter = worker->cm_history[last_piece][last_to];
     }
     else
-    {
-        mp->last_to = SQ_NONE;
-        mp->last_piece = NO_PIECE;
         mp->counter = NO_MOVE;
-    }
+
+    mp->pc_history[0] = (ss - 1)->pc_history;
+    mp->pc_history[1] = (ss - 2)->pc_history;
     mp->board = board;
     mp->worker = worker;
 }
@@ -85,9 +83,10 @@ static void score_quiet(movepick_t *mp, extmove_t *begin, extmove_t *end)
 
         begin->score = get_bf_history_score(mp->worker->bf_history, moved, begin->move);
 
-        if (mp->last_piece != NO_PIECE)
-            begin->score += get_ct_history_score(mp->worker->ct_history, moved, to, mp->last_piece,
-                mp->last_to);
+        if (mp->pc_history[0] != NULL)
+            begin->score += get_pc_history_score(*mp->pc_history[0], moved, to);
+        if (mp->pc_history[1] != NULL)
+            begin->score += get_pc_history_score(*mp->pc_history[1], moved, to);
 
         ++begin;
     }
@@ -111,9 +110,10 @@ static void score_evasions(movepick_t *mp, extmove_t *begin, extmove_t *end)
 
             begin->score = get_bf_history_score(mp->worker->bf_history, moved, begin->move);
 
-            if (mp->last_piece != NO_PIECE)
-                begin->score += get_ct_history_score(mp->worker->ct_history, moved, to, mp->last_piece,
-                    mp->last_to);
+            if (mp->pc_history[0] != NULL)
+                begin->score += get_pc_history_score(*mp->pc_history[0], moved, to);
+            if (mp->pc_history[1] != NULL)
+                begin->score += get_pc_history_score(*mp->pc_history[1], moved, to);
         }
 
         ++begin;

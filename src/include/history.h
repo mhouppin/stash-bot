@@ -31,34 +31,33 @@ enum
     HistoryResolution = HistoryMaxScore * HistoryScale
 };
 
-typedef int32_t bf_history_t[PIECE_NB][SQUARE_NB * SQUARE_NB];
-typedef int32_t ct_history_t[PIECE_NB][SQUARE_NB][PIECETYPE_NB][SQUARE_NB];
-typedef move_t  cm_history_t[PIECE_NB][SQUARE_NB];
+typedef int32_t         butterfly_history_t[PIECE_NB][SQUARE_NB * SQUARE_NB];
+typedef int32_t         piece_history_t[PIECE_NB][SQUARE_NB];
+typedef piece_history_t continuation_history_t[PIECE_NB][SQUARE_NB];
+typedef move_t          countermove_history_t[PIECE_NB][SQUARE_NB];
 
-INLINED void    add_bf_history(bf_history_t hist, piece_t piece, move_t move, int32_t bonus)
+INLINED void    add_bf_history(butterfly_history_t hist, piece_t piece, move_t move, int32_t bonus)
 {
     int32_t *entry = &hist[piece][square_mask(move)];
 
     *entry += bonus - *entry * abs(bonus) / HistoryResolution;
 }
 
-INLINED score_t get_bf_history_score(const bf_history_t hist, piece_t piece, move_t move)
+INLINED score_t get_bf_history_score(const butterfly_history_t hist, piece_t piece, move_t move)
 {
     return (hist[piece][square_mask(move)] / HistoryScale);
 }
 
-INLINED void    add_ct_history(ct_history_t hist, piece_t pc, square_t to,
-                piece_t lpc, square_t lto, int32_t bonus)
+INLINED void    add_pc_history(piece_history_t hist, piece_t pc, square_t to, int32_t bonus)
 {
-    int32_t *entry = &hist[pc][to][piece_type(lpc)][lto];
+    int32_t *entry = &hist[pc][to];
 
     *entry += bonus - *entry * abs(bonus) / HistoryResolution;
 }
 
-INLINED score_t get_ct_history_score(const ct_history_t hist, piece_t pc, square_t to,
-                piece_t lpc, square_t lto)
+INLINED score_t get_pc_history_score(const piece_history_t hist, piece_t pc, square_t to)
 {
-    return (hist[pc][to][piece_type(lpc)][lto] / HistoryScale);
+    return (hist[pc][to] / HistoryScale);
 }
 
 #endif
