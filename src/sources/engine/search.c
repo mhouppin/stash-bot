@@ -280,7 +280,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
         do_move_gc(board, currmove, &stack, gives_check);
 
         // Can we apply LMR ?
-        if (depth >= 3 && move_count > 4 && is_quiet)
+        if (depth >= 3 && move_count > 3 && is_quiet)
         {
             reduction = Reductions[min(depth, 63)][min(move_count, 63)];
 
