@@ -120,18 +120,18 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
 
     // Razoring.
 
-    if (!pv_node && ss->static_eval + Razor_LightMargin < beta)
+    if (!pv_node && ss->static_eval + 150 <= alpha)
     {
         if (depth == 1)
         {
             score_t max_score = qsearch(board, alpha, beta, ss);
-            return (max(ss->static_eval + Razor_LightMargin, max_score));
+            return (max(ss->static_eval + 150, max_score));
         }
-        if (ss->static_eval + Razor_HeavyMargin < beta && depth <= 3)
+        if (ss->static_eval + 300 <= alpha && depth <= 3)
         {
             score_t max_score = qsearch(board, alpha, beta, ss);
             if (max_score < beta)
-                return (max(ss->static_eval + Razor_HeavyMargin, max_score));
+                return (max(ss->static_eval + 300, max_score));
         }
     }
 
@@ -144,16 +144,14 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
 
     // Null move pruning.
 
-    if (!pv_node && depth >= NMP_MinDepth && !in_check
+    if (!pv_node && depth >= 3 && !in_check
         && ss->plies >= worker->verif_plies && !ss->excluded_move
         && eval >= beta && eval >= ss->static_eval
         && board->stack->material[board->side_to_move])
     {
         boardstack_t    stack;
 
-        int    nmp_reduction = NMP_BaseReduction
-            + min((eval - beta) / NMP_EvalScale, NMP_MaxEvalReduction)
-            + (depth / 4);
+        int    nmp_reduction = 3 + min((eval - beta) / 128, 3) + (depth / 4);
 
         ss->current_move = NULL_MOVE;
         ss->pc_history = NULL;
@@ -173,7 +171,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
 
             // Do not trust win claims.
 
-            if (worker->verif_plies || (depth <= NMP_TrustDepth && abs(beta) < VICTORY))
+            if (worker->verif_plies || (depth <= 10 && abs(beta) < VICTORY))
                 return (score);
 
             // Zugzwang checking.
@@ -189,7 +187,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
         }
     }
 
-    if (!root_node && depth > 7 && !tt_move)
+    if (!root_node && depth >= 8 && !tt_move)
         --depth;
 
     movepick_init(&mp, false, board, worker, tt_move, ss);
@@ -223,13 +221,15 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
 
         if (!root_node && best_value > -MATE_FOUND)
         {
-            if (depth < 4 && move_count > depth * 8)
+            // Late Move Pruning.
+
+            if (depth <= 3 && move_count > depth * 8)
                 skip_quiets = true;
 
-            if (depth < 5 && !is_quiet && !see_greater_than(board, currmove, -25 * depth * depth))
-                continue ;
+            // SEE Pruning.
 
-            if (depth < 5 && is_quiet && !see_greater_than(board, currmove, -80 * depth))
+            if (depth <= 4 && !see_greater_than(board, currmove,
+                (is_quiet ? -80 * depth : -25 * depth * depth)))
                 continue ;
         }
 
@@ -280,7 +280,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
         do_move_gc(board, currmove, &stack, gives_check);
 
         // Can we apply LMR ?
-        if (depth >= LMR_MinDepth && move_count > LMR_MinMoves && is_quiet)
+        if (depth >= 3 && move_count > 4 && is_quiet)
         {
             reduction = Reductions[min(depth, 63)][min(move_count, 63)];
 
