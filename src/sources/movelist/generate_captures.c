@@ -19,7 +19,7 @@
 #include "movelist.h"
 
 extmove_t   *generate_pawn_capture_moves(extmove_t *movelist, const board_t *board, color_t us,
-            bitboard_t their_pieces)
+            bitboard_t their_pieces, bool in_qsearch)
 {
     int         pawn_push = pawn_direction(us);
     bitboard_t  pawns_on_last_rank = piece_bb(board, us, PAWN) & (us == WHITE ? RANK_7_BITS : RANK_2_BITS);
@@ -34,18 +34,24 @@ extmove_t   *generate_pawn_capture_moves(extmove_t *movelist, const board_t *boa
         {
             square_t    to = bb_pop_first_sq(&b);
             (movelist++)->move = create_promotion(to - pawn_push, to, QUEEN);
+            if (!in_qsearch)
+                movelist = create_underpromotions(movelist, to, pawn_push);
         }
 
         for (bitboard_t b = shift_left(promote) & their_pieces; b; )
         {
             square_t    to = bb_pop_first_sq(&b);
             (movelist++)->move = create_promotion(to - pawn_push - WEST, to, QUEEN);
+            if (!in_qsearch)
+                movelist = create_underpromotions(movelist, to, pawn_push + WEST);
         }
 
         for (bitboard_t b = shift_right(promote) & their_pieces; b; )
         {
             square_t    to = bb_pop_first_sq(&b);
             (movelist++)->move = create_promotion(to - pawn_push - EAST, to, QUEEN);
+            if (!in_qsearch)
+                movelist = create_underpromotions(movelist, to, pawn_push + EAST);
         }
     }
 
@@ -77,13 +83,13 @@ extmove_t   *generate_pawn_capture_moves(extmove_t *movelist, const board_t *boa
     return (movelist);
 }
 
-extmove_t   *generate_captures(extmove_t *movelist, const board_t *board)
+extmove_t   *generate_captures(extmove_t *movelist, const board_t *board, bool in_qsearch)
 {
     color_t     us = board->side_to_move;
     bitboard_t  target = color_bb(board, not_color(us));
     square_t    king_square = get_king_square(board, us);
 
-    movelist = generate_pawn_capture_moves(movelist, board, us, target);
+    movelist = generate_pawn_capture_moves(movelist, board, us, target, in_qsearch);
 
     for (piecetype_t pt = KNIGHT; pt <= QUEEN; ++pt)
         movelist = generate_piece_moves(movelist, board, us, pt, target);
