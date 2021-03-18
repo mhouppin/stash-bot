@@ -133,7 +133,7 @@ __top:
 
         case GEN_INSTABLE:
             ++mp->stage;
-            mp->list.last = generate_captures(mp->list.moves, mp->board);
+            mp->list.last = generate_captures(mp->list.moves, mp->board, mp->in_qsearch);
             score_captures(mp, mp->list.moves, mp->list.last);
             mp->cur = mp->bad_captures = mp->list.moves;
             // Fallthrough
@@ -143,7 +143,7 @@ __top:
             {
                 place_top_move(mp->cur, mp->list.last);
 
-                if (mp->cur->move != mp->tt_move && see_greater_than(mp->board, mp->cur->move, 0))
+                if (mp->cur->move != mp->tt_move && mp->cur->score >= 0 && see_greater_than(mp->board, mp->cur->move, 0))
                     return ((mp->cur++)->move);
 
                 *(mp->bad_captures++) = *(mp->cur++);

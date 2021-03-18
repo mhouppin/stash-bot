@@ -43,7 +43,7 @@ extern movelist_t   SearchMoves;
 extmove_t   *generate_all(extmove_t *movelist, const board_t *board);
 extmove_t   *generate_classic(extmove_t *movelist, const board_t *board);
 extmove_t   *generate_evasions(extmove_t *movelist, const board_t *board);
-extmove_t   *generate_captures(extmove_t *movelist, const board_t *board);
+extmove_t   *generate_captures(extmove_t *movelist, const board_t *board, bool in_qsearch);
 extmove_t   *generate_quiet(extmove_t *movelist, const board_t *board);
 
 extmove_t   *generate_piece_moves(extmove_t *movelist, const board_t *board,
@@ -54,13 +54,6 @@ void        place_top_move(extmove_t *begin, extmove_t *end);
 INLINED void    list_all(movelist_t *movelist, const board_t *board)
 {
     movelist->last = generate_all(movelist->moves, board);
-}
-
-INLINED void    list_instable(movelist_t *movelist, const board_t *board)
-{
-    movelist->last = board->stack->checkers
-        ? generate_evasions(movelist->moves, board)
-        : generate_captures(movelist->moves, board);
 }
 
 INLINED void    list_pseudo(movelist_t *movelist, const board_t *board)
@@ -98,6 +91,14 @@ INLINED bool    movelist_has_move(const movelist_t *movelist, move_t move)
 INLINED extmove_t   *create_promotions(extmove_t *movelist, square_t to, direction_t direction)
 {
     (movelist++)->move = create_promotion(to - direction, to, QUEEN);
+    (movelist++)->move = create_promotion(to - direction, to, ROOK);
+    (movelist++)->move = create_promotion(to - direction, to, BISHOP);
+    (movelist++)->move = create_promotion(to - direction, to, KNIGHT);
+
+    return (movelist);
+}
+INLINED extmove_t   *create_underpromotions(extmove_t *movelist, square_t to, direction_t direction)
+{
     (movelist++)->move = create_promotion(to - direction, to, ROOK);
     (movelist++)->move = create_promotion(to - direction, to, BISHOP);
     (movelist++)->move = create_promotion(to - direction, to, KNIGHT);

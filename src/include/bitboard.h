@@ -304,7 +304,7 @@ INLINED square_t    bb_relative_last_sq(color_t c, bitboard_t b)
     return (c == WHITE ? bb_last_sq(b) : bb_first_sq(b));
 }
 
-INLINED void        prefetch(const void *ptr __attribute__((unused)))
+INLINED void        prefetch(void *ptr __attribute__((unused)))
 {
 #ifdef USE_PREFETCH
     _mm_prefetch(ptr, _MM_HINT_T0);

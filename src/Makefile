@@ -22,7 +22,7 @@ OBJECTS := $(SOURCES:%.c=%.o)
 DEPENDS := $(SOURCES:%.c=%.d)
 native = no
 
-CFLAGS += -Wall -Wextra -Werror -O3 -flto
+CFLAGS += -Wall -Wextra -Wcast-qual -Wshadow -Werror -O3 -flto
 CPPFLAGS += -MMD -I include
 LDFLAGS += -lpthread -lm
 

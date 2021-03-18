@@ -39,8 +39,8 @@ void    show_options(const option_list_t *list)
                 printf("option name %s type combo default %s",
                     cur->name, (char *)cur->def);
 
-                for (size_t i = 0; cur->combo_list[i]; ++i)
-                    printf(" var %s", cur->combo_list[i]);
+                for (size_t k = 0; cur->combo_list[k]; ++k)
+                    printf(" var %s", cur->combo_list[k]);
                 puts("");
                 break ;
 
