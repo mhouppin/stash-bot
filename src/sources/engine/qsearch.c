@@ -51,17 +51,18 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
 
     // Check for interesting tt values
 
+    score_t     tt_score = NO_SCORE;
+    int         tt_bound = NO_BOUND;
     bool        found;
     tt_entry_t  *entry = tt_probe(board->stack->board_key, &found);
 
     if (found)
     {
-        int     bound = entry->genbound & 3;
-        score_t tt_score = score_from_tt(entry->score, ss->plies);
+        tt_bound = entry->genbound & 3;
+        tt_score = score_from_tt(entry->score, ss->plies);
 
-        if (bound == EXACT_BOUND
-            || (bound == LOWER_BOUND && tt_score >= beta)
-            || (bound == UPPER_BOUND && tt_score <= alpha))
+        if (((tt_bound & LOWER_BOUND) && tt_score >= beta)
+            || ((tt_bound & UPPER_BOUND) && tt_score <= alpha))
             return (tt_score);
     }
 
@@ -74,7 +75,11 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
     if (!board->stack->checkers)
     {
         best_value = eval;
-        alpha = max(alpha, eval);
+
+        if (tt_bound & (tt_score > eval ? LOWER_BOUND : UPPER_BOUND))
+            best_value = tt_score;
+
+        alpha = max(alpha, best_value);
         if (alpha >= beta)
             return (alpha);
     }
@@ -93,7 +98,7 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
 
     const bool      delta_pruning = (!board->stack->checkers
         && popcount(board->piecetype_bits[ALL_PIECES]) > 6);
-    const score_t   delta_base = eval + PAWN_EG_SCORE * 2;
+    const score_t   delta_base = best_value + PAWN_EG_SCORE * 2;
 
     while ((currmove = movepick_next_move(&mp, false)) != NO_MOVE)
     {
