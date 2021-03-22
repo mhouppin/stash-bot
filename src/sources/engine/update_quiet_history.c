@@ -46,10 +46,11 @@ void    update_quiet_history(const board_t *board, int depth,
 
     add_bf_history(*bf_hist, pc, bestmove, bonus);
 
-    if (ss->killers[0] == NO_MOVE)
+    if (ss->killers[0] != bestmove)
+    {
+        ss->killers[1] = ss->killers[0];
         ss->killers[0] = bestmove;
-    else if (ss->killers[0] != bestmove)
-        ss->killers[1] = bestmove;
+    }
 
     for (int i = 0; i < qcount; ++i)
     {
