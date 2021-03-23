@@ -48,6 +48,8 @@ enum
 
     BishopPairBonus = SPAIR(12, 103),
     BishopShielded = SPAIR(12, 6),
+    BishopOutpost = SPAIR(16, 12),
+    BishopCenterOutpost = SPAIR(12, 9),
 
     // Rook eval terms
 
@@ -255,7 +257,7 @@ scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, const paw
             ret += KnightShielded;
 
         // Bonus for Knight on Outpost, with higher scores if the Knight is on
-        // a center file, on the 6th rank, or supported by a pawn.
+        // a center file or supported by a pawn.
 
         if (sqbb & outpost & ~pe->attack_span[not_color(c)])
         {
@@ -284,13 +286,15 @@ scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, const paw
     return (ret);
 }
 
-scorepair_t evaluate_bishops(const board_t *board, evaluation_t *eval, color_t c)
+scorepair_t evaluate_bishops(const board_t *board, evaluation_t *eval, const pawn_entry_t *pe,
+            color_t c)
 {
-    scorepair_t         ret = 0;
+    scorepair_t ret = 0;
     const bitboard_t    occupancy = occupancy_bb(board);
-    bitboard_t          bb = piece_bb(board, c, BISHOP);
-    bitboard_t          our_pawns = piece_bb(board, c, PAWN);
-    bitboard_t          targets = pieces_bb(board, not_color(c), ROOK, QUEEN);
+    bitboard_t  bb = piece_bb(board, c, BISHOP);
+    bitboard_t  our_pawns = piece_bb(board, c, PAWN);
+    bitboard_t  targets = pieces_bb(board, not_color(c), ROOK, QUEEN);
+    bitboard_t  outpost = RANK_4_BITS | RANK_5_BITS | (c == WHITE ? RANK_6_BITS : RANK_3_BITS);
 
     // Bonus for the Bishop pair
 
@@ -300,6 +304,7 @@ scorepair_t evaluate_bishops(const board_t *board, evaluation_t *eval, color_t c
     while (bb)
     {
         square_t    sq = bb_pop_first_sq(&bb);
+        bitboard_t  sqbb = square_bb(sq);
         bitboard_t  b = bishop_moves_bb(sq, occupancy);
 
         // Bonus for Bishop mobility
@@ -310,6 +315,17 @@ scorepair_t evaluate_bishops(const board_t *board, evaluation_t *eval, color_t c
 
         if (relative_shift_up(square_bb(sq), c) & our_pawns)
             ret += BishopShielded;
+
+        // Bonus for Bishop on Outpost, with a higher score if the Bishop is on
+        // a center file.
+
+        if (sqbb & outpost & ~pe->attack_span[not_color(c)])
+        {
+            ret += BishopOutpost;
+
+            if (sqbb & CENTER_FILES_BITS)
+                ret += BishopCenterOutpost;
+        }
 
         // Bonus for a Bishop on King Attack zone
 
@@ -451,8 +467,8 @@ score_t evaluate(const board_t *board)
 
     tapered += evaluate_knights(board, &eval, pe, WHITE);
     tapered -= evaluate_knights(board, &eval, pe, BLACK);
-    tapered += evaluate_bishops(board, &eval, WHITE);
-    tapered -= evaluate_bishops(board, &eval, BLACK);
+    tapered += evaluate_bishops(board, &eval, pe, WHITE);
+    tapered -= evaluate_bishops(board, &eval, pe, BLACK);
     tapered += evaluate_rooks(board, &eval, WHITE);
     tapered -= evaluate_rooks(board, &eval, BLACK);
     tapered += evaluate_queens(board, &eval, WHITE);
