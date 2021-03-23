@@ -245,6 +245,9 @@ scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, const paw
         bitboard_t  sqbb = square_bb(sq);
         bitboard_t  b = knight_moves(sq);
 
+        if (board->stack->king_blockers[c] & sqbb)
+            b = 0;
+
         // Bonus for Knight mobility
 
         ret += MobilityN[popcount(b & eval->mobility_zone[c])];
@@ -300,7 +303,11 @@ scorepair_t evaluate_bishops(const board_t *board, evaluation_t *eval, color_t c
     while (bb)
     {
         square_t    sq = bb_pop_first_sq(&bb);
+        bitboard_t  sqbb = square_bb(sq);
         bitboard_t  b = bishop_moves_bb(sq, occupancy);
+
+        if (board->stack->king_blockers[c] & sqbb)
+            b &= LineBits[get_king_square(board, c)][sq];
 
         // Bonus for Bishop mobility
 
@@ -344,8 +351,12 @@ scorepair_t evaluate_rooks(const board_t *board, evaluation_t *eval, color_t c)
     while (bb)
     {
         square_t    sq = bb_pop_first_sq(&bb);
+        bitboard_t  sqbb = square_bb(sq);
         bitboard_t  rook_file = sq_file_bb(sq);
         bitboard_t  b = rook_moves_bb(sq, occupancy);
+
+        if (board->stack->king_blockers[c] & sqbb)
+            b &= LineBits[get_king_square(board, c)][sq];
 
         // Bonus for a Rook on an open (or semi-open) file
 
@@ -386,7 +397,11 @@ scorepair_t evaluate_queens(const board_t *board, evaluation_t *eval, color_t c)
     while (bb)
     {
         square_t    sq = bb_pop_first_sq(&bb);
+        bitboard_t  sqbb = square_bb(sq);
         bitboard_t  b = bishop_moves_bb(sq, occupancy) | rook_moves_bb(sq, occupancy);
+
+        if (board->stack->king_blockers[c] & sqbb)
+            b &= LineBits[get_king_square(board, c)][sq];
 
         // Bonus for Queen mobility
 
