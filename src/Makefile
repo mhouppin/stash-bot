@@ -35,23 +35,12 @@ ifeq ($(ARCH),)
 	ARCH=x86-64-modern
 endif
 
-# Check if CC is correctly pointing to a working compiler, and if not, set it
-# to gcc
-
-ifeq ($(shell $(CC) --version),)
-	CC=gcc
-endif
-
-# Add .exe to the executable name if we are on Windows, and change the cleanup
-# commands
+# Add .exe to the executable name if we are on Windows
 
 ifeq ($(OS),Windows_NT)
 	EXE = stash-bot.exe
-	REMOVE = del
-	SILENCE = >nul 2>&1 || (exit 0)
 else
 	EXE = stash-bot
-	REMOVE = rm -f
 endif
 
 # Enable use of PREFETCH instruction
@@ -91,13 +80,13 @@ $(EXE): $(OBJECTS)
 -include $(DEPENDS)
 
 clean:
-	$(REMOVE) $(OBJECTS) $(DEPENDS) $(SILENCE)
+	rm -f $(OBJECTS) $(DEPENDS)
 
 fclean: clean
-	$(REMOVE) $(EXE) $(SILENCE)
+	rm -f $(EXE)
 
 re:
-	+$(MAKE) fclean
+	$(MAKE) fclean
 	+$(MAKE) all
 
 .PHONY: all clean fclean re
