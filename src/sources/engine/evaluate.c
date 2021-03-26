@@ -38,7 +38,6 @@ enum
 
 	// Knight eval terms
 
-    KnightPairPenalty = SPAIR(-7, 7),
     KnightShielded = SPAIR(4, 12),
     KnightOutpost = SPAIR(15, -3),
     KnightCenterOutpost = SPAIR(17, -1),
@@ -51,7 +50,6 @@ enum
 
     // Rook eval terms
 
-    RookPairPenalty = SPAIR(-39, 24),
     RookOnSemiOpenFile = SPAIR(19, 17),
     RookOnOpenFile = SPAIR(38, 16),
     RookXrayQueen = SPAIR(7, 9),
@@ -234,11 +232,6 @@ scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, const paw
     bitboard_t  our_pawns = piece_bb(board, c, PAWN);
     bitboard_t  outpost = RANK_4_BITS | RANK_5_BITS | (c == WHITE ? RANK_6_BITS : RANK_3_BITS);
 
-    // Penalty for having the Knight pair
-
-    if (more_than_one(bb))
-        ret += KnightPairPenalty;
-
     while (bb)
     {
         square_t    sq = bb_pop_first_sq(&bb);
@@ -342,11 +335,6 @@ scorepair_t evaluate_rooks(const board_t *board, evaluation_t *eval, color_t c)
     const bitboard_t    their_pawns = piece_bb(board, not_color(c), PAWN);
     const bitboard_t    their_queens = piece_bb(board, not_color(c), QUEEN);
     bitboard_t          bb = piece_bb(board, c, ROOK);
-
-    // Penalty for the Rook pair
-
-    if (more_than_one(bb))
-        ret += RookPairPenalty;
 
     while (bb)
     {
