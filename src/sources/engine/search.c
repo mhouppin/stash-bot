@@ -226,6 +226,11 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
             if (depth <= 3 && move_count > depth * 8)
                 skip_quiets = true;
 
+            // Futility Pruning.
+
+            if (depth <= 4 && is_quiet && eval + 240 + 80 * depth <= alpha)
+                skip_quiets = true;
+
             // SEE Pruning.
 
             if (depth <= 4 && !see_greater_than(board, currmove,
