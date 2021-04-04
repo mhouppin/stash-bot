@@ -40,6 +40,7 @@ struct  boardstack_s
     square_t        en_passant_square;
     hashkey_t       pawn_key;
     score_t         material[COLOR_NB];
+    hashkey_t       material_key;
     hashkey_t       board_key;
     bitboard_t      checkers;
     piece_t         captured_piece;

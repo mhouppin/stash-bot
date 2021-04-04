@@ -20,7 +20,7 @@
 
 void    set_boardstack(board_t *board, boardstack_t *stack)
 {
-    stack->board_key = stack->pawn_key = 0;
+    stack->board_key = stack->pawn_key = board->stack->material_key = 0;
     stack->material[WHITE] = stack->material[BLACK] = 0;
     stack->checkers = attackers_to(board, get_king_square(board, board->side_to_move))
         & color_bb(board, not_color(board->side_to_move));
@@ -46,6 +46,15 @@ void    set_boardstack(board_t *board, boardstack_t *stack)
 
     if (board->side_to_move == BLACK)
         stack->board_key ^= ZobristBlackToMove;
+
+    for (color_t c = WHITE; c <= BLACK; ++c)
+        for (piecetype_t pt = PAWN; pt <= KING; ++pt)
+        {
+            piece_t     pc = create_piece(c, pt);
+
+            for (int i = 0; i < board->piece_count[pc]; ++i)
+                stack->material_key ^= ZobristPsq[pc][i];
+        }
 
     stack->board_key ^= ZobristCastling[stack->castlings];
 }

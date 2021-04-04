@@ -52,6 +52,7 @@ typedef struct
     int                 seldepth;
     int                 verif_plies;
     _Atomic uint64_t    nodes;
+    _Atomic uint64_t    tb_hits;
 
     root_move_t *root_moves;
     size_t      root_count;
@@ -82,6 +83,16 @@ INLINED uint64_t    get_node_count(void)
 
     for (int i = 0; i < WPool.size; ++i)
         result += WPool.list[i].nodes;
+
+    return (result);
+}
+
+INLINED uint64_t    get_tb_hit_count(void)
+{
+    uint64_t    result = 0;
+
+    for (int i = 0; i < WPool.size; ++i)
+        result += WPool.list[i].tb_hits;
 
     return (result);
 }

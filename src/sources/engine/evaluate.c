@@ -17,6 +17,7 @@
 */
 
 #include <stdlib.h>
+#include "endgame.h"
 #include "engine.h"
 #include "imath.h"
 #include "info.h"
@@ -126,7 +127,7 @@ bool        is_kxk_endgame(const board_t *board, color_t c)
 
     bitboard_t  knight = piecetype_bb(board, KNIGHT);
 
-    // We have either 3+ knights, or a knight and a bishop, this is a KXK endgame
+    // We have either 3+ knights, or at least a knight and a bishop, this is a KXK endgame
 
     if ((knight && bishop) || popcount(knight) >= 3)
         return (true);
@@ -141,6 +142,8 @@ score_t     eval_kxk(const board_t *board, color_t c)
     square_t    winning_ksq = get_king_square(board, c);
     square_t    losing_ksq = get_king_square(board, not_color(c));
 
+    get_worker(board)->tb_hits++;
+
     // Be careful to avoid stalemating the weak king
     if (board->side_to_move != c && !board->stack->checkers)
     {
@@ -151,29 +154,15 @@ score_t     eval_kxk(const board_t *board, color_t c)
             return (0);
     }
 
-    // KNB endgame, drive the king to the right corner
+    // Push the weak king to the corner
 
-    if (board->stack->material[c] == KNIGHT_MG_SCORE + BISHOP_MG_SCORE && !pawns)
-    {
-        square_t    sq = losing_ksq;
-        if (piecetype_bb(board, BISHOP) & DARK_SQUARES)
-            sq ^= SQ_A8;
+    file_t  file = sq_file(losing_ksq);
+    rank_t  rank = sq_rank(losing_ksq);
 
-        file_t  file = sq_file(sq);
-        rank_t  rank = sq_rank(sq);
+    file = min(file, file ^ 7);
+    rank = min(rank, rank ^ 7);
 
-        base_score += abs(file - rank) * 100;
-    }
-    else
-    {
-        file_t  file = sq_file(losing_ksq);
-        rank_t  rank = sq_rank(losing_ksq);
-
-        file = min(file, file ^ 7);
-        rank = min(rank, rank ^ 7);
-
-        base_score += 720 - (file * file + rank * rank) * 40;
-    }
+    base_score += 720 - (file * file + rank * rank) * 40;
 
     // Give a bonus for close kings
 
@@ -424,6 +413,17 @@ scorepair_t evaluate_safety(evaluation_t *eval, color_t c)
 
 score_t evaluate(const board_t *board)
 {
+    // Do we have a specialized endgame eval for the current configuration ?
+    const endgame_entry_t *entry = endgame_probe(board);
+
+    if (entry != NULL)
+    {
+        get_worker(board)->tb_hits++;
+        return (entry->func(board, entry->winning_side));
+    }
+
+    // Is there a KXK situation ? (lone King vs mating material)
+
     if (is_kxk_endgame(board, WHITE))
         return (eval_kxk(board, WHITE));
     if (is_kxk_endgame(board, BLACK))
