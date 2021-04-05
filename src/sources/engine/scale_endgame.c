@@ -55,14 +55,6 @@ score_t scale_endgame(const board_t *board, score_t eg)
     if (strong_mat <= BISHOP_MG_SCORE && !strong_pawns)
         factor = 0;
 
-    // Two knights + no pawns, the endgame is very drawish
-    else if (strong_mat == KNIGHT_MG_SCORE * 2 && !strong_pawns)
-    {
-        // If the losing side has no pawns, it is likely impossible to force a mate.
-
-        factor = !weak_pawns ? 0 : 16;
-    }
-
     // No pawns and weak side has pieces, scale based on the remaining material
     else if (!strong_pawns && weak_mat)
     {

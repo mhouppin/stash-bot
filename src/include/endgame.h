@@ -51,11 +51,13 @@ void    init_kpk_bitbase(void);
 
 score_t eval_draw(const board_t *board, color_t winning_side);
 score_t eval_krkn(const board_t *board, color_t winning_side);
+score_t eval_krkp(const board_t *board, color_t winning_side);
 score_t eval_krkb(const board_t *board, color_t winning_side);
 score_t eval_kbnk(const board_t *board, color_t winning_side);
 score_t eval_kqkr(const board_t *board, color_t winning_side);
 score_t eval_kqkp(const board_t *board, color_t winning_side);
 score_t eval_kpk(const board_t *board, color_t winning_side);
+score_t eval_knnkp(const board_t *board, color_t winning_side);
 
 const endgame_entry_t   *endgame_probe(const board_t *board);
 

@@ -81,6 +81,7 @@ void    init_endgame_table(void)
     // 4-man endgames
     add_endgame_entry("KNNvK", &eval_draw);
     add_endgame_entry("KBvKN", &eval_draw);
+    add_endgame_entry("KRvKP", &eval_krkp);
     add_endgame_entry("KRvKN", &eval_krkn);
     add_endgame_entry("KRvKB", &eval_krkb);
     add_colored_entry(WHITE, "KN", "KN", &eval_draw);
@@ -90,6 +91,7 @@ void    init_endgame_table(void)
 
     // 5-man endgames
     add_endgame_entry("KBBvKB", &eval_draw);
+    add_endgame_entry("KNNvKP", &eval_knnkp);
 
     add_endgame_entry("KBNvK", &eval_kbnk);
 }
