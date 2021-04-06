@@ -110,7 +110,7 @@ score_t eval_kbnk(const board_t *board, color_t winning_side)
 
     // Don't push the king to the wrong corner
 
-    if (piecetype_bb(board, BISHOP) && DARK_SQUARES)
+    if (piecetype_bb(board, BISHOP) & DARK_SQUARES)
         losing_ksq ^= SQ_A8;
 
     score += abs(sq_file(losing_ksq) - sq_rank(losing_ksq)) * 100;
