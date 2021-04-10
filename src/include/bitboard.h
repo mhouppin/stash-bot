@@ -59,6 +59,7 @@ typedef uint64_t    bitboard_t;
 # define QUEENSIDE_BITS     0x0F0F0F0F0F0F0F0Full
 # define CENTER_FILES_BITS  0x3C3C3C3C3C3C3C3Cull
 
+extern bitboard_t   SquareBits[SQUARE_NB];
 extern bitboard_t   LineBits[SQUARE_NB][SQUARE_NB];
 extern bitboard_t   PseudoMoves[PIECETYPE_NB][SQUARE_NB];
 extern bitboard_t   PawnMoves[COLOR_NB][SQUARE_NB];
@@ -85,7 +86,7 @@ extern magic_t  BishopMagics[SQUARE_NB];
 
 INLINED bitboard_t  square_bb(square_t square)
 {
-    return (1ull << square);
+    return (SquareBits[square]);
 }
 
 INLINED bitboard_t  shift_up(bitboard_t b)

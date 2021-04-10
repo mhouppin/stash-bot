@@ -21,6 +21,7 @@
 #include "imath.h"
 #include "random.h"
 
+bitboard_t  SquareBits[SQUARE_NB];
 bitboard_t  LineBits[SQUARE_NB][SQUARE_NB];
 bitboard_t  PseudoMoves[PIECETYPE_NB][SQUARE_NB];
 bitboard_t  PawnMoves[COLOR_NB][SQUARE_NB];
@@ -136,6 +137,11 @@ void    bitboard_init(void)
     static const direction_t    _rook_directions[4] = {
         -8, -1, 1, 8
     };
+
+    // Initializes square-to-bitboard table.
+
+    for (square_t sq = SQ_A1; sq <= SQ_H8; ++sq)
+        SquareBits[sq] = (bitboard_t)1 << sq;
 
     // Initializes square distance table.
 
