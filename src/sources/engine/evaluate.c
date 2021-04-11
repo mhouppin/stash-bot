@@ -113,35 +113,11 @@ bool        is_kxk_endgame(const board_t *board, color_t c)
     if (more_than_one(color_bb(board, not_color(c))))
         return (false);
 
-    // We have at least a major piece, this is a KXK endgame
-
-    if (piecetypes_bb(board, ROOK, QUEEN))
-        return (true);
-
-    bitboard_t  bishop = piecetype_bb(board, BISHOP);
-
-    // We have at least two opposite colored bishops, this is a KXK endgame
-
-    if ((bishop & DARK_SQUARES) && (bishop & ~DARK_SQUARES))
-        return (true);
-
-    bitboard_t  knight = piecetype_bb(board, KNIGHT);
-
-    // We have either 3+ knights, or at least a knight and a bishop, this is a KXK endgame
-
-    if ((knight && bishop) || popcount(knight) >= 3)
-        return (true);
-
-    return (false);
+    return (board->stack->material[c] >= ROOK_MG_SCORE);
 }
 
 score_t     eval_kxk(const board_t *board, color_t c)
 {
-    bitboard_t  pawns = piecetype_bb(board, PAWN);
-    score_t     base_score = VICTORY + board->stack->material[c] + popcount(pawns) * PAWN_MG_SCORE;
-    square_t    winning_ksq = get_king_square(board, c);
-    square_t    losing_ksq = get_king_square(board, not_color(c));
-
     get_worker(board)->tb_hits++;
 
     // Be careful to avoid stalemating the weak king
@@ -154,21 +130,35 @@ score_t     eval_kxk(const board_t *board, color_t c)
             return (0);
     }
 
+    square_t    winning_ksq = get_king_square(board, c);
+    square_t    losing_ksq = get_king_square(board, not_color(c));
+    score_t     score = board->stack->material[c]
+        + popcount(piecetype_bb(board, PAWN)) * PAWN_MG_SCORE;
+
     // Push the weak king to the corner
 
-    file_t  file = sq_file(losing_ksq);
-    rank_t  rank = sq_rank(losing_ksq);
-
-    file = min(file, file ^ 7);
-    rank = min(rank, rank ^ 7);
-
-    base_score += 720 - (file * file + rank * rank) * 40;
+    score += edge_bonus(losing_ksq);
 
     // Give a bonus for close kings
 
-    base_score += 70 - 10 * SquareDistance[losing_ksq][winning_ksq];
+    score += close_bonus(winning_ksq, losing_ksq);
 
-    return (board->side_to_move == c ? base_score : -base_score);
+    // Set the score as winning if we have mating material:
+    // - a major piece;
+    // - a bishop and a knight;
+    // - two opposite colored bishops;
+    // - three knights.
+
+    bitboard_t knights = piecetype_bb(board, KNIGHT);
+    bitboard_t bishops = piecetype_bb(board, BISHOP);
+
+    if (piecetype_bb(board, QUEEN) || piecetype_bb(board, ROOK)
+        || (knights && bishops)
+        || ((bishops & DARK_SQUARES) && (bishops & ~DARK_SQUARES))
+        || (popcount(knights) >= 3))
+        score += VICTORY;
+
+    return (board->side_to_move == c ? score : -score);
 }
 
 void        eval_init(const board_t *board, evaluation_t *eval)

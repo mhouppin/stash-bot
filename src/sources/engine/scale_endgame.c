@@ -51,15 +51,14 @@ score_t scale_endgame(const board_t *board, score_t eg)
     bitboard_t  strong_pawns = piece_bb(board, strong_side, PAWN);
     bitboard_t  weak_pawns = piece_bb(board, weak_side, PAWN);
 
-    // Zero/one minor + no pawns, the endgame is unwinnable
-    if (strong_mat <= BISHOP_MG_SCORE && !strong_pawns)
-        factor = 0;
-
-    // No pawns and weak side has pieces, scale based on the remaining material
-    else if (!strong_pawns && weak_mat)
+    // No pawns and low material difference, the endgame is either drawn
+    // or very difficult to win.
+    if (!strong_pawns && strong_mat - weak_mat <= BISHOP_MG_SCORE)
     {
-        score_t s = strong_mat, w = weak_mat + popcount(weak_pawns) * PAWN_MG_SCORE;
-        factor = clamp((s + s - w) / 25, 16, 128);
+        if (strong_mat <= BISHOP_MG_SCORE)
+            factor = 0;
+        else
+            factor = clamp((strong_mat - weak_mat) / 8, 8, 32);
     }
 
     // OCB endgames: scale based on the number of remaining pieces of the strong side.
@@ -75,9 +74,10 @@ score_t scale_endgame(const board_t *board, score_t eg)
         && (king_moves(get_king_square(board, weak_side)) & weak_pawns))
         factor = 64;
 
-    // Other endgames.
+    // Other endgames. Decrease the endgame score as the number of pawns of the strong
+    // side gets lower.
     else
-        factor = 128;
+        factor = min(128, 96 + 8 * popcount(strong_pawns));
 
     eg = (score_t)((int32_t)eg * factor / 128);
 

@@ -34,6 +34,27 @@ INLINED square_t    normalize_square(const board_t *board, color_t winning, squa
     return (relative_sq(sq, winning));
 }
 
+INLINED score_t     edge_bonus(square_t sq)
+{
+    int rank = sq_rank(sq);
+    int file = sq_file(sq);
+
+    if (rank > 3) rank ^= 7;
+    if (file > 3) file ^= 7;
+
+    return (50 - 2 * (file * file + rank * rank));
+}
+
+INLINED score_t     close_bonus(square_t sq1, square_t sq2)
+{
+    return (70 - 10 * SquareDistance[sq1][sq2]);
+}
+
+INLINED score_t     away_bonus(square_t sq1, square_t sq2)
+{
+    return (10 + 10 * SquareDistance[sq1][sq2]);
+}
+
 typedef score_t (*endgame_func_t)(const board_t *, color_t);
 
 typedef struct endgame_entry_s
