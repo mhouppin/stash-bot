@@ -128,7 +128,7 @@ void        *engine_go(void *ptr)
             --SearchParams.nodes;
 
         WPool.checks = 1000;
-        worker->nodes = worker->tb_hits = 0;
+        worker->nodes = 0;
 
         // Initialize other workers' data
 
@@ -140,7 +140,7 @@ void        *engine_go(void *ptr)
             cur->stack = dup_boardstack(worker->stack);
             cur->board.stack = cur->stack;
             cur->board.worker = cur;
-            cur->nodes = cur->tb_hits = 0;
+            cur->nodes = 0;
 
             if (pthread_create(&cur->thread, &WorkerSettings, &engine_go, &cur->board))
             {

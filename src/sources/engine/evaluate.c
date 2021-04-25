@@ -118,8 +118,6 @@ bool        is_kxk_endgame(const board_t *board, color_t c)
 
 score_t     eval_kxk(const board_t *board, color_t c)
 {
-    get_worker(board)->tb_hits++;
-
     // Be careful to avoid stalemating the weak king
     if (board->side_to_move != c && !board->stack->checkers)
     {
@@ -407,10 +405,7 @@ score_t evaluate(const board_t *board)
     const endgame_entry_t *entry = endgame_probe(board);
 
     if (entry != NULL)
-    {
-        get_worker(board)->tb_hits++;
         return (entry->func(board, entry->winning_side));
-    }
 
     // Is there a KXK situation ? (lone King vs mating material)
 
