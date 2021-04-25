@@ -136,6 +136,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
     }
 
     bool    in_check = !!board->stack->checkers;
+    bool    improving = ss->plies >= 2 && ss->static_eval > (ss - 2)->static_eval;
 
     // Futility Pruning.
 
@@ -220,7 +221,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta,
         {
             // Late Move Pruning.
 
-            if (depth <= 3 && move_count > depth * 8)
+            if (depth <= 3 && move_count > depth * (improving ? 8 : 5))
                 skip_quiets = true;
 
             // Futility Pruning.
