@@ -26,8 +26,8 @@
 
 enum
 {
-    HistoryMaxScore = 1024,
-    HistoryScale = 16,
+    HistoryMaxScore = 8192,
+    HistoryScale = 2,
     HistoryResolution = HistoryMaxScore * HistoryScale
 };
 
