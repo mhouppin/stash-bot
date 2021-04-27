@@ -101,7 +101,7 @@ static void score_evasions(movepick_t *mp, extmove_t *begin, extmove_t *end)
             piecetype_t moved = piece_type(piece_on(mp->board, from_sq(begin->move)));
             piecetype_t captured = piece_type(piece_on(mp->board, to_sq(begin->move)));
 
-            begin->score = 4096 + captured * 8 - moved;
+            begin->score = 28672 + captured * 8 - moved;
         }
         else
         {
