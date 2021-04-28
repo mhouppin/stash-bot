@@ -21,12 +21,9 @@
 
 # include "board.h"
 
-enum
-{
-    EGTB_SIZE = 2048
-};
+enum { EGTB_SIZE = 2048 };
 
-INLINED square_t    normalize_square(const board_t *board, color_t winning, square_t sq)
+INLINED square_t normalize_square(const board_t *board, color_t winning, square_t sq)
 {
     if (sq_file(bb_first_sq(piece_bb(board, winning, PAWN))) >= FILE_E)
         sq ^= FILE_H;
@@ -34,7 +31,7 @@ INLINED square_t    normalize_square(const board_t *board, color_t winning, squa
     return (relative_sq(sq, winning));
 }
 
-INLINED score_t     edge_bonus(square_t sq)
+INLINED score_t edge_bonus(square_t sq)
 {
     int rank = sq_rank(sq);
     int file = sq_file(sq);
@@ -45,12 +42,12 @@ INLINED score_t     edge_bonus(square_t sq)
     return (50 - 2 * (file * file + rank * rank));
 }
 
-INLINED score_t     close_bonus(square_t sq1, square_t sq2)
+INLINED score_t close_bonus(square_t sq1, square_t sq2)
 {
     return (70 - 10 * SquareDistance[sq1][sq2]);
 }
 
-INLINED score_t     away_bonus(square_t sq1, square_t sq2)
+INLINED score_t away_bonus(square_t sq1, square_t sq2)
 {
     return (10 + 10 * SquareDistance[sq1][sq2]);
 }
@@ -59,27 +56,27 @@ typedef score_t (*endgame_func_t)(const board_t *, color_t);
 
 typedef struct endgame_entry_s
 {
-    hashkey_t       key;
-    endgame_func_t  func;
-    color_t         winning_side;
+    hashkey_t key;
+    endgame_func_t func;
+    color_t winningSide;
 }
 endgame_entry_t;
 
 extern endgame_entry_t EndgameTable[EGTB_SIZE];
 
-void    init_endgame_table(void);
-void    init_kpk_bitbase(void);
+void init_endgame_table(void);
+void init_kpk_bitbase(void);
 
-score_t eval_draw(const board_t *board, color_t winning_side);
-score_t eval_krkn(const board_t *board, color_t winning_side);
-score_t eval_krkp(const board_t *board, color_t winning_side);
-score_t eval_krkb(const board_t *board, color_t winning_side);
-score_t eval_kbnk(const board_t *board, color_t winning_side);
-score_t eval_kqkr(const board_t *board, color_t winning_side);
-score_t eval_kqkp(const board_t *board, color_t winning_side);
-score_t eval_kpk(const board_t *board, color_t winning_side);
-score_t eval_knnkp(const board_t *board, color_t winning_side);
+score_t eval_draw(const board_t *board, color_t winningSide);
+score_t eval_krkn(const board_t *board, color_t winningSide);
+score_t eval_krkp(const board_t *board, color_t winningSide);
+score_t eval_krkb(const board_t *board, color_t winningSide);
+score_t eval_kbnk(const board_t *board, color_t winningSide);
+score_t eval_kqkr(const board_t *board, color_t winningSide);
+score_t eval_kqkp(const board_t *board, color_t winningSide);
+score_t eval_kpk(const board_t *board, color_t winningSide);
+score_t eval_knnkp(const board_t *board, color_t winningSide);
 
-const endgame_entry_t   *endgame_probe(const board_t *board);
+const endgame_entry_t *endgame_probe(const board_t *board);
 
 #endif

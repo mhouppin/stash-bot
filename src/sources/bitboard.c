@@ -21,23 +21,23 @@
 #include "imath.h"
 #include "random.h"
 
-bitboard_t  SquareBits[SQUARE_NB];
-bitboard_t  LineBits[SQUARE_NB][SQUARE_NB];
-bitboard_t  PseudoMoves[PIECETYPE_NB][SQUARE_NB];
-bitboard_t  PawnMoves[COLOR_NB][SQUARE_NB];
-magic_t     BishopMagics[SQUARE_NB];
-magic_t     RookMagics[SQUARE_NB];
-int         SquareDistance[SQUARE_NB][SQUARE_NB];
+bitboard_t SquareBits[SQUARE_NB];
+bitboard_t LineBits[SQUARE_NB][SQUARE_NB];
+bitboard_t PseudoMoves[PIECETYPE_NB][SQUARE_NB];
+bitboard_t PawnMoves[COLOR_NB][SQUARE_NB];
+magic_t BishopMagics[SQUARE_NB];
+magic_t RookMagics[SQUARE_NB];
+int SquareDistance[SQUARE_NB][SQUARE_NB];
 
-bitboard_t  HiddenRookTable[0x19000];
-bitboard_t  HiddenBishopTable[0x1480];
+bitboard_t HiddenRookTable[0x19000];
+bitboard_t HiddenBishopTable[0x1480];
 
 // Returns a bitboard representing all the reachable squares by a bishop
 // (or rook) from given square and given occupied squares.
 
-bitboard_t  sliding_attack(const direction_t *directions, square_t square, bitboard_t occupied)
+bitboard_t sliding_attack(const direction_t *directions, square_t square, bitboard_t occupied)
 {
-    bitboard_t  attack = 0;
+    bitboard_t attack = 0;
 
     for (int i = 0; i < 4; ++i)
         for (square_t s = square + directions[i];
@@ -53,19 +53,16 @@ bitboard_t  sliding_attack(const direction_t *directions, square_t square, bitbo
 
 // Initializes magic bitboard tables necessary for bishop, rook and queen moves.
 
-void    magic_init(bitboard_t *table, magic_t *magics, const direction_t *directions)
+void magic_init(bitboard_t *table, magic_t *magics, const direction_t *directions)
 {
-    bitboard_t  reference[4096];
-    bitboard_t  edges;
-    bitboard_t  b;
+    bitboard_t reference[4096], edges, b;
 
 #ifndef USE_PEXT
-    bitboard_t  occupancy[4096];
-    int         epoch[4096] = {0};
-    int         counter = 0;
+    bitboard_t occupancy[4096];
+    int epoch[4096] = {0}, counter = 0;
 #endif
 
-    int         size = 0;
+    int size = 0;
 
     for (square_t square = SQ_A1; square <= SQ_H8; ++square)
     {
@@ -106,7 +103,7 @@ void    magic_init(bitboard_t *table, magic_t *magics, const direction_t *direct
 
             for (++counter, i = 0; i < size; ++i)
             {
-                unsigned int    index = magic_index(m, occupancy[i]);
+                unsigned int index = magic_index(m, occupancy[i]);
 
                 if (epoch[index] < counter)
                 {
@@ -125,16 +122,16 @@ void    magic_init(bitboard_t *table, magic_t *magics, const direction_t *direct
 
 void    bitboard_init(void)
 {
-    static const direction_t    _king_directions[8] = {
+    static const direction_t kingDirections[8] = {
         -9, -8, -7, -1, 1, 7, 8, 9
     };
-    static const direction_t    _knight_directions[8] = {
+    static const direction_t knightDirections[8] = {
         -17, -15, -10, -6, 6, 10, 15, 17
     };
-    static const direction_t    _bishop_directions[4] = {
+    static const direction_t bishopDirections[4] = {
         -9, -7, 7, 9
     };
-    static const direction_t    _rook_directions[4] = {
+    static const direction_t rookDirections[4] = {
         -8, -1, 1, 8
     };
 
@@ -148,17 +145,17 @@ void    bitboard_init(void)
     for (square_t sq1 = SQ_A1; sq1 <= SQ_H8; ++sq1)
         for (square_t sq2 = SQ_A1; sq2 <= SQ_H8; ++sq2)
         {
-            int file_distance = abs(sq_file(sq1) - sq_file(sq2));
-            int rank_distance = abs(sq_rank(sq1) - sq_rank(sq2));
+            int fileDistance = abs(sq_file(sq1) - sq_file(sq2));
+            int rankDistance = abs(sq_rank(sq1) - sq_rank(sq2));
 
-            SquareDistance[sq1][sq2] = max(file_distance, rank_distance);
+            SquareDistance[sq1][sq2] = max(fileDistance, rankDistance);
         }
 
     // Initializes pawn pseudo-moves table.
 
     for (square_t square = SQ_A1; square <= SQ_H8; ++square)
     {
-        bitboard_t  b = square_bb(square);
+        bitboard_t b = square_bb(square);
 
         PawnMoves[WHITE][square] = (shift_up_left(b) | shift_up_right(b));
         PawnMoves[BLACK][square] = (shift_down_left(b) | shift_down_right(b));
@@ -170,7 +167,7 @@ void    bitboard_init(void)
     {
         for (int i = 0; i < 8; ++i)
         {
-            square_t    to = square + _king_directions[i];
+            square_t to = square + kingDirections[i];
 
             if (is_valid_sq(to) && SquareDistance[square][to] <= 2)
                 PseudoMoves[KING][square] |= square_bb(to);
@@ -178,15 +175,15 @@ void    bitboard_init(void)
 
         for (int i = 0; i < 8; ++i)
         {
-            square_t    to = square + _knight_directions[i];
+            square_t to = square + knightDirections[i];
 
             if (is_valid_sq(to) && SquareDistance[square][to] <= 2)
                 PseudoMoves[KNIGHT][square] |= square_bb(to);
         }
     }
 
-    magic_init(HiddenBishopTable, BishopMagics, _bishop_directions);
-    magic_init(HiddenRookTable, RookMagics, _rook_directions);
+    magic_init(HiddenBishopTable, BishopMagics, bishopDirections);
+    magic_init(HiddenRookTable, RookMagics, rookDirections);
 
     // Initializes bishop, rook and queen pseudo-moves table.
 

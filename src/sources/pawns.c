@@ -125,12 +125,12 @@ scorepair_t evaluate_doubled_isolated(bitboard_t us)
 pawn_entry_t    *pawn_probe(const board_t *board)
 {
     pawn_entry_t   *entry =
-        get_worker(board)->pawn_table + (board->stack->pawn_key % PawnTableSize);
+        get_worker(board)->pawn_table + (board->stack->pawnKey % PawnTableSize);
 
-    if (entry->key == board->stack->pawn_key)
+    if (entry->key == board->stack->pawnKey)
         return (entry);
 
-    entry->key = board->stack->pawn_key;
+    entry->key = board->stack->pawnKey;
     entry->value = 0;
     entry->attack_span[WHITE] = entry->attack_span[BLACK] = 0;
 

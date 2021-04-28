@@ -22,7 +22,7 @@
 # include <stdint.h>
 # include "inlining.h"
 
-typedef int8_t  color_t;
+typedef int8_t color_t;
 
 enum
 {

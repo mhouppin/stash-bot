@@ -102,15 +102,15 @@ extmove_t   *generate_pawn_capture_moves(extmove_t *movelist, const board_t *boa
         (movelist++)->move = create_move(to - pawn_push - EAST, to);
     }
     
-    if (board->stack->en_passant_square != SQ_NONE)
+    if (board->stack->enPassantSquare != SQ_NONE)
     {
         bitboard_t  capture_en_passant = pawns_not_on_last_rank
-            & pawn_moves(board->stack->en_passant_square, not_color(us));
+            & pawn_moves(board->stack->enPassantSquare, not_color(us));
 
         while (capture_en_passant)
             (movelist++)->move = create_en_passant(
                 bb_pop_first_sq(&capture_en_passant),
-                board->stack->en_passant_square);
+                board->stack->enPassantSquare);
     }
 
     return (movelist);
@@ -118,17 +118,17 @@ extmove_t   *generate_pawn_capture_moves(extmove_t *movelist, const board_t *boa
 
 extmove_t   *generate_captures(extmove_t *movelist, const board_t *board, bool in_qsearch)
 {
-    color_t     us = board->side_to_move;
+    color_t     us = board->sideToMove;
     bitboard_t  target = color_bb(board, not_color(us));
-    square_t    king_square = get_king_square(board, us);
+    square_t    kingSquare = get_king_square(board, us);
 
     movelist = generate_pawn_capture_moves(movelist, board, us, target, in_qsearch);
 
     for (piecetype_t pt = KNIGHT; pt <= QUEEN; ++pt)
         movelist = generate_piece_moves(movelist, board, us, pt, target);
 
-    for (bitboard_t b = king_moves(king_square) & target; b; )
-        (movelist++)->move = create_move(king_square, bb_pop_first_sq(&b));
+    for (bitboard_t b = king_moves(kingSquare) & target; b; )
+        (movelist++)->move = create_move(kingSquare, bb_pop_first_sq(&b));
 
     return (movelist);
 }
@@ -163,17 +163,17 @@ extmove_t   *generate_white_quiet(extmove_t *movelist, const board_t *board, bit
     for (piecetype_t pt = KNIGHT; pt <= QUEEN; ++pt)
         movelist = generate_piece_moves(movelist, board, WHITE, pt, target);
 
-    square_t    king_square = get_king_square(board, WHITE);
-    bitboard_t  b = king_moves(king_square) & target;
+    square_t    kingSquare = get_king_square(board, WHITE);
+    bitboard_t  b = king_moves(kingSquare) & target;
 
     while (b)
-        (movelist++)->move = create_move(king_square, bb_pop_first_sq(&b));
+        (movelist++)->move = create_move(kingSquare, bb_pop_first_sq(&b));
 
     if (!castling_blocked(board, WHITE_OO) && (board->stack->castlings & WHITE_OO))
-        (movelist++)->move = create_castling(king_square, board->castling_rook_square[WHITE_OO]);
+        (movelist++)->move = create_castling(kingSquare, board->castlingRookSquare[WHITE_OO]);
 
     if (!castling_blocked(board, WHITE_OOO) && (board->stack->castlings & WHITE_OOO))
-        (movelist++)->move = create_castling(king_square, board->castling_rook_square[WHITE_OOO]);
+        (movelist++)->move = create_castling(kingSquare, board->castlingRookSquare[WHITE_OOO]);
 
     return (movelist);
 }
@@ -185,24 +185,24 @@ extmove_t   *generate_black_quiet(extmove_t *movelist, const board_t *board, bit
     for (piecetype_t pt = KNIGHT; pt <= QUEEN; ++pt)
         movelist = generate_piece_moves(movelist, board, BLACK, pt, target);
 
-    square_t    king_square = get_king_square(board, BLACK);
-    bitboard_t  b = king_moves(king_square) & target;
+    square_t    kingSquare = get_king_square(board, BLACK);
+    bitboard_t  b = king_moves(kingSquare) & target;
 
     while (b)
-        (movelist++)->move = create_move(king_square, bb_pop_first_sq(&b));
+        (movelist++)->move = create_move(kingSquare, bb_pop_first_sq(&b));
 
     if (!castling_blocked(board, BLACK_OO) && (board->stack->castlings & BLACK_OO))
-        (movelist++)->move = create_castling(king_square, board->castling_rook_square[BLACK_OO]);
+        (movelist++)->move = create_castling(kingSquare, board->castlingRookSquare[BLACK_OO]);
 
     if (!castling_blocked(board, BLACK_OOO) && (board->stack->castlings & BLACK_OOO))
-        (movelist++)->move = create_castling(king_square, board->castling_rook_square[BLACK_OOO]);
+        (movelist++)->move = create_castling(kingSquare, board->castlingRookSquare[BLACK_OOO]);
 
     return (movelist);
 }
 
 extmove_t   *generate_quiet(extmove_t *movelist, const board_t *board)
 {
-    color_t     us = board->side_to_move;
+    color_t     us = board->sideToMove;
     bitboard_t  target = ~occupancy_bb(board);
 
     return (us == WHITE ? generate_white_quiet(movelist, board, target)
@@ -259,15 +259,15 @@ extmove_t   *generate_classic_pawn_moves(extmove_t *movelist, const board_t *boa
         (movelist++)->move = create_move(to - pawn_push - EAST, to);
     }
     
-    if (board->stack->en_passant_square != SQ_NONE)
+    if (board->stack->enPassantSquare != SQ_NONE)
     {
         bitboard_t  capture_en_passant = pawns_not_on_last_rank
-            & pawn_moves(board->stack->en_passant_square, not_color(us));
+            & pawn_moves(board->stack->enPassantSquare, not_color(us));
 
         while (capture_en_passant)
             (movelist++)->move = create_en_passant(
                 bb_pop_first_sq(&capture_en_passant),
-                board->stack->en_passant_square);
+                board->stack->enPassantSquare);
     }
 
     return (movelist);
@@ -280,17 +280,17 @@ extmove_t   *generate_white_classic(extmove_t *movelist, const board_t *board, b
     for (piecetype_t pt = KNIGHT; pt <= QUEEN; ++pt)
         movelist = generate_piece_moves(movelist, board, WHITE, pt, target);
 
-    square_t    king_square = get_king_square(board, WHITE);
-    bitboard_t  b = king_moves(king_square) & target;
+    square_t    kingSquare = get_king_square(board, WHITE);
+    bitboard_t  b = king_moves(kingSquare) & target;
 
     while (b)
-        (movelist++)->move = create_move(king_square, bb_pop_first_sq(&b));
+        (movelist++)->move = create_move(kingSquare, bb_pop_first_sq(&b));
 
     if (!castling_blocked(board, WHITE_OO) && (board->stack->castlings & WHITE_OO))
-        (movelist++)->move = create_castling(king_square, board->castling_rook_square[WHITE_OO]);
+        (movelist++)->move = create_castling(kingSquare, board->castlingRookSquare[WHITE_OO]);
 
     if (!castling_blocked(board, WHITE_OOO) && (board->stack->castlings & WHITE_OOO))
-        (movelist++)->move = create_castling(king_square, board->castling_rook_square[WHITE_OOO]);
+        (movelist++)->move = create_castling(kingSquare, board->castlingRookSquare[WHITE_OOO]);
 
     return (movelist);
 }
@@ -302,24 +302,24 @@ extmove_t   *generate_black_classic(extmove_t *movelist, const board_t *board, b
     for (piecetype_t pt = KNIGHT; pt <= QUEEN; ++pt)
         movelist = generate_piece_moves(movelist, board, BLACK, pt, target);
 
-    square_t    king_square = get_king_square(board, BLACK);
-    bitboard_t  b = king_moves(king_square) & target;
+    square_t    kingSquare = get_king_square(board, BLACK);
+    bitboard_t  b = king_moves(kingSquare) & target;
 
     while (b)
-        (movelist++)->move = create_move(king_square, bb_pop_first_sq(&b));
+        (movelist++)->move = create_move(kingSquare, bb_pop_first_sq(&b));
 
     if (!castling_blocked(board, BLACK_OO) && (board->stack->castlings & BLACK_OO))
-        (movelist++)->move = create_castling(king_square, board->castling_rook_square[BLACK_OO]);
+        (movelist++)->move = create_castling(kingSquare, board->castlingRookSquare[BLACK_OO]);
 
     if (!castling_blocked(board, BLACK_OOO) && (board->stack->castlings & BLACK_OOO))
-        (movelist++)->move = create_castling(king_square, board->castling_rook_square[BLACK_OOO]);
+        (movelist++)->move = create_castling(kingSquare, board->castlingRookSquare[BLACK_OOO]);
 
     return (movelist);
 }
 
 extmove_t   *generate_classic(extmove_t *movelist, const board_t *board)
 {
-    color_t     us = board->side_to_move;
+    color_t     us = board->sideToMove;
     bitboard_t  target = ~color_bb(board, us);
 
     return (us == WHITE ? generate_white_classic(movelist, board, target)
@@ -382,18 +382,18 @@ extmove_t   *generate_pawn_evasion_moves(extmove_t *movelist, const board_t *boa
         (movelist++)->move = create_move(to - pawn_push - EAST, to);
     }
 
-    if (board->stack->en_passant_square != SQ_NONE)
+    if (board->stack->enPassantSquare != SQ_NONE)
     {
-        if (!(block_squares & square_bb(board->stack->en_passant_square - pawn_push)))
+        if (!(block_squares & square_bb(board->stack->enPassantSquare - pawn_push)))
             return (movelist);
 
         bitboard_t  capture_en_passant = pawns_not_on_last_rank
-            & pawn_moves(board->stack->en_passant_square, not_color(us));
+            & pawn_moves(board->stack->enPassantSquare, not_color(us));
 
         while (capture_en_passant)
             (movelist++)->move = create_en_passant(
                 bb_pop_first_sq(&capture_en_passant),
-                board->stack->en_passant_square);
+                board->stack->enPassantSquare);
     }
 
     return (movelist);
@@ -421,27 +421,27 @@ extmove_t   *generate_black_evasions(extmove_t *movelist, const board_t *board, 
 
 extmove_t   *generate_evasions(extmove_t *movelist, const board_t *board)
 {
-    color_t     us = board->side_to_move;
-    square_t    king_square = get_king_square(board, us);
+    color_t     us = board->sideToMove;
+    square_t    kingSquare = get_king_square(board, us);
     bitboard_t  slider_attacks = 0;
     bitboard_t  sliders = board->stack->checkers & ~piecetypes_bb(board, KNIGHT, PAWN);
 
     while (sliders)
     {
         square_t    check_square = bb_pop_first_sq(&sliders);
-        slider_attacks |= LineBits[check_square][king_square] ^ square_bb(check_square);
+        slider_attacks |= LineBits[check_square][kingSquare] ^ square_bb(check_square);
     }
 
-    bitboard_t  b = king_moves(king_square) & ~color_bb(board, us) & ~slider_attacks;
+    bitboard_t  b = king_moves(kingSquare) & ~color_bb(board, us) & ~slider_attacks;
 
     while (b)
-        (movelist++)->move = create_move(king_square, bb_pop_first_sq(&b));
+        (movelist++)->move = create_move(kingSquare, bb_pop_first_sq(&b));
 
     if (more_than_one(board->stack->checkers))
         return (movelist);
 
     square_t    check_square = bb_first_sq(board->stack->checkers);
-    bitboard_t  target = between_bb(check_square, king_square) | square_bb(check_square);
+    bitboard_t  target = between_bb(check_square, kingSquare) | square_bb(check_square);
 
     if (us == WHITE)
         return (generate_white_evasions(movelist, board, target));
@@ -451,9 +451,9 @@ extmove_t   *generate_evasions(extmove_t *movelist, const board_t *board)
 
 extmove_t   *generate_all(extmove_t *movelist, const board_t *board)
 {
-    color_t     us = board->side_to_move;
-    bitboard_t  pinned = board->stack->king_blockers[us] & color_bb(board, us);
-    square_t    king_square = get_king_square(board, us);
+    color_t     us = board->sideToMove;
+    bitboard_t  pinned = board->stack->kingBlockers[us] & color_bb(board, us);
+    square_t    kingSquare = get_king_square(board, us);
     extmove_t   *current = movelist;
 
     movelist = board->stack->checkers ? generate_evasions(movelist, board)
@@ -461,7 +461,7 @@ extmove_t   *generate_all(extmove_t *movelist, const board_t *board)
 
     while (current < movelist)
     {
-        if ((pinned || from_sq(current->move) == king_square
+        if ((pinned || from_sq(current->move) == kingSquare
             || move_type(current->move) == EN_PASSANT)
             && !move_is_legal(board, current->move))
             current->move = (--movelist)->move;

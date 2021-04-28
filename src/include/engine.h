@@ -26,27 +26,24 @@
 
 enum { MAX_PLIES = 240 };
 
-extern int  Reductions[64][64];
+extern int Reductions[64][64];
 
-void        sort_root_moves(root_move_t *begin, root_move_t *end);
+void sort_root_moves(root_move_t *begin, root_move_t *end);
 root_move_t *find_root_move(root_move_t *begin, root_move_t *end, move_t move);
 
-void    *engine_go(void *ptr);
+void *engine_go(void *ptr);
 score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss);
 score_t search(board_t *board, int depth, score_t alpha, score_t beta,
-        searchstack_t *ss, bool pv_node);
+    searchstack_t *ss, bool pvNode);
 
-void    check_time(void);
-
-void    update_quiet_history(const board_t *board, int depth,
-        move_t bestmove, const move_t quiets[64], int qcount, searchstack_t *ss);
+void update_quiet_history(const board_t *board, int depth,
+    move_t bestmove, const move_t quiets[64], int qcount, searchstack_t *ss);
 
 score_t evaluate(const board_t *board);
 score_t scale_endgame(const board_t *board, score_t eg);
 
-void    print_pv(const board_t *board, root_move_t *root_move, int multi_pv,
-        int depth, clock_t time, int bound);
+void init_reduction_table(void);
 
-void    init_reduction_table(void);
+void *engine_thread(void *nothing);
 
 #endif

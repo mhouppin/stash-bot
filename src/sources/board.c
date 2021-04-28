@@ -27,17 +27,16 @@
 #include "tt.h"
 #include "uci.h"
 
-void    set_board(board_t *board, char *fen, bool is_chess960,
-        boardstack_t *bstack)
+void set_board(board_t *board, char *fen, bool isChess960, boardstack_t *bstack)
 {
-    square_t    square = SQ_A8;
-    char        *ptr = fen;
-    char        *fen_pieces = get_next_token(&ptr);
-    char        *fen_side_to_move = get_next_token(&ptr);
-    char        *fen_castlings = get_next_token(&ptr);
-    char        *fen_en_passant = get_next_token(&ptr);
-    char        *fen_rule50 = get_next_token(&ptr);
-    char        *fen_turn = get_next_token(&ptr);
+    square_t square = SQ_A8;
+    char *ptr = fen;
+    char *fenPieces = get_next_token(&ptr);
+    char *fenSideToMove = get_next_token(&ptr);
+    char *fenCastlings = get_next_token(&ptr);
+    char *fenEnPassant = get_next_token(&ptr);
+    char *fenRule50 = get_next_token(&ptr);
+    char *fenTurn = get_next_token(&ptr);
 
     memset(board, 0, sizeof(board_t));
     memset(bstack, 0, sizeof(boardstack_t));
@@ -46,9 +45,9 @@ void    set_board(board_t *board, char *fen, bool is_chess960,
 
     // Scans the piece section of the FEN.
 
-    for (size_t i = 0; fen_pieces[i]; ++i)
+    for (size_t i = 0; fenPieces[i]; ++i)
     {
-        switch (fen_pieces[i])
+        switch (fenPieces[i])
         {
             case '1':
             case '2':
@@ -58,7 +57,7 @@ void    set_board(board_t *board, char *fen, bool is_chess960,
             case '6':
             case '7':
             case '8':
-                square += (fen_pieces[i] - '0');
+                square += (fenPieces[i] - '0');
                 break ;
 
             case '/':
@@ -117,265 +116,244 @@ void    set_board(board_t *board, char *fen, bool is_chess960,
 
     // Gets the side to move.
 
-    board->side_to_move = (strcmp(fen_side_to_move, "w") == 0 ? WHITE : BLACK);
+    board->sideToMove = (strcmp(fenSideToMove, "w") == 0 ? WHITE : BLACK);
 
     // Gets the allowed castlings.
 
-    for (size_t i = 0; fen_castlings[i]; ++i)
+    for (size_t i = 0; fenCastlings[i]; ++i)
     {
-        square_t    rook_square;
-        color_t     color = islower(fen_castlings[i]) ? BLACK : WHITE;
-        piece_t     rook = create_piece(color, ROOK);
+        square_t rookSquare;
+        color_t color = islower(fenCastlings[i]) ? BLACK : WHITE;
+        piece_t rook = create_piece(color, ROOK);
 
-        fen_castlings[i] = toupper(fen_castlings[i]);
+        fenCastlings[i] = toupper(fenCastlings[i]);
 
-        if (fen_castlings[i] == 'K')
-            for (rook_square = relative_sq(SQ_H1, color);
-                piece_on(board, rook_square) != rook; --rook_square) {}
+        if (fenCastlings[i] == 'K')
+            for (rookSquare = relative_sq(SQ_H1, color);
+                piece_on(board, rookSquare) != rook; --rookSquare) {}
 
-        else if (fen_castlings[i] == 'Q')
-            for (rook_square = relative_sq(SQ_A1, color);
-                piece_on(board, rook_square) != rook; ++rook_square) {}
+        else if (fenCastlings[i] == 'Q')
+            for (rookSquare = relative_sq(SQ_A1, color);
+                piece_on(board, rookSquare) != rook; ++rookSquare) {}
 
-        else if (fen_castlings[i] >= 'A' && fen_castlings[i] <= 'H')
-            rook_square = create_sq((file_t)(fen_castlings[i] - 'A'),
+        else if (fenCastlings[i] >= 'A' && fenCastlings[i] <= 'H')
+            rookSquare = create_sq((file_t)(fenCastlings[i] - 'A'),
                 relative_rank(RANK_1, color));
 
         else
             continue ;
 
-        set_castling(board, color, rook_square);
+        set_castling(board, color, rookSquare);
     }
 
     // Gets the en-passant square, if any.
 
-    if (fen_en_passant[0] >= 'a' && fen_en_passant[0] <= 'h'
-        && (fen_en_passant[1] == '3' || fen_en_passant[1] == '6'))
+    if (fenEnPassant[0] >= 'a' && fenEnPassant[0] <= 'h'
+        && (fenEnPassant[1] == '3' || fenEnPassant[1] == '6'))
     {
-        board->stack->en_passant_square = create_sq(
-            fen_en_passant[0] - 'a', fen_en_passant[1] - '1');
+        board->stack->enPassantSquare = create_sq(fenEnPassant[0] - 'a', fenEnPassant[1] - '1');
 
         // If no pawn is able to make the en passant capture,
         // or no opponent pawn is present in front of the en passant square,
         // remove it.
 
-        if (!(attackers_to(board, board->stack->en_passant_square)
-                & piece_bb(board, board->side_to_move, PAWN))
-            || !(piece_bb(board, not_color(board->side_to_move), PAWN)
-                & square_bb(board->stack->en_passant_square
-                    + pawn_direction(not_color(board->side_to_move)))))
-            board->stack->en_passant_square = SQ_NONE;
+        if (!(attackers_to(board, board->stack->enPassantSquare)
+                & piece_bb(board, board->sideToMove, PAWN))
+            || !(piece_bb(board, not_color(board->sideToMove), PAWN)
+                & square_bb(board->stack->enPassantSquare
+                    + pawn_direction(not_color(board->sideToMove)))))
+            board->stack->enPassantSquare = SQ_NONE;
     }
     else
-        board->stack->en_passant_square = SQ_NONE;
+        board->stack->enPassantSquare = SQ_NONE;
 
     // If the user omits the last two fields (50mr and plies from start),
     // allow the parsing to still work correctly.
 
-    if (!fen_rule50)
-        board->stack->rule50 = 0;
-    else
-        board->stack->rule50 = atoi(fen_rule50);
-
-    if (!fen_turn)
-        board->ply = 0;
-    else
-        board->ply = atoi(fen_turn);
-
-    board->ply = 2 * (board->ply - 1);
-
-    if (board->ply < 0)
-        board->ply = 0;
-
-    board->ply += (board->side_to_move == BLACK);
-
-    board->chess960 = is_chess960;
+    board->stack->rule50 = fenRule50 ? atoi(fenRule50) : 0;
+    board->ply = fenTurn ? atoi(fenTurn) : 0;
+    board->ply = max(0, 2 * (board->ply - 1));
+    board->ply += (board->sideToMove == BLACK);
+    board->chess960 = isChess960;
 
     set_boardstack(board, board->stack);
 }
 
-void    set_boardstack(board_t *board, boardstack_t *stack)
+void set_boardstack(board_t *board, boardstack_t *stack)
 {
-    stack->board_key = stack->pawn_key = board->stack->material_key = 0;
+    stack->boardKey = stack->pawnKey = board->stack->materialKey = 0;
     stack->material[WHITE] = stack->material[BLACK] = 0;
-    stack->checkers = attackers_to(board, get_king_square(board, board->side_to_move))
-        & color_bb(board, not_color(board->side_to_move));
+    stack->checkers = attackers_to(board, get_king_square(board, board->sideToMove))
+        & color_bb(board, not_color(board->sideToMove));
 
     set_check(board, stack);
 
-    for (bitboard_t b = board->piecetype_bits[ALL_PIECES]; b; )
+    for (bitboard_t b = occupancy_bb(board); b; )
     {
-        square_t    square = bb_pop_first_sq(&b);
-        piece_t     piece = piece_on(board, square);
+        square_t square = bb_pop_first_sq(&b);
+        piece_t piece = piece_on(board, square);
 
-        stack->board_key ^= ZobristPsq[piece][square];
+        stack->boardKey ^= ZobristPsq[piece][square];
 
         if (piece_type(piece) == PAWN)
-            stack->pawn_key ^= ZobristPsq[piece][square];
+            stack->pawnKey ^= ZobristPsq[piece][square];
 
         else if (piece_type(piece) != KING)
             stack->material[piece_color(piece)] += PieceScores[MIDGAME][piece];
     }
 
-    if (stack->en_passant_square != SQ_NONE)
-        stack->board_key ^= ZobristEnPassant[sq_file(stack->en_passant_square)];
+    if (stack->enPassantSquare != SQ_NONE)
+        stack->boardKey ^= ZobristEnPassant[sq_file(stack->enPassantSquare)];
 
-    if (board->side_to_move == BLACK)
-        stack->board_key ^= ZobristBlackToMove;
+    if (board->sideToMove == BLACK)
+        stack->boardKey ^= ZobristBlackToMove;
 
     for (color_t c = WHITE; c <= BLACK; ++c)
         for (piecetype_t pt = PAWN; pt <= KING; ++pt)
         {
-            piece_t     pc = create_piece(c, pt);
+            piece_t pc = create_piece(c, pt);
 
-            for (int i = 0; i < board->piece_count[pc]; ++i)
-                stack->material_key ^= ZobristPsq[pc][i];
+            for (int i = 0; i < board->pieceCount[pc]; ++i)
+                stack->materialKey ^= ZobristPsq[pc][i];
         }
 
-    stack->board_key ^= ZobristCastling[stack->castlings];
+    stack->boardKey ^= ZobristCastling[stack->castlings];
 }
 
-void    set_castling(board_t *board, color_t color, square_t rook_square)
+void set_castling(board_t *board, color_t color, square_t rookSquare)
 {
-    square_t    king_square = get_king_square(board, color);
-    int         castling = (color == WHITE ? WHITE_CASTLING : BLACK_CASTLING)
-        & (king_square < rook_square ? KINGSIDE_CASTLING : QUEENSIDE_CASTLING);
+    square_t kingSquare = get_king_square(board, color);
+    int castling = (color == WHITE ? WHITE_CASTLING : BLACK_CASTLING)
+        & (kingSquare < rookSquare ? KINGSIDE_CASTLING : QUEENSIDE_CASTLING);
 
     board->stack->castlings |= castling;
-    board->castling_mask[king_square] |= castling;
-    board->castling_mask[rook_square] |= castling;
-    board->castling_rook_square[castling] = rook_square;
+    board->castlingMask[kingSquare] |= castling;
+    board->castlingMask[rookSquare] |= castling;
+    board->castlingRookSquare[castling] = rookSquare;
 
-    square_t    king_after = relative_sq(castling & KINGSIDE_CASTLING ? SQ_G1 : SQ_C1, color);
-    square_t    rook_after = relative_sq(castling & KINGSIDE_CASTLING ? SQ_F1 : SQ_D1, color);
+    square_t kingAfter = relative_sq(castling & KINGSIDE_CASTLING ? SQ_G1 : SQ_C1, color);
+    square_t rookAfter = relative_sq(castling & KINGSIDE_CASTLING ? SQ_F1 : SQ_D1, color);
 
-    board->castling_path[castling] =
-        (between_bb(rook_square, rook_after) | between_bb(king_square, king_after)
-        | square_bb(rook_after) | square_bb(king_after))
-        & ~(square_bb(king_square) | square_bb(rook_square));
+    board->castlingPath[castling] =
+        (between_bb(rookSquare, rookAfter) | between_bb(kingSquare, kingAfter)
+        | square_bb(rookAfter) | square_bb(kingAfter))
+        & ~(square_bb(kingSquare) | square_bb(rookSquare));
 }
 
-void    set_check(board_t *board, boardstack_t *stack)
+void set_check(board_t *board, boardstack_t *stack)
 {
-    stack->king_blockers[WHITE] = slider_blockers(board,
-        color_bb(board, BLACK), get_king_square(board, WHITE),
-        &stack->pinners[BLACK]);
-    stack->king_blockers[BLACK] = slider_blockers(board,
-        color_bb(board, WHITE), get_king_square(board, BLACK),
-        &stack->pinners[WHITE]);
+    stack->kingBlockers[WHITE] = slider_blockers(board, color_bb(board, BLACK),
+        get_king_square(board, WHITE), &stack->pinners[BLACK]);
+    stack->kingBlockers[BLACK] = slider_blockers(board, color_bb(board, WHITE),
+        get_king_square(board, BLACK), &stack->pinners[WHITE]);
 
-    square_t    king_square = get_king_square(board, not_color(board->side_to_move));
+    square_t kingSquare = get_king_square(board, not_color(board->sideToMove));
 
-    stack->check_squares[PAWN] = pawn_moves(king_square, not_color(board->side_to_move));
-    stack->check_squares[KNIGHT] = knight_moves(king_square);
-    stack->check_squares[BISHOP] = bishop_moves(board, king_square);
-    stack->check_squares[ROOK] = rook_moves(board, king_square);
-    stack->check_squares[QUEEN] = stack->check_squares[BISHOP] | stack->check_squares[ROOK];
-    stack->check_squares[KING] = 0;
+    stack->checkSquares[PAWN] = pawn_moves(kingSquare, not_color(board->sideToMove));
+    stack->checkSquares[KNIGHT] = knight_moves(kingSquare);
+    stack->checkSquares[BISHOP] = bishop_moves(board, kingSquare);
+    stack->checkSquares[ROOK] = rook_moves(board, kingSquare);
+    stack->checkSquares[QUEEN] = stack->checkSquares[BISHOP] | stack->checkSquares[ROOK];
+    stack->checkSquares[KING] = 0;
 }
 
-boardstack_t    *dup_boardstack(const boardstack_t *stack)
+boardstack_t *dup_boardstack(const boardstack_t *stack)
 {
     if (!stack)
         return (NULL);
 
-    boardstack_t    *new_stack = malloc(sizeof(boardstack_t));
+    boardstack_t *newStack = malloc(sizeof(boardstack_t));
 
-    *new_stack = *stack;
-    new_stack->prev = dup_boardstack(stack->prev);
-    return (new_stack);
+    *newStack = *stack;
+    newStack->prev = dup_boardstack(stack->prev);
+    return (newStack);
 }
 
-void    free_boardstack(boardstack_t *stack)
+void free_boardstack(boardstack_t *stack)
 {
     while (stack)
     {
-        boardstack_t    *next = stack->prev;
+        boardstack_t *next = stack->prev;
         free(stack);
         stack = next;
     }
 }
 
-void    do_move_gc(board_t *board, move_t move, boardstack_t *next,
-        bool gives_check)
+void do_move_gc(board_t *board, move_t move, boardstack_t *next, bool givesCheck)
 {
     get_worker(board)->nodes += 1;
 
-    hashkey_t   key = board->stack->board_key ^ ZobristBlackToMove;
+    hashkey_t key = board->stack->boardKey ^ ZobristBlackToMove;
 
     next->castlings = board->stack->castlings;
     next->rule50 = board->stack->rule50;
-    next->plies_from_null_move = board->stack->plies_from_null_move;
-    next->en_passant_square = board->stack->en_passant_square;
-    next->pawn_key = board->stack->pawn_key;
-    next->material_key = board->stack->material_key;
+    next->pliesFromNullMove = board->stack->pliesFromNullMove;
+    next->enPassantSquare = board->stack->enPassantSquare;
+    next->pawnKey = board->stack->pawnKey;
+    next->materialKey = board->stack->materialKey;
     next->material[WHITE] = board->stack->material[WHITE];
     next->material[BLACK] = board->stack->material[BLACK];
 
     next->prev = board->stack;
     board->stack = next;
-
     board->ply += 1;
     board->stack->rule50 += 1;
-    board->stack->plies_from_null_move += 1;
+    board->stack->pliesFromNullMove += 1;
 
-    color_t     us = board->side_to_move;
-    color_t     them = not_color(us);
-    square_t    from = from_sq(move);
-    square_t    to = to_sq(move);
-    piece_t     piece = piece_on(board, from);
-    piece_t     captured_piece = move_type(move) == EN_PASSANT
+    color_t us = board->sideToMove, them = not_color(us);
+    square_t from = from_sq(move), to = to_sq(move);
+    piece_t piece = piece_on(board, from);
+    piece_t capturedPiece = move_type(move) == EN_PASSANT
         ? create_piece(them, PAWN) : piece_on(board, to);
 
     if (move_type(move) == CASTLING)
     {
-        square_t    rook_from;
-        square_t    rook_to;
+        square_t rookFrom, rookTo;
 
-        do_castling(board, us, from, &to, &rook_from, &rook_to);
+        do_castling(board, us, from, &to, &rookFrom, &rookTo);
 
-        key ^= ZobristPsq[captured_piece][rook_from];
-        key ^= ZobristPsq[captured_piece][rook_to];
+        key ^= ZobristPsq[capturedPiece][rookFrom];
+        key ^= ZobristPsq[capturedPiece][rookTo];
 
-        captured_piece = NO_PIECE;
+        capturedPiece = NO_PIECE;
     }
 
-    if (captured_piece)
+    if (capturedPiece)
     {
         square_t    captured_square = to;
 
-        if (piece_type(captured_piece) == PAWN)
+        if (piece_type(capturedPiece) == PAWN)
         {
             if (move_type(move) == EN_PASSANT)
                 captured_square -= pawn_direction(us);
 
-            board->stack->pawn_key ^= ZobristPsq[captured_piece][captured_square];
+            board->stack->pawnKey ^= ZobristPsq[capturedPiece][captured_square];
         }
         else
-            board->stack->material[them] -= PieceScores[MIDGAME][captured_piece];
+            board->stack->material[them] -= PieceScores[MIDGAME][capturedPiece];
 
         remove_piece(board, captured_square);
 
         if (move_type(move) == EN_PASSANT)
             board->table[captured_square] = NO_PIECE;
 
-        key ^= ZobristPsq[captured_piece][captured_square];
-        board->stack->material_key ^= ZobristPsq[captured_piece][board->piece_count[captured_piece]];
+        key ^= ZobristPsq[capturedPiece][captured_square];
+        board->stack->materialKey ^= ZobristPsq[capturedPiece][board->pieceCount[capturedPiece]];
         board->stack->rule50 = 0;
     }
 
     key ^= ZobristPsq[piece][from];
     key ^= ZobristPsq[piece][to];
 
-    if (board->stack->en_passant_square != SQ_NONE)
+    if (board->stack->enPassantSquare != SQ_NONE)
     {
-        key ^= ZobristEnPassant[sq_file(board->stack->en_passant_square)];
-        board->stack->en_passant_square = SQ_NONE;
+        key ^= ZobristEnPassant[sq_file(board->stack->enPassantSquare)];
+        board->stack->enPassantSquare = SQ_NONE;
     }
 
-    if (board->stack->castlings && (board->castling_mask[from] | board->castling_mask[to]))
+    if (board->stack->castlings && (board->castlingMask[from] | board->castlingMask[to]))
     {
-        int castling = board->castling_mask[from] | board->castling_mask[to];
+        int castling = board->castlingMask[from] | board->castlingMask[to];
         key ^= ZobristCastling[board->stack->castlings & castling];
         board->stack->castlings &= ~castling;
     }
@@ -388,8 +366,8 @@ void    do_move_gc(board_t *board, move_t move, boardstack_t *next,
         if ((to ^ from) == 16 && (pawn_moves(to - pawn_direction(us), us)
             & piece_bb(board, them, PAWN)))
         {
-            board->stack->en_passant_square = to - pawn_direction(us);
-            key ^= ZobristEnPassant[sq_file(board->stack->en_passant_square)];
+            board->stack->enPassantSquare = to - pawn_direction(us);
+            key ^= ZobristEnPassant[sq_file(board->stack->enPassantSquare)];
         }
         else if (move_type(move) == PROMOTION)
         {
@@ -399,33 +377,33 @@ void    do_move_gc(board_t *board, move_t move, boardstack_t *next,
             put_piece(board, new_piece, to);
 
             key ^= ZobristPsq[piece][to] ^ ZobristPsq[new_piece][to];
-            board->stack->pawn_key ^= ZobristPsq[piece][to];
+            board->stack->pawnKey ^= ZobristPsq[piece][to];
             board->stack->material[us] += PieceScores[MIDGAME][promotion_type(move)];
-            board->stack->material_key ^= ZobristPsq[new_piece][board->piece_count[new_piece] - 1];
-            board->stack->material_key ^= ZobristPsq[piece][board->piece_count[piece]];
+            board->stack->materialKey ^= ZobristPsq[new_piece][board->pieceCount[new_piece] - 1];
+            board->stack->materialKey ^= ZobristPsq[piece][board->pieceCount[piece]];
         }
 
-        board->stack->pawn_key ^= ZobristPsq[piece][from] ^ ZobristPsq[piece][to];
+        board->stack->pawnKey ^= ZobristPsq[piece][from] ^ ZobristPsq[piece][to];
 
         board->stack->rule50 = 0;
     }
 
-    board->stack->captured_piece = captured_piece;
-    board->stack->board_key = key;
+    board->stack->capturedPiece = capturedPiece;
+    board->stack->boardKey = key;
 
     prefetch(tt_entry_at(key));
 
-    board->stack->checkers = gives_check
+    board->stack->checkers = givesCheck
         ? attackers_to(board, get_king_square(board, them)) & color_bb(board, us)
         : 0;
 
-    board->side_to_move = not_color(board->side_to_move);
+    board->sideToMove = not_color(board->sideToMove);
 
     set_check(board, board->stack);
 
     board->stack->repetition = 0;
 
-    int repetition_plies = min(board->stack->rule50, board->stack->plies_from_null_move);
+    int repetition_plies = min(board->stack->rule50, board->stack->pliesFromNullMove);
 
     if (repetition_plies >= 4)
     {
@@ -433,7 +411,7 @@ void    do_move_gc(board_t *board, move_t move, boardstack_t *next,
         for (int i = 4; i <= repetition_plies; i += 2)
         {
             rewind = rewind->prev->prev;
-            if (rewind->board_key == board->stack->board_key)
+            if (rewind->boardKey == board->stack->boardKey)
             {
                 board->stack->repetition = rewind->repetition ? -i : i;
                 break ;
@@ -444,9 +422,9 @@ void    do_move_gc(board_t *board, move_t move, boardstack_t *next,
 
 void    undo_move(board_t *board, move_t move)
 {
-    board->side_to_move = not_color(board->side_to_move);
+    board->sideToMove = not_color(board->sideToMove);
 
-    color_t     us = board->side_to_move;
+    color_t     us = board->sideToMove;
     square_t    from = from_sq(move);
     square_t    to = to_sq(move);
     piece_t     piece = piece_on(board, to);
@@ -460,22 +438,22 @@ void    undo_move(board_t *board, move_t move)
 
     if (move_type(move) == CASTLING)
     {
-        square_t    rook_from;
-        square_t    rook_to;
-        undo_castling(board, us, from, &to, &rook_from, &rook_to);
+        square_t    rookFrom;
+        square_t    rookTo;
+        undo_castling(board, us, from, &to, &rookFrom, &rookTo);
     }
     else
     {
         move_piece(board, to, from);
 
-        if (board->stack->captured_piece)
+        if (board->stack->capturedPiece)
         {
             square_t    capture_square = to;
 
             if (move_type(move) == EN_PASSANT)
                 capture_square -= pawn_direction(us);
 
-            put_piece(board, board->stack->captured_piece, capture_square);
+            put_piece(board, board->stack->capturedPiece, capture_square);
         }
     }
 
@@ -483,36 +461,36 @@ void    undo_move(board_t *board, move_t move)
     board->ply -= 1;
 }
 
-void    do_castling(board_t *board, color_t us, square_t king_from,
-        square_t *king_to, square_t *rook_from, square_t *rook_to)
+void    do_castling(board_t *board, color_t us, square_t kingFrom,
+        square_t *kingTo, square_t *rookFrom, square_t *rookTo)
 {
-    bool    kingside = *king_to > king_from;
+    bool    kingside = *kingTo > kingFrom;
 
-    *rook_from = *king_to;
-    *rook_to = relative_sq(kingside ? SQ_F1 : SQ_D1, us);
-    *king_to = relative_sq(kingside ? SQ_G1 : SQ_C1, us);
+    *rookFrom = *kingTo;
+    *rookTo = relative_sq(kingside ? SQ_F1 : SQ_D1, us);
+    *kingTo = relative_sq(kingside ? SQ_G1 : SQ_C1, us);
 
-    remove_piece(board, king_from);
-    remove_piece(board, *rook_from);
-    board->table[king_from] = board->table[*rook_from] = NO_PIECE;
-    put_piece(board, create_piece(us, KING), *king_to);
-    put_piece(board, create_piece(us, ROOK), *rook_to);
+    remove_piece(board, kingFrom);
+    remove_piece(board, *rookFrom);
+    board->table[kingFrom] = board->table[*rookFrom] = NO_PIECE;
+    put_piece(board, create_piece(us, KING), *kingTo);
+    put_piece(board, create_piece(us, ROOK), *rookTo);
 }
 
-void    undo_castling(board_t *board, color_t us, square_t king_from,
-        square_t *king_to, square_t *rook_from, square_t *rook_to)
+void    undo_castling(board_t *board, color_t us, square_t kingFrom,
+        square_t *kingTo, square_t *rookFrom, square_t *rookTo)
 {
-    bool    kingside = *king_to > king_from;
+    bool    kingside = *kingTo > kingFrom;
 
-    *rook_from = *king_to;
-    *rook_to = relative_sq(kingside ? SQ_F1 : SQ_D1, us);
-    *king_to = relative_sq(kingside ? SQ_G1 : SQ_C1, us);
+    *rookFrom = *kingTo;
+    *rookTo = relative_sq(kingside ? SQ_F1 : SQ_D1, us);
+    *kingTo = relative_sq(kingside ? SQ_G1 : SQ_C1, us);
 
-    remove_piece(board, *king_to);
-    remove_piece(board, *rook_to);
-    board->table[*king_to] = board->table[*rook_to] = NO_PIECE;
-    put_piece(board, create_piece(us, KING), king_from);
-    put_piece(board, create_piece(us, ROOK), *rook_from);
+    remove_piece(board, *kingTo);
+    remove_piece(board, *rookTo);
+    board->table[*kingTo] = board->table[*rookTo] = NO_PIECE;
+    put_piece(board, create_piece(us, KING), kingFrom);
+    put_piece(board, create_piece(us, ROOK), *rookFrom);
 }
 
 void    do_null_move(board_t *board, boardstack_t *stack)
@@ -523,19 +501,19 @@ void    do_null_move(board_t *board, boardstack_t *stack)
     stack->prev = board->stack;
     board->stack = stack;
 
-    if (stack->en_passant_square != SQ_NONE)
+    if (stack->enPassantSquare != SQ_NONE)
     {
-        stack->board_key ^= ZobristEnPassant[sq_file(stack->en_passant_square)];
-        stack->en_passant_square = SQ_NONE;
+        stack->boardKey ^= ZobristEnPassant[sq_file(stack->enPassantSquare)];
+        stack->enPassantSquare = SQ_NONE;
     }
 
-    stack->board_key ^= ZobristBlackToMove;
-    prefetch(tt_entry_at(stack->board_key));
+    stack->boardKey ^= ZobristBlackToMove;
+    prefetch(tt_entry_at(stack->boardKey));
 
     ++stack->rule50;
-    stack->plies_from_null_move = 0;
+    stack->pliesFromNullMove = 0;
 
-    board->side_to_move = not_color(board->side_to_move);
+    board->sideToMove = not_color(board->sideToMove);
 
     set_check(board, stack);
 
@@ -545,7 +523,7 @@ void    do_null_move(board_t *board, boardstack_t *stack)
 void    undo_null_move(board_t *board)
 {
     board->stack = board->stack->prev;
-    board->side_to_move = not_color(board->side_to_move);
+    board->sideToMove = not_color(board->sideToMove);
 }
 
 bitboard_t  attackers_list(const board_t *board, square_t s,
@@ -611,15 +589,15 @@ bool    move_gives_check(const board_t *board, move_t move)
     square_t    from = from_sq(move);
     square_t    to = to_sq(move);
     square_t    capture_square;
-    square_t    king_from, rook_from, king_to, rook_to;
+    square_t    kingFrom, rookFrom, kingTo, rookTo;
     bitboard_t  occupied;
 
-    if (board->stack->check_squares[piece_type(piece_on(board, from))] & square_bb(to))
+    if (board->stack->checkSquares[piece_type(piece_on(board, from))] & square_bb(to))
         return (true);
 
-    square_t    their_king = get_king_square(board, not_color(board->side_to_move));
+    square_t    their_king = get_king_square(board, not_color(board->sideToMove));
 
-    if ((board->stack->king_blockers[not_color(board->side_to_move)] & square_bb(from))
+    if ((board->stack->kingBlockers[not_color(board->sideToMove)] & square_bb(from))
         && !sq_aligned(from, to, their_king))
         return (true);
 
@@ -639,20 +617,20 @@ bool    move_gives_check(const board_t *board, move_t move)
                 | square_bb(to);
 
             return ((rook_moves_bb(their_king, occupied)
-                & pieces_bb(board, board->side_to_move, QUEEN, ROOK))
+                & pieces_bb(board, board->sideToMove, QUEEN, ROOK))
                 | (bishop_moves_bb(their_king, occupied)
-                & pieces_bb(board, board->side_to_move, QUEEN, BISHOP)));
+                & pieces_bb(board, board->sideToMove, QUEEN, BISHOP)));
 
         case CASTLING:
-            king_from = from;
-            rook_from = to;
-            king_to = relative_sq(rook_from > king_from ? SQ_G1 : SQ_C1, board->side_to_move);
-            rook_to = relative_sq(rook_from > king_from ? SQ_F1 : SQ_D1, board->side_to_move);
+            kingFrom = from;
+            rookFrom = to;
+            kingTo = relative_sq(rookFrom > kingFrom ? SQ_G1 : SQ_C1, board->sideToMove);
+            rookTo = relative_sq(rookFrom > kingFrom ? SQ_F1 : SQ_D1, board->sideToMove);
 
-            return ((PseudoMoves[ROOK][rook_to] & square_bb(their_king))
-                && (rook_moves_bb(rook_to,
-                (occupancy_bb(board) ^ square_bb(king_from) ^ square_bb(rook_from))
-                | square_bb(king_to) | square_bb(rook_to)) & square_bb(their_king)));
+            return ((PseudoMoves[ROOK][rookTo] & square_bb(their_king))
+                && (rook_moves_bb(rookTo,
+                (occupancy_bb(board) ^ square_bb(kingFrom) ^ square_bb(rookFrom))
+                | square_bb(kingTo) | square_bb(rookTo)) & square_bb(their_king)));
 
         default:
             __builtin_unreachable();
@@ -662,7 +640,7 @@ bool    move_gives_check(const board_t *board, move_t move)
 
 bool    move_is_legal(const board_t *board, move_t move)
 {
-    color_t     us = board->side_to_move;
+    color_t     us = board->sideToMove;
     square_t    from = from_sq(move);
     square_t    to = to_sq(move);
 
@@ -670,14 +648,14 @@ bool    move_is_legal(const board_t *board, move_t move)
     {
         // Checks for any discovered check with the en-passant capture.
 
-        square_t    king_square = get_king_square(board, us);
+        square_t    kingSquare = get_king_square(board, us);
         square_t    capture_square = to - pawn_direction(us);
         bitboard_t  occupied = (occupancy_bb(board) ^ square_bb(from) ^ square_bb(capture_square))
             | square_bb(to);
 
-        return (!(rook_moves_bb(king_square, occupied)
+        return (!(rook_moves_bb(kingSquare, occupied)
             & pieces_bb(board, not_color(us), QUEEN, ROOK))
-            && !(bishop_moves_bb(king_square, occupied)
+            && !(bishop_moves_bb(kingSquare, occupied)
             & pieces_bb(board, not_color(us), QUEEN, BISHOP)));
     }
 
@@ -706,13 +684,13 @@ bool    move_is_legal(const board_t *board, move_t move)
     // If the moving piece is pinned, checks if the move generates
     // a discovered check.
 
-    return (!(board->stack->king_blockers[us] & square_bb(from))
+    return (!(board->stack->kingBlockers[us] & square_bb(from))
         || sq_aligned(from, to, get_king_square(board, us)));
 }
 
 bool    move_is_pseudo_legal(const board_t *board, move_t move)
 {
-    color_t     us = board->side_to_move;
+    color_t     us = board->sideToMove;
     square_t    from = from_sq(move);
     square_t    to = to_sq(move);
     piece_t     piece = piece_on(board, from);
@@ -813,7 +791,7 @@ bool    see_greater_than(const board_t *board, move_t m, score_t threshold)
         return (true);
 
     bitboard_t  occupied = occupancy_bb(board) ^ square_bb(from) ^ square_bb(to);
-    color_t     side_to_move = piece_color(piece_on(board, from));
+    color_t     sideToMove = piece_color(piece_on(board, from));
     bitboard_t  attackers = attackers_list(board, to, occupied);
     bitboard_t  stm_attackers;
     bitboard_t  b;
@@ -821,15 +799,15 @@ bool    see_greater_than(const board_t *board, move_t m, score_t threshold)
 
     while (true)
     {
-        side_to_move = not_color(side_to_move);
+        sideToMove = not_color(sideToMove);
         attackers &= occupied;
 
-        if (!(stm_attackers = attackers & color_bb(board, side_to_move)))
+        if (!(stm_attackers = attackers & color_bb(board, sideToMove)))
             break ;
 
-        if (board->stack->pinners[not_color(side_to_move)] & occupied)
+        if (board->stack->pinners[not_color(sideToMove)] & occupied)
         {
-            stm_attackers &= ~board->stack->king_blockers[side_to_move];
+            stm_attackers &= ~board->stack->kingBlockers[sideToMove];
             if (!stm_attackers)
                 break ;
         }
@@ -877,7 +855,7 @@ bool    see_greater_than(const board_t *board, move_t m, score_t threshold)
             attackers |= rook_moves_bb(to, occupied) & piecetypes_bb(board, ROOK, QUEEN);
         }
         else
-            return ((attackers & ~color_bb(board, side_to_move)) ? result ^ 1 : result);
+            return ((attackers & ~color_bb(board, sideToMove)) ? result ^ 1 : result);
     }
     return (result);
 }

@@ -21,7 +21,6 @@
 #include <string.h>
 #include <unistd.h>
 #include "board.h"
-#include "info.h"
 #include "lazy_smp.h"
 #include "timeman.h"
 

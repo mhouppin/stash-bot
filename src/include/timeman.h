@@ -87,6 +87,7 @@ void    timeman_init(const board_t *board, timeman_t *tm,
         goparams_t *params, clock_t start);
 void    timeman_update(timeman_t *tm, const board_t *board, move_t bestmove,
         score_t score);
+void check_time(void);
 
 INLINED bool    timeman_can_stop_search(timeman_t *tm, clock_t cur)
 {

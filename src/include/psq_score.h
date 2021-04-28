@@ -41,4 +41,6 @@ enum
 extern const score_t    PieceScores[PHASE_NB][PIECE_NB];
 extern scorepair_t      PsqScore[PIECE_NB][SQUARE_NB];
 
+void psq_score_init(void);
+
 #endif

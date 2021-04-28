@@ -20,7 +20,6 @@
 #include "endgame.h"
 #include "engine.h"
 #include "imath.h"
-#include "info.h"
 #include "pawns.h"
 
 enum
@@ -119,7 +118,7 @@ bool        is_kxk_endgame(const board_t *board, color_t c)
 score_t     eval_kxk(const board_t *board, color_t c)
 {
     // Be careful to avoid stalemating the weak king
-    if (board->side_to_move != c && !board->stack->checkers)
+    if (board->sideToMove != c && !board->stack->checkers)
     {
         movelist_t  list;
 
@@ -156,7 +155,7 @@ score_t     eval_kxk(const board_t *board, color_t c)
         || (popcount(knights) >= 3))
         score += VICTORY;
 
-    return (board->side_to_move == c ? score : -score);
+    return (board->sideToMove == c ? score : -score);
 }
 
 bool    ocb_endgame(const board_t *board)
@@ -261,7 +260,7 @@ void        eval_init(const board_t *board, evaluation_t *eval)
 
     // If not in check, add one tempo to the side to move
 
-    eval->tempos[board->side_to_move] += !board->stack->checkers;
+    eval->tempos[board->sideToMove] += !board->stack->checkers;
 }
 
 scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, const pawn_entry_t *pe,
@@ -279,7 +278,7 @@ scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, const paw
         bitboard_t  sqbb = square_bb(sq);
         bitboard_t  b = knight_moves(sq);
 
-        if (board->stack->king_blockers[c] & sqbb)
+        if (board->stack->kingBlockers[c] & sqbb)
             b = 0;
 
         // Bonus for Knight mobility
@@ -340,7 +339,7 @@ scorepair_t evaluate_bishops(const board_t *board, evaluation_t *eval, color_t c
         bitboard_t  sqbb = square_bb(sq);
         bitboard_t  b = bishop_moves_bb(sq, occupancy);
 
-        if (board->stack->king_blockers[c] & sqbb)
+        if (board->stack->kingBlockers[c] & sqbb)
             b &= LineBits[get_king_square(board, c)][sq];
 
         // Bonus for Bishop mobility
@@ -384,7 +383,7 @@ scorepair_t evaluate_rooks(const board_t *board, evaluation_t *eval, color_t c)
         bitboard_t  rook_file = sq_file_bb(sq);
         bitboard_t  b = rook_moves_bb(sq, occupancy);
 
-        if (board->stack->king_blockers[c] & sqbb)
+        if (board->stack->kingBlockers[c] & sqbb)
             b &= LineBits[get_king_square(board, c)][sq];
 
         // Bonus for a Rook on an open (or semi-open) file
@@ -429,7 +428,7 @@ scorepair_t evaluate_queens(const board_t *board, evaluation_t *eval, color_t c)
         bitboard_t  sqbb = square_bb(sq);
         bitboard_t  b = bishop_moves_bb(sq, occupancy) | rook_moves_bb(sq, occupancy);
 
-        if (board->stack->king_blockers[c] & sqbb)
+        if (board->stack->kingBlockers[c] & sqbb)
             b &= LineBits[get_king_square(board, c)][sq];
 
         // Bonus for Queen mobility
@@ -469,7 +468,7 @@ score_t evaluate(const board_t *board)
     const endgame_entry_t *entry = endgame_probe(board);
 
     if (entry != NULL)
-        return (entry->func(board, entry->winning_side));
+        return (entry->func(board, entry->winningSide));
 
     // Is there a KXK situation ? (lone King vs mating material)
 
@@ -479,7 +478,7 @@ score_t evaluate(const board_t *board)
         return (eval_kxk(board, BLACK));
 
     evaluation_t    eval;
-    scorepair_t     tapered = board->psq_scorepair;
+    scorepair_t     tapered = board->psqScorePair;
     pawn_entry_t    *pe;
     score_t         mg, eg, score;
 
@@ -544,5 +543,5 @@ score_t evaluate(const board_t *board)
 
     // Return the score relative to the side to move
 
-    return (board->side_to_move == WHITE ? score : -score);
+    return (board->sideToMove == WHITE ? score : -score);
 }

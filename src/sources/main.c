@@ -18,8 +18,6 @@
 
 #include "endgame.h"
 #include "engine.h"
-#include "info.h"
-#include "init.h"
 #include "lazy_smp.h"
 #include "option.h"
 #include "timeman.h"

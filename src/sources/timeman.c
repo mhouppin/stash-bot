@@ -56,8 +56,8 @@ void    timeman_init(const board_t *board, timeman_t *tm, goparams_t *params, cl
         tm->mode = Tournament;
 
         double  mtg = (params->movestogo) ? params->movestogo : 40.0;
-        clock_t time = (board->side_to_move == WHITE) ? params->wtime : params->btime;
-        clock_t inc = (board->side_to_move == WHITE) ? params->winc : params->binc;
+        clock_t time = (board->sideToMove == WHITE) ? params->wtime : params->btime;
+        clock_t inc = (board->sideToMove == WHITE) ? params->winc : params->binc;
 
         time = max(0, time - overhead);
 
@@ -108,7 +108,7 @@ void    timeman_update(timeman_t *tm, const board_t *board, move_t bestmove, sco
     {
         movelist_t  list;
         bool        is_quiet = !is_capture_or_promotion(board, bestmove);
-        bool        gives_check = move_gives_check(board, bestmove);
+        bool        givesCheck = move_gives_check(board, bestmove);
 
         tm->prev_bestmove = bestmove;
         tm->stability = 0;
@@ -124,7 +124,7 @@ void    timeman_update(timeman_t *tm, const board_t *board, move_t bestmove, sco
         else if (!is_quiet && see_greater_than(board, bestmove, KNIGHT_MG_SCORE))
             tm->type = SoundCapture;
 
-        else if (gives_check && see_greater_than(board, bestmove, 0))
+        else if (givesCheck && see_greater_than(board, bestmove, 0))
             tm->type = SoundCheck;
 
         else if (!is_quiet)
@@ -133,7 +133,7 @@ void    timeman_update(timeman_t *tm, const board_t *board, move_t bestmove, sco
         else if (see_greater_than(board, bestmove, 0))
             tm->type = Quiet;
 
-        else if (gives_check)
+        else if (givesCheck)
             tm->type = WeirdCheck;
 
         else

@@ -23,7 +23,6 @@
 #include "engine.h"
 #include "history.h"
 #include "imath.h"
-#include "info.h"
 #include "lazy_smp.h"
 #include "pawns.h"
 #include "timeman.h"

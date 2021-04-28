@@ -23,7 +23,6 @@
 #include <unistd.h>
 #include "engine.h"
 #include "imath.h"
-#include "info.h"
 #include "lazy_smp.h"
 #include "option.h"
 #include "tt.h"
@@ -85,7 +84,7 @@ void    wait_search_end(void)
     pthread_mutex_unlock(&EngineMutex);
 }
 
-const char  *move_to_str(move_t move, bool is_chess960)
+const char  *move_to_str(move_t move, bool isChess960)
 {
     static char        buf[6];
 
@@ -98,7 +97,7 @@ const char  *move_to_str(move_t move, bool is_chess960)
     square_t    from = from_sq(move);
     square_t    to = to_sq(move);
 
-    if (move_type(move) == CASTLING && !is_chess960)
+    if (move_type(move) == CASTLING && !isChess960)
         to = create_sq(to > from ? FILE_G : FILE_C, sq_rank(from));
 
     buf[0] = sq_file(from) + 'a';
@@ -229,11 +228,11 @@ void    uci_d(const char *args __attribute__((unused)))
         puts(grid);
     }
 
-    printf("\nKey: 0x%" KEY_INFO "\n", (info_t)Board.stack->board_key);
+    printf("\nKey: 0x%" KEY_INFO "\n", (info_t)Board.stack->boardKey);
 
     double  eval = (double)evaluate(&Board) / 100.0;
 
-    printf("Eval (from %s's POV): %+.2lf\n\n", Board.side_to_move == WHITE ? "White" : "Black", eval);
+    printf("Eval (from %s's POV): %+.2lf\n\n", Board.sideToMove == WHITE ? "White" : "Black", eval);
     fflush(stdout);
 }
 

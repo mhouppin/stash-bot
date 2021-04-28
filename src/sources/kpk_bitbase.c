@@ -33,8 +33,8 @@ enum
 
 typedef struct
 {
-    color_t     side_to_move;
-    square_t    king_square[COLOR_NB];
+    color_t     sideToMove;
+    square_t    kingSquare[COLOR_NB];
     square_t    pawn_square;
     uint8_t     result;
 }
@@ -68,9 +68,9 @@ void    kpk_set(kpk_position_t *pos, unsigned int index)
     const square_t  psq = create_sq((file_t)((index >> 13) & 0x3),
             (rank_t)(RANK_7 - ((index >> 15) & 0x7)));
 
-    pos->side_to_move = stm;
-    pos->king_square[WHITE] = wksq;
-    pos->king_square[BLACK] = bksq;
+    pos->sideToMove = stm;
+    pos->kingSquare[WHITE] = wksq;
+    pos->kingSquare[BLACK] = bksq;
     pos->pawn_square = psq;
 
     // Overlapping/adjacent Kings ?
@@ -108,16 +108,16 @@ void    kpk_set(kpk_position_t *pos, unsigned int index)
 
 void    kpk_classify(kpk_position_t *pos, kpk_position_t *kpk_table)
 {
-    const uint8_t   good_result = (pos->side_to_move == WHITE) ? KPK_WIN : KPK_DRAW;
-    const uint8_t   bad_result = (pos->side_to_move == WHITE) ? KPK_DRAW : KPK_WIN;
+    const uint8_t   good_result = (pos->sideToMove == WHITE) ? KPK_WIN : KPK_DRAW;
+    const uint8_t   bad_result = (pos->sideToMove == WHITE) ? KPK_DRAW : KPK_WIN;
 
-    const square_t  wksq = pos->king_square[WHITE];
-    const square_t  bksq = pos->king_square[BLACK];
-    const color_t   stm = pos->side_to_move;
+    const square_t  wksq = pos->kingSquare[WHITE];
+    const square_t  bksq = pos->kingSquare[BLACK];
+    const color_t   stm = pos->sideToMove;
     const square_t  psq = pos->pawn_square;
 
     uint8_t         r = KPK_INVALID;
-    bitboard_t      b = king_moves(pos->king_square[stm]);
+    bitboard_t      b = king_moves(pos->kingSquare[stm]);
 
     // We will pack all moves' results in the result variable with bitwise 'or's.
     // We exploit the fact that invalid entries with overlapping pieces are stored
@@ -187,19 +187,19 @@ void    init_kpk_bitbase(void)
     free(kpk_table);
 }
 
-score_t eval_kpk(const board_t *board, color_t winning_side)
+score_t eval_kpk(const board_t *board, color_t winningSide)
 {
-    square_t    winning_king = get_king_square(board, winning_side);
+    square_t    winning_king = get_king_square(board, winningSide);
     square_t    winning_pawn = bb_first_sq(piecetype_bb(board, PAWN));
-    square_t    losing_king = get_king_square(board, not_color(winning_side));
-    color_t     us = winning_side == board->side_to_move ? WHITE : BLACK;
+    square_t    losing_king = get_king_square(board, not_color(winningSide));
+    color_t     us = winningSide == board->sideToMove ? WHITE : BLACK;
 
-    winning_king = normalize_square(board, winning_side, winning_king);
-    winning_pawn = normalize_square(board, winning_side, winning_pawn);
-    losing_king = normalize_square(board, winning_side, losing_king);
+    winning_king = normalize_square(board, winningSide, winning_king);
+    winning_pawn = normalize_square(board, winningSide, winning_pawn);
+    losing_king = normalize_square(board, winningSide, losing_king);
 
     score_t     score = kpk_is_winning(us, losing_king, winning_king, winning_pawn)
         ? VICTORY + PAWN_EG_SCORE + sq_rank(winning_pawn) * 3 : 0;
 
-    return (winning_side == board->side_to_move ? score : -score);
+    return (winningSide == board->sideToMove ? score : -score);
 }
