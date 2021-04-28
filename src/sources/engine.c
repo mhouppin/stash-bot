@@ -1,3 +1,4 @@
+
 /*
 **    Stash, a UCI chess playing engine developed from scratch
 **    Copyright (C) 2019-2021 Morgan Houppin
@@ -27,6 +28,7 @@
 #include "pawns.h"
 #include "timeman.h"
 #include "tt.h"
+#include "uci.h"
 
 int         Reductions[64][64];
 
@@ -63,6 +65,42 @@ uint64_t    perft(board_t *board, unsigned int depth)
         }
         return (sum);
     }
+}
+
+INLINED int rtm_greater_than(root_move_t *right, root_move_t *left)
+{
+    if (right->score != left->score)
+        return (right->score > left->score);
+    else
+        return (right->previous_score > left->previous_score);
+}
+
+void        sort_root_moves(root_move_t *begin, root_move_t *end)
+{
+    const int   size = (int)(end - begin);
+
+    for (int i = 1; i < size; ++i)
+    {
+        root_move_t tmp = begin[i];
+        int         j = i - 1;
+        while (j >= 0 && rtm_greater_than(&tmp, begin + j))
+        {
+            begin[j + 1] = begin[j];
+            --j;
+        }
+        begin[j + 1] = tmp;
+    }
+}
+
+root_move_t *find_root_move(root_move_t *begin, root_move_t *end, move_t move)
+{
+    while (begin < end)
+    {
+        if (begin->move == move)
+            return (begin);
+        ++begin;
+    }
+    return (NULL);
 }
 
 void        *engine_go(void *ptr)
@@ -292,5 +330,42 @@ __retry:
 
     free(worker->root_moves);
     free_boardstack(worker->stack);
+    return (NULL);
+}
+
+void    *engine_thread(void *nothing __attribute__((unused)))
+{
+    pthread_mutex_lock(&EngineMutex);
+    EngineMode = WAITING;
+    pthread_cond_broadcast(&EngineCond);
+
+    while (EngineSend != DO_ABORT)
+    {
+        pthread_cond_wait(&EngineCond, &EngineMutex);
+
+        if (EngineSend == DO_THINK)
+        {
+            EngineSend = DO_NOTHING;
+
+            board_t         *my_board = &WPool.list->board;
+
+            *my_board = Board;
+            my_board->stack = dup_boardstack(Board.stack);
+            WPool.list->stack = my_board->stack;
+
+            // Only unlock the mutex once we're not using the global board
+
+            pthread_mutex_unlock(&EngineMutex);
+
+            engine_go(my_board);
+
+            pthread_mutex_lock(&EngineMutex);
+            EngineMode = WAITING;
+            pthread_cond_broadcast(&EngineCond);
+        }
+    }
+
+    pthread_mutex_unlock(&EngineMutex);
+
     return (NULL);
 }

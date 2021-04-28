@@ -18,12 +18,35 @@
 
 #include "endgame.h"
 #include "engine.h"
+#include "info.h"
 #include "init.h"
 #include "lazy_smp.h"
+#include "option.h"
+#include "timeman.h"
 #include "tt.h"
 #include "uci.h"
 #include <pthread.h>
 #include <stdio.h>
+
+board_t         Board;
+pthread_attr_t  WorkerSettings;
+goparams_t      SearchParams;
+option_list_t   OptionList;
+movelist_t      SearchMoves;
+
+pthread_cond_t  EngineCond = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t EngineMutex = PTHREAD_MUTEX_INITIALIZER;
+enum e_egn_mode EngineMode = THINKING;
+enum e_egn_send EngineSend = DO_NOTHING;
+uint64_t        Seed = 1048592ul;
+
+ucioptions_t    Options = {
+    1, 16, 100, 1, false
+};
+
+timeman_t       Timeman;
+
+const char      *Delimiters = " \t\n";
 
 int main(int argc, char **argv)
 {

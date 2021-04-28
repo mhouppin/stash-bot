@@ -17,10 +17,10 @@
 */
 
 #include <math.h>
-#include <stdlib.h>
+#include "engine.h"
 #include "imath.h"
+#include "lazy_smp.h"
 #include "timeman.h"
-#include "movelist.h"
 
 // Scaling table based on the move type
 
@@ -44,6 +44,42 @@ const double    BestmoveStabilityScale[5] = {
     0.80,
     0.75
 };
+
+void    timeman_init(const board_t *board, timeman_t *tm, goparams_t *params, clock_t start)
+{
+    clock_t overhead = Options.move_overhead;
+
+    tm->start = start;
+
+    if (params->wtime || params->btime)
+    {
+        tm->mode = Tournament;
+
+        double  mtg = (params->movestogo) ? params->movestogo : 40.0;
+        clock_t time = (board->side_to_move == WHITE) ? params->wtime : params->btime;
+        clock_t inc = (board->side_to_move == WHITE) ? params->winc : params->binc;
+
+        time = max(0, time - overhead);
+
+        tm->average_time = time / mtg + inc;
+        tm->maximal_time = time / sqrt(mtg) + inc;
+        tm->average_time = min(tm->average_time, time);
+        tm->maximal_time = min(tm->maximal_time, time);
+        tm->optimal_time = tm->maximal_time;
+    }
+    else if (params->movetime)
+    {
+        tm->mode = Movetime;
+        tm->average_time = tm->maximal_time = tm->optimal_time = max(1, params->movetime - overhead);
+    }
+    else
+        tm->mode = NoTimeman;
+
+    tm->prev_score = NO_SCORE;
+    tm->prev_bestmove = NO_MOVE;
+    tm->stability = 0;
+    tm->type = NO_BM_TYPE;
+}
 
 double  score_difference_scale(score_t s)
 {
@@ -121,4 +157,33 @@ void    timeman_update(timeman_t *tm, const board_t *board, move_t bestmove, sco
     // Update score + optimal time usage
     tm->prev_score = score;
     tm->optimal_time = min(tm->maximal_time, tm->average_time * scale);
+}
+
+void    check_time(void)
+{
+    if (--WPool.checks > 0)
+        return ;
+
+    // Reset check counter
+
+    WPool.checks = 1000;
+
+    // If we are in infinite mode, or the stop has already been set,
+    // we can safely return.
+
+    if (SearchParams.infinite || search_should_abort())
+        return ;
+
+    if (get_node_count() >= SearchParams.nodes)
+        goto __set_stop;
+
+    if (timeman_must_stop_search(&Timeman, chess_clock()))
+        goto __set_stop;
+
+    return ;
+
+__set_stop:
+    pthread_mutex_lock(&EngineMutex);
+    EngineSend = DO_EXIT;
+    pthread_mutex_unlock(&EngineMutex);
 }
