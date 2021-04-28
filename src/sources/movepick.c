@@ -18,36 +18,36 @@
 
 #include "movepick.h"
 
-void    movepick_init(movepick_t *mp, bool in_qsearch, const board_t *board,
-        const worker_t *worker, move_t tt_move, searchstack_t *ss)
+void    movepick_init(movepick_t *mp, bool inQsearch, const board_t *board,
+        const worker_t *worker, move_t ttMove, searchstack_t *ss)
 {
-    mp->in_qsearch = in_qsearch;
+    mp->inQsearch = inQsearch;
 
     if (board->stack->checkers)
-        mp->stage = CHECK_PICK_TT + !(tt_move && move_is_pseudo_legal(board, tt_move));
+        mp->stage = CHECK_PICK_TT + !(ttMove && move_is_pseudo_legal(board, ttMove));
 
     else
     {
-        mp->stage = PICK_TT + !(tt_move
-            && (!in_qsearch || is_capture_or_promotion(board, tt_move))
-            && move_is_pseudo_legal(board, tt_move));
+        mp->stage = PICK_TT + !(ttMove
+            && (!inQsearch || is_capture_or_promotion(board, ttMove))
+            && move_is_pseudo_legal(board, ttMove));
     }
 
-    mp->tt_move = tt_move;
+    mp->ttMove = ttMove;
     mp->killer1 = ss->killers[0];
     mp->killer2 = ss->killers[1];
 
-    if ((ss - 1)->pc_history != NULL)
+    if ((ss - 1)->pieceHistory != NULL)
     {
-        square_t    last_to = to_sq((ss - 1)->current_move);
+        square_t    last_to = to_sq((ss - 1)->currentMove);
         square_t    last_piece = piece_on(board, last_to);
-        mp->counter = worker->cm_history[last_piece][last_to];
+        mp->counter = worker->cmHistory[last_piece][last_to];
     }
     else
         mp->counter = NO_MOVE;
 
-    mp->pc_history[0] = (ss - 1)->pc_history;
-    mp->pc_history[1] = (ss - 2)->pc_history;
+    mp->pieceHistory[0] = (ss - 1)->pieceHistory;
+    mp->pieceHistory[1] = (ss - 2)->pieceHistory;
     mp->board = board;
     mp->worker = worker;
 }
@@ -81,12 +81,12 @@ static void score_quiet(movepick_t *mp, extmove_t *begin, extmove_t *end)
         piece_t     moved = piece_on(mp->board, from_sq(begin->move));
         square_t    to = to_sq(begin->move);
 
-        begin->score = get_bf_history_score(mp->worker->bf_history, moved, begin->move);
+        begin->score = get_bf_history_score(mp->worker->bfHistory, moved, begin->move);
 
-        if (mp->pc_history[0] != NULL)
-            begin->score += get_pc_history_score(*mp->pc_history[0], moved, to);
-        if (mp->pc_history[1] != NULL)
-            begin->score += get_pc_history_score(*mp->pc_history[1], moved, to);
+        if (mp->pieceHistory[0] != NULL)
+            begin->score += get_pc_history_score(*mp->pieceHistory[0], moved, to);
+        if (mp->pieceHistory[1] != NULL)
+            begin->score += get_pc_history_score(*mp->pieceHistory[1], moved, to);
 
         ++begin;
     }
@@ -108,19 +108,19 @@ static void score_evasions(movepick_t *mp, extmove_t *begin, extmove_t *end)
             piece_t     moved = piece_on(mp->board, from_sq(begin->move));
             square_t    to = to_sq(begin->move);
 
-            begin->score = get_bf_history_score(mp->worker->bf_history, moved, begin->move);
+            begin->score = get_bf_history_score(mp->worker->bfHistory, moved, begin->move);
 
-            if (mp->pc_history[0] != NULL)
-                begin->score += get_pc_history_score(*mp->pc_history[0], moved, to);
-            if (mp->pc_history[1] != NULL)
-                begin->score += get_pc_history_score(*mp->pc_history[1], moved, to);
+            if (mp->pieceHistory[0] != NULL)
+                begin->score += get_pc_history_score(*mp->pieceHistory[0], moved, to);
+            if (mp->pieceHistory[1] != NULL)
+                begin->score += get_pc_history_score(*mp->pieceHistory[1], moved, to);
         }
 
         ++begin;
     }
 }
 
-move_t  movepick_next_move(movepick_t *mp, bool skip_quiets)
+move_t  movepick_next_move(movepick_t *mp, bool skipQuiets)
 {
 __top:
 
@@ -129,13 +129,13 @@ __top:
         case PICK_TT:
         case CHECK_PICK_TT:
             ++mp->stage;
-            return (mp->tt_move);
+            return (mp->ttMove);
 
         case GEN_INSTABLE:
             ++mp->stage;
-            mp->list.last = generate_captures(mp->list.moves, mp->board, mp->in_qsearch);
+            mp->list.last = generate_captures(mp->list.moves, mp->board, mp->inQsearch);
             score_captures(mp, mp->list.moves, mp->list.last);
-            mp->cur = mp->bad_captures = mp->list.moves;
+            mp->cur = mp->badCaptures = mp->list.moves;
             // Fallthrough
 
         case PICK_GOOD_INSTABLE:
@@ -143,13 +143,13 @@ __top:
             {
                 place_top_move(mp->cur, mp->list.last);
 
-                if (mp->cur->move != mp->tt_move && mp->cur->score >= 0 && see_greater_than(mp->board, mp->cur->move, 0))
+                if (mp->cur->move != mp->ttMove && mp->cur->score >= 0 && see_greater_than(mp->board, mp->cur->move, 0))
                     return ((mp->cur++)->move);
 
-                *(mp->bad_captures++) = *(mp->cur++);
+                *(mp->badCaptures++) = *(mp->cur++);
             }
 
-            if (mp->in_qsearch)
+            if (mp->inQsearch)
             {
                 mp->cur = mp->list.moves;
                 mp->stage = PICK_BAD_INSTABLE;
@@ -161,7 +161,7 @@ __top:
         case PICK_KILLER1:
             ++mp->stage;
             if (mp->killer1
-                && mp->killer1 != mp->tt_move
+                && mp->killer1 != mp->ttMove
                 && move_is_pseudo_legal(mp->board, mp->killer1))
                 return (mp->killer1);
             // Fallthrough
@@ -169,7 +169,7 @@ __top:
         case PICK_KILLER2:
             ++mp->stage;
             if (mp->killer2
-                && mp->killer2 != mp->tt_move
+                && mp->killer2 != mp->ttMove
                 && mp->killer2 != mp->killer1
                 && move_is_pseudo_legal(mp->board, mp->killer2))
                 return (mp->killer2);
@@ -178,7 +178,7 @@ __top:
         case PICK_COUNTER:
             ++mp->stage;
             if (mp->counter
-                && mp->counter != mp->tt_move
+                && mp->counter != mp->ttMove
                 && mp->counter != mp->killer1
                 && mp->counter != mp->killer2
                 && move_is_pseudo_legal(mp->board, mp->counter))
@@ -187,7 +187,7 @@ __top:
 
         case GEN_QUIET:
             ++mp->stage;
-            if (!skip_quiets)
+            if (!skipQuiets)
             {
                 mp->list.last = generate_quiet(mp->cur, mp->board);
                 score_quiet(mp, mp->cur, mp->list.last);
@@ -195,13 +195,13 @@ __top:
             // Fallthrough
 
         case PICK_QUIET:
-            if (!skip_quiets)
+            if (!skipQuiets)
                 while (mp->cur < mp->list.last)
                 {
                     place_top_move(mp->cur, mp->list.last);
                     move_t  move = (mp->cur++)->move;
 
-                    if (move != mp->tt_move
+                    if (move != mp->ttMove
                         && move != mp->killer1
                         && move != mp->killer2
                         && move != mp->counter)
@@ -213,9 +213,9 @@ __top:
             // Fallthrough
 
         case PICK_BAD_INSTABLE:
-            while (mp->cur < mp->bad_captures)
+            while (mp->cur < mp->badCaptures)
             {
-                if (mp->cur->move != mp->tt_move)
+                if (mp->cur->move != mp->ttMove)
                     return ((mp->cur++)->move);
 
                 mp->cur++;
@@ -234,7 +234,7 @@ __top:
             {
                 place_top_move(mp->cur, mp->list.last);
 
-                if (mp->cur->move != mp->tt_move)
+                if (mp->cur->move != mp->ttMove)
                     return ((mp->cur++)->move);
 
                 mp->cur++;

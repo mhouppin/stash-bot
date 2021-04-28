@@ -29,24 +29,24 @@
 # define UCI_VERSION    "v29.17"
 
 # ifdef PRIu64
-#  define FMT_INFO  PRIu64
-#  define KEY_INFO  PRIx64
-typedef uint64_t    info_t;
-# define MAX_HASH   33554432
+#  define FMT_INFO PRIu64
+#  define KEY_INFO PRIx64
+typedef uint64_t info_t;
+# define MAX_HASH 33554432
 # else
-#  define FMT_INFO  PRIu32
-#  define KEY_INFO  PRIx32
-typedef uint32_t    info_t;
-# define MAX_HASH   2048
+#  define FMT_INFO PRIu32
+#  define KEY_INFO PRIx32
+typedef uint32_t info_t;
+# define MAX_HASH 2048
 # endif
 
-enum    e_egn_mode
+enum e_egn_mode
 {
     WAITING,
     THINKING
 };
 
-enum    e_egn_send
+enum e_egn_send
 {
     DO_NOTHING,
     DO_THINK,
@@ -54,70 +54,73 @@ enum    e_egn_send
     DO_ABORT
 };
 
-typedef struct  goparams_s
+typedef struct goparams_s
 {
-    clock_t     wtime;
-    clock_t     btime;
-    clock_t     winc;
-    clock_t     binc;
-    int         movestogo;
-    int         depth;
-    size_t      nodes;
-    int         mate;
-    int         infinite;
-    int         perft;
-    clock_t     movetime;
-}               goparams_t;
+    clock_t wtime;
+    clock_t btime;
+    clock_t winc;
+    clock_t binc;
+    int movestogo;
+    int depth;
+    size_t nodes;
+    int mate;
+    int infinite;
+    int perft;
+    clock_t movetime;
+}
+goparams_t;
 
-typedef struct  ucioptions_s
+typedef struct ucioptions_s
 {
-    long        threads;
-    long        hash;
-    long        move_overhead;
-    long        multi_pv;
-    bool        chess960;
-}               ucioptions_t;
+    long threads;
+    long hash;
+    long moveOverhead;
+    long multiPv;
+    bool chess960;
+}
+ucioptions_t;
 
-extern pthread_attr_t   WorkerSettings;
-extern ucioptions_t     Options;
-extern pthread_mutex_t  EngineMutex;
-extern pthread_cond_t   EngineCond;
-extern enum e_egn_mode  EngineMode;
-extern enum e_egn_send  EngineSend;
-extern const char       *Delimiters;
-extern goparams_t       SearchParams;
+extern pthread_attr_t WorkerSettings;
+extern ucioptions_t Options;
+extern pthread_mutex_t EngineMutex;
+extern pthread_cond_t EngineCond;
+extern enum e_egn_mode EngineMode;
+extern enum e_egn_send EngineSend;
+extern const char *Delimiters;
+extern goparams_t SearchParams;
 
-typedef struct  cmdlink_s
+typedef struct cmdlink_s
 {
-    const char  *cmd_name;
-    void        (*call)(const char *);
-}               cmdlink_t;
+    const char *commandName;
+    void (*call)(const char *);
+}
+cmdlink_t;
 
-INLINED bool    search_should_abort(void)
+INLINED bool search_should_abort(void)
 {
     return (EngineSend == DO_EXIT || EngineSend == DO_ABORT);
 }
 
-void    wait_search_end(void);
-char    *get_next_token(char **str);
+void wait_search_end(void);
+char *get_next_token(char **str);
 
-const char  *move_to_str(move_t move, bool isChess960);
-const char  *score_to_str(score_t score);
-move_t      str_to_move(const board_t *board, const char *str);
-void print_pv(const board_t *board, root_move_t *root_move, int multi_pv,
+const char *move_to_str(move_t move, bool isChess960);
+const char *score_to_str(score_t score);
+move_t str_to_move(const board_t *board, const char *str);
+void print_pv(const board_t *board, root_move_t *rootMove, int multiPv,
     int depth, clock_t time, int bound);
 
-void    uci_bench(const char *args);
-void    uci_d(const char *args);
-void    uci_debug(const char *args);
-void    uci_go(const char *args);
-void    uci_isready(const char *args);
-void    uci_position(const char *args);
-void    uci_quit(const char *args);
-void    uci_setoption(const char *args);
-void    uci_stop(const char *args);
-void    uci_uci(const char *args);
-void    uci_ucinewgame(const char *args);
-void    uci_loop(int argc, char **argv);
+void uci_bench(const char *args);
+void uci_d(const char *args);
+void uci_debug(const char *args);
+void uci_go(const char *args);
+void uci_isready(const char *args);
+void uci_position(const char *args);
+void uci_quit(const char *args);
+void uci_setoption(const char *args);
+void uci_stop(const char *args);
+void uci_uci(const char *args);
+void uci_ucinewgame(const char *args);
+void uci_loop(int argc, char **argv);
 
 #endif

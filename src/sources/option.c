@@ -30,7 +30,7 @@ void    init_option_list(option_list_t *list)
 {
     list->options = NULL;
     list->size = 0;
-    list->max_size = 0;
+    list->maxSize = 0;
 }
 
 void    quit_option_list(option_list_t *list)
@@ -54,9 +54,9 @@ void    quit_option_list(option_list_t *list)
                 break ;
 
             case OptionCombo:
-                for (size_t k = 0; cur->combo_list[k]; ++k)
-                    free(cur->combo_list[k]);
-                free(cur->combo_list);
+                for (size_t k = 0; cur->comboList[k]; ++k)
+                    free(cur->comboList[k]);
+                free(cur->comboList);
 
                 // Fallthrough
 
@@ -77,15 +77,15 @@ void    quit_option_list(option_list_t *list)
     free(list->options);
 
     list->options = NULL;
-    list->max_size = 0;
+    list->maxSize = 0;
 }
 
 option_t    *insert_option(option_list_t *list, const char *name)
 {
-    if (list->size == list->max_size)
+    if (list->size == list->maxSize)
     {
-        list->max_size += (!list->max_size) ? 16 : list->max_size;
-        list->options = realloc(list->options, list->max_size * sizeof(option_t));
+        list->maxSize += (!list->maxSize) ? 16 : list->maxSize;
+        list->options = realloc(list->options, list->maxSize * sizeof(option_t));
 
         if (!list->options)
             option_allocation_failure();
@@ -236,7 +236,7 @@ void    add_option_check(option_list_t *list, const char *name, bool *data,
 }
 
 void    add_option_combo(option_list_t *list, const char *name, char **data,
-        const char *const *combo_list, void (*callback)(void *))
+        const char *const *comboList, void (*callback)(void *))
 {
     option_t    *cur = insert_option(list, name);
 
@@ -249,19 +249,19 @@ void    add_option_combo(option_list_t *list, const char *name, char **data,
         option_allocation_failure();
 
     size_t    length;
-    for (length = 0; combo_list[length]; ++length);
+    for (length = 0; comboList[length]; ++length);
 
-    cur->combo_list = malloc(sizeof(char *) * (length + 1));
-    if (!cur->combo_list)
+    cur->comboList = malloc(sizeof(char *) * (length + 1));
+    if (!cur->comboList)
         option_allocation_failure();
 
     for (size_t i = 0; i < length; ++i)
     {
-        cur->combo_list[i] = strdup(combo_list[i]);
-        if (!cur->combo_list[i])
+        cur->comboList[i] = strdup(comboList[i]);
+        if (!cur->comboList[i])
             option_allocation_failure();
     }
-    cur->combo_list[length] = NULL;
+    cur->comboList[length] = NULL;
 }
 
 void    add_option_button(option_list_t *list, const char *name,
@@ -406,8 +406,8 @@ void    show_options(const option_list_t *list)
                 printf("option name %s type combo default %s",
                     cur->name, (char *)cur->def);
 
-                for (size_t k = 0; cur->combo_list[k]; ++k)
-                    printf(" var %s", cur->combo_list[k]);
+                for (size_t k = 0; cur->comboList[k]; ++k)
+                    printf(" var %s", cur->comboList[k]);
                 puts("");
                 break ;
 

@@ -153,21 +153,21 @@ const char  *score_to_str(score_t score)
     return (buf);
 }
 
-void    print_pv(const board_t *board, root_move_t *root_move, int multi_pv,
+void    print_pv(const board_t *board, root_move_t *rootMove, int multiPv,
         int depth, clock_t time, int bound)
 {
     uint64_t    nodes = get_node_count();
     uint64_t    nps = nodes / (time + !time) * 1000;
-    bool        searched_move = (root_move->score != -INF_SCORE);
-    score_t     root_score = (searched_move) ? root_move->score : root_move->previous_score;
+    bool        searched_move = (rootMove->score != -INF_SCORE);
+    score_t     root_score = (searched_move) ? rootMove->score : rootMove->prevScore;
 
     printf("info depth %d seldepth %d multipv %d score %s%s", max(depth + searched_move, 1),
-        root_move->seldepth, multi_pv, score_to_str(root_score), BoundStr[bound]);
+        rootMove->seldepth, multiPv, score_to_str(root_score), BoundStr[bound]);
     printf(" nodes %" FMT_INFO " nps %" FMT_INFO " hashfull %d time %" FMT_INFO " pv",
         (info_t)nodes, (info_t)nps, tt_hashfull(), (info_t)time);
 
-    for (size_t k = 0; root_move->pv[k]; ++k)
-        printf(" %s", move_to_str(root_move->pv[k], board->chess960));
+    for (size_t k = 0; rootMove->pv[k]; ++k)
+        printf(" %s", move_to_str(rootMove->pv[k], board->chess960));
     putchar('\n');
 }
 
@@ -459,9 +459,9 @@ int execute_uci_cmd(const char *command)
         return (1);
     }
 
-    for (size_t i = 0; commands[i].cmd_name != NULL; ++i)
+    for (size_t i = 0; commands[i].commandName != NULL; ++i)
     {
-        if (strcmp(commands[i].cmd_name, cmd) == 0)
+        if (strcmp(commands[i].commandName, cmd) == 0)
         {
             commands[i].call(strtok(NULL, ""));
             break ;
@@ -504,8 +504,8 @@ void    uci_loop(int argc, char **argv)
     init_option_list(&OptionList);
     add_option_spin_int(&OptionList, "Threads", &Options.threads, 1, 256, &on_thread_set);
     add_option_spin_int(&OptionList, "Hash", &Options.hash, 1, MAX_HASH, &on_hash_set);
-    add_option_spin_int(&OptionList, "Move Overhead", &Options.move_overhead, 0, 30000, NULL);
-    add_option_spin_int(&OptionList, "MultiPV", &Options.multi_pv, 1, 500, NULL);
+    add_option_spin_int(&OptionList, "Move Overhead", &Options.moveOverhead, 0, 30000, NULL);
+    add_option_spin_int(&OptionList, "MultiPV", &Options.multiPv, 1, 500, NULL);
     add_option_check(&OptionList, "UCI_Chess960", &Options.chess960, NULL);
     add_option_button(&OptionList, "Clear Hash", &on_clear_hash);
 

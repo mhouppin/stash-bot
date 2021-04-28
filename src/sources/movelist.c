@@ -19,6 +19,25 @@
 #include "movelist.h"
 #include <string.h>
 
+INLINED extmove_t *create_promotions(extmove_t *movelist, square_t to, direction_t direction)
+{
+    (movelist++)->move = create_promotion(to - direction, to, QUEEN);
+    (movelist++)->move = create_promotion(to - direction, to, ROOK);
+    (movelist++)->move = create_promotion(to - direction, to, BISHOP);
+    (movelist++)->move = create_promotion(to - direction, to, KNIGHT);
+
+    return (movelist);
+}
+
+INLINED extmove_t *create_underpromotions(extmove_t *movelist, square_t to, direction_t direction)
+{
+    (movelist++)->move = create_promotion(to - direction, to, ROOK);
+    (movelist++)->move = create_promotion(to - direction, to, BISHOP);
+    (movelist++)->move = create_promotion(to - direction, to, KNIGHT);
+
+    return (movelist);
+}
+
 void    place_top_move(extmove_t *begin, extmove_t *end)
 {
     extmove_t   *top = begin;
@@ -52,7 +71,7 @@ extmove_t   *generate_piece_moves(extmove_t *movelist, const board_t *board,
 }
 
 extmove_t   *generate_pawn_capture_moves(extmove_t *movelist, const board_t *board, color_t us,
-            bitboard_t their_pieces, bool in_qsearch)
+            bitboard_t their_pieces, bool inQsearch)
 {
     int         pawn_push = pawn_direction(us);
     bitboard_t  pawns_on_last_rank = piece_bb(board, us, PAWN) & (us == WHITE ? RANK_7_BITS : RANK_2_BITS);
@@ -67,7 +86,7 @@ extmove_t   *generate_pawn_capture_moves(extmove_t *movelist, const board_t *boa
         {
             square_t    to = bb_pop_first_sq(&b);
             (movelist++)->move = create_promotion(to - pawn_push, to, QUEEN);
-            if (!in_qsearch)
+            if (!inQsearch)
                 movelist = create_underpromotions(movelist, to, pawn_push);
         }
 
@@ -75,7 +94,7 @@ extmove_t   *generate_pawn_capture_moves(extmove_t *movelist, const board_t *boa
         {
             square_t    to = bb_pop_first_sq(&b);
             (movelist++)->move = create_promotion(to - pawn_push - WEST, to, QUEEN);
-            if (!in_qsearch)
+            if (!inQsearch)
                 movelist = create_underpromotions(movelist, to, pawn_push + WEST);
         }
 
@@ -83,7 +102,7 @@ extmove_t   *generate_pawn_capture_moves(extmove_t *movelist, const board_t *boa
         {
             square_t    to = bb_pop_first_sq(&b);
             (movelist++)->move = create_promotion(to - pawn_push - EAST, to, QUEEN);
-            if (!in_qsearch)
+            if (!inQsearch)
                 movelist = create_underpromotions(movelist, to, pawn_push + EAST);
         }
     }
@@ -116,13 +135,13 @@ extmove_t   *generate_pawn_capture_moves(extmove_t *movelist, const board_t *boa
     return (movelist);
 }
 
-extmove_t   *generate_captures(extmove_t *movelist, const board_t *board, bool in_qsearch)
+extmove_t   *generate_captures(extmove_t *movelist, const board_t *board, bool inQsearch)
 {
     color_t     us = board->sideToMove;
     bitboard_t  target = color_bb(board, not_color(us));
     square_t    kingSquare = get_king_square(board, us);
 
-    movelist = generate_pawn_capture_moves(movelist, board, us, target, in_qsearch);
+    movelist = generate_pawn_capture_moves(movelist, board, us, target, inQsearch);
 
     for (piecetype_t pt = KNIGHT; pt <= QUEEN; ++pt)
         movelist = generate_piece_moves(movelist, board, us, pt, target);

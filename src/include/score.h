@@ -22,9 +22,9 @@
 # include <stdint.h>
 # include "inlining.h"
 
-typedef int16_t     score_t;
-typedef int32_t     scorepair_t;
-typedef int16_t     phase_t;
+typedef int16_t score_t;
+typedef int32_t scorepair_t;
+typedef int16_t phase_t;
 
 enum
 {
@@ -51,12 +51,12 @@ enum
     PHASE_NB
 };
 
-INLINED score_t     midgame_score(scorepair_t pair)
+INLINED score_t midgame_score(scorepair_t pair)
 {
     return ((score_t)(uint16_t)(((uint32_t)pair + 32768) >> 16));
 }
 
-INLINED score_t     endgame_score(scorepair_t pair)
+INLINED score_t endgame_score(scorepair_t pair)
 {
     return ((score_t)(uint16_t)(uint32_t)pair);
 }
@@ -78,12 +78,12 @@ INLINED scorepair_t scorepair_divide(scorepair_t s, int i)
     return (create_scorepair(midgame_score(s) / i, endgame_score(s) / i));
 }
 
-INLINED score_t     mate_in(int ply)
+INLINED score_t mate_in(int ply)
 {
     return (MATE - ply);
 }
 
-INLINED score_t     mated_in(int ply)
+INLINED score_t mated_in(int ply)
 {
     return (ply - MATE);
 }

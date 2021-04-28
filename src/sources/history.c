@@ -22,27 +22,27 @@
 void    update_quiet_history(const board_t *board, int depth,
         move_t bestmove, const move_t quiets[64], int qcount, searchstack_t *ss)
 {
-    butterfly_history_t    *bf_hist = &get_worker(board)->bf_history;
+    butterfly_history_t    *bf_hist = &get_worker(board)->bfHistory;
     square_t        lto = SQ_A1;
     piece_t         lpc = NO_PIECE;
     square_t        to;
     piece_t         pc;
     int             bonus = (depth <= 12) ? 32 * depth * depth : 40;
-    move_t          previous_move = (ss - 1)->current_move;
+    move_t          previous_move = (ss - 1)->currentMove;
 
     pc = piece_on(board, from_sq(bestmove));
     to = to_sq(bestmove);
 
-    if ((ss - 1)->pc_history != NULL)
+    if ((ss - 1)->pieceHistory != NULL)
     {
         lto = to_sq(previous_move);
         lpc = piece_on(board, lto);
 
-        get_worker(board)->cm_history[lpc][lto] = bestmove;
-        add_pc_history(*(ss - 1)->pc_history, pc, to, bonus);
+        get_worker(board)->cmHistory[lpc][lto] = bestmove;
+        add_pc_history(*(ss - 1)->pieceHistory, pc, to, bonus);
     }
-    if ((ss - 2)->pc_history != NULL)
-        add_pc_history(*(ss - 2)->pc_history, pc, to, bonus);
+    if ((ss - 2)->pieceHistory != NULL)
+        add_pc_history(*(ss - 2)->pieceHistory, pc, to, bonus);
 
     add_bf_history(*bf_hist, pc, bestmove, bonus);
 
@@ -58,9 +58,9 @@ void    update_quiet_history(const board_t *board, int depth,
         to = to_sq(quiets[i]);
         add_bf_history(*bf_hist, pc, quiets[i], -bonus);
 
-        if ((ss - 1)->pc_history != NULL)
-            add_pc_history(*(ss - 1)->pc_history, pc, to, -bonus);
-        if ((ss - 2)->pc_history != NULL)
-            add_pc_history(*(ss - 2)->pc_history, pc, to, -bonus);
+        if ((ss - 1)->pieceHistory != NULL)
+            add_pc_history(*(ss - 1)->pieceHistory, pc, to, -bonus);
+        if ((ss - 2)->pieceHistory != NULL)
+            add_pc_history(*(ss - 2)->pieceHistory, pc, to, -bonus);
     }
 }

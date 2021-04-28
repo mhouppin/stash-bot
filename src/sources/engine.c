@@ -71,7 +71,7 @@ INLINED int rtm_greater_than(root_move_t *right, root_move_t *left)
     if (right->score != left->score)
         return (right->score > left->score);
     else
-        return (right->previous_score > left->previous_score);
+        return (right->prevScore > left->prevScore);
 }
 
 void        sort_root_moves(root_move_t *begin, root_move_t *end)
@@ -125,9 +125,9 @@ void        *engine_go(void *ptr)
         return (NULL);
     }
 
-    worker->root_count = movelist_size(&SearchMoves);
+    worker->rootCount = movelist_size(&SearchMoves);
     // If we don't have any move here, we're (stale)mated, so we can abort the search now.
-    if (worker->root_count == 0)
+    if (worker->rootCount == 0)
     {
         printf("info depth 0 score %s 0\nbestmove 0000\n", (board->stack->checkers) ? "mate" : "cp");
         fflush(stdout);
@@ -136,22 +136,22 @@ void        *engine_go(void *ptr)
 
     // Init root move structure here
 
-    worker->root_moves = malloc(sizeof(root_move_t) * worker->root_count);
-    for (size_t i = 0; i < worker->root_count; ++i)
+    worker->rootMoves = malloc(sizeof(root_move_t) * worker->rootCount);
+    for (size_t i = 0; i < worker->rootCount; ++i)
     {
-        worker->root_moves[i].move = SearchMoves.moves[i].move;
-        worker->root_moves[i].seldepth = 0;
-        worker->root_moves[i].previous_score = -INF_SCORE;
-        worker->root_moves[i].score = -INF_SCORE;
-        worker->root_moves[i].pv[0] = NO_MOVE;
+        worker->rootMoves[i].move = SearchMoves.moves[i].move;
+        worker->rootMoves[i].seldepth = 0;
+        worker->rootMoves[i].prevScore = -INF_SCORE;
+        worker->rootMoves[i].score = -INF_SCORE;
+        worker->rootMoves[i].pv[0] = NO_MOVE;
     }
 
     // Reset all history related stuff.
 
-    memset(worker->bf_history, 0, sizeof(butterfly_history_t));
-    memset(worker->ct_history, 0, sizeof(continuation_history_t));
-    memset(worker->cm_history, 0, sizeof(countermove_history_t));
-    worker->verif_plies = 0;
+    memset(worker->bfHistory, 0, sizeof(butterfly_history_t));
+    memset(worker->ctHistory, 0, sizeof(continuation_history_t));
+    memset(worker->cmHistory, 0, sizeof(countermove_history_t));
+    worker->verifPlies = 0;
 
     if (!worker->idx)
     {
@@ -189,7 +189,7 @@ void        *engine_go(void *ptr)
 
     // Clamp MultiPV to the maximal number of lines available
 
-    const int   multi_pv = min(Options.multi_pv, worker->root_count);
+    const int   multiPv = min(Options.multiPv, worker->rootCount);
 
     for (int iter_depth = 0; iter_depth < SearchParams.depth; ++iter_depth)
     {
@@ -198,12 +198,12 @@ void        *engine_go(void *ptr)
 
         memset(sstack, 0, sizeof(sstack));
 
-        for (worker->pv_line = 0; worker->pv_line < multi_pv; ++worker->pv_line)
+        for (worker->pvLine = 0; worker->pvLine < multiPv; ++worker->pvLine)
         {
             worker->seldepth = 0;
 
             score_t _alpha, _beta, _delta;
-            score_t pv_score = worker->root_moves[worker->pv_line].previous_score;
+            score_t pv_score = worker->rootMoves[worker->pvLine].prevScore;
 
             // Don't set aspiration window bounds for low depths, as the scores are
             // very volatile
@@ -228,16 +228,16 @@ __retry:
 
             has_search_aborted = search_should_abort();
 
-            sort_root_moves(worker->root_moves + worker->pv_line,
-                    worker->root_moves + worker->root_count);
-            pv_score = worker->root_moves[worker->pv_line].score;
+            sort_root_moves(worker->rootMoves + worker->pvLine,
+                    worker->rootMoves + worker->rootCount);
+            pv_score = worker->rootMoves[worker->pvLine].score;
 
             int     bound = (abs(pv_score) == INF_SCORE) ? EXACT_BOUND
                 : (pv_score >= _beta) ? LOWER_BOUND
                 : (pv_score <= _alpha) ? UPPER_BOUND : EXACT_BOUND;
 
             if (bound == EXACT_BOUND)
-                sort_root_moves(worker->root_moves, worker->root_moves + multi_pv);
+                sort_root_moves(worker->rootMoves, worker->rootMoves + multiPv);
 
             if (!worker->idx)
             {
@@ -246,15 +246,15 @@ __retry:
                 // Don't update Multi-PV lines if not all analysed at current depth
                 // and not enough time elapsed
 
-                if (multi_pv == 1 && (bound == EXACT_BOUND || time > 3000))
+                if (multiPv == 1 && (bound == EXACT_BOUND || time > 3000))
                 {
-                    print_pv(board, worker->root_moves, 1, iter_depth, time, bound);
+                    print_pv(board, worker->rootMoves, 1, iter_depth, time, bound);
                     fflush(stdout);
                 }
-                else if (multi_pv > 1 && bound == EXACT_BOUND && (worker->pv_line == multi_pv - 1  || time > 3000))
+                else if (multiPv > 1 && bound == EXACT_BOUND && (worker->pvLine == multiPv - 1  || time > 3000))
                 {
-                    for (int i = 0; i < multi_pv; ++i)
-                        print_pv(board, worker->root_moves + i, i + 1, iter_depth, time, bound);
+                    for (int i = 0; i < multiPv; ++i)
+                        print_pv(board, worker->rootMoves + i, i + 1, iter_depth, time, bound);
 
                     fflush(stdout);
                 }
@@ -280,9 +280,9 @@ __retry:
             }
         }
 
-        for (root_move_t *i = worker->root_moves; i < worker->root_moves + worker->root_count; ++i)
+        for (root_move_t *i = worker->rootMoves; i < worker->rootMoves + worker->rootCount; ++i)
         {
-            i->previous_score = i->score;
+            i->prevScore = i->score;
             i->score = -INF_SCORE;
         }
 
@@ -294,12 +294,12 @@ __retry:
 
         if (!worker->idx)
         {
-            timeman_update(&Timeman, board, worker->root_moves->move, worker->root_moves->previous_score);
+            timeman_update(&Timeman, board, worker->rootMoves->move, worker->rootMoves->prevScore);
             if (timeman_can_stop_search(&Timeman, chess_clock()))
                 break ;
         }
 
-        if (SearchParams.mate && worker->root_moves->previous_score >= mate_in(SearchParams.mate * 2))
+        if (SearchParams.mate && worker->rootMoves->prevScore >= mate_in(SearchParams.mate * 2))
             break ;
     }
 
@@ -313,7 +313,7 @@ __retry:
 
     if (!worker->idx)
     {
-        printf("bestmove %s\n", move_to_str(worker->root_moves->move, board->chess960));
+        printf("bestmove %s\n", move_to_str(worker->rootMoves->move, board->chess960));
         fflush(stdout);
 
         if (EngineSend != DO_ABORT)
@@ -327,7 +327,7 @@ __retry:
         }
     }
 
-    free(worker->root_moves);
+    free(worker->rootMoves);
     free_boardstack(worker->stack);
     return (NULL);
 }

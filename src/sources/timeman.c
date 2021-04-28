@@ -47,7 +47,7 @@ const double    BestmoveStabilityScale[5] = {
 
 void    timeman_init(const board_t *board, timeman_t *tm, goparams_t *params, clock_t start)
 {
-    clock_t overhead = Options.move_overhead;
+    clock_t overhead = Options.moveOverhead;
 
     tm->start = start;
 
@@ -61,22 +61,22 @@ void    timeman_init(const board_t *board, timeman_t *tm, goparams_t *params, cl
 
         time = max(0, time - overhead);
 
-        tm->average_time = time / mtg + inc;
-        tm->maximal_time = time / sqrt(mtg) + inc;
-        tm->average_time = min(tm->average_time, time);
-        tm->maximal_time = min(tm->maximal_time, time);
-        tm->optimal_time = tm->maximal_time;
+        tm->averageTime = time / mtg + inc;
+        tm->maximalTime = time / sqrt(mtg) + inc;
+        tm->averageTime = min(tm->averageTime, time);
+        tm->maximalTime = min(tm->maximalTime, time);
+        tm->optimalTime = tm->maximalTime;
     }
     else if (params->movetime)
     {
         tm->mode = Movetime;
-        tm->average_time = tm->maximal_time = tm->optimal_time = max(1, params->movetime - overhead);
+        tm->averageTime = tm->maximalTime = tm->optimalTime = max(1, params->movetime - overhead);
     }
     else
         tm->mode = NoTimeman;
 
-    tm->prev_score = NO_SCORE;
-    tm->prev_bestmove = NO_MOVE;
+    tm->prevScore = NO_SCORE;
+    tm->prevBestmove = NO_MOVE;
     tm->stability = 0;
     tm->type = NO_BM_TYPE;
 }
@@ -104,13 +104,13 @@ void    timeman_update(timeman_t *tm, const board_t *board, move_t bestmove, sco
         return ;
 
     // Update bestmove + stability statistics
-    if (tm->prev_bestmove != bestmove)
+    if (tm->prevBestmove != bestmove)
     {
         movelist_t  list;
         bool        is_quiet = !is_capture_or_promotion(board, bestmove);
         bool        givesCheck = move_gives_check(board, bestmove);
 
-        tm->prev_bestmove = bestmove;
+        tm->prevBestmove = bestmove;
         tm->stability = 0;
 
         // Do we only have one legal move ? Don't burn much time on these
@@ -151,12 +151,12 @@ void    timeman_update(timeman_t *tm, const board_t *board, move_t bestmove, sco
 
     // Scale the time usage based on how the score changed from the
     // previous iteration (the higher it goes, the quicker we stop searching)
-    if (tm->prev_score != NO_SCORE)
-        scale *= score_difference_scale(tm->prev_score - score);
+    if (tm->prevScore != NO_SCORE)
+        scale *= score_difference_scale(tm->prevScore - score);
 
     // Update score + optimal time usage
-    tm->prev_score = score;
-    tm->optimal_time = min(tm->maximal_time, tm->average_time * scale);
+    tm->prevScore = score;
+    tm->optimalTime = min(tm->maximalTime, tm->averageTime * scale);
 }
 
 void    check_time(void)

@@ -26,8 +26,8 @@
 
 typedef int16_t square_t;
 typedef int16_t direction_t;
-typedef int8_t  file_t;
-typedef int8_t  rank_t;
+typedef int8_t file_t;
+typedef int8_t rank_t;
 
 enum
 {
@@ -67,42 +67,42 @@ enum
 
 extern int  SquareDistance[SQUARE_NB][SQUARE_NB];
 
-INLINED file_t  sq_file(square_t square)
+INLINED file_t sq_file(square_t square)
 {
     return (square & 7);
 }
 
-INLINED rank_t  sq_rank(square_t square)
+INLINED rank_t sq_rank(square_t square)
 {
     return (square >> 3);
 }
 
-INLINED square_t    create_sq(file_t file, rank_t rank)
+INLINED square_t create_sq(file_t file, rank_t rank)
 {
     return (file + (rank << 3));
 }
 
-INLINED square_t    opposite_sq(square_t square)
+INLINED square_t opposite_sq(square_t square)
 {
     return (square ^ SQ_A8);
 }
 
-INLINED square_t    relative_sq(square_t square, color_t color)
+INLINED square_t relative_sq(square_t square, color_t color)
 {
     return (square ^ (SQ_A8 * color));
 }
 
-INLINED rank_t      relative_rank(rank_t rank, color_t color)
+INLINED rank_t relative_rank(rank_t rank, color_t color)
 {
     return (rank ^ (RANK_8 * color));
 }
 
-INLINED rank_t      relative_sq_rank(square_t square, color_t color)
+INLINED rank_t relative_sq_rank(square_t square, color_t color)
 {
     return (relative_rank(sq_rank(square), color));
 }
 
-INLINED bool        is_valid_sq(square_t square)
+INLINED bool is_valid_sq(square_t square)
 {
     return (square >= SQ_A1 && square <= SQ_H8);
 }

@@ -26,11 +26,11 @@
 
 // Struct for root moves.
 
-typedef struct
+typedef struct rootMove_s
 {
     move_t  move;
-    int     seldepth;
-    score_t previous_score;
+    int seldepth;
+    score_t prevScore;
     score_t score;
     move_t  pv[512];
 }
@@ -38,47 +38,47 @@ root_move_t;
 
 // Struct for worker thread data.
 
-typedef struct
+typedef struct worker_s
 {
     int idx;
 
-    board_t         board;
-    boardstack_t    *stack;
-    butterfly_history_t    bf_history;
-    continuation_history_t    ct_history;
-    countermove_history_t    cm_history;
-    pawn_entry_t    *pawn_table;
+    board_t board;
+    boardstack_t *stack;
+    butterfly_history_t bfHistory;
+    continuation_history_t ctHistory;
+    countermove_history_t cmHistory;
+    pawn_entry_t *pawnTable;
 
-    int                 seldepth;
-    int                 verif_plies;
-    _Atomic uint64_t    nodes;
+    int seldepth;
+    int verifPlies;
+    _Atomic uint64_t nodes;
 
-    root_move_t *root_moves;
-    size_t      root_count;
-    int         pv_line;
+    root_move_t *rootMoves;
+    size_t rootCount;
+    int pvLine;
 
-    pthread_t   thread;
+    pthread_t thread;
 }
 worker_t;
 
-typedef struct
+typedef struct worker_pool_s
 {
-    int         size;
-    int         checks;
-    worker_t    *list;
+    int size;
+    int checks;
+    worker_t *list;
 }
 worker_pool_t;
 
-extern worker_pool_t    WPool;
+extern worker_pool_t WPool;
 
-INLINED worker_t    *get_worker(const board_t *board)
+INLINED worker_t *get_worker(const board_t *board)
 {
     return (board->worker);
 }
 
-INLINED uint64_t    get_node_count(void)
+INLINED uint64_t get_node_count(void)
 {
-    uint64_t    result = 0;
+    uint64_t result = 0;
 
     for (int i = 0; i < WPool.size; ++i)
         result += WPool.list[i].nodes;
@@ -86,8 +86,8 @@ INLINED uint64_t    get_node_count(void)
     return (result);
 }
 
-void    wpool_init(int threads);
-void    wpool_reset(void);
-void    wpool_quit(void);
+void wpool_init(int threads);
+void wpool_reset(void);
+void wpool_quit(void);
 
 #endif

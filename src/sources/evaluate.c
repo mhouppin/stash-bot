@@ -293,7 +293,7 @@ scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, const paw
         // Bonus for Knight on Outpost, with higher scores if the Knight is on
         // a center file, on the 6th rank, or supported by a pawn.
 
-        if (sqbb & outpost & ~pe->attack_span[not_color(c)])
+        if (sqbb & outpost & ~pe->attackSpan[not_color(c)])
         {
             ret += KnightOutpost;
 

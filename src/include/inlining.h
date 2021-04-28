@@ -22,6 +22,6 @@
 // Workaround to avoid problems with duplicated function symbols,
 // when -finline is disabled or when a function inlining fails.
 
-# define INLINED    static inline
+# define INLINED static inline
 
 #endif

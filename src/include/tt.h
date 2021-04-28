@@ -24,60 +24,59 @@
 # include "hashkey.h"
 # include "move.h"
 
-typedef struct
+typedef struct tt_entry_s
 {
-    hashkey_t   key;
-    score_t     score;
-    score_t     eval;
-    uint8_t     depth;
-    uint8_t     genbound;
-    uint16_t    bestmove;
-}        tt_entry_t;
+    hashkey_t key;
+    score_t score;
+    score_t eval;
+    uint8_t depth;
+    uint8_t genbound;
+    uint16_t bestmove;
+}
+tt_entry_t;
 
-enum
+enum { ClusterSize = 4 };
+
+typedef tt_entry_t cluster_t[ClusterSize];
+
+typedef struct transposition_s
 {
-    ClusterSize = 4
-};
+    size_t clusterCount;
+    cluster_t *table;
+    uint8_t generation;
+}
+transposition_t;
 
-typedef tt_entry_t  cluster_t[ClusterSize];
+extern transposition_t TT;
 
-typedef struct
+INLINED tt_entry_t *tt_entry_at(hashkey_t k)
 {
-    size_t      cluster_count;
-    cluster_t   *table;
-    uint8_t     generation;
-}        transposition_t;
-
-extern transposition_t  TT;
-
-INLINED tt_entry_t  *tt_entry_at(hashkey_t k)
-{
-    return (TT.table[mul_hi64(k, TT.cluster_count)]);
+    return (TT.table[mul_hi64(k, TT.clusterCount)]);
 }
 
-INLINED void        tt_clear(void)
+INLINED void tt_clear(void)
 {
     TT.generation += 4;
 }
 
-INLINED void        tt_bzero(void)
+INLINED void tt_bzero(void)
 {
-    memset(TT.table, 0, sizeof(cluster_t) * TT.cluster_count);
+    memset(TT.table, 0, sizeof(cluster_t) * TT.clusterCount);
 }
 
-INLINED score_t     score_to_tt(score_t s, int plies)
+INLINED score_t score_to_tt(score_t s, int plies)
 {
     return (s >= MATE_FOUND ? s + plies : s <= -MATE_FOUND ? s - plies : s);
 }
 
-INLINED score_t     score_from_tt(score_t s, int plies)
+INLINED score_t score_from_tt(score_t s, int plies)
 {
     return (s >= MATE_FOUND ? s - plies : s <= -MATE_FOUND ? s + plies : s);
 }
 
-tt_entry_t  *tt_probe(hashkey_t key, bool *found);
-void        tt_save(tt_entry_t *entry, hashkey_t k, score_t s, score_t e, int d, int b, move_t m);
-int         tt_hashfull(void);
-void        tt_resize(size_t mbsize);
+tt_entry_t *tt_probe(hashkey_t key, bool *found);
+void tt_save(tt_entry_t *entry, hashkey_t k, score_t s, score_t e, int d, int b, move_t m);
+int tt_hashfull(void);
+void tt_resize(size_t mbsize);
 
 #endif

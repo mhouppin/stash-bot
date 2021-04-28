@@ -24,8 +24,8 @@
 # include "piece.h"
 # include "square.h"
 
-typedef int32_t     move_t;
-typedef int32_t     movetype_t;
+typedef int32_t move_t;
+typedef int32_t movetype_t;
 
 enum
 {
@@ -39,22 +39,22 @@ enum
     MOVETYPE_MASK = 3 << 14
 };
 
-INLINED square_t    from_sq(move_t move)
+INLINED square_t from_sq(move_t move)
 {
     return ((square_t)((move >> 6) & SQ_H8));
 }
 
-INLINED square_t    to_sq(move_t move)
+INLINED square_t to_sq(move_t move)
 {
     return ((square_t)(move & SQ_H8));
 }
 
-INLINED int         square_mask(move_t move)
+INLINED int square_mask(move_t move)
 {
     return (move & 0xFFF);
 }
 
-INLINED movetype_t  move_type(move_t move)
+INLINED movetype_t move_type(move_t move)
 {
     return (move & MOVETYPE_MASK);
 }
@@ -64,34 +64,32 @@ INLINED piecetype_t promotion_type(move_t move)
     return ((piecetype_t)(((move >> 12) & 3) + KNIGHT));
 }
 
-INLINED move_t      create_move(square_t from, square_t to)
+INLINED move_t create_move(square_t from, square_t to)
 {
     return ((move_t)((from << 6) + to));
 }
 
-INLINED move_t      reverse_move(move_t move)
+INLINED move_t reverse_move(move_t move)
 {
     return (create_move(to_sq(move), from_sq(move)));
 }
 
-INLINED move_t      create_promotion(square_t from, square_t to,
-                    piecetype_t piecetype)
+INLINED move_t create_promotion(square_t from, square_t to, piecetype_t piecetype)
 {
-    return ((move_t)(PROMOTION + ((piecetype - KNIGHT) << 12)
-            + (from << 6) + to));
+    return ((move_t)(PROMOTION + ((piecetype - KNIGHT) << 12) + (from << 6) + to));
 }
 
-INLINED move_t      create_en_passant(square_t from, square_t to)
+INLINED move_t create_en_passant(square_t from, square_t to)
 {
     return ((move_t)(EN_PASSANT + (from << 6) + to));
 }
 
-INLINED move_t      create_castling(square_t from, square_t to)
+INLINED move_t create_castling(square_t from, square_t to)
 {
     return ((move_t)(CASTLING + (from << 6) + to));
 }
 
-INLINED bool        is_valid_move(move_t move)
+INLINED bool is_valid_move(move_t move)
 {
     return (from_sq(move) != to_sq(move));
 }

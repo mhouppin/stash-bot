@@ -23,8 +23,8 @@
 # include "color.h"
 # include "score.h"
 
-typedef int8_t  piece_t;
-typedef int8_t  piecetype_t;
+typedef int8_t piece_t;
+typedef int8_t piecetype_t;
 
 enum
 {
@@ -62,17 +62,17 @@ INLINED piecetype_t piece_type(piece_t piece)
     return (piece & 7);
 }
 
-INLINED color_t     piece_color(piece_t piece)
+INLINED color_t piece_color(piece_t piece)
 {
     return (piece >> 3);
 }
 
-INLINED piece_t     create_piece(color_t color, piecetype_t piecetype)
+INLINED piece_t create_piece(color_t color, piecetype_t piecetype)
 {
     return (piecetype + (color << 3));
 }
 
-INLINED piece_t     opposite_piece(piece_t piece)
+INLINED piece_t opposite_piece(piece_t piece)
 {
     return (piece ^ 8);
 }

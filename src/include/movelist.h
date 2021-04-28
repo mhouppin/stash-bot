@@ -26,44 +26,43 @@
 # include "inlining.h"
 # include "move.h"
 
-typedef struct  extmove_s
+typedef struct extmove_s
 {
-    move_t  move;
+    move_t move;
     score_t score;
-}               extmove_t;
+}
+extmove_t;
 
-typedef struct  movelist_s
+typedef struct movelist_s
 {
-    extmove_t   moves[256];
-    extmove_t   *last;
-}               movelist_t;
+    extmove_t moves[256];
+    extmove_t *last;
+}
+movelist_t;
 
-extern movelist_t   SearchMoves;
+extern movelist_t SearchMoves;
 
-extmove_t   *generate_all(extmove_t *movelist, const board_t *board);
-extmove_t   *generate_classic(extmove_t *movelist, const board_t *board);
-extmove_t   *generate_evasions(extmove_t *movelist, const board_t *board);
-extmove_t   *generate_captures(extmove_t *movelist, const board_t *board, bool in_qsearch);
-extmove_t   *generate_quiet(extmove_t *movelist, const board_t *board);
+extmove_t *generate_all(extmove_t *movelist, const board_t *board);
+extmove_t *generate_classic(extmove_t *movelist, const board_t *board);
+extmove_t *generate_evasions(extmove_t *movelist, const board_t *board);
+extmove_t *generate_captures(extmove_t *movelist, const board_t *board, bool inQsearch);
+extmove_t *generate_quiet(extmove_t *movelist, const board_t *board);
 
-extmove_t   *generate_piece_moves(extmove_t *movelist, const board_t *board,
-            color_t us, piecetype_t pt, bitboard_t target_squares);
+void place_top_move(extmove_t *begin, extmove_t *end);
 
-void        place_top_move(extmove_t *begin, extmove_t *end);
-
-INLINED void    list_all(movelist_t *movelist, const board_t *board)
+INLINED void list_all(movelist_t *movelist, const board_t *board)
 {
     movelist->last = generate_all(movelist->moves, board);
 }
 
-INLINED void    list_pseudo(movelist_t *movelist, const board_t *board)
+INLINED void list_pseudo(movelist_t *movelist, const board_t *board)
 {
     movelist->last = board->stack->checkers
         ? generate_evasions(movelist->moves, board)
         : generate_classic(movelist->moves, board);
 }
 
-INLINED size_t  movelist_size(const movelist_t *movelist)
+INLINED size_t movelist_size(const movelist_t *movelist)
 {
     return (movelist->last - movelist->moves);
 }
@@ -78,7 +77,7 @@ INLINED const extmove_t *movelist_end(const movelist_t *movelist)
     return (movelist->last);
 }
 
-INLINED bool    movelist_has_move(const movelist_t *movelist, move_t move)
+INLINED bool movelist_has_move(const movelist_t *movelist, move_t move)
 {
     for (const extmove_t *extmove = movelist_begin(movelist);
             extmove < movelist_end(movelist); ++extmove)
@@ -86,24 +85,6 @@ INLINED bool    movelist_has_move(const movelist_t *movelist, move_t move)
             return (true);
 
     return (false);
-}
-
-INLINED extmove_t   *create_promotions(extmove_t *movelist, square_t to, direction_t direction)
-{
-    (movelist++)->move = create_promotion(to - direction, to, QUEEN);
-    (movelist++)->move = create_promotion(to - direction, to, ROOK);
-    (movelist++)->move = create_promotion(to - direction, to, BISHOP);
-    (movelist++)->move = create_promotion(to - direction, to, KNIGHT);
-
-    return (movelist);
-}
-INLINED extmove_t   *create_underpromotions(extmove_t *movelist, square_t to, direction_t direction)
-{
-    (movelist++)->move = create_promotion(to - direction, to, ROOK);
-    (movelist++)->move = create_promotion(to - direction, to, BISHOP);
-    (movelist++)->move = create_promotion(to - direction, to, KNIGHT);
-
-    return (movelist);
 }
 
 #endif

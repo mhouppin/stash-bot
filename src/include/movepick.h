@@ -24,13 +24,13 @@
 
 typedef struct
 {
-    int     plies;
+    int plies;
     score_t static_eval;
-    move_t  killers[2];
-    move_t  excluded_move;
-    move_t  current_move;
-    move_t  *pv;
-    piece_history_t *pc_history;
+    move_t killers[2];
+    move_t excludedMove;
+    move_t currentMove;
+    move_t *pv;
+    piece_history_t *pieceHistory;
 }
 searchstack_t;
 
@@ -53,23 +53,23 @@ enum
 
 typedef struct movepick_s
 {
-    movelist_t      list;
-    extmove_t       *cur, *bad_captures;
-    bool            in_qsearch;
-    int             stage;
-    move_t          tt_move;
-    move_t          killer1;
-    move_t          killer2;
-    move_t          counter;
-    const board_t   *board;
-    const worker_t  *worker;
-    piece_history_t *pc_history[2];
+    movelist_t list;
+    extmove_t *cur, *badCaptures;
+    bool inQsearch;
+    int stage;
+    move_t ttMove;
+    move_t killer1;
+    move_t killer2;
+    move_t counter;
+    const board_t *board;
+    const worker_t *worker;
+    piece_history_t *pieceHistory[2];
 }
 movepick_t;
 
-void    movepick_init(movepick_t *mp, bool in_qsearch, const board_t *board,
-        const worker_t *worker, move_t tt_move, searchstack_t *ss);
+void movepick_init(movepick_t *mp, bool inQsearch, const board_t *board,
+    const worker_t *worker, move_t ttMove, searchstack_t *ss);
 
-move_t  movepick_next_move(movepick_t *mp, bool skip_quiets);
+move_t  movepick_next_move(movepick_t *mp, bool skipQuiets);
 
 #endif

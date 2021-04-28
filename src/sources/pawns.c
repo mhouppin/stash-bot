@@ -67,7 +67,7 @@ scorepair_t evaluate_backward(pawn_entry_t *entry, color_t us, bitboard_t our_pa
         our_attack_span |= pawn_attack_span_bb(us, bb_pop_first_sq(&bb));
 
     // Save the pawn attack span to the entry
-    entry->attack_span[us] = our_attack_span;
+    entry->attackSpan[us] = our_attack_span;
 
     bitboard_t  their_attacks = (us == WHITE)
         ? bpawns_attacks_bb(their_pawns) : wpawns_attacks_bb(their_pawns);
@@ -125,14 +125,14 @@ scorepair_t evaluate_doubled_isolated(bitboard_t us)
 pawn_entry_t    *pawn_probe(const board_t *board)
 {
     pawn_entry_t   *entry =
-        get_worker(board)->pawn_table + (board->stack->pawnKey % PawnTableSize);
+        get_worker(board)->pawnTable + (board->stack->pawnKey % PawnTableSize);
 
     if (entry->key == board->stack->pawnKey)
         return (entry);
 
     entry->key = board->stack->pawnKey;
     entry->value = 0;
-    entry->attack_span[WHITE] = entry->attack_span[BLACK] = 0;
+    entry->attackSpan[WHITE] = entry->attackSpan[BLACK] = 0;
 
     const bitboard_t    wpawns = piece_bb(board, WHITE, PAWN);
     const bitboard_t    bpawns = piece_bb(board, BLACK, PAWN);

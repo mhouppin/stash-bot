@@ -40,8 +40,8 @@ void    tt_resize(size_t mbsize)
     if (TT.table)
         free(TT.table);
 
-    TT.cluster_count = mbsize * 1024 * 1024 / sizeof(cluster_t);
-    TT.table = malloc(TT.cluster_count * sizeof(cluster_t));
+    TT.clusterCount = mbsize * 1024 * 1024 / sizeof(cluster_t);
+    TT.table = malloc(TT.clusterCount * sizeof(cluster_t));
 
     if (TT.table == NULL)
     {
