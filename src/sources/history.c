@@ -22,29 +22,29 @@
 void    update_quiet_history(const board_t *board, int depth,
         move_t bestmove, const move_t quiets[64], int qcount, searchstack_t *ss)
 {
-    butterfly_history_t    *bf_hist = &get_worker(board)->bfHistory;
-    square_t        lto = SQ_A1;
-    piece_t         lpc = NO_PIECE;
-    square_t        to;
-    piece_t         pc;
-    int             bonus = (depth <= 12) ? 32 * depth * depth : 40;
-    move_t          previous_move = (ss - 1)->currentMove;
+    butterfly_history_t *bfHist = &get_worker(board)->bfHistory;
+    square_t lastTo = SQ_A1;
+    piece_t lastPiece = NO_PIECE;
+    square_t to;
+    piece_t piece;
+    int bonus = (depth <= 12) ? 32 * depth * depth : 40;
+    move_t previousMove = (ss - 1)->currentMove;
 
-    pc = piece_on(board, from_sq(bestmove));
+    piece = piece_on(board, from_sq(bestmove));
     to = to_sq(bestmove);
 
     if ((ss - 1)->pieceHistory != NULL)
     {
-        lto = to_sq(previous_move);
-        lpc = piece_on(board, lto);
+        lastTo = to_sq(previousMove);
+        lastPiece = piece_on(board, lastTo);
 
-        get_worker(board)->cmHistory[lpc][lto] = bestmove;
-        add_pc_history(*(ss - 1)->pieceHistory, pc, to, bonus);
+        get_worker(board)->cmHistory[lastPiece][lastTo] = bestmove;
+        add_pc_history(*(ss - 1)->pieceHistory, piece, to, bonus);
     }
     if ((ss - 2)->pieceHistory != NULL)
-        add_pc_history(*(ss - 2)->pieceHistory, pc, to, bonus);
+        add_pc_history(*(ss - 2)->pieceHistory, piece, to, bonus);
 
-    add_bf_history(*bf_hist, pc, bestmove, bonus);
+    add_bf_history(*bfHist, piece, bestmove, bonus);
 
     if (ss->killers[0] != bestmove)
     {
@@ -54,13 +54,13 @@ void    update_quiet_history(const board_t *board, int depth,
 
     for (int i = 0; i < qcount; ++i)
     {
-        pc = piece_on(board, from_sq(quiets[i]));
+        piece = piece_on(board, from_sq(quiets[i]));
         to = to_sq(quiets[i]);
-        add_bf_history(*bf_hist, pc, quiets[i], -bonus);
+        add_bf_history(*bfHist, piece, quiets[i], -bonus);
 
         if ((ss - 1)->pieceHistory != NULL)
-            add_pc_history(*(ss - 1)->pieceHistory, pc, to, -bonus);
+            add_pc_history(*(ss - 1)->pieceHistory, piece, to, -bonus);
         if ((ss - 2)->pieceHistory != NULL)
-            add_pc_history(*(ss - 2)->pieceHistory, pc, to, -bonus);
+            add_pc_history(*(ss - 2)->pieceHistory, piece, to, -bonus);
     }
 }

@@ -24,56 +24,54 @@
 
 endgame_entry_t EndgameTable[EGTB_SIZE];
 
-score_t eval_draw(const board_t *board, color_t winningSide)
+score_t eval_draw(const board_t *board __attribute__((unused)), color_t winningSide __attribute__((unused)))
 {
-    (void)board;
-    (void)winningSide;
     return (0);
 }
 
 score_t eval_krkp(const board_t *board, color_t winningSide)
 {
-    square_t    winning_ksq = get_king_square(board, winningSide);
-    square_t    losing_ksq = get_king_square(board, not_color(winningSide));
-    square_t    winning_rook = bb_first_sq(piecetype_bb(board, ROOK));
-    square_t    losing_pawn = bb_first_sq(piecetype_bb(board, PAWN));
-    square_t    push_square = losing_pawn + pawn_direction(not_color(winningSide));
-    square_t    promote_square = create_sq(sq_file(losing_pawn), relative_rank(RANK_8, not_color(winningSide)));
-    score_t     score;
+    square_t winningKsq = get_king_square(board, winningSide);
+    square_t losingKsq = get_king_square(board, not_color(winningSide));
+    square_t winningRook = bb_first_sq(piecetype_bb(board, ROOK));
+    square_t losingPawn = bb_first_sq(piecetype_bb(board, PAWN));
+    square_t pushSquare = losingPawn + pawn_direction(not_color(winningSide));
+    square_t promoteSquare = create_sq(sq_file(losingPawn), relative_rank(RANK_8, not_color(winningSide)));
+    score_t score;
 
     // Does the winning King control the promotion path ?
 
-    if (forward_file_bb(winningSide, winning_ksq) & square_bb(losing_pawn))
-        score = ROOK_EG_SCORE - SquareDistance[winning_ksq][losing_pawn];
+    if (forward_file_bb(winningSide, winningKsq) & square_bb(losingPawn))
+        score = ROOK_EG_SCORE - SquareDistance[winningKsq][losingPawn];
 
     // Is the losing King unable to reach either the Rook or its Pawn ?
 
-    else if (SquareDistance[losing_ksq][losing_pawn] >= 3 + (board->sideToMove != winningSide)
-        && SquareDistance[losing_ksq][winning_rook] >= 3)
-        score = ROOK_EG_SCORE - SquareDistance[winning_ksq][losing_pawn];
+    else if (SquareDistance[losingKsq][losingPawn] >= 3 + (board->sideToMove != winningSide)
+        && SquareDistance[losingKsq][winningRook] >= 3)
+        score = ROOK_EG_SCORE - SquareDistance[winningKsq][losingPawn];
 
     // Is the Pawn close to the promotion square and defended by its King ?
     // Also, is the winning King unable to reach the Pawn ?
 
-    else if (relative_rank(winningSide, losing_ksq) <= RANK_3
-        && SquareDistance[losing_ksq][losing_pawn] == 1
-        && relative_rank(winningSide, winning_ksq) >= RANK_4
-        && SquareDistance[winning_ksq][losing_pawn] >= 3 + (board->sideToMove == winningSide))
-        score = 40 - 4 * SquareDistance[winning_ksq][losing_pawn];
+    else if (relative_rank(winningSide, losingKsq) <= RANK_3
+        && SquareDistance[losingKsq][losingPawn] == 1
+        && relative_rank(winningSide, winningKsq) >= RANK_4
+        && SquareDistance[winningKsq][losingPawn] >= 3 + (board->sideToMove == winningSide))
+        score = 40 - 4 * SquareDistance[winningKsq][losingPawn];
 
     else
-        score = 100 - 4 * (SquareDistance[winning_ksq][push_square]
-            - SquareDistance[losing_ksq][push_square]
-            - SquareDistance[losing_pawn][promote_square]);
+        score = 100 - 4 * (SquareDistance[winningKsq][pushSquare]
+            - SquareDistance[losingKsq][pushSquare]
+            - SquareDistance[losingPawn][promoteSquare]);
 
     return (board->sideToMove == winningSide ? score : -score);
 }
 
 score_t eval_krkn(const board_t *board, color_t winningSide)
 {
-    square_t    losing_ksq = get_king_square(board, not_color(winningSide));
-    square_t    losing_knight = bb_first_sq(piecetype_bb(board, KNIGHT));
-    score_t     score = edge_bonus(losing_ksq) + away_bonus(losing_ksq, losing_knight);
+    square_t losingKsq = get_king_square(board, not_color(winningSide));
+    square_t losingKnight = bb_first_sq(piecetype_bb(board, KNIGHT));
+    score_t score = edge_bonus(losingKsq) + away_bonus(losingKsq, losingKnight);
 
     return (board->sideToMove == winningSide ? score : -score);
 }
@@ -87,44 +85,44 @@ score_t eval_krkb(const board_t *board, color_t winningSide)
 
 score_t eval_kbnk(const board_t *board, color_t winningSide)
 {
-    square_t    losing_ksq = get_king_square(board, not_color(winningSide));
-    square_t    winning_ksq = get_king_square(board, winningSide);
-    score_t     score = VICTORY + KNIGHT_MG_SCORE + BISHOP_MG_SCORE;
+    square_t losingKsq = get_king_square(board, not_color(winningSide));
+    square_t winningKsq = get_king_square(board, winningSide);
+    score_t score = VICTORY + KNIGHT_MG_SCORE + BISHOP_MG_SCORE;
 
-    score += 70 - 10 * SquareDistance[losing_ksq][winning_ksq];
+    score += 70 - 10 * SquareDistance[losingKsq][winningKsq];
 
     // Don't push the king to the wrong corner
 
     if (piecetype_bb(board, BISHOP) & DARK_SQUARES)
-        losing_ksq ^= SQ_A8;
+        losingKsq ^= SQ_A8;
 
-    score += abs(sq_file(losing_ksq) - sq_rank(losing_ksq)) * 100;
+    score += abs(sq_file(losingKsq) - sq_rank(losingKsq)) * 100;
 
     return (board->sideToMove == winningSide ? score : -score);
 }
 
 score_t eval_kqkr(const board_t *board, color_t winningSide)
 {
-    score_t     score = QUEEN_EG_SCORE - ROOK_EG_SCORE;
-    square_t    losing_ksq = get_king_square(board, not_color(winningSide));
-    square_t    winning_ksq = get_king_square(board, winningSide);
+    score_t score = QUEEN_EG_SCORE - ROOK_EG_SCORE;
+    square_t losingKsq = get_king_square(board, not_color(winningSide));
+    square_t winningKsq = get_king_square(board, winningSide);
 
-    score += edge_bonus(losing_ksq);
-    score += close_bonus(winning_ksq, losing_ksq);
+    score += edge_bonus(losingKsq);
+    score += close_bonus(winningKsq, losingKsq);
 
     return (board->sideToMove == winningSide ? score : -score);
 }
 
 score_t eval_kqkp(const board_t *board, color_t winningSide)
 {
-    square_t    losing_ksq = get_king_square(board, not_color(winningSide));
-    square_t    losing_pawn = bb_first_sq(piecetype_bb(board, PAWN));
-    square_t    winning_ksq = get_king_square(board, winningSide);
-    score_t     score = close_bonus(winning_ksq, losing_ksq);
+    square_t losingKsq = get_king_square(board, not_color(winningSide));
+    square_t losingPawn = bb_first_sq(piecetype_bb(board, PAWN));
+    square_t winningKsq = get_king_square(board, winningSide);
+    score_t score = close_bonus(winningKsq, losingKsq);
 
-    if (relative_sq_rank(losing_pawn, not_color(winningSide)) != RANK_7
-        || SquareDistance[losing_ksq][losing_pawn] != 1
-        || ((FILE_B_BITS | FILE_D_BITS | FILE_E_BITS | FILE_G_BITS) & square_bb(losing_pawn)))
+    if (relative_sq_rank(losingPawn, not_color(winningSide)) != RANK_7
+        || SquareDistance[losingKsq][losingPawn] != 1
+        || ((FILE_B_BITS | FILE_D_BITS | FILE_E_BITS | FILE_G_BITS) & square_bb(losingPawn)))
         score += QUEEN_EG_SCORE - PAWN_EG_SCORE;
 
     return (board->sideToMove == winningSide ? score : -score);
@@ -140,21 +138,20 @@ score_t eval_knnkp(const board_t *board, color_t winningSide)
     return (board->sideToMove == winningSide ? score : -score);
 }
 
-void    add_colored_entry(color_t winningSide, char *wpieces, char *bpieces, endgame_func_t func)
+void add_colored_entry(color_t winningSide, char *wpieces, char *bpieces, endgame_func_t func)
 {
-    char    bcopy[16];
-    char    fen[128];
+    char bcopy[16];
+    char fen[128];
 
     strcpy(bcopy, bpieces);
 
     for (size_t i = 0; bcopy[i]; ++i)
         bcopy[i] = tolower(bcopy[i]);
 
-    sprintf(fen, "8/%s%d/8/8/8/8/%s%d/8 w - - 0 1", bcopy, 8 - (int)strlen(bcopy),
-        wpieces, 8 - (int)strlen(wpieces));
+    sprintf(fen, "8/%s%d/8/8/8/8/%s%d/8 w - - 0 1", bcopy, 8 - (int)strlen(bcopy), wpieces, 8 - (int)strlen(wpieces));
 
-    board_t         board;
-    boardstack_t    stack;
+    board_t board;
+    boardstack_t stack;
 
     set_board(&board, fen, false, &stack);
 
@@ -170,20 +167,20 @@ void    add_colored_entry(color_t winningSide, char *wpieces, char *bpieces, end
     entry->winningSide = winningSide;
 }
 
-void    add_endgame_entry(const char *pieces, endgame_func_t eval)
+void add_endgame_entry(const char *pieces, endgame_func_t eval)
 {
-    char    buf[32];
+    char buf[32];
 
     strcpy(buf, pieces);
 
-    char    *split = strchr(buf, 'v');
+    char *split = strchr(buf, 'v');
     *split = '\0';
 
     add_colored_entry(WHITE, buf, split + 1, eval);
     add_colored_entry(BLACK, split + 1, buf, eval);
 }
 
-void    init_endgame_table(void)
+void init_endgame_table(void)
 {
     memset(EndgameTable, 0, sizeof(EndgameTable));
 

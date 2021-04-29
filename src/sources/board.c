@@ -137,8 +137,7 @@ void set_board(board_t *board, char *fen, bool isChess960, boardstack_t *bstack)
                 piece_on(board, rookSquare) != rook; ++rookSquare) {}
 
         else if (fenCastlings[i] >= 'A' && fenCastlings[i] <= 'H')
-            rookSquare = create_sq((file_t)(fenCastlings[i] - 'A'),
-                relative_rank(RANK_1, color));
+            rookSquare = create_sq((file_t)(fenCastlings[i] - 'A'), relative_rank(RANK_1, color));
 
         else
             continue ;
@@ -157,11 +156,11 @@ void set_board(board_t *board, char *fen, bool isChess960, boardstack_t *bstack)
         // or no opponent pawn is present in front of the en passant square,
         // remove it.
 
-        if (!(attackers_to(board, board->stack->enPassantSquare)
-                & piece_bb(board, board->sideToMove, PAWN))
-            || !(piece_bb(board, not_color(board->sideToMove), PAWN)
-                & square_bb(board->stack->enPassantSquare
-                    + pawn_direction(not_color(board->sideToMove)))))
+        color_t us = board->sideToMove, them = not_color(board->sideToMove);
+        square_t enPassantSq = board->stack->enPassantSquare;
+
+        if (!(attackers_to(board, enPassantSq) & piece_bb(board, us, PAWN))
+            || !(piece_bb(board, them, PAWN) & square_bb(enPassantSq + pawn_direction(them))))
             board->stack->enPassantSquare = SQ_NONE;
     }
     else
@@ -303,8 +302,7 @@ void do_move_gc(board_t *board, move_t move, boardstack_t *next, bool givesCheck
     color_t us = board->sideToMove, them = not_color(us);
     square_t from = from_sq(move), to = to_sq(move);
     piece_t piece = piece_on(board, from);
-    piece_t capturedPiece = move_type(move) == EN_PASSANT
-        ? create_piece(them, PAWN) : piece_on(board, to);
+    piece_t capturedPiece = move_type(move) == EN_PASSANT ? create_piece(them, PAWN) : piece_on(board, to);
 
     if (move_type(move) == CASTLING)
     {
@@ -320,24 +318,24 @@ void do_move_gc(board_t *board, move_t move, boardstack_t *next, bool givesCheck
 
     if (capturedPiece)
     {
-        square_t    captured_square = to;
+        square_t capturedSquare = to;
 
         if (piece_type(capturedPiece) == PAWN)
         {
             if (move_type(move) == EN_PASSANT)
-                captured_square -= pawn_direction(us);
+                capturedSquare -= pawn_direction(us);
 
-            board->stack->pawnKey ^= ZobristPsq[capturedPiece][captured_square];
+            board->stack->pawnKey ^= ZobristPsq[capturedPiece][capturedSquare];
         }
         else
             board->stack->material[them] -= PieceScores[MIDGAME][capturedPiece];
 
-        remove_piece(board, captured_square);
+        remove_piece(board, capturedSquare);
 
         if (move_type(move) == EN_PASSANT)
-            board->table[captured_square] = NO_PIECE;
+            board->table[capturedSquare] = NO_PIECE;
 
-        key ^= ZobristPsq[capturedPiece][captured_square];
+        key ^= ZobristPsq[capturedPiece][capturedSquare];
         board->stack->materialKey ^= ZobristPsq[capturedPiece][board->pieceCount[capturedPiece]];
         board->stack->rule50 = 0;
     }
@@ -363,23 +361,22 @@ void do_move_gc(board_t *board, move_t move, boardstack_t *next, bool givesCheck
 
     if (piece_type(piece) == PAWN)
     {
-        if ((to ^ from) == 16 && (pawn_moves(to - pawn_direction(us), us)
-            & piece_bb(board, them, PAWN)))
+        if ((to ^ from) == 16 && (pawn_moves(to - pawn_direction(us), us) & piece_bb(board, them, PAWN)))
         {
             board->stack->enPassantSquare = to - pawn_direction(us);
             key ^= ZobristEnPassant[sq_file(board->stack->enPassantSquare)];
         }
         else if (move_type(move) == PROMOTION)
         {
-            piece_t new_piece = create_piece(us, promotion_type(move));
+            piece_t newPiece = create_piece(us, promotion_type(move));
 
             remove_piece(board, to);
-            put_piece(board, new_piece, to);
+            put_piece(board, newPiece, to);
 
-            key ^= ZobristPsq[piece][to] ^ ZobristPsq[new_piece][to];
+            key ^= ZobristPsq[piece][to] ^ ZobristPsq[newPiece][to];
             board->stack->pawnKey ^= ZobristPsq[piece][to];
             board->stack->material[us] += PieceScores[MIDGAME][promotion_type(move)];
-            board->stack->materialKey ^= ZobristPsq[new_piece][board->pieceCount[new_piece] - 1];
+            board->stack->materialKey ^= ZobristPsq[newPiece][board->pieceCount[newPiece] - 1];
             board->stack->materialKey ^= ZobristPsq[piece][board->pieceCount[piece]];
         }
 
@@ -403,12 +400,12 @@ void do_move_gc(board_t *board, move_t move, boardstack_t *next, bool givesCheck
 
     board->stack->repetition = 0;
 
-    int repetition_plies = min(board->stack->rule50, board->stack->pliesFromNullMove);
+    int repetitionPlies = min(board->stack->rule50, board->stack->pliesFromNullMove);
 
-    if (repetition_plies >= 4)
+    if (repetitionPlies >= 4)
     {
-        boardstack_t    *rewind = board->stack->prev->prev;
-        for (int i = 4; i <= repetition_plies; i += 2)
+        boardstack_t *rewind = board->stack->prev->prev;
+        for (int i = 4; i <= repetitionPlies; i += 2)
         {
             rewind = rewind->prev->prev;
             if (rewind->boardKey == board->stack->boardKey)
@@ -420,14 +417,13 @@ void do_move_gc(board_t *board, move_t move, boardstack_t *next, bool givesCheck
     }
 }
 
-void    undo_move(board_t *board, move_t move)
+void undo_move(board_t *board, move_t move)
 {
     board->sideToMove = not_color(board->sideToMove);
 
-    color_t     us = board->sideToMove;
-    square_t    from = from_sq(move);
-    square_t    to = to_sq(move);
-    piece_t     piece = piece_on(board, to);
+    color_t us = board->sideToMove;
+    square_t from = from_sq(move), to = to_sq(move);
+    piece_t piece = piece_on(board, to);
 
     if (move_type(move) == PROMOTION)
     {
@@ -438,8 +434,7 @@ void    undo_move(board_t *board, move_t move)
 
     if (move_type(move) == CASTLING)
     {
-        square_t    rookFrom;
-        square_t    rookTo;
+        square_t rookFrom, rookTo;
         undo_castling(board, us, from, &to, &rookFrom, &rookTo);
     }
     else
@@ -448,12 +443,12 @@ void    undo_move(board_t *board, move_t move)
 
         if (board->stack->capturedPiece)
         {
-            square_t    capture_square = to;
+            square_t captureSquare = to;
 
             if (move_type(move) == EN_PASSANT)
-                capture_square -= pawn_direction(us);
+                captureSquare -= pawn_direction(us);
 
-            put_piece(board, board->stack->capturedPiece, capture_square);
+            put_piece(board, board->stack->capturedPiece, captureSquare);
         }
     }
 
@@ -461,10 +456,10 @@ void    undo_move(board_t *board, move_t move)
     board->ply -= 1;
 }
 
-void    do_castling(board_t *board, color_t us, square_t kingFrom,
-        square_t *kingTo, square_t *rookFrom, square_t *rookTo)
+void do_castling(board_t *board, color_t us, square_t kingFrom, square_t *kingTo,
+    square_t *rookFrom, square_t *rookTo)
 {
-    bool    kingside = *kingTo > kingFrom;
+    bool kingside = *kingTo > kingFrom;
 
     *rookFrom = *kingTo;
     *rookTo = relative_sq(kingside ? SQ_F1 : SQ_D1, us);
@@ -477,10 +472,10 @@ void    do_castling(board_t *board, color_t us, square_t kingFrom,
     put_piece(board, create_piece(us, ROOK), *rookTo);
 }
 
-void    undo_castling(board_t *board, color_t us, square_t kingFrom,
-        square_t *kingTo, square_t *rookFrom, square_t *rookTo)
+void undo_castling(board_t *board, color_t us, square_t kingFrom, square_t *kingTo,
+    square_t *rookFrom, square_t *rookTo)
 {
-    bool    kingside = *kingTo > kingFrom;
+    bool kingside = *kingTo > kingFrom;
 
     *rookFrom = *kingTo;
     *rookTo = relative_sq(kingside ? SQ_F1 : SQ_D1, us);
@@ -493,7 +488,7 @@ void    undo_castling(board_t *board, color_t us, square_t kingFrom,
     put_piece(board, create_piece(us, ROOK), *rookFrom);
 }
 
-void    do_null_move(board_t *board, boardstack_t *stack)
+void do_null_move(board_t *board, boardstack_t *stack)
 {
     get_worker(board)->nodes += 1;
 
@@ -520,14 +515,13 @@ void    do_null_move(board_t *board, boardstack_t *stack)
     stack->repetition = 0;
 }
 
-void    undo_null_move(board_t *board)
+void undo_null_move(board_t *board)
 {
     board->stack = board->stack->prev;
     board->sideToMove = not_color(board->sideToMove);
 }
 
-bitboard_t  attackers_list(const board_t *board, square_t s,
-            bitboard_t occupied)
+bitboard_t attackers_list(const board_t *board, square_t s, bitboard_t occupied)
 {
     return ((pawn_moves(s, BLACK) & piece_bb(board, WHITE, PAWN))
         | (pawn_moves(s, WHITE) & piece_bb(board, BLACK, PAWN))
@@ -537,68 +531,62 @@ bitboard_t  attackers_list(const board_t *board, square_t s,
         | (king_moves(s) & piecetype_bb(board, KING)));
 }
 
-bitboard_t  slider_blockers(const board_t *board, bitboard_t sliders,
-            square_t square, bitboard_t *pinners)
+bitboard_t slider_blockers(const board_t *board, bitboard_t sliders, square_t square, bitboard_t *pinners)
 {
-    bitboard_t  blockers = *pinners = 0;
-    bitboard_t  snipers =
+    bitboard_t blockers = *pinners = 0;
+    bitboard_t snipers =
         ((PseudoMoves[ROOK][square] & piecetypes_bb(board, QUEEN, ROOK))
         | (PseudoMoves[BISHOP][square] & piecetypes_bb(board, QUEEN, BISHOP)))
         & sliders;
-    bitboard_t  occupied = occupancy_bb(board) ^ snipers;
+    bitboard_t occupied = occupancy_bb(board) ^ snipers;
 
     while (snipers)
     {
-        square_t    sniper_square = bb_pop_first_sq(&snipers);
-        bitboard_t  between = between_bb(square, sniper_square) & occupied;
+        square_t sniperSquare = bb_pop_first_sq(&snipers);
+        bitboard_t between = between_bb(square, sniperSquare) & occupied;
 
         if (between && !more_than_one(between))
         {
             blockers |= between;
             if (between & color_bb(board, piece_color(piece_on(board, square))))
-                *pinners |= square_bb(sniper_square);
+                *pinners |= square_bb(sniperSquare);
         }
     }
 
     return (blockers);
 }
 
-bool    game_is_drawn(const board_t *board, int ply)
+bool game_is_drawn(const board_t *board, int ply)
 {
     if (board->stack->rule50 > 99)
     {
         if (!board->stack->checkers)
             return (true);
 
-        movelist_t  movelist;
+        movelist_t movelist;
 
         list_all(&movelist, board);
-
         if (movelist_size(&movelist) != 0)
             return (true);
     }
 
-    if (board->stack->repetition && board->stack->repetition < ply)
-        return (true);
-
-    return (false);
+    return (!!board->stack->repetition && board->stack->repetition < ply);
 }
 
-bool    move_gives_check(const board_t *board, move_t move)
+bool move_gives_check(const board_t *board, move_t move)
 {
-    square_t    from = from_sq(move);
-    square_t    to = to_sq(move);
-    square_t    capture_square;
-    square_t    kingFrom, rookFrom, kingTo, rookTo;
-    bitboard_t  occupied;
+    square_t from = from_sq(move), to = to_sq(move);
+    square_t captureSquare;
+    square_t kingFrom, rookFrom, kingTo, rookTo;
+    bitboard_t occupied;
+    color_t us = board->sideToMove, them = not_color(board->sideToMove);
 
     if (board->stack->checkSquares[piece_type(piece_on(board, from))] & square_bb(to))
         return (true);
 
-    square_t    their_king = get_king_square(board, not_color(board->sideToMove));
+    square_t theirKing = get_king_square(board, them);
 
-    if ((board->stack->kingBlockers[not_color(board->sideToMove)] & square_bb(from))
-        && !sq_aligned(from, to, their_king))
+    if ((board->stack->kingBlockers[them] & square_bb(from)) && !sq_aligned(from, to, theirKing))
         return (true);
 
     switch (move_type(move))
@@ -608,29 +596,24 @@ bool    move_gives_check(const board_t *board, move_t move)
 
         case PROMOTION:
             return (piece_moves(promotion_type(move), to, occupancy_bb(board) ^ square_bb(from))
-                & square_bb(their_king));
+                & square_bb(theirKing));
 
         case EN_PASSANT:
-            capture_square = create_sq(sq_file(to), sq_rank(from));
+            captureSquare = create_sq(sq_file(to), sq_rank(from));
+            occupied = (occupancy_bb(board) ^ square_bb(from) ^ square_bb(captureSquare)) | square_bb(to);
 
-            occupied = (occupancy_bb(board) ^ square_bb(from) ^ square_bb(capture_square))
-                | square_bb(to);
-
-            return ((rook_moves_bb(their_king, occupied)
-                & pieces_bb(board, board->sideToMove, QUEEN, ROOK))
-                | (bishop_moves_bb(their_king, occupied)
-                & pieces_bb(board, board->sideToMove, QUEEN, BISHOP)));
+            return ((rook_moves_bb(theirKing, occupied) & pieces_bb(board, us, QUEEN, ROOK))
+                | (bishop_moves_bb(theirKing, occupied) & pieces_bb(board, us, QUEEN, BISHOP)));
 
         case CASTLING:
             kingFrom = from;
             rookFrom = to;
-            kingTo = relative_sq(rookFrom > kingFrom ? SQ_G1 : SQ_C1, board->sideToMove);
-            rookTo = relative_sq(rookFrom > kingFrom ? SQ_F1 : SQ_D1, board->sideToMove);
+            kingTo = relative_sq(rookFrom > kingFrom ? SQ_G1 : SQ_C1, us);
+            rookTo = relative_sq(rookFrom > kingFrom ? SQ_F1 : SQ_D1, us);
 
-            return ((PseudoMoves[ROOK][rookTo] & square_bb(their_king))
-                && (rook_moves_bb(rookTo,
-                (occupancy_bb(board) ^ square_bb(kingFrom) ^ square_bb(rookFrom))
-                | square_bb(kingTo) | square_bb(rookTo)) & square_bb(their_king)));
+            return ((PseudoMoves[ROOK][rookTo] & square_bb(theirKing))
+                && (rook_moves_bb(rookTo, (occupancy_bb(board) ^ square_bb(kingFrom) ^ square_bb(rookFrom))
+                | square_bb(kingTo) | square_bb(rookTo)) & square_bb(theirKing)));
 
         default:
             __builtin_unreachable();
@@ -638,25 +621,21 @@ bool    move_gives_check(const board_t *board, move_t move)
     }
 }
 
-bool    move_is_legal(const board_t *board, move_t move)
+bool move_is_legal(const board_t *board, move_t move)
 {
-    color_t     us = board->sideToMove;
-    square_t    from = from_sq(move);
-    square_t    to = to_sq(move);
+    color_t us = board->sideToMove;
+    square_t from = from_sq(move), to = to_sq(move);
 
     if (move_type(move) == EN_PASSANT)
     {
         // Checks for any discovered check with the en-passant capture.
 
-        square_t    kingSquare = get_king_square(board, us);
-        square_t    capture_square = to - pawn_direction(us);
-        bitboard_t  occupied = (occupancy_bb(board) ^ square_bb(from) ^ square_bb(capture_square))
-            | square_bb(to);
+        square_t kingSquare = get_king_square(board, us);
+        square_t captureSquare = to - pawn_direction(us);
+        bitboard_t occupied = (occupancy_bb(board) ^ square_bb(from) ^ square_bb(captureSquare)) | square_bb(to);
 
-        return (!(rook_moves_bb(kingSquare, occupied)
-            & pieces_bb(board, not_color(us), QUEEN, ROOK))
-            && !(bishop_moves_bb(kingSquare, occupied)
-            & pieces_bb(board, not_color(us), QUEEN, BISHOP)));
+        return (!(rook_moves_bb(kingSquare, occupied) & pieces_bb(board, not_color(us), QUEEN, ROOK))
+            && !(bishop_moves_bb(kingSquare, occupied) & pieces_bb(board, not_color(us), QUEEN, BISHOP)));
     }
 
     if (move_type(move) == CASTLING)
@@ -684,22 +663,20 @@ bool    move_is_legal(const board_t *board, move_t move)
     // If the moving piece is pinned, checks if the move generates
     // a discovered check.
 
-    return (!(board->stack->kingBlockers[us] & square_bb(from))
-        || sq_aligned(from, to, get_king_square(board, us)));
+    return (!(board->stack->kingBlockers[us] & square_bb(from)) || sq_aligned(from, to, get_king_square(board, us)));
 }
 
-bool    move_is_pseudo_legal(const board_t *board, move_t move)
+bool move_is_pseudo_legal(const board_t *board, move_t move)
 {
-    color_t     us = board->sideToMove;
-    square_t    from = from_sq(move);
-    square_t    to = to_sq(move);
-    piece_t     piece = piece_on(board, from);
+    color_t us = board->sideToMove;
+    square_t from = from_sq(move), to = to_sq(move);
+    piece_t piece = piece_on(board, from);
 
     // Slower check for uncommon cases.
 
     if (move_type(move) != NORMAL_MOVE)
     {
-        movelist_t  list;
+        movelist_t list;
 
         list_pseudo(&list, board);
         return (movelist_has_move(&list, move));
@@ -765,89 +742,86 @@ bool    move_is_pseudo_legal(const board_t *board, move_t move)
 
         // Check if the King is still under the fire of the opponent's pieces after moving.
 
-        else if (attackers_list(board, to, occupancy_bb(board) ^ square_bb(from))
-            & color_bb(board, not_color(us)))
+        else if (attackers_list(board, to, occupancy_bb(board) ^ square_bb(from)) & color_bb(board, not_color(us)))
             return (false);
     }
 
     return (true);
 }
 
-bool    see_greater_than(const board_t *board, move_t m, score_t threshold)
+bool see_greater_than(const board_t *board, move_t m, score_t threshold)
 {
     if (move_type(m) != NORMAL_MOVE)
         return (threshold <= 0);
 
-    square_t    from = from_sq(m);
-    square_t    to = to_sq(m);
-    score_t     next_score = PieceScores[MIDGAME][piece_on(board, to)] - threshold;
+    square_t from = from_sq(m), to = to_sq(m);
+    score_t nextScore = PieceScores[MIDGAME][piece_on(board, to)] - threshold;
 
-    if (next_score < 0)
+    if (nextScore < 0)
         return (false);
 
-    next_score = PieceScores[MIDGAME][piece_on(board, from)] - next_score;
+    nextScore = PieceScores[MIDGAME][piece_on(board, from)] - nextScore;
 
-    if (next_score <= 0)
+    if (nextScore <= 0)
         return (true);
 
-    bitboard_t  occupied = occupancy_bb(board) ^ square_bb(from) ^ square_bb(to);
-    color_t     sideToMove = piece_color(piece_on(board, from));
-    bitboard_t  attackers = attackers_list(board, to, occupied);
-    bitboard_t  stm_attackers;
-    bitboard_t  b;
-    int         result = 1;
+    bitboard_t occupied = occupancy_bb(board) ^ square_bb(from) ^ square_bb(to);
+    color_t sideToMove = piece_color(piece_on(board, from));
+    bitboard_t attackers = attackers_list(board, to, occupied);
+    bitboard_t stmAttackers, b;
+    int result = 1;
 
     while (true)
     {
         sideToMove = not_color(sideToMove);
         attackers &= occupied;
 
-        if (!(stm_attackers = attackers & color_bb(board, sideToMove)))
+        if (!(stmAttackers = attackers & color_bb(board, sideToMove)))
             break ;
 
         if (board->stack->pinners[not_color(sideToMove)] & occupied)
         {
-            stm_attackers &= ~board->stack->kingBlockers[sideToMove];
-            if (!stm_attackers)
+            stmAttackers &= ~board->stack->kingBlockers[sideToMove];
+            if (!stmAttackers)
                 break ;
         }
 
         result ^= 1;
 
-        if ((b = stm_attackers & piecetype_bb(board, PAWN)))
+        if ((b = stmAttackers & piecetype_bb(board, PAWN)))
         {
-            if ((next_score = PAWN_MG_SCORE - next_score) < result)
+            if ((nextScore = PAWN_MG_SCORE - nextScore) < result)
                 break ;
 
             occupied ^= square_bb(bb_first_sq(b));
             attackers |= bishop_moves_bb(to, occupied) & piecetypes_bb(board, BISHOP, QUEEN);
         }
-        else if ((b = stm_attackers & piecetype_bb(board, KNIGHT)))
+        else if ((b = stmAttackers & piecetype_bb(board, KNIGHT)))
         {
-            if ((next_score = KNIGHT_MG_SCORE - next_score) < result)
+            if ((nextScore = KNIGHT_MG_SCORE - nextScore) < result)
                 break ;
 
             occupied ^= square_bb(bb_first_sq(b));
         }
-        else if ((b = stm_attackers & piecetype_bb(board, BISHOP)))
+        else if ((b = stmAttackers & piecetype_bb(board, BISHOP)))
         {
-            if ((next_score = BISHOP_MG_SCORE - next_score) < result)
+            if ((nextScore = BISHOP_MG_SCORE - nextScore) < result)
                 break ;
 
             occupied ^= square_bb(bb_first_sq(b));
             attackers |= bishop_moves_bb(to, occupied) & piecetypes_bb(board, BISHOP, QUEEN);
         }
-        else if ((b = stm_attackers & piecetype_bb(board, ROOK)))
+        else if ((b = stmAttackers & piecetype_bb(board, ROOK)))
         {
-            if ((next_score = ROOK_MG_SCORE - next_score) < result)
+            if ((nextScore = ROOK_MG_SCORE - nextScore) < result)
                 break ;
 
             occupied ^= square_bb(bb_first_sq(b));
             attackers |= rook_moves_bb(to, occupied) & piecetypes_bb(board, ROOK, QUEEN);
         }
-        else if ((b = stm_attackers & piecetype_bb(board, QUEEN)))
+        else if ((b = stmAttackers & piecetype_bb(board, QUEEN)))
         {
-            if ((next_score = QUEEN_MG_SCORE - next_score) < result)
+            if ((nextScore = QUEEN_MG_SCORE - nextScore) < result)
                 break ;
 
             occupied ^= square_bb(bb_first_sq(b));

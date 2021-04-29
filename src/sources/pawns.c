@@ -27,7 +27,7 @@ enum
     IsolatedPenalty = SPAIR(-12, -18),
 };
 
-const scorepair_t   PassedBonus[RANK_NB] = {
+const scorepair_t PassedBonus[RANK_NB] = {
     0,
     SPAIR(-15, 18),
     SPAIR(-21, 21),
@@ -38,16 +38,16 @@ const scorepair_t   PassedBonus[RANK_NB] = {
     0
 };
 
-scorepair_t evaluate_passed(pawn_entry_t *entry, color_t us, bitboard_t our_pawns, bitboard_t their_pawns)
+scorepair_t evaluate_passed(pawn_entry_t *entry, color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
 {
-    scorepair_t     ret = 0;
+    scorepair_t ret = 0;
 
-    while (our_pawns)
+    while (ourPawns)
     {
-        square_t    sq = bb_pop_first_sq(&our_pawns);
-        bitboard_t  queening = forward_file_bb(us, sq);
+        square_t sq = bb_pop_first_sq(&ourPawns);
+        bitboard_t queening = forward_file_bb(us, sq);
 
-        if ((queening & their_pawns) == 0
+        if ((queening & theirPawns) == 0
             && (queening & entry->attacks[not_color(us)] & ~entry->attacks[us]) == 0
             && (queening & entry->attacks2[not_color(us)] & ~entry->attacks2[us]) == 0)
             ret += PassedBonus[relative_sq_rank(sq, us)];
@@ -56,22 +56,20 @@ scorepair_t evaluate_passed(pawn_entry_t *entry, color_t us, bitboard_t our_pawn
     return (ret);
 }
 
-scorepair_t evaluate_backward(pawn_entry_t *entry, color_t us, bitboard_t our_pawns,
-            bitboard_t their_pawns)
+scorepair_t evaluate_backward(pawn_entry_t *entry, color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
 {
-    bitboard_t  stop_squares = (us == WHITE) ? shift_up(our_pawns) : shift_down(our_pawns);
-    bitboard_t  our_attack_span = 0;
-    bitboard_t  bb = our_pawns;
+    bitboard_t stopSquares = (us == WHITE) ? shift_up(ourPawns) : shift_down(ourPawns);
+    bitboard_t ourAttackSpan = 0;
+    bitboard_t bb = ourPawns;
 
     while (bb)
-        our_attack_span |= pawn_attack_span_bb(us, bb_pop_first_sq(&bb));
+        ourAttackSpan |= pawn_attack_span_bb(us, bb_pop_first_sq(&bb));
 
     // Save the pawn attack span to the entry
-    entry->attackSpan[us] = our_attack_span;
+    entry->attackSpan[us] = ourAttackSpan;
 
-    bitboard_t  their_attacks = (us == WHITE)
-        ? bpawns_attacks_bb(their_pawns) : wpawns_attacks_bb(their_pawns);
-    bitboard_t  backward = stop_squares & their_attacks & ~our_attack_span;
+    bitboard_t theirAttacks = (us == WHITE) ? bpawns_attacks_bb(theirPawns) : wpawns_attacks_bb(theirPawns);
+    bitboard_t backward = stopSquares & theirAttacks & ~ourAttackSpan;
 
     backward = (us == WHITE) ? shift_down(backward) : shift_up(backward);
 
@@ -87,12 +85,12 @@ scorepair_t evaluate_backward(pawn_entry_t *entry, color_t us, bitboard_t our_pa
     if (!backward)
         return (ret);
 
-    bitboard_t  their_files = 0;
+    bitboard_t theirFiles = 0;
 
-    while (their_pawns)
-        their_files |= forward_file_bb(not_color(us), bb_pop_first_sq(&their_pawns));
+    while (theirPawns)
+        theirFiles |= forward_file_bb(not_color(us), bb_pop_first_sq(&theirPawns));
 
-    backward &= ~their_files;
+    backward &= ~theirFiles;
 
     if (!backward)
         return (ret);
@@ -108,7 +106,7 @@ scorepair_t evaluate_doubled_isolated(bitboard_t us)
 
     for (square_t s = SQ_A2; s <= SQ_H2; ++s)
     {
-        bitboard_t  b = us & sq_file_bb(s);
+        bitboard_t b = us & sq_file_bb(s);
 
         if (b)
         {
@@ -122,10 +120,9 @@ scorepair_t evaluate_doubled_isolated(bitboard_t us)
     return (ret);
 }
 
-pawn_entry_t    *pawn_probe(const board_t *board)
+pawn_entry_t *pawn_probe(const board_t *board)
 {
-    pawn_entry_t   *entry =
-        get_worker(board)->pawnTable + (board->stack->pawnKey % PawnTableSize);
+    pawn_entry_t *entry = get_worker(board)->pawnTable + (board->stack->pawnKey % PawnTableSize);
 
     if (entry->key == board->stack->pawnKey)
         return (entry);
@@ -134,8 +131,8 @@ pawn_entry_t    *pawn_probe(const board_t *board)
     entry->value = 0;
     entry->attackSpan[WHITE] = entry->attackSpan[BLACK] = 0;
 
-    const bitboard_t    wpawns = piece_bb(board, WHITE, PAWN);
-    const bitboard_t    bpawns = piece_bb(board, BLACK, PAWN);
+    const bitboard_t wpawns = piece_bb(board, WHITE, PAWN);
+    const bitboard_t bpawns = piece_bb(board, BLACK, PAWN);
 
     entry->attacks[WHITE] = wpawns_attacks_bb(wpawns);
     entry->attacks[BLACK] = bpawns_attacks_bb(bpawns);

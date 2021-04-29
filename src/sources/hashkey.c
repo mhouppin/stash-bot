@@ -21,12 +21,12 @@
 # include "hashkey.h"
 # include "random.h"
 
-hashkey_t   ZobristPsq[PIECE_NB][SQUARE_NB];
-hashkey_t   ZobristEnPassant[FILE_NB];
-hashkey_t   ZobristCastling[CASTLING_NB];
-hashkey_t   ZobristBlackToMove;
+hashkey_t ZobristPsq[PIECE_NB][SQUARE_NB];
+hashkey_t ZobristEnPassant[FILE_NB];
+hashkey_t ZobristCastling[CASTLING_NB];
+hashkey_t ZobristBlackToMove;
 
-void    zobrist_init(void)
+void zobrist_init(void)
 {
     qseed(0x7F6E5D4C3B2A1908ull);
 
@@ -40,10 +40,10 @@ void    zobrist_init(void)
     for (int cr = 0; cr < CASTLING_NB; ++cr)
     {
         ZobristCastling[cr] = 0;
-        bitboard_t  b = cr;
+        bitboard_t b = cr;
         while (b)
         {
-            hashkey_t   k = ZobristCastling[1ull << bb_pop_first_sq(&b)];
+            hashkey_t k = ZobristCastling[1ull << bb_pop_first_sq(&b)];
             ZobristCastling[cr] ^= k ? k : qrandom();
         }
     }

@@ -43,7 +43,7 @@ const cmdlink_t commands[] =
     {NULL, NULL}
 };
 
-const char  *BoundStr[] = {
+const char *BoundStr[] = {
     "",
     " upperbound",
     " lowerbound",
@@ -55,7 +55,7 @@ const char  *BoundStr[] = {
 // This is mainly used as a replacement to strtok_r(), which isn't available
 // on MinGW.
 
-char    *get_next_token(char **str)
+char *get_next_token(char **str)
 {
     while (isspace(**str) && **str != '\0')
         ++(*str);
@@ -63,7 +63,7 @@ char    *get_next_token(char **str)
     if (**str == '\0')
         return (NULL);
 
-    char    *retval = *str;
+    char *retval = *str;
 
     while (!isspace(**str) && **str != '\0')
         ++(*str);
@@ -76,7 +76,7 @@ char    *get_next_token(char **str)
     return (retval);
 }
 
-void    wait_search_end(void)
+void wait_search_end(void)
 {
     pthread_mutex_lock(&EngineMutex);
     while (EngineMode != WAITING)
@@ -84,9 +84,9 @@ void    wait_search_end(void)
     pthread_mutex_unlock(&EngineMutex);
 }
 
-const char  *move_to_str(move_t move, bool isChess960)
+const char *move_to_str(move_t move, bool isChess960)
 {
-    static char        buf[6];
+    static char buf[6];
 
     if (move == NO_MOVE)
         return ("none");
@@ -94,8 +94,7 @@ const char  *move_to_str(move_t move, bool isChess960)
     if (move == NULL_MOVE)
         return ("0000");
 
-    square_t    from = from_sq(move);
-    square_t    to = to_sq(move);
+    square_t from = from_sq(move), to = to_sq(move);
 
     if (move_type(move) == CASTLING && !isChess960)
         to = create_sq(to > from ? FILE_G : FILE_C, sq_rank(from));
@@ -116,20 +115,20 @@ const char  *move_to_str(move_t move, bool isChess960)
     return (buf);
 }
 
-move_t      str_to_move(const board_t *board, const char *str)
+move_t str_to_move(const board_t *board, const char *str)
 {
-    char    *trick = strdup(str);
+    char *trick = strdup(str);
 
     if (strlen(str) == 5)
         trick[4] = tolower(trick[4]);
 
-    movelist_t  movelist;
+    movelist_t movelist;
 
     list_all(&movelist, board);
 
     for (const extmove_t *m = movelist_begin(&movelist); m < movelist_end(&movelist); ++m)
     {
-        const char  *s = move_to_str(m->move, board->chess960);
+        const char *s = move_to_str(m->move, board->chess960);
         if (!strcmp(trick, s))
         {
             free(trick);
@@ -141,7 +140,7 @@ move_t      str_to_move(const board_t *board, const char *str)
     return (NO_MOVE);
 }
 
-const char  *score_to_str(score_t score)
+const char *score_to_str(score_t score)
 {
     static char buf[12];
 
@@ -153,16 +152,15 @@ const char  *score_to_str(score_t score)
     return (buf);
 }
 
-void    print_pv(const board_t *board, root_move_t *rootMove, int multiPv,
-        int depth, clock_t time, int bound)
+void print_pv(const board_t *board, root_move_t *rootMove, int multiPv, int depth, clock_t time, int bound)
 {
-    uint64_t    nodes = get_node_count();
-    uint64_t    nps = nodes / (time + !time) * 1000;
-    bool        searched_move = (rootMove->score != -INF_SCORE);
-    score_t     root_score = (searched_move) ? rootMove->score : rootMove->prevScore;
+    uint64_t nodes = get_node_count();
+    uint64_t nps = nodes / (time + !time) * 1000;
+    bool searchedMove = (rootMove->score != -INF_SCORE);
+    score_t rootScore = (searchedMove) ? rootMove->score : rootMove->prevScore;
 
-    printf("info depth %d seldepth %d multipv %d score %s%s", max(depth + searched_move, 1),
-        rootMove->seldepth, multiPv, score_to_str(root_score), BoundStr[bound]);
+    printf("info depth %d seldepth %d multipv %d score %s%s", max(depth + searchedMove, 1),
+        rootMove->seldepth, multiPv, score_to_str(rootScore), BoundStr[bound]);
     printf(" nodes %" FMT_INFO " nps %" FMT_INFO " hashfull %d time %" FMT_INFO " pv",
         (info_t)nodes, (info_t)nps, tt_hashfull(), (info_t)time);
 
@@ -171,13 +169,13 @@ void    print_pv(const board_t *board, root_move_t *rootMove, int multiPv,
     putchar('\n');
 }
 
-void    uci_isready(const char *args __attribute__((unused)))
+void uci_isready(const char *args __attribute__((unused)))
 {
     puts("readyok");
     fflush(stdout);
 }
 
-void    uci_quit(const char *args __attribute__((unused)))
+void uci_quit(const char *args __attribute__((unused)))
 {
     pthread_mutex_lock(&EngineMutex);
     EngineSend = DO_ABORT;
@@ -185,7 +183,7 @@ void    uci_quit(const char *args __attribute__((unused)))
     pthread_cond_signal(&EngineCond);
 }
 
-void    uci_stop(const char *args __attribute__((unused)))
+void uci_stop(const char *args __attribute__((unused)))
 {
     pthread_mutex_lock(&EngineMutex);
     EngineSend = DO_EXIT;
@@ -193,7 +191,7 @@ void    uci_stop(const char *args __attribute__((unused)))
     pthread_cond_signal(&EngineCond);
 }
 
-void    uci_uci(const char *args __attribute__((unused)))
+void uci_uci(const char *args __attribute__((unused)))
 {
     puts("id name Stash " UCI_VERSION);
     puts("id author Morgan Houppin");
@@ -202,7 +200,7 @@ void    uci_uci(const char *args __attribute__((unused)))
     fflush(stdout);
 }
 
-void    uci_ucinewgame(const char *args)
+void uci_ucinewgame(const char *args)
 {
     (void)args;
     wait_search_end();
@@ -212,17 +210,17 @@ void    uci_ucinewgame(const char *args)
 
 // Pretty prints the board, along with the hash key and the eval.
 
-void    uci_d(const char *args __attribute__((unused)))
+void uci_d(const char *args __attribute__((unused)))
 {
-    const char      *grid = "+---+---+---+---+---+---+---+---+";
-    const char      *piece_to_char = " PNBRQK  pnbrqk";
+    const char *grid = "+---+---+---+---+---+---+---+---+";
+    const char *pieceToChar = " PNBRQK  pnbrqk";
 
     puts(grid);
 
     for (file_t rank = RANK_8; rank >= RANK_1; --rank)
     {
         for (file_t file = FILE_A; file <= FILE_H; ++file)
-            printf("| %c ", piece_to_char[piece_on(&Board, create_sq(file, rank))]);
+            printf("| %c ", pieceToChar[piece_on(&Board, create_sq(file, rank))]);
 
         puts("|");
         puts(grid);
@@ -230,34 +228,34 @@ void    uci_d(const char *args __attribute__((unused)))
 
     printf("\nKey: 0x%" KEY_INFO "\n", (info_t)Board.stack->boardKey);
 
-    double  eval = (double)evaluate(&Board) / 100.0;
+    double eval = (double)evaluate(&Board) / 100.0;
 
     printf("Eval (from %s's POV): %+.2lf\n\n", Board.sideToMove == WHITE ? "White" : "Black", eval);
     fflush(stdout);
 }
 
-void    uci_position(const char *args)
+void uci_position(const char *args)
 {
-    static boardstack_t **hidden_list = NULL;
-    static size_t       hidden_size = 0;
+    static boardstack_t **hiddenList = NULL;
+    static size_t hiddenSize = 0;
 
     wait_search_end();
 
-    if (hidden_size > 0)
+    if (hiddenSize > 0)
     {
-        for (size_t i = 0; i < hidden_size; ++i)
-            free(hidden_list[i]);
-        free(hidden_list);
+        for (size_t i = 0; i < hiddenSize; ++i)
+            free(hiddenList[i]);
+        free(hiddenList);
     }
 
-    hidden_list = malloc(sizeof(boardstack_t *));
-    *hidden_list = malloc(sizeof(boardstack_t));
-    hidden_size = 1;
+    hiddenList = malloc(sizeof(boardstack_t *));
+    *hiddenList = malloc(sizeof(boardstack_t));
+    hiddenSize = 1;
 
-    char    *fen;
-    char    *copy = strdup(args);
-    char    *ptr = copy;
-    char    *token = get_next_token(&ptr);
+    char *fen;
+    char *copy = strdup(args);
+    char *ptr = copy;
+    char *token = get_next_token(&ptr);
 
     if (!strcmp(token, "startpos"))
     {
@@ -271,7 +269,7 @@ void    uci_position(const char *args)
 
         while (token && strcmp(token, "moves"))
         {
-            char    *tmp = malloc(strlen(fen) + strlen(token) + 2);
+            char *tmp = malloc(strlen(fen) + strlen(token) + 2);
 
             strcpy(tmp, fen);
             strcat(tmp, " ");
@@ -284,26 +282,26 @@ void    uci_position(const char *args)
     else
         return ;
 
-    set_board(&Board, fen, Options.chess960, *hidden_list);
+    set_board(&Board, fen, Options.chess960, *hiddenList);
     Board.worker = WPool.list;
     free(fen);
     token = get_next_token(&ptr);
 
-    move_t  move;
+    move_t move;
 
     while (token && (move = str_to_move(&Board, token)) != NO_MOVE)
     {
-        hidden_list = realloc(hidden_list, sizeof(boardstack_t *) * ++hidden_size);
-        hidden_list[hidden_size - 1] = malloc(sizeof(boardstack_t));
+        hiddenList = realloc(hiddenList, sizeof(boardstack_t *) * ++hiddenSize);
+        hiddenList[hiddenSize - 1] = malloc(sizeof(boardstack_t));
 
-        do_move(&Board, move, hidden_list[hidden_size - 1]);
+        do_move(&Board, move, hiddenList[hiddenSize - 1]);
         token = get_next_token(&ptr);
     }
 
     free(copy);
 }
 
-void    uci_go(const char *args)
+void uci_go(const char *args)
 {
     wait_search_end();
     pthread_mutex_lock(&EngineMutex);
@@ -312,15 +310,17 @@ void    uci_go(const char *args)
     memset(&SearchParams, 0, sizeof(goparams_t));
     list_all(&SearchMoves, &Board);
 
-    char    *copy = strdup(args ? args : "");
-    char    *token = strtok(copy, Delimiters);
+    char *copy = strdup(args ? args : "");
+    char *token = strtok(copy, Delimiters);
 
     while (token)
     {
         if (strcmp(token, "searchmoves") == 0)
         {
             token = strtok(NULL, Delimiters);
-            extmove_t   *m = SearchMoves.moves;
+
+            extmove_t *m = SearchMoves.moves;
+
             while (token)
             {
                 (m++)->move = str_to_move(&Board, token);
@@ -402,56 +402,56 @@ void    uci_go(const char *args)
     free(copy);
 }
 
-void    uci_setoption(const char *args)
+void uci_setoption(const char *args)
 {
     if (!args)
         return ;
 
-    char    *copy = strdup(args);
-    char    *name_token = strstr(copy, "name");
-    char    *value_token = strstr(copy, "value");
+    char *copy = strdup(args);
+    char *nameToken = strstr(copy, "name");
+    char *valueToken = strstr(copy, "value");
 
-    if (!name_token)
+    if (!nameToken)
     {
         free(copy);
         return ;
     }
 
-    char    namebuf[1024] = {0};
-    char    valuebuf[1024];
+    char nameBuf[1024] = {0};
+    char valueBuf[1024];
 
-    if (value_token)
+    if (valueToken)
     {
-        *(value_token - 1) = '\0';
-        strcpy(valuebuf, value_token + 6);
+        *(valueToken - 1) = '\0';
+        strcpy(valueBuf, valueToken + 6);
 
-        // Remove the final newline to valuebuf
-        char    *maybe_nl = &valuebuf[strlen(valuebuf) - 1];
-        if (*maybe_nl == '\n')
-            *maybe_nl = '\0';
+        // Remove the final newline to valueBuf
+        char *maybeNewline = &valueBuf[strlen(valueBuf) - 1];
+        if (*maybeNewline == '\n')
+            *maybeNewline = '\0';
     }
     else
-        valuebuf[0] = '\0';
+        valueBuf[0] = '\0';
 
-    char    *token;
+    char *token;
 
-    token = strtok(name_token + 4, Delimiters);
+    token = strtok(nameToken + 4, Delimiters);
     while (token)
     {
-        strcat(namebuf, token);
+        strcat(nameBuf, token);
         token = strtok(NULL, Delimiters);
         if (token)
-            strcat(namebuf, " ");
+            strcat(nameBuf, " ");
     }
 
-    set_option(&OptionList, namebuf, valuebuf);
+    set_option(&OptionList, nameBuf, valueBuf);
     free(copy);
 }
 
 int execute_uci_cmd(const char *command)
 {
-    char    *dup = strdup(command);
-    char    *cmd = strtok(dup, Delimiters);
+    char *dup = strdup(command);
+    char *cmd = strtok(dup, Delimiters);
 
     if (!cmd)
     {
@@ -478,28 +478,28 @@ int execute_uci_cmd(const char *command)
     return (1);
 }
 
-void    on_hash_set(void *data)
+void on_hash_set(void *data)
 {
     tt_resize((size_t)*(long *)data);
     printf("info string set Hash to %lu MB\n", *(long *)data);
     fflush(stdout);
 }
 
-void    on_clear_hash(void *nothing __attribute__((unused)))
+void on_clear_hash(void *nothing __attribute__((unused)))
 {
     tt_bzero();
     puts("info string cleared hash");
     fflush(stdout);
 }
 
-void    on_thread_set(void *data)
+void on_thread_set(void *data)
 {
     wpool_init((int)*(long *)data);
     printf("info string set Threads to %lu\n", *(long *)data);
     fflush(stdout);
 }
 
-void    uci_loop(int argc, char **argv)
+void uci_loop(int argc, char **argv)
 {
     init_option_list(&OptionList);
     add_option_spin_int(&OptionList, "Threads", &Options.threads, 1, 256, &on_thread_set);
@@ -516,7 +516,7 @@ void    uci_loop(int argc, char **argv)
             execute_uci_cmd(argv[i]);
     else
     {
-        char    *line = malloc(16384);
+        char *line = malloc(16384);
 
         while (fgets(line, 16384, stdin) != NULL)
             if (execute_uci_cmd(line) == 0)

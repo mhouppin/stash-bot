@@ -21,9 +21,9 @@
 #include <string.h>
 #include "lazy_smp.h"
 
-worker_pool_t   WPool;
+worker_pool_t WPool;
 
-void    wpool_init(int threads)
+void wpool_init(int threads)
 {
     wpool_quit();
 
@@ -34,9 +34,10 @@ void    wpool_init(int threads)
         perror("Unable to allocate worker pool");
         exit(EXIT_FAILURE);
     }
+
     for (int i = 0; i < threads; ++i)
     {
-        worker_t    *worker = WPool.list + i;
+        worker_t *worker = WPool.list + i;
 
         worker->idx = i;
         worker->stack = NULL;
@@ -53,11 +54,11 @@ void    wpool_init(int threads)
     Board.worker = WPool.list;
 }
 
-void    wpool_reset(void)
+void wpool_reset(void)
 {
     for (int i = 0; i < WPool.size; ++i)
     {
-        worker_t    *worker = WPool.list + i;
+        worker_t *worker = WPool.list + i;
 
         memset(worker->pawnTable, 0, sizeof(pawn_entry_t) * PawnTableSize);
     }
@@ -67,7 +68,7 @@ void    wpool_quit(void)
 {
     for (int i = 0; i < WPool.size; ++i)
     {
-        worker_t    *worker = WPool.list + i;
+        worker_t *worker = WPool.list + i;
 
         free(worker->pawnTable);
     }

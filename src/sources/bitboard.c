@@ -120,7 +120,7 @@ void magic_init(bitboard_t *table, magic_t *magics, const direction_t *direction
 
 // Initializes all bitboard tables at program startup.
 
-void    bitboard_init(void)
+void bitboard_init(void)
 {
     static const direction_t kingDirections[8] = {
         -9, -8, -7, -1, 1, 7, 8, 9

@@ -29,22 +29,22 @@
 #include "tt.h"
 #include "uci.h"
 
-int         Reductions[64][64];
+int Reductions[64][64];
 
-void        init_reduction_table(void)
+void init_reduction_table(void)
 {
     for (int d = 1; d < 64; ++d)
         for (int m = 1; m < 64; ++m)
             Reductions[d][m] = -1.34 + log(d) * log(m) / 1.26;
 }
 
-uint64_t    perft(board_t *board, unsigned int depth)
+uint64_t perft(board_t *board, unsigned int depth)
 {
     if (depth == 0)
         return (1);
     else
     {
-        movelist_t  list;
+        movelist_t list;
         list_all(&list, board);
 
         // Bulk counting: the perft number at depth 1 equals the number of legal moves.
@@ -53,8 +53,8 @@ uint64_t    perft(board_t *board, unsigned int depth)
         if (depth == 1)
             return (movelist_size(&list));
 
-        uint64_t        sum = 0;
-        boardstack_t    stack;
+        uint64_t sum = 0;
+        boardstack_t stack;
 
         for (extmove_t *extmove = list.moves; extmove < list.last; ++extmove)
         {
@@ -74,14 +74,14 @@ INLINED int rtm_greater_than(root_move_t *right, root_move_t *left)
         return (right->prevScore > left->prevScore);
 }
 
-void        sort_root_moves(root_move_t *begin, root_move_t *end)
+void sort_root_moves(root_move_t *begin, root_move_t *end)
 {
-    const int   size = (int)(end - begin);
+    const int size = (int)(end - begin);
 
     for (int i = 1; i < size; ++i)
     {
         root_move_t tmp = begin[i];
-        int         j = i - 1;
+        int j = i - 1;
         while (j >= 0 && rtm_greater_than(&tmp, begin + j))
         {
             begin[j + 1] = begin[j];
@@ -102,22 +102,22 @@ root_move_t *find_root_move(root_move_t *begin, root_move_t *end, move_t move)
     return (NULL);
 }
 
-void        *engine_go(void *ptr)
+void *engine_go(void *ptr)
 {
-    extern goparams_t   SearchParams;
-    board_t             *board = ptr;
-    worker_t            *worker = get_worker(board);
+    extern goparams_t SearchParams;
+    board_t *board = ptr;
+    worker_t *worker = get_worker(board);
 
     // Code for running perft tests
 
     if (SearchParams.perft)
     {
-        clock_t     time = chess_clock();
-        uint64_t    nodes = perft(board, (unsigned int)SearchParams.perft);
+        clock_t time = chess_clock();
+        uint64_t nodes = perft(board, (unsigned int)SearchParams.perft);
 
         time = chess_clock() - time;
 
-        uint64_t    nps = nodes / (time + !time) * 1000;
+        uint64_t nps = nodes / (time + !time) * 1000;
 
         printf("info nodes %" FMT_INFO " nps %" FMT_INFO " time %" FMT_INFO "\n",
             (info_t)nodes, (info_t)nps, (info_t)time);
@@ -171,7 +171,7 @@ void        *engine_go(void *ptr)
 
         for (int i = 1; i < WPool.size; ++i)
         {
-            worker_t    *cur = WPool.list + i;
+            worker_t *cur = WPool.list + i;
 
             cur->board = worker->board;
             cur->stack = dup_boardstack(worker->stack);
@@ -189,12 +189,12 @@ void        *engine_go(void *ptr)
 
     // Clamp MultiPV to the maximal number of lines available
 
-    const int   multiPv = min(Options.multiPv, worker->rootCount);
+    const int multiPv = min(Options.multiPv, worker->rootCount);
 
-    for (int iter_depth = 0; iter_depth < SearchParams.depth; ++iter_depth)
+    for (int iterDepth = 0; iterDepth < SearchParams.depth; ++iterDepth)
     {
-        bool            has_search_aborted;
-        searchstack_t   sstack[256];
+        bool hasSearchAborted;
+        searchstack_t sstack[256];
 
         memset(sstack, 0, sizeof(sstack));
 
@@ -202,39 +202,38 @@ void        *engine_go(void *ptr)
         {
             worker->seldepth = 0;
 
-            score_t _alpha, _beta, _delta;
-            score_t pv_score = worker->rootMoves[worker->pvLine].prevScore;
+            score_t alpha, beta, delta;
+            score_t pvScore = worker->rootMoves[worker->pvLine].prevScore;
 
             // Don't set aspiration window bounds for low depths, as the scores are
             // very volatile
 
-            if (iter_depth <= 9 || abs(pv_score) >= 1000)
+            if (iterDepth <= 9 || abs(pvScore) >= 1000)
             {
-                _delta = 0;
-                _alpha = -INF_SCORE;
-                _beta = INF_SCORE;
+                delta = 0;
+                alpha = -INF_SCORE;
+                beta = INF_SCORE;
             }
             else
             {
-                _delta = 15;
-                _alpha = max(-INF_SCORE, pv_score - _delta);
-                _beta = min(INF_SCORE, pv_score + _delta);
+                delta = 15;
+                alpha = max(-INF_SCORE, pvScore - delta);
+                beta = min(INF_SCORE, pvScore + delta);
             }
 
 __retry:
-            search(board, iter_depth + 1, _alpha, _beta, &sstack[2], true);
+            search(board, iterDepth + 1, alpha, beta, &sstack[2], true);
 
             // Catch search aborting
 
-            has_search_aborted = search_should_abort();
+            hasSearchAborted = search_should_abort();
 
-            sort_root_moves(worker->rootMoves + worker->pvLine,
-                    worker->rootMoves + worker->rootCount);
-            pv_score = worker->rootMoves[worker->pvLine].score;
+            sort_root_moves(worker->rootMoves + worker->pvLine, worker->rootMoves + worker->rootCount);
+            pvScore = worker->rootMoves[worker->pvLine].score;
 
-            int     bound = (abs(pv_score) == INF_SCORE) ? EXACT_BOUND
-                : (pv_score >= _beta) ? LOWER_BOUND
-                : (pv_score <= _alpha) ? UPPER_BOUND : EXACT_BOUND;
+            int bound = (abs(pvScore) == INF_SCORE) ? EXACT_BOUND
+                : (pvScore >= beta) ? LOWER_BOUND
+                : (pvScore <= alpha) ? UPPER_BOUND : EXACT_BOUND;
 
             if (bound == EXACT_BOUND)
                 sort_root_moves(worker->rootMoves, worker->rootMoves + multiPv);
@@ -248,34 +247,34 @@ __retry:
 
                 if (multiPv == 1 && (bound == EXACT_BOUND || time > 3000))
                 {
-                    print_pv(board, worker->rootMoves, 1, iter_depth, time, bound);
+                    print_pv(board, worker->rootMoves, 1, iterDepth, time, bound);
                     fflush(stdout);
                 }
-                else if (multiPv > 1 && bound == EXACT_BOUND && (worker->pvLine == multiPv - 1  || time > 3000))
+                else if (multiPv > 1 && bound == EXACT_BOUND && (worker->pvLine == multiPv - 1 || time > 3000))
                 {
                     for (int i = 0; i < multiPv; ++i)
-                        print_pv(board, worker->rootMoves + i, i + 1, iter_depth, time, bound);
+                        print_pv(board, worker->rootMoves + i, i + 1, iterDepth, time, bound);
 
                     fflush(stdout);
                 }
             }
 
-            if (has_search_aborted)
+            if (hasSearchAborted)
                 break ;
 
             // Update aspiration window bounds in case of fail low/high
 
             if (bound == UPPER_BOUND)
             {
-                _beta = (_alpha + _beta) / 2;
-                _alpha = max(-INF_SCORE, (int)pv_score - _delta);
-                _delta += _delta / 4;
+                beta = (alpha + beta) / 2;
+                alpha = max(-INF_SCORE, (int)pvScore - delta);
+                delta += delta / 4;
                 goto __retry;
             }
             else if (bound == LOWER_BOUND)
             {
-                _beta = min(INF_SCORE, (int)pv_score + _delta);
-                _delta += _delta / 4;
+                beta = min(INF_SCORE, (int)pvScore + delta);
+                delta += delta / 4;
                 goto __retry;
             }
         }
@@ -286,7 +285,7 @@ __retry:
             i->score = -INF_SCORE;
         }
 
-        if (has_search_aborted)
+        if (hasSearchAborted)
             break ;
 
         // If we went over optimal time usage, we just finished our iteration,
@@ -332,7 +331,7 @@ __retry:
     return (NULL);
 }
 
-void    *engine_thread(void *nothing __attribute__((unused)))
+void *engine_thread(void *nothing __attribute__((unused)))
 {
     pthread_mutex_lock(&EngineMutex);
     EngineMode = WAITING;
@@ -346,18 +345,16 @@ void    *engine_thread(void *nothing __attribute__((unused)))
         {
             EngineSend = DO_NOTHING;
 
-            board_t         *my_board = &WPool.list->board;
+            board_t *board = &WPool.list->board;
 
-            *my_board = Board;
-            my_board->stack = dup_boardstack(Board.stack);
-            WPool.list->stack = my_board->stack;
+            *board = Board;
+            board->stack = dup_boardstack(Board.stack);
+            WPool.list->stack = board->stack;
 
             // Only unlock the mutex once we're not using the global board
 
             pthread_mutex_unlock(&EngineMutex);
-
-            engine_go(my_board);
-
+            engine_go(board);
             pthread_mutex_lock(&EngineMutex);
             EngineMode = WAITING;
             pthread_cond_broadcast(&EngineCond);

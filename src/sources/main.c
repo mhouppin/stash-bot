@@ -26,25 +26,26 @@
 #include <pthread.h>
 #include <stdio.h>
 
-board_t         Board;
-pthread_attr_t  WorkerSettings;
-goparams_t      SearchParams;
-option_list_t   OptionList;
-movelist_t      SearchMoves;
+board_t Board;
+pthread_attr_t WorkerSettings;
+goparams_t SearchParams;
+option_list_t OptionList;
+movelist_t SearchMoves;
 
-pthread_cond_t  EngineCond = PTHREAD_COND_INITIALIZER;
+pthread_cond_t EngineCond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t EngineMutex = PTHREAD_MUTEX_INITIALIZER;
 enum e_egn_mode EngineMode = THINKING;
 enum e_egn_send EngineSend = DO_NOTHING;
-uint64_t        Seed = 1048592ul;
 
-ucioptions_t    Options = {
+uint64_t Seed = 1048592ul;
+
+ucioptions_t Options = {
     1, 16, 100, 1, false
 };
 
-timeman_t       Timeman;
+timeman_t Timeman;
 
-const char      *Delimiters = " \t\n";
+const char *Delimiters = " \t\n";
 
 int main(int argc, char **argv)
 {
@@ -57,12 +58,12 @@ int main(int argc, char **argv)
     wpool_init(1);
     init_reduction_table();
 
-    pthread_t   engine_pt;
+    pthread_t engineThread;
 
     pthread_attr_init(&WorkerSettings);
     pthread_attr_setstacksize(&WorkerSettings, 4ul * 1024 * 1024);
 
-    if (pthread_create(&engine_pt, &WorkerSettings, &engine_thread, NULL))
+    if (pthread_create(&engineThread, &WorkerSettings, &engine_thread, NULL))
     {
         perror("Failed to boot engine thread");
         return (1);

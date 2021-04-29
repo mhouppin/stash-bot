@@ -18,8 +18,8 @@
 
 #include "movepick.h"
 
-void    movepick_init(movepick_t *mp, bool inQsearch, const board_t *board,
-        const worker_t *worker, move_t ttMove, searchstack_t *ss)
+void movepick_init(movepick_t *mp, bool inQsearch, const board_t *board,
+    const worker_t *worker, move_t ttMove, searchstack_t *ss)
 {
     mp->inQsearch = inQsearch;
 
@@ -28,8 +28,7 @@ void    movepick_init(movepick_t *mp, bool inQsearch, const board_t *board,
 
     else
     {
-        mp->stage = PICK_TT + !(ttMove
-            && (!inQsearch || is_capture_or_promotion(board, ttMove))
+        mp->stage = PICK_TT + !(ttMove && (!inQsearch || is_capture_or_promotion(board, ttMove))
             && move_is_pseudo_legal(board, ttMove));
     }
 
@@ -39,9 +38,9 @@ void    movepick_init(movepick_t *mp, bool inQsearch, const board_t *board,
 
     if ((ss - 1)->pieceHistory != NULL)
     {
-        square_t    last_to = to_sq((ss - 1)->currentMove);
-        square_t    last_piece = piece_on(board, last_to);
-        mp->counter = worker->cmHistory[last_piece][last_to];
+        square_t lastTo = to_sq((ss - 1)->currentMove);
+        square_t lastPiece = piece_on(board, lastTo);
+        mp->counter = worker->cmHistory[lastPiece][lastTo];
     }
     else
         mp->counter = NO_MOVE;
@@ -78,8 +77,8 @@ static void score_quiet(movepick_t *mp, extmove_t *begin, extmove_t *end)
 {
     while (begin < end)
     {
-        piece_t     moved = piece_on(mp->board, from_sq(begin->move));
-        square_t    to = to_sq(begin->move);
+        piece_t moved = piece_on(mp->board, from_sq(begin->move));
+        square_t to = to_sq(begin->move);
 
         begin->score = get_bf_history_score(mp->worker->bfHistory, moved, begin->move);
 
@@ -105,8 +104,8 @@ static void score_evasions(movepick_t *mp, extmove_t *begin, extmove_t *end)
         }
         else
         {
-            piece_t     moved = piece_on(mp->board, from_sq(begin->move));
-            square_t    to = to_sq(begin->move);
+            piece_t moved = piece_on(mp->board, from_sq(begin->move));
+            square_t to = to_sq(begin->move);
 
             begin->score = get_bf_history_score(mp->worker->bfHistory, moved, begin->move);
 
@@ -120,7 +119,7 @@ static void score_evasions(movepick_t *mp, extmove_t *begin, extmove_t *end)
     }
 }
 
-move_t  movepick_next_move(movepick_t *mp, bool skipQuiets)
+move_t movepick_next_move(movepick_t *mp, bool skipQuiets)
 {
 __top:
 
@@ -199,7 +198,7 @@ __top:
                 while (mp->cur < mp->list.last)
                 {
                     place_top_move(mp->cur, mp->list.last);
-                    move_t  move = (mp->cur++)->move;
+                    move_t move = (mp->cur++)->move;
 
                     if (move != mp->ttMove
                         && move != mp->killer1

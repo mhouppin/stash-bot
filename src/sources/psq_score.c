@@ -19,25 +19,21 @@
 #include "imath.h"
 #include "psq_score.h"
 
-scorepair_t     PsqScore[PIECE_NB][SQUARE_NB];
-const score_t   PieceScores[PHASE_NB][PIECE_NB] = {
+scorepair_t PsqScore[PIECE_NB][SQUARE_NB];
+const score_t PieceScores[PHASE_NB][PIECE_NB] = {
     {
-        0, PAWN_MG_SCORE, KNIGHT_MG_SCORE, BISHOP_MG_SCORE,
-        ROOK_MG_SCORE, QUEEN_MG_SCORE, 0, 0,
-        0, PAWN_MG_SCORE, KNIGHT_MG_SCORE, BISHOP_MG_SCORE,
-        ROOK_MG_SCORE, QUEEN_MG_SCORE, 0, 0
+        0, PAWN_MG_SCORE, KNIGHT_MG_SCORE, BISHOP_MG_SCORE, ROOK_MG_SCORE, QUEEN_MG_SCORE, 0, 0,
+        0, PAWN_MG_SCORE, KNIGHT_MG_SCORE, BISHOP_MG_SCORE, ROOK_MG_SCORE, QUEEN_MG_SCORE, 0, 0
     },
     {
-        0, PAWN_EG_SCORE, KNIGHT_EG_SCORE, BISHOP_EG_SCORE,
-        ROOK_EG_SCORE, QUEEN_EG_SCORE, 0, 0,
-        0, PAWN_EG_SCORE, KNIGHT_EG_SCORE, BISHOP_EG_SCORE,
-        ROOK_EG_SCORE, QUEEN_EG_SCORE, 0, 0,
+        0, PAWN_EG_SCORE, KNIGHT_EG_SCORE, BISHOP_EG_SCORE, ROOK_EG_SCORE, QUEEN_EG_SCORE, 0, 0,
+        0, PAWN_EG_SCORE, KNIGHT_EG_SCORE, BISHOP_EG_SCORE, ROOK_EG_SCORE, QUEEN_EG_SCORE, 0, 0
     }
 };
 
 #define S SPAIR
 
-const scorepair_t   PawnBonus[RANK_NB][FILE_NB] = {
+const scorepair_t PawnBonus[RANK_NB][FILE_NB] = {
     { },
     { S(-14, 19), S(-14,  7), S(-11, 12), S( -6,  9), S( -7, 19), S( 35, 15), S( 33, -1), S(  7,-18) },
     { S(-11, 12), S(-11,  7), S( -2,  2), S(  3,  1), S( 18,  8), S( 12,  7), S( 29, -7), S(  9, -7) },
@@ -48,12 +44,11 @@ const scorepair_t   PawnBonus[RANK_NB][FILE_NB] = {
     { }
 };
 
-const scorepair_t   PieceBonus[PIECETYPE_NB][RANK_NB][FILE_NB / 2] = {
+const scorepair_t PieceBonus[PIECETYPE_NB][RANK_NB][FILE_NB / 2] = {
     { },
     { },
     
     // Knight
-
     {
         { S( -74, -75), S( -14, -61), S( -16, -36), S( -16, -25) },
         { S(  -5, -24), S( -22, -17), S( -10, -38), S(  -3, -20) },
@@ -66,7 +61,6 @@ const scorepair_t   PieceBonus[PIECETYPE_NB][RANK_NB][FILE_NB / 2] = {
     },
 
     // Bishop
-
     {
         { S(  19, -16), S(  11,  -8), S( -13, -14), S( -26, -12) },
         { S(  17, -38), S(  12, -14), S(   9, -25), S(  -7, -12) },
@@ -79,7 +73,6 @@ const scorepair_t   PieceBonus[PIECETYPE_NB][RANK_NB][FILE_NB / 2] = {
     },
 
     // Rook
-
     {
         { S( -26, -19), S( -16, -12), S( -13,  -8), S(  -8, -19) },
         { S( -65, -11), S( -23, -28), S( -23, -25), S( -28, -24) },
@@ -92,7 +85,6 @@ const scorepair_t   PieceBonus[PIECETYPE_NB][RANK_NB][FILE_NB / 2] = {
     },
 
     // Queen
-
     {
         { S(  16, -85), S(  13, -86), S(  16,-102), S(  21, -71) },
         { S(  14, -73), S(  21, -86), S(  22, -96), S(  13, -59) },
@@ -105,7 +97,6 @@ const scorepair_t   PieceBonus[PIECETYPE_NB][RANK_NB][FILE_NB / 2] = {
     },
 
     // King
-
     {
         { S( 284, -63), S( 283,  35), S( 219,  60), S( 150,  55) },
         { S( 284,  40), S( 263,  87), S( 205, 124), S( 185, 129) },
@@ -120,28 +111,27 @@ const scorepair_t   PieceBonus[PIECETYPE_NB][RANK_NB][FILE_NB / 2] = {
 
 #undef S
 
-void    psq_score_init(void)
+void psq_score_init(void)
 {
     for (piece_t piece = WHITE_PAWN; piece <= WHITE_KING; ++piece)
     {
-        scorepair_t piece_value = create_scorepair(
-            PieceScores[MIDGAME][piece], PieceScores[ENDGAME][piece]);
+        scorepair_t pieceValue = create_scorepair(PieceScores[MIDGAME][piece], PieceScores[ENDGAME][piece]);
 
         for (square_t square = SQ_A1; square <= SQ_H8; ++square)
         {
-            scorepair_t psq_entry;
+            scorepair_t psqEntry;
 
             if (piece == WHITE_PAWN)
-                psq_entry = piece_value + PawnBonus[sq_rank(square)][sq_file(square)];
+                psqEntry = pieceValue + PawnBonus[sq_rank(square)][sq_file(square)];
             else
             {
-                file_t  qside_file = min(sq_file(square), sq_file(square) ^ 7);
+                file_t queensideFile = min(sq_file(square), sq_file(square) ^ 7);
 
-                psq_entry = piece_value + PieceBonus[piece][sq_rank(square)][qside_file];
+                psqEntry = pieceValue + PieceBonus[piece][sq_rank(square)][queensideFile];
             }
 
-            PsqScore[piece][square] = psq_entry;
-            PsqScore[opposite_piece(piece)][opposite_sq(square)] = -psq_entry;
+            PsqScore[piece][square] = psqEntry;
+            PsqScore[opposite_piece(piece)][opposite_sq(square)] = -psqEntry;
         }
     }
 }

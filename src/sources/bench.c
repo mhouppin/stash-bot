@@ -24,7 +24,7 @@
 #include "lazy_smp.h"
 #include "timeman.h"
 
-void    uci_bench(const char *args)
+void uci_bench(const char *args)
 {
     // If bench depth isn't given, use default depth of 13
     if (!args || !atoi(args))
@@ -85,8 +85,8 @@ void    uci_bench(const char *args)
         NULL
     };
 
-    clock_t     bench_time = chess_clock();
-    uint64_t    total_nodes = 0;
+    clock_t     benchTime = chess_clock();
+    uint64_t    totalNodes = 0;
 
     for (size_t i = 0; positions[i]; ++i)
     {
@@ -100,14 +100,14 @@ void    uci_bench(const char *args)
         wait_search_end();
 
         // Retrieve the node counter
-        total_nodes += get_node_count();
+        totalNodes += get_node_count();
     }
 
-    bench_time = chess_clock() - bench_time;
+    benchTime = chess_clock() - benchTime;
 
     printf("Benchmark report:\n");
-    printf("TIME:  %" FMT_INFO " milliseconds\n", (info_t)bench_time);
-    printf("NODES: %" FMT_INFO "\n", (info_t)total_nodes);
-    printf("NPS:   %" FMT_INFO "\n", (info_t)((total_nodes * 1000) / bench_time));
+    printf("TIME:  %" FMT_INFO " milliseconds\n", (info_t)benchTime);
+    printf("NODES: %" FMT_INFO "\n", (info_t)totalNodes);
+    printf("NPS:   %" FMT_INFO "\n", (info_t)((totalNodes * 1000) / benchTime));
     fflush(stdout);
 }

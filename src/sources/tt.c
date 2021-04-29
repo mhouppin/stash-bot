@@ -35,7 +35,7 @@ int tt_hashfull(void)
     return (count / ClusterSize);
 }
 
-void    tt_resize(size_t mbsize)
+void tt_resize(size_t mbsize)
 {
     if (TT.table)
         free(TT.table);
@@ -52,9 +52,9 @@ void    tt_resize(size_t mbsize)
     tt_bzero();
 }
 
-tt_entry_t  *tt_probe(hashkey_t key, bool *found)
+tt_entry_t *tt_probe(hashkey_t key, bool *found)
 {
-    tt_entry_t  *entry = tt_entry_at(key);
+    tt_entry_t *entry = tt_entry_at(key);
 
     for (int i = 0; i < ClusterSize; ++i)
         if (!entry[i].key || entry[i].key == key)
@@ -64,7 +64,7 @@ tt_entry_t  *tt_probe(hashkey_t key, bool *found)
             return (entry + i);
         }
 
-    tt_entry_t  *replace = entry;
+    tt_entry_t *replace = entry;
 
     for (int i = 1; i < ClusterSize; ++i)
         if (replace->depth - ((259 + TT.generation - replace->genbound) & 0xFC)
@@ -75,7 +75,7 @@ tt_entry_t  *tt_probe(hashkey_t key, bool *found)
     return (replace);
 }
 
-void    tt_save(tt_entry_t *entry, hashkey_t k, score_t s, score_t e, int d, int b, move_t m)
+void tt_save(tt_entry_t *entry, hashkey_t k, score_t s, score_t e, int d, int b, move_t m)
 {
     if (m || k != entry->key)
         entry->bestmove = (uint16_t)m;

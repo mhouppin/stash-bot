@@ -20,24 +20,24 @@
 #include <stdio.h>
 #include "option.h"
 
-void        option_allocation_failure(void)
+void option_allocation_failure(void)
 {
     perror("Unable to allocate option table");
     exit(EXIT_FAILURE);
 }
 
-void    init_option_list(option_list_t *list)
+void init_option_list(option_list_t *list)
 {
     list->options = NULL;
     list->size = 0;
     list->maxSize = 0;
 }
 
-void    quit_option_list(option_list_t *list)
+void quit_option_list(option_list_t *list)
 {
     for (size_t i = 0; i < list->size; ++i)
     {
-        option_t    *cur = &list->options[i];
+        option_t *cur = &list->options[i];
 
         free(cur->name);
 
@@ -57,7 +57,6 @@ void    quit_option_list(option_list_t *list)
                 for (size_t k = 0; cur->comboList[k]; ++k)
                     free(cur->comboList[k]);
                 free(cur->comboList);
-
                 // Fallthrough
 
             case OptionString:
@@ -75,27 +74,25 @@ void    quit_option_list(option_list_t *list)
     }
 
     free(list->options);
-
     list->options = NULL;
     list->maxSize = 0;
 }
 
-option_t    *insert_option(option_list_t *list, const char *name)
+option_t *insert_option(option_list_t *list, const char *name)
 {
     if (list->size == list->maxSize)
     {
         list->maxSize += (!list->maxSize) ? 16 : list->maxSize;
         list->options = realloc(list->options, list->maxSize * sizeof(option_t));
-
         if (!list->options)
             option_allocation_failure();
     }
 
     // Binary search to find the index of our new option.
 
-    size_t  left = 0;
-    size_t  right = list->size;
-    size_t  i;
+    size_t left = 0;
+    size_t right = list->size;
+    size_t i;
 
     while (left < right)
     {
@@ -118,10 +115,10 @@ option_t    *insert_option(option_list_t *list, const char *name)
     return (&list->options[left]);
 }
 
-void    add_option_spin_int(option_list_t *list, const char *name, long *data,
-        long min, long max, void (*callback)(void *))
+void add_option_spin_int(option_list_t *list, const char *name, long *data, long min, long max,
+    void (*callback)(void *))
 {
-    option_t    *cur = insert_option(list, name);
+    option_t *cur = insert_option(list, name);
 
     cur->type = OptionSpinInt;
     cur->data = data;
@@ -137,10 +134,10 @@ void    add_option_spin_int(option_list_t *list, const char *name, long *data,
     *(long *)cur->max = max;
 }
 
-void    add_option_spin_flt(option_list_t *list, const char *name, double *data,
-        double min, double max, void (*callback)(void *))
+void add_option_spin_flt(option_list_t *list, const char *name, double *data, double min, double max,
+    void (*callback)(void *))
 {
-    option_t    *cur = insert_option(list, name);
+    option_t *cur = insert_option(list, name);
 
     cur->type = OptionSpinFlt;
     cur->data = data;
@@ -156,10 +153,10 @@ void    add_option_spin_flt(option_list_t *list, const char *name, double *data,
     *(double *)cur->max = max;
 }
 
-void    add_option_score(option_list_t *list, const char *name, score_t *data,
-        score_t min, score_t max, void (*callback)(void *))
+void add_option_score(option_list_t *list, const char *name, score_t *data, score_t min, score_t max,
+    void (*callback)(void *))
 {
-    option_t    *cur = insert_option(list, name);
+    option_t *cur = insert_option(list, name);
 
     cur->type = OptionScore;
     cur->data = data;
@@ -175,11 +172,10 @@ void    add_option_score(option_list_t *list, const char *name, score_t *data,
     *(score_t *)cur->max = max;
 }
 
-void    add_option_scorepair(option_list_t *list, const char *name,
-        scorepair_t *data, scorepair_t min, scorepair_t max,
-        void (*callback)(void *))
+void add_option_scorepair(option_list_t *list, const char *name, scorepair_t *data, scorepair_t min, scorepair_t max,
+    void (*callback)(void *))
 {
-    char    *buffer = malloc(strlen(name) + 3);
+    char *buffer = malloc(strlen(name) + 3);
 
     if (!buffer)
         option_allocation_failure();
@@ -187,7 +183,7 @@ void    add_option_scorepair(option_list_t *list, const char *name,
     strcpy(buffer, name);
     strcat(buffer, "MG");
 
-    option_t    *cur = insert_option(list, buffer);
+    option_t *cur = insert_option(list, buffer);
 
     cur->type = OptionSpairMG;
     cur->data = data;
@@ -221,10 +217,9 @@ void    add_option_scorepair(option_list_t *list, const char *name,
     free(buffer);
 }
 
-void    add_option_check(option_list_t *list, const char *name, bool *data,
-        void (*callback)(void *))
+void add_option_check(option_list_t *list, const char *name, bool *data, void (*callback)(void *))
 {
-    option_t    *cur = insert_option(list, name);
+    option_t *cur = insert_option(list, name);
 
     cur->type = OptionCheck;
     cur->data = data;
@@ -235,10 +230,10 @@ void    add_option_check(option_list_t *list, const char *name, bool *data,
     *(bool *)cur->def = *data;
 }
 
-void    add_option_combo(option_list_t *list, const char *name, char **data,
-        const char *const *comboList, void (*callback)(void *))
+void add_option_combo(option_list_t *list, const char *name, char **data, const char *const *comboList,
+    void (*callback)(void *))
 {
-    option_t    *cur = insert_option(list, name);
+    option_t *cur = insert_option(list, name);
 
     cur->type = OptionCombo;
     cur->data = data;
@@ -248,7 +243,7 @@ void    add_option_combo(option_list_t *list, const char *name, char **data,
     if (!cur->def)
         option_allocation_failure();
 
-    size_t    length;
+    size_t length;
     for (length = 0; comboList[length]; ++length);
 
     cur->comboList = malloc(sizeof(char *) * (length + 1));
@@ -264,19 +259,17 @@ void    add_option_combo(option_list_t *list, const char *name, char **data,
     cur->comboList[length] = NULL;
 }
 
-void    add_option_button(option_list_t *list, const char *name,
-        void (*callback)(void *))
+void add_option_button(option_list_t *list, const char *name, void (*callback)(void *))
 {
-    option_t    *cur = insert_option(list, name);
+    option_t *cur = insert_option(list, name);
 
     cur->type = OptionButton;
     cur->callback = callback;
 }
 
-void    add_option_string(option_list_t *list, const char *name, char **data,
-        void (*callback)(void *))
+void add_option_string(option_list_t *list, const char *name, char **data, void (*callback)(void *))
 {
-    option_t    *cur = insert_option(list, name);
+    option_t *cur = insert_option(list, name);
 
     cur->type = OptionString;
     cur->data = data;
@@ -287,11 +280,11 @@ void    add_option_string(option_list_t *list, const char *name, char **data,
         option_allocation_failure();
 }
 
-void    set_option(option_list_t *list, const char *name, const char *value)
+void set_option(option_list_t *list, const char *name, const char *value)
 {
-    size_t  left = 0;
-    size_t  right = list->size;
-    size_t  i;
+    size_t left = 0;
+    size_t right = list->size;
+    size_t i;
 
     while (left < right)
     {
@@ -305,10 +298,10 @@ void    set_option(option_list_t *list, const char *name, const char *value)
             left = i + 1;
         else
         {
-            option_t    *cur = &list->options[i];
-            long        l;
-            double      d;
-            score_t     s;
+            option_t *cur = &list->options[i];
+            long l;
+            double d;
+            score_t s;
 
             switch (cur->type)
             {
@@ -369,11 +362,11 @@ void    set_option(option_list_t *list, const char *name, const char *value)
     }
 }
 
-void    show_options(const option_list_t *list)
+void show_options(const option_list_t *list)
 {
     for (size_t i = 0; i < list->size; ++i)
     {
-        const option_t  *cur = &list->options[i];
+        const option_t *cur = &list->options[i];
 
         switch (cur->type)
         {
