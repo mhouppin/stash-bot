@@ -153,6 +153,9 @@ void *engine_go(void *ptr)
     memset(worker->cmHistory, 0, sizeof(countermove_history_t));
     worker->verifPlies = 0;
 
+    // The main thread initializes all the shared things for search here:
+    // node counter, time manager, workers' board and threads, and TT reset.
+
     if (!worker->idx)
     {
         tt_clear();
@@ -196,17 +199,23 @@ void *engine_go(void *ptr)
         bool hasSearchAborted;
         searchstack_t sstack[256];
 
+        // Reset the search stack data
+
         memset(sstack, 0, sizeof(sstack));
 
         for (worker->pvLine = 0; worker->pvLine < multiPv; ++worker->pvLine)
         {
+            // Reset the seldepth value after each depth increment, and for each
+            // PV line
+
             worker->seldepth = 0;
 
             score_t alpha, beta, delta;
             score_t pvScore = worker->rootMoves[worker->pvLine].prevScore;
 
             // Don't set aspiration window bounds for low depths, as the scores are
-            // very volatile
+            // very volatile. We also disable them when the search score is high
+            // to improve mate search.
 
             if (iterDepth <= 9 || abs(pvScore) >= 1000)
             {
@@ -230,6 +239,9 @@ __retry:
 
             sort_root_moves(worker->rootMoves + worker->pvLine, worker->rootMoves + worker->rootCount);
             pvScore = worker->rootMoves[worker->pvLine].score;
+
+            // Note: we set the bound to be EXACT_BOUND when the search aborts, even if the last
+            // search finished on a fail low/high.
 
             int bound = (abs(pvScore) == INF_SCORE) ? EXACT_BOUND
                 : (pvScore >= beta) ? LOWER_BOUND
@@ -279,6 +291,8 @@ __retry:
             }
         }
 
+        // Reset root moves' score for the next search
+
         for (root_move_t *i = worker->rootMoves; i < worker->rootMoves + worker->rootCount; ++i)
         {
             i->prevScore = i->score;
@@ -298,6 +312,9 @@ __retry:
                 break ;
         }
 
+        // If we're searching for mate and have found a mate equal or better than the given one,
+        // stop the search.
+
         if (SearchParams.mate && worker->rootMoves->prevScore >= mate_in(SearchParams.mate * 2))
             break ;
     }
@@ -309,6 +326,8 @@ __retry:
         while (!search_should_abort())
             if (!worker->idx)
                 check_time();
+
+    // The main thread sends the bestmove here and wait for all workers to stop activity
 
     if (!worker->idx)
     {
@@ -333,9 +352,13 @@ __retry:
 
 void *engine_thread(void *nothing __attribute__((unused)))
 {
+    // Inform the UCI thread that we're ready to run
+
     pthread_mutex_lock(&EngineMutex);
     EngineMode = WAITING;
     pthread_cond_broadcast(&EngineCond);
+
+    // Loop while we're not notified that a "quit" command has been issued
 
     while (EngineSend != DO_ABORT)
     {
@@ -344,6 +367,8 @@ void *engine_thread(void *nothing __attribute__((unused)))
         if (EngineSend == DO_THINK)
         {
             EngineSend = DO_NOTHING;
+
+            // Start by copying the board received from the "position" command
 
             board_t *board = &WPool.list->board;
 

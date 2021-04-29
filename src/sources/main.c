@@ -58,6 +58,8 @@ int main(int argc, char **argv)
     wpool_init(1);
     init_reduction_table();
 
+    // Start the main engine thread
+
     pthread_t engineThread;
 
     pthread_attr_init(&WorkerSettings);
@@ -68,6 +70,8 @@ int main(int argc, char **argv)
         perror("Failed to boot engine thread");
         return (1);
     }
+
+    // Wait for the engine thread to be ready
 
     wait_search_end();
 

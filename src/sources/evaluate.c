@@ -144,6 +144,8 @@ score_t eval_kxk(const board_t *board, color_t us)
     // - a bishop and a knight;
     // - two opposite colored bishops;
     // - three knights.
+    // Note that the KBNK case has already been handled at this point
+    // in the eval, so it's not necessary to worry about it.
 
     bitboard_t knights = piecetype_bb(board, KNIGHT);
     bitboard_t bishops = piecetype_bb(board, BISHOP);
@@ -159,6 +161,8 @@ score_t eval_kxk(const board_t *board, color_t us)
 
 bool ocb_endgame(const board_t *board)
 {
+    // Check if there is exactly one White Bishop and one Black Bishop
+
     bitboard_t wbishop = piece_bb(board, WHITE, BISHOP);
 
     if (!wbishop || more_than_one(wbishop))
@@ -168,6 +172,8 @@ bool ocb_endgame(const board_t *board)
 
     if (!bbishop || more_than_one(bbishop))
         return (false);
+
+    // Then check that the Bishops are on opposite colored squares
 
     bitboard_t dsqMask = (wbishop | bbishop) & DARK_SQUARES;
 
@@ -207,6 +213,8 @@ score_t scale_endgame(const board_t *board, score_t eg)
     // side gets lower.
     else
         factor = min(128, 96 + 8 * popcount(strongPawns));
+
+    // Be careful to cast to 32-bit integer here before multiplying to avoid overflows
 
     eg = (score_t)((int32_t)eg * factor / 128);
 
@@ -266,6 +274,8 @@ scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, const paw
         square_t sq = bb_pop_first_sq(&bb);
         bitboard_t sqbb = square_bb(sq);
         bitboard_t b = knight_moves(sq);
+
+        // If the Knight is pinned, it has no Mobility squares
 
         if (board->stack->kingBlockers[us] & sqbb)
             b = 0;
@@ -328,6 +338,9 @@ scorepair_t evaluate_bishops(const board_t *board, evaluation_t *eval, color_t u
         bitboard_t sqbb = square_bb(sq);
         bitboard_t b = bishop_moves_bb(sq, occupancy);
 
+        // If the Bishop is pinned, reduce its mobility to all the squares
+        // between the King and the pinner
+
         if (board->stack->kingBlockers[us] & sqbb)
             b &= LineBits[get_king_square(board, us)][sq];
 
@@ -371,6 +384,9 @@ scorepair_t evaluate_rooks(const board_t *board, evaluation_t *eval, color_t us)
         bitboard_t sqbb = square_bb(sq);
         bitboard_t rookFile = sq_file_bb(sq);
         bitboard_t b = rook_moves_bb(sq, occupancy);
+
+        // If the Rook is pinned, reduce its mobility to all the squares
+        // between the King and the pinner
 
         if (board->stack->kingBlockers[us] & sqbb)
             b &= LineBits[get_king_square(board, us)][sq];
@@ -417,6 +433,9 @@ scorepair_t evaluate_queens(const board_t *board, evaluation_t *eval, color_t us
         bitboard_t sqbb = square_bb(sq);
         bitboard_t b = bishop_moves_bb(sq, occupancy) | rook_moves_bb(sq, occupancy);
 
+        // If the Queen is pinned, reduce its mobility to all the squares
+        // between the King and the pinner
+
         if (board->stack->kingBlockers[us] & sqbb)
             b &= LineBits[get_king_square(board, us)][sq];
 
@@ -442,6 +461,9 @@ scorepair_t evaluate_safety(evaluation_t *eval, color_t us)
     if (eval->attackers[us] >= 2)
     {
         scorepair_t bonus = eval->weights[us];
+
+        // Reduce the King Safety bonus as the number of attackers on the King
+        // gets lower
 
         if (eval->attackers[us] < 8)
             bonus -= scorepair_divide(bonus, AttackRescale[eval->attackers[us]]);

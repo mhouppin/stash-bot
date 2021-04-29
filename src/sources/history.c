@@ -33,6 +33,8 @@ void    update_quiet_history(const board_t *board, int depth,
     piece = piece_on(board, from_sq(bestmove));
     to = to_sq(bestmove);
 
+    // Apply history bonuses to the bestmove
+
     if ((ss - 1)->pieceHistory != NULL)
     {
         lastTo = to_sq(previousMove);
@@ -46,11 +48,15 @@ void    update_quiet_history(const board_t *board, int depth,
 
     add_bf_history(*bfHist, piece, bestmove, bonus);
 
+    // Set the bestmove as a killer
+
     if (ss->killers[0] != bestmove)
     {
         ss->killers[1] = ss->killers[0];
         ss->killers[0] = bestmove;
     }
+
+    // Apply history penalties to all previous failing quiet moves
 
     for (int i = 0; i < qcount; ++i)
     {
