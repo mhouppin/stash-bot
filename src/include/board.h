@@ -209,10 +209,12 @@ INLINED bool is_capture_or_promotion(const board_t *board, move_t move)
 
 INLINED void put_piece(board_t *board, piece_t piece, square_t square)
 {
+    bitboard_t sqbb = square_bb(square);
+
     board->table[square] = piece;
-    board->piecetypeBB[ALL_PIECES] |= square_bb(square);
-    board->piecetypeBB[piece_type(piece)] |= square_bb(square);
-    board->colorBB[piece_color(piece)] |= square_bb(square);
+    board->piecetypeBB[ALL_PIECES] |= sqbb;
+    board->piecetypeBB[piece_type(piece)] |= sqbb;
+    board->colorBB[piece_color(piece)] |= sqbb;
     board->pieceCount[piece]++;
     board->pieceCount[create_piece(piece_color(piece), ALL_PIECES)]++;
     board->psqScorePair += PsqScore[piece][square];
@@ -234,10 +236,11 @@ INLINED void move_piece(board_t *board, square_t from, square_t to)
 INLINED void remove_piece(board_t *board, square_t square)
 {
     piece_t piece = piece_on(board, square);
+    bitboard_t sqbb = square_bb(square);
 
-    board->piecetypeBB[ALL_PIECES] ^= square_bb(square);
-    board->piecetypeBB[piece_type(piece)] ^= square_bb(square);
-    board->colorBB[piece_color(piece)] ^= square_bb(square);
+    board->piecetypeBB[ALL_PIECES] ^= sqbb;
+    board->piecetypeBB[piece_type(piece)] ^= sqbb;
+    board->colorBB[piece_color(piece)] ^= sqbb;
     board->pieceCount[piece]--;
     board->pieceCount[create_piece(piece_color(piece), ALL_PIECES)]--;
     board->psqScorePair -= PsqScore[piece][square];
