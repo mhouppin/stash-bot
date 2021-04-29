@@ -212,7 +212,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
         {
             // Late Move Pruning.
 
-            if (depth <= 3 && moveCount > depth * (improving ? 8 : 5))
+            if (depth <= 5 && moveCount > depth * (improving ? 8 : 5))
                 skipQuiets = true;
 
             // Futility Pruning.
