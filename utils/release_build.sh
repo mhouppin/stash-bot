@@ -13,7 +13,7 @@ cd $(dirname "$0")
 
 cd ../src
 
-cat Makefile | sed 's/-Wall -Wextra -Werror/-w/g' > tmp.make
+cat Makefile | sed 's/-Werror/-Wno-coverage-mismatch/g' > tmp.make
 
 for arch in 64 x86-64 x86-64-modern x86-64-bmi2
 do

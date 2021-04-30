@@ -87,6 +87,6 @@ fclean: clean
 
 re:
 	$(MAKE) fclean
-	+$(MAKE) all
+	+$(MAKE) all CFLAGS="$(CFLAGS)" CPPFLAGS="$(CPPFLAGS)" LDFLAGS="$(LDFLAGS)"
 
 .PHONY: all clean fclean re
