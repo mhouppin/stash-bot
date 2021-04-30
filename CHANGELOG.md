@@ -1,3 +1,287 @@
+## v30.0 (2021-04-30)
+
+### Regression test
+
+- LTC:
+  ```
+  ELO   | 51.14 +- 4.40 (95%)
+  SPRT  | 60.0+0.6s Threads=1 Hash=64MB
+  LLR   | 2.96 (-2.94, 2.94) [0.00, 0.50]
+  Games | N: 8472 W: 2144 L: 906 D: 5422
+  ```
+
+### Fixed (1 change)
+
+- Fixed continuation history indexing (was looking for the piece on the 'to'
+  square instead of the 'from' square).
+  ```
+  ELO   | 6.33 +- 5.18 (95%)
+  SPRT  | 60.0+0.6s Threads=1 Hash=64MB
+  LLR   | 2.97 (-2.94, 2.94) [-4.00, 1.00]
+  Games | N: 6040 W: 1115 L: 1005 D: 3920
+  ```
+
+### Removed (2 changes)
+
+- Removed Knight pair and Rook pair bonuses from the evaluation function.
+  ```
+  ELO   | 2.08 +- 3.73 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.98 (-2.94, 2.94) [-4.00, 1.00]
+  Games | N: 14867 W: 3370 L: 3281 D: 8216
+  ```
+
+- Removed Internal Iterative Reductions from the search.
+  ```
+  ELO   | 0.31 +- 2.48 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.96 (-2.94, 2.94) [-4.00, 1.00]
+  Games | N: 34064 W: 7711 L: 7681 D: 18672
+
+  ELO   | 3.53 +- 4.08 (95%)
+  SPRT  | 60.0+0.6s Threads=1 Hash=64MB
+  LLR   | 2.96 (-2.94, 2.94) [-4.00, 1.00]
+  Games | N: 9856 W: 1795 L: 1695 D: 6366
+  ```
+
+### Performance (14 changes)
+
+- Made the continuation history additionally use our previous move, and
+  changed the butterfly history indexing from piece to color-only.
+  ```
+  ELO   | 3.58 +- 2.85 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 3.02 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 25904 W: 6041 L: 5774 D: 14089
+
+  ELO   | 3.04 +- 2.44 (95%)
+  SPRT  | 60.0+0.6s Threads=1 Hash=64MB
+  LLR   | 2.97 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 27000 W: 4796 L: 4560 D: 17644
+  ```
+
+- Disabled aspiration windows for very high scores to allow Stash to find
+  mates faster.
+  ```
+  ELO   | 1.57 +- 3.91 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.97 (-2.94, 2.94) [-5.00, 0.00]
+  Games | N: 13924 W: 3228 L: 3165 D: 7531
+  ```
+
+- Made the Late Move Reductions start from move 4 instead of 5.
+  ```
+  ELO   | 2.59 +- 1.95 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.97 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 54686 W: 12535 L: 12127 D: 30024
+
+  ELO   | 2.55 +- 2.04 (95%)
+  SPRT  | 60.0+0.6s Threads=1 Hash=64MB
+  LLR   | 2.95 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 38850 W: 6912 L: 6627 D: 25311
+  ```
+  Changed later to start from move 5 at the root, and 3 otherwise.
+  ```
+  ELO   | 6.19 +- 4.50 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.95 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 10448 W: 2482 L: 2296 D: 5670
+
+  ELO   | 2.45 +- 1.93 (95%)
+  SPRT  | 60.0+0.6s Threads=1 Hash=64MB
+  LLR   | 2.99 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 43024 W: 7607 L: 7304 D: 28113
+  ```
+
+- Made quiescence search use the TT search score in place of the static eval
+  if the TT bounds suggest a more accurate result.
+  ```
+  ELO   | 8.99 +- 5.73 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.95 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 6336 W: 1507 L: 1343 D: 3486
+  ```
+
+- Changed Killer move array to update as a queue instead of a stack (meaning old
+  killer moves get replaced by newer ones).
+  ```
+  ELO   | 5.71 +- 4.23 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.96 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 11552 W: 2677 L: 2487 D: 6388
+  ```
+
+- Changed piece mobility detection to account for pins.
+  ```
+  ELO   | 6.15 +- 4.50 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.95 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 10623 W: 2569 L: 2381 D: 5673
+  ```
+
+- Added Futility Pruning on parent nodes (meaning checking if a move is
+  unlikely to improve alpha before playing it).
+  ```
+  ELO   | 2.08 +- 3.73 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.98 (-2.94, 2.94) [-4.00, 1.00]
+  Games | N: 14867 W: 3370 L: 3281 D: 8216
+
+  ELO   | 6.70 +- 4.41 (95%)
+  SPRT  | 60.0+0.6s Threads=1 Hash=64MB
+  LLR   | 2.96 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 8198 W: 1495 L: 1337 D: 5366
+  ```
+
+- Added endgame functions analyzing very specific material configurations
+  (like KQvKP or KRvKN).
+  ```
+  ELO   | 3.76 +- 3.00 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 3.00 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 23448 W: 5474 L: 5220 D: 12754
+
+  ELO   | 3.88 +- 3.11 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.96 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 21848 W: 5115 L: 4871 D: 11862
+  ```
+
+- Re-enabled check extensions that were disabled after a messed up scope.
+  ```
+  ELO   | 9.34 +- 6.83 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 3.00 (-2.94, 2.94) [-4.00, 1.00]
+  Games | N: 4504 W: 1084 L: 963 D: 2457
+  ```
+
+- Replaced square-to-bitboard conversion by using a lookup table instead of
+  always computing the shift.
+  ```
+  ELO   | 4.98 +- 3.79 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 3.02 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 14660 W: 3439 L: 3229 D: 7992
+  ```
+
+- Made the KXK specialization more tolerant, changed some endgame scaling
+  factors based on pawn count.
+  ```
+  ELO   | 9.09 +- 5.73 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.98 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 6308 W: 1495 L: 1330 D: 3483
+  ```
+
+- Made Late Move Pruning more aggressive for positions where the eval doesn't
+  improve.
+  ```
+  ELO   | 16.20 +- 8.08 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.99 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 3240 W: 815 L: 664 D: 1761
+  ```
+
+- Increased history score granularity (from 1024 to 8192).
+  ```
+  ELO   | 5.63 +- 4.17 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.98 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 11848 W: 2735 L: 2543 D: 6570
+  ```
+
+- Increased Late Move Pruning max depth (from 3 to 5).
+  ```
+  ELO   | 6.73 +- 4.71 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.98 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 9184 W: 2111 L: 1933 D: 5140
+  ```
+
+### Changed (1 change)
+
+- Very large refactor of the code, including extensive variable renaming. As a
+  side result the compilation time halved on some systems.
+  ```
+  ELO   | 4.48 +- 8.52 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 3.01 (-2.94, 2.94) [-10.00, 0.00]
+  Games | N: 2944 W: 698 L: 660 D: 1586
+  ```
+
+## v29.0 (2021-03-05)
+
+### Regression test
+
+- LTC:
+  ```
+  ELO   | 54.19 +- 10.27 (95%)
+  SPRT  | 60.0+0.6s Threads=1 Hash=64MB
+  LLR   | 2.97 (-2.94, 2.94) [45.00, 50.00]
+  Games | N: 1590 W: 414 L: 168 D: 1008
+  ```
+
+### Fixed (2 changes)
+
+- Fixed memory leaks when using score pairs in UCI options.
+- Fixed some potential timeouts during CI due to singular extensions on the
+  'depth 20' test by adding a 'movetime' limit.
+
+### Performance (4 changes)
+
+- Added staged move generation to the movepicker, and placed bad captures
+  to the end of the move list.
+  ```
+  ELO   | 17.86 +- 8.64 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 3.04 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 3018 W: 810 L: 655 D: 1553
+  ```
+
+- Replaced insertion in place_top_move() by swapping, effectively moving less
+  elements when retrieving the next move to analyze.
+  ```
+  ELO   | 9.18 +- 5.87 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.98 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 6436 W: 1628 L: 1458 D: 3350
+  ```
+
+- Added Static Exchange Evaluation Pruning, and stopped pruning capture moves
+  on Late Move Pruning.
+  ```
+  ELO   | 9.94 +- 6.21 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.97 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 5874 W: 1523 L: 1355 D: 2996
+
+  ELO   | 3.95 +- 3.07 (95%)
+  SPRT  | 60.0+0.6s Threads=1 Hash=64MB
+  LLR   | 3.00 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 18098 W: 3442 L: 3236 D: 11420
+  ```
+
+- Replaced Late Move Pruning threshold (from quiet move count to move count).
+  ```
+  ELO   | 18.75 +- 8.76 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 3.01 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 2782 W: 716 L: 566 D: 1500
+
+  ELO   | 24.52 +- 9.38 (95%)
+  SPRT  | 60.0+0.6s Threads=1 Hash=64MB
+  LLR   | 3.01 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 1930 W: 422 L: 286 D: 1222
+  ```
+
+### Changed (2 changes)
+
+- Added some helper macros to facilitate UCI option structure usage when
+  running SPSA tests.
+- Removed 'mate score' handling in time management to allow mates to be
+  correctly solved during search.
+
 ## v28.0 (2021-02-23)
 
 ### Regression test

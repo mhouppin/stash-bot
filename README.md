@@ -1,7 +1,7 @@
 ## stash-bot
 
 Stash is a UCI-compliant chess engine developed from scratch. Preferably used
-with a GUI like Arena, CuteChess, Fritz, etc. Currently rated around 2880 Elo.
+with a GUI like Arena, CuteChess, Fritz, etc.
 
 ## Files
 
@@ -52,7 +52,8 @@ Stash supports for now all these UCI options:
     make ARCH=arch_name
     ```
     with `arch_name` being one of the following: x86-64, x86-64-modern or
-    x86-64-bmi2.
+    x86-64-bmi2. Use `ARCH=unknown` if you don't know your CPU architecture,
+    or if you're compiling on a 32-bit machine.
 
   * #### I do not have a compiler on my machine: how do I do ?
     Compiled binaries for Linux and Windows are available from the "releases"

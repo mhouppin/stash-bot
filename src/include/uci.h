@@ -26,7 +26,7 @@
 # include <time.h>
 # include "inlining.h"
 
-# define UCI_VERSION    "v29.18"
+# define UCI_VERSION "v30.0"
 
 # ifdef PRIu64
 #  define FMT_INFO PRIu64
