@@ -42,7 +42,7 @@ void update_pv(move_t *pv, move_t bestmove, move_t *subPv)
 score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchstack_t *ss, bool pvNode)
 {
     if (depth <= 0)
-        return (qsearch(board, alpha, beta, ss));
+        return (qsearch(board, alpha, beta, ss, pvNode));
 
     worker_t *worker = get_worker(board);
     movepick_t mp;
@@ -117,12 +117,12 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
     {
         if (depth == 1)
         {
-            score_t maxScore = qsearch(board, alpha, beta, ss);
+            score_t maxScore = qsearch(board, alpha, beta, ss, false);
             return (max(ss->staticEval + 150, maxScore));
         }
         if (ss->staticEval + 300 <= alpha && depth <= 3)
         {
-            score_t maxScore = qsearch(board, alpha, beta, ss);
+            score_t maxScore = qsearch(board, alpha, beta, ss, false);
             if (maxScore < beta)
                 return (max(ss->staticEval + 300, maxScore));
         }
@@ -363,14 +363,18 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
     return (bestScore);
 }
 
-score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
+score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, bool pvNode)
 {
     worker_t *worker = get_worker(board);
     const score_t oldAlpha = alpha;
     movepick_t mp;
+    move_t pv[256];
 
     if (!worker->idx)
         check_time();
+
+    if (pvNode && worker->seldepth < ss->plies + 1)
+        worker->seldepth = ss->plies + 1;
 
     if (search_should_abort() || game_is_drawn(board, ss->plies))
         return (0);
@@ -398,7 +402,8 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
         ttBound = entry->genbound & 3;
         ttScore = score_from_tt(entry->score, ss->plies);
 
-        if (((ttBound & LOWER_BOUND) && ttScore >= beta) || ((ttBound & UPPER_BOUND) && ttScore <= alpha))
+        if (!pvNode && (((ttBound & LOWER_BOUND) && ttScore >= beta)
+            || ((ttBound & UPPER_BOUND) && ttScore <= alpha)))
             return (ttScore);
     }
 
@@ -428,6 +433,12 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
     move_t currmove;
     move_t bestmove = NO_MOVE;
     int moveCount = 0;
+
+    if (pvNode)
+    {
+        (ss + 1)->pv = pv;
+        pv[0] = NO_MOVE;
+    }
 
     // Check if delta pruning is possible.
 
@@ -467,7 +478,7 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
         boardstack_t stack;
 
         do_move_gc(board, currmove, &stack, givesCheck);
-        score_t score = -qsearch(board, -beta, -alpha, ss + 1);
+        score_t score = -qsearch(board, -beta, -alpha, ss + 1, pvNode);
         undo_move(board, currmove);
 
         if (search_should_abort())
@@ -480,6 +491,10 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss)
             {
                 alpha = bestScore;
                 bestmove = currmove;
+
+                if (pvNode)
+                    update_pv(ss->pv, bestmove, (ss + 1)->pv);
+
                 if (alpha >= beta)
                     break ;
             }
