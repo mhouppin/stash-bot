@@ -4,7 +4,7 @@
 
 echo "--- TEST: Bench value matching"
 
-_BENCHMARK=$(echo "$1" | fgrep "Bench:" | sed "s/Bench: //g")
+_BENCHMARK=$(echo "$1" | fgrep "Bench:" | sed "s/Bench: //g" | tr -d ',')
 if test -z "$_BENCHMARK"
 then
     echo "--- WARNING: Missing bench field, skipping bench test"
