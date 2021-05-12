@@ -24,8 +24,8 @@
 
 # define ITERS 10000
 # define LEARNING_RATE 0.1
-# define LR_DROP_ITERS 250
-# define LR_DROP_VALUE 1.04
+# define LR_DROP_ITERS 2500
+# define LR_DROP_VALUE 2.00
 # define BATCH_SIZE 32768
 
 typedef enum tune_idx_e
@@ -76,7 +76,7 @@ typedef struct tune_entry_s
     int phase;
     bool sideToMove;
     scorepair_t eval;
-    scorepair_t safety[COLOR_NB];
+    int safetyAttackers;
     double gameResult;
     double scaleFactor;
     double phaseFactors[PHASE_NB];
@@ -92,14 +92,6 @@ typedef struct tune_data_s
 }
 tune_data_t;
 
-typedef struct gradient_data_s
-{
-    double endgameEval;
-    double wSafetyMg, bsafetyMg;
-    double wSafetyEg, bsafetyEg;
-}
-gradient_data_t;
-
 typedef int tp_array_t[IDX_COUNT];
 typedef double tp_vector_t[IDX_COUNT][2];
 
@@ -112,10 +104,9 @@ void init_tuner_tuples(tune_entry_t *entry, const tp_vector_t coeffs, const tp_a
 double compute_optimal_k(const tune_data_t *data);
 void compute_gradient(const tune_data_t *data, tp_vector_t gradient, const tp_vector_t delta,
     const tp_array_t methods, double K, int batchIdx);
-double adjusted_eval(const tune_entry_t *entry, const tp_vector_t delta, const tp_array_t methods,
-    const gradient_data_t *data);
+double adjusted_eval(const tune_entry_t *entry, const tp_vector_t delta, const tp_array_t methods);
 double static_eval_mse(const tune_data_t *data, double K);
-void adjusted_eval_mse(const tune_data_t *data, const tp_vector_t delta, const tp_array_t methods, double K);
+double adjusted_eval_mse(const tune_data_t *data, const tp_vector_t delta, const tp_array_t methods, double K);
 void print_parameters(const tp_vector_t base, const tp_vector_t delta);
 
 #endif
