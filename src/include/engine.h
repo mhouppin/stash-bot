@@ -24,6 +24,72 @@
 # include "history.h"
 # include "movepick.h"
 
+# define TUNE
+
+# ifdef TUNE
+
+typedef enum tune_idx_e
+{
+    IDX_PIECE,
+    IDX_PSQT = IDX_PIECE + 5,
+    IDX_CASTLING = IDX_PSQT + 48 + 64 * 5,
+    IDX_INITIATIVE,
+    IDX_KS_KNIGHT,
+    IDX_KS_BISHOP,
+    IDX_KS_ROOK,
+    IDX_KS_QUEEN,
+    IDX_KS_OFFSET,
+    IDX_KNIGHT_SHIELDED,
+    IDX_KNIGHT_OUTPOST,
+    IDX_KNIGHT_CENTER_OUTPOST,
+    IDX_KNIGHT_SOLID_OUTPOST,
+    IDX_BISHOP_PAIR,
+    IDX_BISHOP_SHIELDED,
+    IDX_ROOK_SEMIOPEN,
+    IDX_ROOK_OPEN,
+    IDX_ROOK_XRAY_QUEEN,
+    IDX_MOBILITY_KNIGHT,
+    IDX_MOBILITY_BISHOP = IDX_MOBILITY_KNIGHT + 9,
+    IDX_MOBILITY_ROOK = IDX_MOBILITY_BISHOP + 14,
+    IDX_MOBILITY_QUEEN = IDX_MOBILITY_ROOK + 15,
+    IDX_BACKWARD = IDX_MOBILITY_QUEEN + 28,
+    IDX_STRAGGLER,
+    IDX_DOUBLED,
+    IDX_ISOLATED,
+    IDX_PASSER,
+    IDX_COUNT = IDX_PASSER + 6
+}
+tune_idx_t;
+
+typedef struct evaltrace_s
+{
+    int phase;
+    int safetyAttackers[COLOR_NB];
+    scorepair_t eval;
+    int scaleFactor;
+    int8_t coeffs[IDX_COUNT][COLOR_NB];
+} evaltrace_t;
+
+extern evaltrace_t Trace;
+
+# define TRACE_INIT memset(&Trace, 0, sizeof(Trace))
+# define TRACE_ADD(idx, color, n) Trace.coeffs[idx][color] += n
+# define TRACE_PHASE(p) Trace.phase = p
+# define TRACE_ATTACKERS(color, a) Trace.safetyAttackers[color] = a
+# define TRACE_EVAL(e) Trace.eval = e
+# define TRACE_FACTOR(f) Trace.scaleFactor = f
+
+# else
+
+# define TRACE_INIT
+# define TRACE_ADD(x, c, n)
+# define TRACE_PHASE(p)
+# define TRACE_ATTACKERS(a)
+# define TRACE_EVAL(e)
+# define TRACE_FACTOR(f)
+
+# endif
+
 enum { MAX_PLIES = 240 };
 
 extern int Reductions[64][64];

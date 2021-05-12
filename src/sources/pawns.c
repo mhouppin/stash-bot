@@ -16,16 +16,14 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "engine.h"
 #include "lazy_smp.h"
 #include "pawns.h"
 
-enum
-{
-    BackwardPenalty = SPAIR(-7, -8),
-    StragglerPenalty = SPAIR(-18, -14),
-    DoubledPenalty = SPAIR(-21, -35),
-    IsolatedPenalty = SPAIR(-12, -18),
-};
+const scorepair_t BackwardPenalty = SPAIR(-7, -8);
+const scorepair_t StragglerPenalty = SPAIR(-18, -14);
+const scorepair_t DoubledPenalty = SPAIR(-21, -35);
+const scorepair_t IsolatedPenalty = SPAIR(-12, -18);
 
 const scorepair_t PassedBonus[RANK_NB] = {
     0,
@@ -47,10 +45,16 @@ scorepair_t evaluate_passed(pawn_entry_t *entry, color_t us, bitboard_t ourPawns
         square_t sq = bb_pop_first_sq(&ourPawns);
         bitboard_t queening = forward_file_bb(us, sq);
 
+        TRACE_ADD(IDX_PIECE + PAWN - PAWN, us, 1);
+        TRACE_ADD(IDX_PSQT + relative_sq(sq, us), us, 1);
+
         if ((queening & theirPawns) == 0
             && (queening & entry->attacks[not_color(us)] & ~entry->attacks[us]) == 0
             && (queening & entry->attacks2[not_color(us)] & ~entry->attacks2[us]) == 0)
+        {
             ret += PassedBonus[relative_sq_rank(sq, us)];
+            TRACE_ADD(IDX_PASSER + relative_sq_rank(sq, us) - RANK_2, us, 1);
+        }
     }
 
     return (ret);
@@ -79,6 +83,7 @@ scorepair_t evaluate_backward(pawn_entry_t *entry, color_t us, bitboard_t ourPaw
         return (ret);
 
     ret += BackwardPenalty * popcount(backward);
+    TRACE_ADD(IDX_BACKWARD, us, popcount(backward));
 
     backward &= (us == WHITE) ? (RANK_2_BITS | RANK_3_BITS) : (RANK_6_BITS | RANK_7_BITS);
 
@@ -96,24 +101,31 @@ scorepair_t evaluate_backward(pawn_entry_t *entry, color_t us, bitboard_t ourPaw
         return (ret);
 
     ret += StragglerPenalty * popcount(backward);
+    TRACE_ADD(IDX_STRAGGLER, us, popcount(backward));
 
     return (ret);
 }
 
-scorepair_t evaluate_doubled_isolated(bitboard_t us)
+scorepair_t evaluate_doubled_isolated(bitboard_t bb, color_t us __attribute__((unused)))
 {
     scorepair_t ret = 0;
 
     for (square_t s = SQ_A2; s <= SQ_H2; ++s)
     {
-        bitboard_t b = us & sq_file_bb(s);
+        bitboard_t b = bb & sq_file_bb(s);
 
         if (b)
         {
             if (more_than_one(b))
+            {
                 ret += DoubledPenalty;
-            if (!(adjacent_files_bb(s) & us))
+                TRACE_ADD(IDX_DOUBLED, us, 1);
+            }
+            if (!(adjacent_files_bb(s) & bb))
+            {
                 ret += IsolatedPenalty;
+                TRACE_ADD(IDX_ISOLATED, us, 1);
+            }
         }
     }
 
@@ -124,8 +136,10 @@ pawn_entry_t *pawn_probe(const board_t *board)
 {
     pawn_entry_t *entry = get_worker(board)->pawnTable + (board->stack->pawnKey % PawnTableSize);
 
+#ifndef TUNE
     if (entry->key == board->stack->pawnKey)
         return (entry);
+#endif
 
     entry->key = board->stack->pawnKey;
     entry->value = 0;
@@ -143,8 +157,8 @@ pawn_entry_t *pawn_probe(const board_t *board)
     entry->value -= evaluate_backward(entry, BLACK, bpawns, wpawns);
     entry->value += evaluate_passed(entry, WHITE, wpawns, bpawns);
     entry->value -= evaluate_passed(entry, BLACK, bpawns, wpawns);
-    entry->value += evaluate_doubled_isolated(wpawns);
-    entry->value -= evaluate_doubled_isolated(bpawns);
+    entry->value += evaluate_doubled_isolated(wpawns, WHITE);
+    entry->value -= evaluate_doubled_isolated(bpawns, BLACK);
 
     return (entry);
 }

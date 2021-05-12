@@ -20,46 +20,13 @@
 # define TUNER_H
 
 # include <stddef.h>
-# include "board.h"
+# include "engine.h"
 
 # define ITERS 10000
 # define LEARNING_RATE 0.1
 # define LR_DROP_ITERS 2500
 # define LR_DROP_VALUE 2.00
 # define BATCH_SIZE 32768
-
-typedef enum tune_idx_e
-{
-    IDX_PIECE,
-    IDX_PSQT = IDX_PIECE + 5,
-    IDX_CASTLING = IDX_PSQT + 48 + 64 * 4,
-    IDX_INITIATIVE,
-    IDX_KS_KNIGHT,
-    IDX_KS_BISHOP,
-    IDX_KS_ROOK,
-    IDX_KS_QUEEN,
-    IDX_KS_OFFSET,
-    IDX_KNIGHT_SHIELDED,
-    IDX_KNIGHT_OUTPOST,
-    IDX_KNIGHT_CENTER_OUTPOST,
-    IDX_KNIGHT_SOLID_OUTPOST,
-    IDX_BISHOP_PAIR,
-    IDX_BISHOP_SHIELDED,
-    IDX_ROOK_SEMIOPEN,
-    IDX_ROOK_OPEN,
-    IDX_ROOK_XRAY_QUEEN,
-    IDX_MOBILITY_KNIGHT,
-    IDX_MOBILITY_BISHOP = IDX_MOBILITY_KNIGHT + 9,
-    IDX_MOBILITY_ROOK = IDX_MOBILITY_BISHOP + 14,
-    IDX_MOBILITY_QUEEN = IDX_MOBILITY_ROOK + 15,
-    IDX_BACKWARD = IDX_MOBILITY_QUEEN + 28,
-    IDX_STRAGGLER,
-    IDX_DOUBLED,
-    IDX_ISOLATED,
-    IDX_PASSER,
-    IDX_COUNT = IDX_PASSER + 6
-}
-tune_idx_t;
 
 typedef struct tune_tuple_s
 {
@@ -74,9 +41,9 @@ typedef struct tune_entry_s
     int tupleCount;
     score_t staticEval;
     int phase;
-    bool sideToMove;
+    color_t sideToMove;
     scorepair_t eval;
-    int safetyAttackers;
+    int safetyAttackers[COLOR_NB];
     double gameResult;
     double scaleFactor;
     double phaseFactors[PHASE_NB];
@@ -97,16 +64,14 @@ typedef double tp_vector_t[IDX_COUNT][2];
 
 void start_tuning_session(const char *filename);
 void init_base_values(tp_vector_t base);
-void init_methods(tp_array_t methods);
 void init_tuner_entries(tune_data_t *data, const char *filename);
-void init_tuner_entry(tune_entry_t *entry, const board_t *board, const tp_array_t methods);
-void init_tuner_tuples(tune_entry_t *entry, const tp_vector_t coeffs, const tp_array_t methods);
+void init_tuner_entry(tune_entry_t *entry, const board_t *board);
+void init_tuner_tuples(tune_entry_t *entry);
 double compute_optimal_k(const tune_data_t *data);
-void compute_gradient(const tune_data_t *data, tp_vector_t gradient, const tp_vector_t delta,
-    const tp_array_t methods, double K, int batchIdx);
-double adjusted_eval(const tune_entry_t *entry, const tp_vector_t delta, const tp_array_t methods);
+void compute_gradient(const tune_data_t *data, tp_vector_t gradient, const tp_vector_t delta, double K, int batchIdx);
+double adjusted_eval(const tune_entry_t *entry, const tp_vector_t delta);
 double static_eval_mse(const tune_data_t *data, double K);
-double adjusted_eval_mse(const tune_data_t *data, const tp_vector_t delta, const tp_array_t methods, double K);
+double adjusted_eval_mse(const tune_data_t *data, const tp_vector_t delta, double K);
 void print_parameters(const tp_vector_t base, const tp_vector_t delta);
 
 #endif
