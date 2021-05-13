@@ -24,8 +24,6 @@
 # include "history.h"
 # include "movepick.h"
 
-# define TUNE
-
 # ifdef TUNE
 
 typedef enum tune_idx_e
@@ -38,7 +36,6 @@ typedef enum tune_idx_e
     IDX_KS_BISHOP,
     IDX_KS_ROOK,
     IDX_KS_QUEEN,
-    IDX_KS_OFFSET,
     IDX_KNIGHT_SHIELDED,
     IDX_KNIGHT_OUTPOST,
     IDX_KNIGHT_CENTER_OUTPOST,
@@ -84,7 +81,7 @@ extern evaltrace_t Trace;
 # define TRACE_INIT
 # define TRACE_ADD(x, c, n)
 # define TRACE_PHASE(p)
-# define TRACE_ATTACKERS(a)
+# define TRACE_ATTACKERS(color, a)
 # define TRACE_EVAL(e)
 # define TRACE_FACTOR(f)
 

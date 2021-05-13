@@ -46,7 +46,7 @@ scorepair_t evaluate_passed(pawn_entry_t *entry, color_t us, bitboard_t ourPawns
         bitboard_t queening = forward_file_bb(us, sq);
 
         TRACE_ADD(IDX_PIECE + PAWN - PAWN, us, 1);
-        TRACE_ADD(IDX_PSQT + relative_sq(sq, us), us, 1);
+        TRACE_ADD(IDX_PSQT + relative_sq(sq, us) - SQ_A2, us, 1);
 
         if ((queening & theirPawns) == 0
             && (queening & entry->attacks[not_color(us)] & ~entry->attacks[us]) == 0
@@ -134,11 +134,15 @@ scorepair_t evaluate_doubled_isolated(bitboard_t bb, color_t us __attribute__((u
 
 pawn_entry_t *pawn_probe(const board_t *board)
 {
+#ifndef TUNE
     pawn_entry_t *entry = get_worker(board)->pawnTable + (board->stack->pawnKey % PawnTableSize);
 
-#ifndef TUNE
     if (entry->key == board->stack->pawnKey)
         return (entry);
+
+#else
+    static pawn_entry_t e;
+    pawn_entry_t *entry = &e;
 #endif
 
     entry->key = board->stack->pawnKey;

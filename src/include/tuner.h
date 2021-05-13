@@ -22,10 +22,13 @@
 # include <stddef.h>
 # include "engine.h"
 
+# ifdef TUNE
+
+# define THREADS 2
 # define ITERS 10000
 # define LEARNING_RATE 0.1
-# define LR_DROP_ITERS 2500
-# define LR_DROP_VALUE 2.00
+# define LR_DROP_ITERS 10000
+# define LR_DROP_VALUE 1
 # define BATCH_SIZE 32768
 
 typedef struct tune_tuple_s
@@ -62,16 +65,25 @@ tune_data_t;
 typedef int tp_array_t[IDX_COUNT];
 typedef double tp_vector_t[IDX_COUNT][2];
 
+#endif
+
 void start_tuning_session(const char *filename);
+
+#ifdef TUNE
+
 void init_base_values(tp_vector_t base);
 void init_tuner_entries(tune_data_t *data, const char *filename);
-void init_tuner_entry(tune_entry_t *entry, const board_t *board);
+bool init_tuner_entry(tune_entry_t *entry, const board_t *board);
 void init_tuner_tuples(tune_entry_t *entry);
 double compute_optimal_k(const tune_data_t *data);
 void compute_gradient(const tune_data_t *data, tp_vector_t gradient, const tp_vector_t delta, double K, int batchIdx);
-double adjusted_eval(const tune_entry_t *entry, const tp_vector_t delta);
+void update_gradient(const tune_entry_t *entry, tp_vector_t gradient, const tp_vector_t delta, double K);
+double adjusted_eval(const tune_entry_t *entry, const tp_vector_t delta, double safetyScale[COLOR_NB]);
 double static_eval_mse(const tune_data_t *data, double K);
 double adjusted_eval_mse(const tune_data_t *data, const tp_vector_t delta, double K);
+double sigmoid(double K, double E);
 void print_parameters(const tp_vector_t base, const tp_vector_t delta);
+
+#endif
 
 #endif

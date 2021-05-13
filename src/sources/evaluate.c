@@ -218,7 +218,7 @@ score_t scale_endgame(const board_t *board, score_t eg)
     return (eg);
 }
 
-void        eval_init(const board_t *board, evaluation_t *eval)
+void eval_init(const board_t *board, evaluation_t *eval)
 {
     eval->attackers[WHITE] = eval->attackers[BLACK] = eval->weights[WHITE] = eval->weights[BLACK] = 0;
 
@@ -231,8 +231,8 @@ void        eval_init(const board_t *board, evaluation_t *eval)
     // Set the King Attack zone as the 3x4 square surrounding the king
     // (counting an additional rank in front of the king)
 
-    eval->kingZone[WHITE] = king_moves(get_king_square(board, BLACK));
-    eval->kingZone[BLACK] = king_moves(get_king_square(board, WHITE));
+    eval->kingZone[WHITE] = king_moves(bksq);
+    eval->kingZone[BLACK] = king_moves(wksq);
     eval->kingZone[WHITE] |= shift_down(eval->kingZone[WHITE]);
     eval->kingZone[BLACK] |= shift_up(eval->kingZone[BLACK]);
 
@@ -522,6 +522,8 @@ scorepair_t evaluate_safety(evaluation_t *eval, color_t us)
 
 score_t evaluate(const board_t *board)
 {
+    TRACE_INIT;
+
     // Do we have a specialized endgame eval for the current configuration ?
     const endgame_entry_t *entry = endgame_probe(board);
 
@@ -534,8 +536,6 @@ score_t evaluate(const board_t *board)
         return (eval_kxk(board, WHITE));
     if (is_kxk_endgame(board, BLACK))
         return (eval_kxk(board, BLACK));
-
-    TRACE_INIT;
 
     evaluation_t eval;
     scorepair_t tapered = board->psqScorePair;
@@ -587,6 +587,8 @@ score_t evaluate(const board_t *board)
     int tempoValue = (eval.tempos[WHITE] * eval.tempos[WHITE] - eval.tempos[BLACK] * eval.tempos[BLACK]);
     tapered += Initiative * tempoValue;
     TRACE_ADD(IDX_INITIATIVE, WHITE, tempoValue);
+
+    TRACE_EVAL(tapered);
 
     mg = midgame_score(tapered);
 
