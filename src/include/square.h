@@ -21,7 +21,7 @@
 
 # include <stdbool.h>
 # include <stdint.h>
-# include "inlining.h"
+# include "imath.h"
 # include "color.h"
 
 typedef int16_t square_t;
@@ -100,6 +100,11 @@ INLINED rank_t relative_rank(rank_t rank, color_t color)
 INLINED rank_t relative_sq_rank(square_t square, color_t color)
 {
     return (relative_rank(sq_rank(square), color));
+}
+
+INLINED square_t to_sq32(square_t square)
+{
+    return (sq_rank(square) * 4 + min(sq_file(square), sq_file(square) ^ 7));
 }
 
 INLINED bool is_valid_sq(square_t square)

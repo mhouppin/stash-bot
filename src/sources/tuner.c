@@ -114,13 +114,14 @@ void init_base_values(tp_vector_t base)
     }
 
     for (piecetype_t pt = KNIGHT; pt <= KING; ++pt)
-        for (square_t sq = SQ_A1; sq <= SQ_H8; ++sq)
-        {
-            scorepair_t sp = PieceBonus[pt][sq_rank(sq)][min(sq_file(sq), sq_file(sq) ^ 7)];
+        for (file_t file = FILE_A; file <= FILE_D; ++file)
+            for (rank_t rank = RANK_1; rank <= RANK_8; ++rank)
+            {
+                scorepair_t sp = PieceBonus[pt][rank][file];
 
-            base[IDX_PSQT + 48 + 64 * (pt - KNIGHT) + sq][MIDGAME] = midgame_score(sp);
-            base[IDX_PSQT + 48 + 64 * (pt - KNIGHT) + sq][ENDGAME] = endgame_score(sp);
-        }
+                base[IDX_PSQT + 48 + 32 * (pt - KNIGHT) + rank * 4 + file][MIDGAME] = midgame_score(sp);
+                base[IDX_PSQT + 48 + 32 * (pt - KNIGHT) + rank * 4 + file][ENDGAME] = endgame_score(sp);
+            }
 
     INIT_BASE_SP(IDX_CASTLING, CastlingBonus);
     INIT_BASE_SP(IDX_INITIATIVE, Initiative);
@@ -210,6 +211,7 @@ void init_tuner_entries(tune_data_t *data, const char *filename)
             fflush(stdout);
         }
     }
+    putchar('\n');
 }
 
 bool init_tuner_entry(tune_entry_t *entry, const board_t *board)
@@ -299,6 +301,7 @@ double compute_optimal_k(const tune_data_t *data)
         start -= step;
         step /= 10;
     }
+    putchar('\n');
     return (start);
 }
 
@@ -439,15 +442,15 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
 
     putchar('\n');
 
-    PRINT_SPA(IDX_PSQT + 48 + 64 * 0, KnightSQT, 64);
+    PRINT_SPA(IDX_PSQT + 48 + 32 * 0, KnightSQT, 32);
     putchar('\n');
-    PRINT_SPA(IDX_PSQT + 48 + 64 * 1, BishopSQT, 64);
+    PRINT_SPA(IDX_PSQT + 48 + 32 * 1, BishopSQT, 32);
     putchar('\n');
-    PRINT_SPA(IDX_PSQT + 48 + 64 * 2, RookSQT, 64);
+    PRINT_SPA(IDX_PSQT + 48 + 32 * 2, RookSQT, 32);
     putchar('\n');
-    PRINT_SPA(IDX_PSQT + 48 + 64 * 3, QueenSQT, 64);
+    PRINT_SPA(IDX_PSQT + 48 + 32 * 3, QueenSQT, 32);
     putchar('\n');
-    PRINT_SPA(IDX_PSQT + 48 + 64 * 4, KingSQT, 64);
+    PRINT_SPA(IDX_PSQT + 48 + 32 * 4, KingSQT, 32);
     putchar('\n');
 
     PRINT_SP(IDX_CASTLING, CastlingBonus);

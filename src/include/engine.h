@@ -30,7 +30,7 @@ typedef enum tune_idx_e
 {
     IDX_PIECE,
     IDX_PSQT = IDX_PIECE + 5,
-    IDX_CASTLING = IDX_PSQT + 48 + 64 * 5,
+    IDX_CASTLING = IDX_PSQT + 48 + 32 * 5,
     IDX_INITIATIVE,
     IDX_KS_KNIGHT,
     IDX_KS_BISHOP,

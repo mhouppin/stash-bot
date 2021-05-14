@@ -29,62 +29,62 @@ evaltrace_t Trace;
 
 // Special eval terms
 
-const scorepair_t CastlingBonus = SPAIR(85, -43);
-const scorepair_t Initiative = SPAIR(21, 15);
+const scorepair_t CastlingBonus = SPAIR(8, -21);
+const scorepair_t Initiative = SPAIR(18, 17);
 
 // King Safety eval terms
 
-const scorepair_t KnightWeight = SPAIR(26, 8);
-const scorepair_t BishopWeight = SPAIR(18, 5);
-const scorepair_t RookWeight = SPAIR(51, -4);
-const scorepair_t QueenWeight = SPAIR(51, 72);
+const scorepair_t KnightWeight = SPAIR(35, 8);
+const scorepair_t BishopWeight = SPAIR(24, 5);
+const scorepair_t RookWeight = SPAIR(47, -4);
+const scorepair_t QueenWeight = SPAIR(54, 72);
 
 // Knight eval terms
 
-const scorepair_t KnightShielded = SPAIR(4, 12);
-const scorepair_t KnightOutpost = SPAIR(15, -3);
-const scorepair_t KnightCenterOutpost = SPAIR(17, -1);
-const scorepair_t KnightSolidOutpost = SPAIR(12, 1);
+const scorepair_t KnightShielded = SPAIR(6, 26);
+const scorepair_t KnightOutpost = SPAIR(11, -8);
+const scorepair_t KnightCenterOutpost = SPAIR(14, -8);
+const scorepair_t KnightSolidOutpost = SPAIR(19, 38);
 
 // Bishop eval terms
 
-const scorepair_t BishopPairBonus = SPAIR(12, 103);
-const scorepair_t BishopShielded = SPAIR(12, 6);
+const scorepair_t BishopPairBonus = SPAIR(18, 106);
+const scorepair_t BishopShielded = SPAIR(9, 24);
 
 // Rook eval terms
 
-const scorepair_t RookOnSemiOpenFile = SPAIR(19, 17);
-const scorepair_t RookOnOpenFile = SPAIR(38, 16);
-const scorepair_t RookXrayQueen = SPAIR(7, 9);
+const scorepair_t RookOnSemiOpenFile = SPAIR(10, 20);
+const scorepair_t RookOnOpenFile = SPAIR(35, 15);
+const scorepair_t RookXrayQueen = SPAIR(6, 11);
 
 const scorepair_t MobilityN[9] = {
-    SPAIR( -83, -76), SPAIR( -40, -74), SPAIR( -24, -15), SPAIR( -16,  26),
-    SPAIR(  -4,  32), SPAIR(  -3,  49), SPAIR(   4,  53), SPAIR(  13,  48),
-    SPAIR(  26,  31)
+    SPAIR( -38, -31), SPAIR( -34, -24), SPAIR( -28,  11), SPAIR( -22,  37),
+    SPAIR( -16,  50), SPAIR( -10,  63), SPAIR(  -3,  65), SPAIR(   7,  60),
+    SPAIR(  18,  44)
 };
 
 const scorepair_t MobilityB[14] = {
-    SPAIR( -96, -80), SPAIR( -51,-100), SPAIR( -16, -66), SPAIR( -15, -24),
-    SPAIR(  -5,  -1), SPAIR(   1,  16), SPAIR(   4,  33), SPAIR(   4,  41),
-    SPAIR(   4,  49), SPAIR(   5,  54), SPAIR(   8,  52), SPAIR(  19,  44),
-    SPAIR(  44,  43), SPAIR(  46,  26)
+    SPAIR( -83,-100), SPAIR( -38, -97), SPAIR( -22, -31), SPAIR( -13,   1),
+    SPAIR(  -6,  20), SPAIR(  -1,  40), SPAIR(   2,  54), SPAIR(   0,  60),
+    SPAIR(   1,  68), SPAIR(   3,  69), SPAIR(   4,  68), SPAIR(  20,  58),
+    SPAIR(  41,  55), SPAIR(  61,  27)
 };
 
 const scorepair_t MobilityR[15] = {
-    SPAIR( -43, -11), SPAIR( -56, -14), SPAIR( -37,  -6), SPAIR( -35,  22),
-    SPAIR( -34,  59), SPAIR( -33,  69), SPAIR( -31,  84), SPAIR( -28,  91),
-    SPAIR( -24,  94), SPAIR( -19,  98), SPAIR( -15, 104), SPAIR( -13, 105),
-    SPAIR(  -8, 105), SPAIR(   7,  95), SPAIR(  54,  64)
+    SPAIR( -56, -70), SPAIR( -52, -43), SPAIR( -48,  16), SPAIR( -43,  57),
+    SPAIR( -38,  80), SPAIR( -36,  97), SPAIR( -31, 111), SPAIR( -27, 114),
+    SPAIR( -21, 117), SPAIR( -17, 122), SPAIR( -13, 128), SPAIR(  -8, 130),
+    SPAIR(  -2, 131), SPAIR(  14, 119), SPAIR(  68,  86)
 };
 
 const scorepair_t MobilityQ[28] = {
-    SPAIR(  -8,-144), SPAIR(  -6,-117), SPAIR(  -5, -90), SPAIR(  -7, -63),
-    SPAIR( -13, -38), SPAIR(  -6, -11), SPAIR(   5,  26), SPAIR(   7,  74),
-    SPAIR(  12, 101), SPAIR(  15, 125), SPAIR(  19, 137), SPAIR(  21, 159),
-    SPAIR(  25, 170), SPAIR(  30, 173), SPAIR(  30, 183), SPAIR(  30, 189),
-    SPAIR(  29, 191), SPAIR(  25, 197), SPAIR(  24, 198), SPAIR(  21, 196),
-    SPAIR(  33, 186), SPAIR(  33, 183), SPAIR(  31, 171), SPAIR(  31, 167),
-    SPAIR(  21, 156), SPAIR(  15, 151), SPAIR(  15, 145), SPAIR(  17, 146)
+    SPAIR( -58,-179), SPAIR( -56,-112), SPAIR( -42, -23), SPAIR( -19,   8),
+    SPAIR(  -6,  34), SPAIR(  -1,  79), SPAIR(   6, 111), SPAIR(  11, 135),
+    SPAIR(  17, 148), SPAIR(  23, 159), SPAIR(  29, 163), SPAIR(  33, 168),
+    SPAIR(  36, 172), SPAIR(  36, 182), SPAIR(  36, 184), SPAIR(  34, 195),
+    SPAIR(  32, 196), SPAIR(  26, 205), SPAIR(  23, 205), SPAIR(  28, 201),
+    SPAIR(  26, 202), SPAIR(  33, 191), SPAIR(  30, 194), SPAIR(  33, 191),
+    SPAIR(  33, 170), SPAIR(  29, 174), SPAIR(  32, 175), SPAIR(  56, 200)
 };
 
 const int AttackRescale[8] = {
@@ -225,8 +225,8 @@ void eval_init(const board_t *board, evaluation_t *eval)
     square_t wksq = get_king_square(board, WHITE);
     square_t bksq = get_king_square(board, BLACK);
 
-    TRACE_ADD(IDX_PSQT + 48 + (KING - KNIGHT) * 64 + wksq, WHITE, 1);
-    TRACE_ADD(IDX_PSQT + 48 + (KING - KNIGHT) * 64 + (bksq ^ SQ_A8), BLACK, 1);
+    TRACE_ADD(IDX_PSQT + 48 + (KING - KNIGHT) * 32 + to_sq32(wksq), WHITE, 1);
+    TRACE_ADD(IDX_PSQT + 48 + (KING - KNIGHT) * 32 + to_sq32(bksq ^ SQ_A8), BLACK, 1);
 
     // Set the King Attack zone as the 3x4 square surrounding the king
     // (counting an additional rank in front of the king)
@@ -279,7 +279,7 @@ scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, const paw
         bitboard_t b = knight_moves(sq);
 
         TRACE_ADD(IDX_PIECE + KNIGHT - PAWN, us, 1);
-        TRACE_ADD(IDX_PSQT + 48 + (KNIGHT - KNIGHT) * 64 + relative_sq(sq, us), us, 1);
+        TRACE_ADD(IDX_PSQT + 48 + (KNIGHT - KNIGHT) * 32 + to_sq32(relative_sq(sq, us)), us, 1);
 
         // If the Knight is pinned, it has no Mobility squares
 
@@ -360,7 +360,7 @@ scorepair_t evaluate_bishops(const board_t *board, evaluation_t *eval, color_t u
         bitboard_t b = bishop_moves_bb(sq, occupancy);
 
         TRACE_ADD(IDX_PIECE + BISHOP - PAWN, us, 1);
-        TRACE_ADD(IDX_PSQT + 48 + (BISHOP - KNIGHT) * 64 + relative_sq(sq, us), us, 1);
+        TRACE_ADD(IDX_PSQT + 48 + (BISHOP - KNIGHT) * 32 + to_sq32(relative_sq(sq, us)), us, 1);
 
         // If the Bishop is pinned, reduce its mobility to all the squares
         // between the King and the pinner
@@ -415,7 +415,7 @@ scorepair_t evaluate_rooks(const board_t *board, evaluation_t *eval, color_t us)
         bitboard_t b = rook_moves_bb(sq, occupancy);
 
         TRACE_ADD(IDX_PIECE + ROOK - PAWN, us, 1);
-        TRACE_ADD(IDX_PSQT + 48 + (ROOK - KNIGHT) * 64 + relative_sq(sq, us), us, 1);
+        TRACE_ADD(IDX_PSQT + 48 + (ROOK - KNIGHT) * 32 + to_sq32(relative_sq(sq, us)), us, 1);
 
         // If the Rook is pinned, reduce its mobility to all the squares
         // between the King and the pinner
@@ -474,7 +474,7 @@ scorepair_t evaluate_queens(const board_t *board, evaluation_t *eval, color_t us
         bitboard_t b = bishop_moves_bb(sq, occupancy) | rook_moves_bb(sq, occupancy);
 
         TRACE_ADD(IDX_PIECE + QUEEN - PAWN, us, 1);
-        TRACE_ADD(IDX_PSQT + 48 + (QUEEN - KNIGHT) * 64 + relative_sq(sq, us), us, 1);
+        TRACE_ADD(IDX_PSQT + 48 + (QUEEN - KNIGHT) * 32 + to_sq32(relative_sq(sq, us)), us, 1);
 
         // If the Queen is pinned, reduce its mobility to all the squares
         // between the King and the pinner
