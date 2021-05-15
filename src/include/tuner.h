@@ -24,11 +24,11 @@
 
 # ifdef TUNE
 
-# define THREADS 2
+# define THREADS 4
 # define ITERS 10000
 # define LEARNING_RATE 0.1
-# define LR_DROP_ITERS 10000
-# define LR_DROP_VALUE 1
+# define LR_DROP_ITERS 2500
+# define LR_DROP_VALUE 2.0
 # define BATCH_SIZE 32768
 
 typedef struct tune_tuple_s

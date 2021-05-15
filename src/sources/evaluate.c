@@ -29,62 +29,62 @@ evaltrace_t Trace;
 
 // Special eval terms
 
-const scorepair_t CastlingBonus = SPAIR(8, -21);
-const scorepair_t Initiative = SPAIR(18, 17);
+const scorepair_t CastlingBonus = SPAIR(49, -31);
+const scorepair_t Initiative = SPAIR(17, 17);
 
 // King Safety eval terms
 
-const scorepair_t KnightWeight = SPAIR(35, 8);
-const scorepair_t BishopWeight = SPAIR(24, 5);
-const scorepair_t RookWeight = SPAIR(47, -4);
-const scorepair_t QueenWeight = SPAIR(54, 72);
+const scorepair_t KnightWeight = SPAIR(25, 8);
+const scorepair_t BishopWeight = SPAIR(18, 5);
+const scorepair_t RookWeight = SPAIR(52, -4);
+const scorepair_t QueenWeight = SPAIR(47, 72);
 
 // Knight eval terms
 
-const scorepair_t KnightShielded = SPAIR(6, 26);
-const scorepair_t KnightOutpost = SPAIR(11, -8);
-const scorepair_t KnightCenterOutpost = SPAIR(14, -8);
-const scorepair_t KnightSolidOutpost = SPAIR(19, 38);
+const scorepair_t KnightShielded = SPAIR(5, 29);
+const scorepair_t KnightOutpost = SPAIR(3, -20);
+const scorepair_t KnightCenterOutpost = SPAIR(29, -3);
+const scorepair_t KnightSolidOutpost = SPAIR(13, 42);
 
 // Bishop eval terms
 
-const scorepair_t BishopPairBonus = SPAIR(18, 106);
-const scorepair_t BishopShielded = SPAIR(9, 24);
+const scorepair_t BishopPairBonus = SPAIR(14, 112);
+const scorepair_t BishopShielded = SPAIR(10, 28);
 
 // Rook eval terms
 
-const scorepair_t RookOnSemiOpenFile = SPAIR(10, 20);
+const scorepair_t RookOnSemiOpenFile = SPAIR(15, 19);
 const scorepair_t RookOnOpenFile = SPAIR(35, 15);
-const scorepair_t RookXrayQueen = SPAIR(6, 11);
+const scorepair_t RookXrayQueen = SPAIR(8, 12);
 
 const scorepair_t MobilityN[9] = {
-    SPAIR( -38, -31), SPAIR( -34, -24), SPAIR( -28,  11), SPAIR( -22,  37),
-    SPAIR( -16,  50), SPAIR( -10,  63), SPAIR(  -3,  65), SPAIR(   7,  60),
-    SPAIR(  18,  44)
+    SPAIR( -43, -44), SPAIR( -44, -33), SPAIR( -35,  19), SPAIR( -28,  50),
+    SPAIR( -22,  63), SPAIR( -18,  79), SPAIR( -11,  80), SPAIR(  -3,  77),
+    SPAIR(   8,  58)
 };
 
 const scorepair_t MobilityB[14] = {
-    SPAIR( -83,-100), SPAIR( -38, -97), SPAIR( -22, -31), SPAIR( -13,   1),
-    SPAIR(  -6,  20), SPAIR(  -1,  40), SPAIR(   2,  54), SPAIR(   0,  60),
-    SPAIR(   1,  68), SPAIR(   3,  69), SPAIR(   4,  68), SPAIR(  20,  58),
-    SPAIR(  41,  55), SPAIR(  61,  27)
+    SPAIR( -64,-100), SPAIR( -39, -84), SPAIR( -34, -42), SPAIR( -25,  -6),
+    SPAIR( -16,  16), SPAIR( -10,  38), SPAIR(  -8,  55), SPAIR( -11,  62),
+    SPAIR( -10,  73), SPAIR(  -7,  73), SPAIR(  -1,  71), SPAIR(  15,  58),
+    SPAIR(  27,  63), SPAIR(  74,  21)
 };
 
 const scorepair_t MobilityR[15] = {
-    SPAIR( -56, -70), SPAIR( -52, -43), SPAIR( -48,  16), SPAIR( -43,  57),
-    SPAIR( -38,  80), SPAIR( -36,  97), SPAIR( -31, 111), SPAIR( -27, 114),
-    SPAIR( -21, 117), SPAIR( -17, 122), SPAIR( -13, 128), SPAIR(  -8, 130),
-    SPAIR(  -2, 131), SPAIR(  14, 119), SPAIR(  68,  86)
+    SPAIR( -56, -70), SPAIR( -51, -15), SPAIR( -42,  40), SPAIR( -43,  73),
+    SPAIR( -40,  88), SPAIR( -40, 104), SPAIR( -37, 118), SPAIR( -33, 122),
+    SPAIR( -30, 129), SPAIR( -24, 133), SPAIR( -21, 138), SPAIR( -19, 144),
+    SPAIR( -17, 146), SPAIR(   1, 131), SPAIR(  57,  92)
 };
 
 const scorepair_t MobilityQ[28] = {
-    SPAIR( -58,-179), SPAIR( -56,-112), SPAIR( -42, -23), SPAIR( -19,   8),
-    SPAIR(  -6,  34), SPAIR(  -1,  79), SPAIR(   6, 111), SPAIR(  11, 135),
-    SPAIR(  17, 148), SPAIR(  23, 159), SPAIR(  29, 163), SPAIR(  33, 168),
-    SPAIR(  36, 172), SPAIR(  36, 182), SPAIR(  36, 184), SPAIR(  34, 195),
-    SPAIR(  32, 196), SPAIR(  26, 205), SPAIR(  23, 205), SPAIR(  28, 201),
-    SPAIR(  26, 202), SPAIR(  33, 191), SPAIR(  30, 194), SPAIR(  33, 191),
-    SPAIR(  33, 170), SPAIR(  29, 174), SPAIR(  32, 175), SPAIR(  56, 200)
+    SPAIR( -80,-186), SPAIR( -56,-112), SPAIR( -42, -23), SPAIR( -19,   8),
+    SPAIR(  -6,  34), SPAIR(   0,  93), SPAIR(   5, 112), SPAIR(  10, 132),
+    SPAIR(  14, 152), SPAIR(  19, 169), SPAIR(  24, 179), SPAIR(  28, 185),
+    SPAIR(  31, 187), SPAIR(  33, 191), SPAIR(  35, 192), SPAIR(  34, 201),
+    SPAIR(  31, 205), SPAIR(  26, 209), SPAIR(  26, 205), SPAIR(  27, 206),
+    SPAIR(  26, 202), SPAIR(  31, 195), SPAIR(  25, 195), SPAIR(  30, 187),
+    SPAIR(  43, 169), SPAIR(  16, 175), SPAIR(  37, 187), SPAIR(  55, 184)
 };
 
 const int AttackRescale[8] = {
