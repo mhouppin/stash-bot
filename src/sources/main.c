@@ -22,6 +22,7 @@
 #include "option.h"
 #include "timeman.h"
 #include "tt.h"
+#include "tuner.h"
 #include "uci.h"
 #include <pthread.h>
 #include <stdio.h>
@@ -54,6 +55,18 @@ int main(int argc, char **argv)
     zobrist_init();
     init_kpk_bitbase();
     init_endgame_table();
+
+#ifdef TUNE
+
+    if (argc != 2)
+    {
+        printf("Usage: %s dataset_file\n", *argv);
+        return (0);
+    }
+    start_tuning_session(argv[1]);
+
+#else
+
     tt_resize(16);
     wpool_init(1);
     init_reduction_table();
@@ -78,6 +91,8 @@ int main(int argc, char **argv)
     uci_loop(argc, argv);
 
     wpool_quit();
+
+#endif
 
     return (0);
 }

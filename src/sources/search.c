@@ -435,10 +435,7 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
     int moveCount = 0;
 
     if (pvNode)
-    {
         (ss + 1)->pv = pv;
-        pv[0] = NO_MOVE;
-    }
 
     // Check if delta pruning is possible.
 
@@ -476,6 +473,9 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
         }
 
         boardstack_t stack;
+
+        if (pvNode)
+            pv[0] = NO_MOVE;
 
         do_move_gc(board, currmove, &stack, givesCheck);
         score_t score = -qsearch(board, -beta, -alpha, ss + 1, pvNode);

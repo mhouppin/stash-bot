@@ -1,0 +1,505 @@
+/*
+**    Stash, a UCI chess playing engine developed from scratch
+**    Copyright (C) 2019-2021 Morgan Houppin
+**
+**    Stash is free software: you can redistribute it and/or modify
+**    it under the terms of the GNU General Public License as published by
+**    the Free Software Foundation, either version 3 of the License, or
+**    (at your option) any later version.
+**
+**    Stash is distributed in the hope that it will be useful,
+**    but WITHOUT ANY WARRANTY; without even the implied warranty of
+**    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**    GNU General Public License for more details.
+**
+**    You should have received a copy of the GNU General Public License
+**    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "imath.h"
+#include "tuner.h"
+
+void start_tuning_session(const char *filename)
+{
+#ifdef TUNE
+    tp_vector_t delta = {}, base = {}, adagrad = {};
+    double K, mse, lr = LEARNING_RATE;
+    tune_data_t data = {};
+
+    init_base_values(base);
+    init_tuner_entries(&data, filename);
+    K = compute_optimal_k(&data);
+
+    for (int iter = 0; iter < ITERS; ++iter)
+    {
+        for (int batchIdx = 0; (size_t)batchIdx < data.size / BATCH_SIZE; ++batchIdx)
+        {
+            tp_vector_t gradient = {};
+            compute_gradient(&data, gradient, delta, K, batchIdx);
+
+            const double scale = (K * 2.0 / BATCH_SIZE) * lr;
+
+            for (int i = 0; i < IDX_COUNT; ++i)
+            {
+                adagrad[i][MIDGAME] += pow(2.0 * gradient[i][MIDGAME] / BATCH_SIZE, 2.0);
+                adagrad[i][ENDGAME] += pow(2.0 * gradient[i][ENDGAME] / BATCH_SIZE, 2.0);
+
+                delta[i][MIDGAME] += gradient[i][MIDGAME] * scale / sqrt(1e-8 + adagrad[i][MIDGAME]);
+                delta[i][ENDGAME] += gradient[i][ENDGAME] * scale / sqrt(1e-8 + adagrad[i][ENDGAME]);
+            }
+        }
+
+        mse = adjusted_eval_mse(&data, delta, K);
+        printf("Iteration [%d], MSE [%g], LR [%g]\n", iter, mse, lr);
+
+        if (iter % LR_DROP_ITERS == LR_DROP_ITERS - 1)
+            lr /= LR_DROP_VALUE;
+
+        if (iter % 50 == 49)
+            print_parameters(base, delta);
+
+        fflush(stdout);
+    }
+
+    for (size_t i = 0; i < data.size; ++i)
+        free(data.entries[i].tuples);
+    free(data.entries);
+#else
+    (void)filename;
+#endif
+}
+
+#ifdef TUNE
+void init_base_values(tp_vector_t base)
+{
+#define INIT_BASE_SP(idx, val) do { \
+    extern const scorepair_t val; \
+    base[idx][MIDGAME] = midgame_score(val); \
+    base[idx][ENDGAME] = endgame_score(val); \
+} while (0)
+
+#define INIT_BASE_SPA(idx, val, size) do { \
+    extern const scorepair_t val[size]; \
+    for (int i = 0; i < size; ++i) \
+    { \
+        base[idx + i][MIDGAME] = midgame_score(val[i]); \
+        base[idx + i][ENDGAME] = endgame_score(val[i]); \
+    } \
+} while (0)
+
+    extern const scorepair_t PawnBonus[RANK_NB][FILE_NB];
+    extern const scorepair_t PieceBonus[PIECETYPE_NB][RANK_NB][FILE_NB / 2];
+
+    base[IDX_PIECE + 0][MIDGAME] = PAWN_MG_SCORE;
+    base[IDX_PIECE + 0][ENDGAME] = PAWN_EG_SCORE;
+    base[IDX_PIECE + 1][MIDGAME] = KNIGHT_MG_SCORE;
+    base[IDX_PIECE + 1][ENDGAME] = KNIGHT_EG_SCORE;
+    base[IDX_PIECE + 2][MIDGAME] = BISHOP_MG_SCORE;
+    base[IDX_PIECE + 2][ENDGAME] = BISHOP_EG_SCORE;
+    base[IDX_PIECE + 3][MIDGAME] = ROOK_MG_SCORE;
+    base[IDX_PIECE + 3][ENDGAME] = ROOK_EG_SCORE;
+    base[IDX_PIECE + 4][MIDGAME] = QUEEN_MG_SCORE;
+    base[IDX_PIECE + 4][ENDGAME] = QUEEN_EG_SCORE;
+
+    for (square_t sq = SQ_A2; sq <= SQ_H7; ++sq)
+    {
+        scorepair_t sp = PawnBonus[sq_rank(sq)][sq_file(sq)];
+
+        base[IDX_PSQT + sq - SQ_A2][MIDGAME] = midgame_score(sp);
+        base[IDX_PSQT + sq - SQ_A2][ENDGAME] = endgame_score(sp);
+    }
+
+    for (piecetype_t pt = KNIGHT; pt <= KING; ++pt)
+        for (file_t file = FILE_A; file <= FILE_D; ++file)
+            for (rank_t rank = RANK_1; rank <= RANK_8; ++rank)
+            {
+                scorepair_t sp = PieceBonus[pt][rank][file];
+
+                base[IDX_PSQT + 48 + 32 * (pt - KNIGHT) + rank * 4 + file][MIDGAME] = midgame_score(sp);
+                base[IDX_PSQT + 48 + 32 * (pt - KNIGHT) + rank * 4 + file][ENDGAME] = endgame_score(sp);
+            }
+
+    INIT_BASE_SP(IDX_CASTLING, CastlingBonus);
+    INIT_BASE_SP(IDX_INITIATIVE, Initiative);
+
+    INIT_BASE_SP(IDX_KS_KNIGHT, KnightWeight);
+    INIT_BASE_SP(IDX_KS_BISHOP, BishopWeight);
+    INIT_BASE_SP(IDX_KS_ROOK, RookWeight);
+    INIT_BASE_SP(IDX_KS_QUEEN, QueenWeight);
+
+    INIT_BASE_SP(IDX_KNIGHT_SHIELDED, KnightShielded);
+    INIT_BASE_SP(IDX_KNIGHT_OUTPOST, KnightOutpost);
+    INIT_BASE_SP(IDX_KNIGHT_CENTER_OUTPOST, KnightCenterOutpost);
+    INIT_BASE_SP(IDX_KNIGHT_SOLID_OUTPOST, KnightSolidOutpost);
+
+    INIT_BASE_SP(IDX_BISHOP_PAIR, BishopPairBonus);
+    INIT_BASE_SP(IDX_BISHOP_SHIELDED, BishopShielded);
+
+    INIT_BASE_SP(IDX_ROOK_SEMIOPEN, RookOnSemiOpenFile);
+    INIT_BASE_SP(IDX_ROOK_OPEN, RookOnOpenFile);
+    INIT_BASE_SP(IDX_ROOK_XRAY_QUEEN, RookXrayQueen);
+
+    INIT_BASE_SPA(IDX_MOBILITY_KNIGHT, MobilityN, 9);
+    INIT_BASE_SPA(IDX_MOBILITY_BISHOP, MobilityB, 14);
+    INIT_BASE_SPA(IDX_MOBILITY_ROOK, MobilityR, 15);
+    INIT_BASE_SPA(IDX_MOBILITY_QUEEN, MobilityQ, 28);
+
+    INIT_BASE_SP(IDX_BACKWARD, BackwardPenalty);
+    INIT_BASE_SP(IDX_STRAGGLER, StragglerPenalty);
+    INIT_BASE_SP(IDX_DOUBLED, DoubledPenalty);
+    INIT_BASE_SP(IDX_ISOLATED, IsolatedPenalty);
+
+    extern const scorepair_t PassedBonus[RANK_NB];
+
+    for (rank_t r = RANK_2; r <= RANK_7; ++r)
+    {
+        base[IDX_PASSER + r - RANK_2][MIDGAME] = midgame_score(PassedBonus[r]);
+        base[IDX_PASSER + r - RANK_2][ENDGAME] = endgame_score(PassedBonus[r]);
+    }
+}
+
+void init_tuner_entries(tune_data_t *data, const char *filename)
+{
+    FILE *f = fopen(filename, "r");
+
+    if (f == NULL)
+    {
+        perror("Unable to open dataset");
+        exit(EXIT_FAILURE);
+    }
+
+    board_t board = {};
+    boardstack_t stack = {};
+    char linebuf[1024];
+
+    while (fgets(linebuf, sizeof(linebuf), f) != NULL)
+    {
+        if (data->maxSize == data->size)
+        {
+            data->maxSize += !data->maxSize ? 16 : data->maxSize / 2;
+            data->entries = realloc(data->entries, sizeof(tune_entry_t) * data->maxSize);
+
+            if (data->entries == NULL)
+            {
+                perror("Unable to allocate dataset entries");
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        tune_entry_t *cur = &data->entries[data->size];
+
+        char *ptr = strrchr(linebuf, ' ');
+
+        *ptr = '\0';
+        if (sscanf(ptr + 1, "%lf", &cur->gameResult) == 0)
+        {
+            fputs("Unable to read game result\n", stdout);
+            exit(EXIT_FAILURE);
+        }
+
+        set_board(&board, linebuf, false, &stack);
+        if (init_tuner_entry(cur, &board))
+            data->size++;
+
+        if (data->size && data->size % 100000 == 0)
+        {
+            printf("%u positions loaded\n", (unsigned int)data->size);
+            fflush(stdout);
+        }
+    }
+    putchar('\n');
+}
+
+bool init_tuner_entry(tune_entry_t *entry, const board_t *board)
+{
+    entry->staticEval = evaluate(board);
+    if (Trace.scaleFactor == 0)
+        return (false);
+    if (board->sideToMove == BLACK)
+        entry->staticEval = -entry->staticEval;
+
+    entry->phase = Trace.phase;
+    entry->phaseFactors[MIDGAME] = entry->phase / 24.0;
+    entry->phaseFactors[ENDGAME] = 1 - entry->phaseFactors[MIDGAME];
+
+    init_tuner_tuples(entry);
+
+    entry->eval = Trace.eval;
+    entry->safetyAttackers[WHITE] = Trace.safetyAttackers[WHITE];
+    entry->safetyAttackers[BLACK] = Trace.safetyAttackers[BLACK];
+    entry->scaleFactor = Trace.scaleFactor / 128.0;
+    entry->sideToMove = board->sideToMove;
+    return (true);
+}
+
+bool is_safety_term(int i)
+{
+    return (i >= IDX_KS_KNIGHT && i <= IDX_KS_QUEEN);
+}
+
+bool is_active(int i)
+{
+    if (Trace.coeffs[i][WHITE] != Trace.coeffs[i][BLACK])
+        return (true);
+    return (is_safety_term(i) && (Trace.coeffs[i][WHITE] || Trace.coeffs[i][BLACK]));
+}
+
+void init_tuner_tuples(tune_entry_t *entry)
+{
+    int length = 0;
+    int tidx = 0;
+
+    for (int i = 0; i < IDX_COUNT; ++i)
+        length += is_active(i);
+
+    entry->tupleCount = length;
+    entry->tuples = malloc(sizeof(tune_tuple_t) * length);
+
+    if (entry->tuples == NULL)
+    {
+        perror("Unable to allocate entry tuples");
+        exit(EXIT_FAILURE);
+    }
+
+    for (int i = 0; i < IDX_COUNT; ++i)
+        if (is_active(i))
+            entry->tuples[tidx++] = (tune_tuple_t){i, Trace.coeffs[i][WHITE], Trace.coeffs[i][BLACK]};
+}
+
+double compute_optimal_k(const tune_data_t *data)
+{
+    double start = 0;
+    double end = 10;
+    double step = 1;
+    double cur = start;
+    double error;
+    double best = static_eval_mse(data, cur);
+
+    printf("Computing optimal K...\n");
+    fflush(stdout);
+
+    for (int i = 0; i < 10; ++i)
+    {
+        cur = start - step;
+        while (cur < end)
+        {
+            cur += step;
+            error = static_eval_mse(data, cur);
+            if (error < best)
+            {
+                best = error;
+                start = cur;
+            }
+        }
+        printf("Iteration %d/10, K %lf, MSE %lf\n", i + 1, start, best);
+        fflush(stdout);
+        end = start + step;
+        start -= step;
+        step /= 10;
+    }
+    putchar('\n');
+    return (start);
+}
+
+double static_eval_mse(const tune_data_t *data, double K)
+{
+    double total = 0;
+
+    #pragma omp parallel shared(total)
+    {
+        #pragma omp for schedule(static, data->size / THREADS) reduction(+:total)
+        for (size_t i = 0; i < data->size; ++i)
+            total += pow(data->entries[i].gameResult - sigmoid(K, data->entries[i].staticEval), 2);
+    }
+    return (total / data->size);
+}
+
+double adjusted_eval_mse(const tune_data_t *data, const tp_vector_t delta, double K)
+{
+    double total = 0;
+
+    #pragma omp parallel shared(total)
+    {
+        double safetyScale[COLOR_NB];
+
+        #pragma omp for schedule(static, data->size / THREADS) reduction(+:total)
+        for (size_t i = 0; i < data->size; ++i)
+            total += pow(data->entries[i].gameResult - sigmoid(K, adjusted_eval(data->entries + i, delta, safetyScale)), 2);
+    }
+    return (total / data->size);
+}
+
+double adjusted_eval(const tune_entry_t *entry, const tp_vector_t delta, double safetyScale[COLOR_NB])
+{
+    extern const int AttackRescale[8];
+
+    if (entry->safetyAttackers[WHITE] >= 8)      safetyScale[WHITE] = 1.0;
+    else if (entry->safetyAttackers[WHITE] >= 2) safetyScale[WHITE] = 1.0 - 1.0 / AttackRescale[entry->safetyAttackers[WHITE]];
+    else                                         safetyScale[WHITE] = 0.0;
+    if (entry->safetyAttackers[BLACK] >= 8)      safetyScale[BLACK] = 1.0;
+    else if (entry->safetyAttackers[BLACK] >= 2) safetyScale[BLACK] = 1.0 - 1.0 / AttackRescale[entry->safetyAttackers[BLACK]];
+    else                                         safetyScale[BLACK] = 0.0;
+
+    double mg[2][COLOR_NB] = {0};
+    double eg[2][COLOR_NB] = {0};
+
+    for (int i = 0; i < entry->tupleCount; ++i)
+    {
+        int index = entry->tuples[i].index;
+        bool safety = is_safety_term(index);
+
+        mg[safety][WHITE] += entry->tuples[i].wcoeff * delta[index][MIDGAME];
+        mg[safety][BLACK] += entry->tuples[i].bcoeff * delta[index][MIDGAME];
+        eg[safety][WHITE] += entry->tuples[i].wcoeff * delta[index][ENDGAME];
+        eg[safety][BLACK] += entry->tuples[i].bcoeff * delta[index][ENDGAME];
+    }
+
+    double midgame = midgame_score(entry->eval) + (mg[0][WHITE] - mg[0][BLACK]);
+    double endgame = endgame_score(entry->eval) + (eg[0][WHITE] - eg[0][BLACK]);
+
+    midgame += mg[1][WHITE] * safetyScale[WHITE] - mg[1][BLACK] * safetyScale[BLACK];
+    endgame += eg[1][WHITE] * safetyScale[WHITE] - eg[1][BLACK] * safetyScale[BLACK];
+
+    return (midgame * entry->phaseFactors[MIDGAME] + endgame * entry->scaleFactor * entry->phaseFactors[ENDGAME]);
+}
+
+void compute_gradient(const tune_data_t *data, tp_vector_t gradient, const tp_vector_t delta, double K, int batchIdx)
+{
+    #pragma omp parallel shared(gradient)
+    {
+        tp_vector_t local = {};
+
+        #pragma omp for schedule(static, BATCH_SIZE / THREADS)
+        for (int i = 0; i < BATCH_SIZE; ++i)
+            update_gradient(data->entries + (size_t)batchIdx * BATCH_SIZE + i, local, delta, K);
+
+        for (int i = 0; i < IDX_COUNT; ++i)
+        {
+            gradient[i][MIDGAME] += local[i][MIDGAME];
+            gradient[i][ENDGAME] += local[i][ENDGAME];
+        }
+    }
+}
+
+void update_gradient(const tune_entry_t *entry, tp_vector_t gradient, const tp_vector_t delta, double K)
+{
+    double safetyScale[COLOR_NB];
+    double E = adjusted_eval(entry, delta, safetyScale);
+    double S = sigmoid(K, E);
+    double X = (entry->gameResult - S) * S * (1 - S);
+    double mgBase = X * entry->phaseFactors[MIDGAME];
+    double egBase = X * entry->phaseFactors[ENDGAME];
+
+    for (int i = 0; i < entry->tupleCount; ++i)
+    {
+        int index = entry->tuples[i].index;
+        int8_t wcoeff = entry->tuples[i].wcoeff;
+        int8_t bcoeff = entry->tuples[i].bcoeff;
+
+        if (is_safety_term(index))
+        {
+            gradient[index][MIDGAME] += mgBase * (wcoeff * safetyScale[WHITE] - bcoeff * safetyScale[BLACK]);
+            gradient[index][MIDGAME] += egBase * (wcoeff * safetyScale[WHITE] - bcoeff * safetyScale[BLACK]) * entry->scaleFactor;
+        }
+        else
+        {
+            gradient[index][MIDGAME] += mgBase * (wcoeff - bcoeff);
+            gradient[index][ENDGAME] += egBase * (wcoeff - bcoeff) * entry->scaleFactor;
+        }
+    }
+}
+
+void print_parameters(const tp_vector_t base, const tp_vector_t delta)
+{
+    printf("\n Parameters:\n");
+
+#define PRINT_SP(idx, val) do { \
+    printf("- %20s -> (%.lf, %.lf), delta (%+.lf, %+.lf)\n", #val, \
+        base[idx][MIDGAME] + delta[idx][MIDGAME], base[idx][ENDGAME] + delta[idx][ENDGAME], \
+        delta[idx][MIDGAME], delta[idx][ENDGAME]); \
+} while (0)
+
+#define PRINT_SPA(idx, val, size) do { \
+    for (int i = 0; i < size; ++i) \
+    printf("- %16s[%2d] -> (%.lf, %.lf), delta (%+.lf, %+.lf)\n", #val, i, \
+        base[idx + i][MIDGAME] + delta[idx + i][MIDGAME], base[idx + i][ENDGAME] + delta[idx + i][ENDGAME], \
+        delta[idx + i][MIDGAME], delta[idx + i][ENDGAME]); \
+} while (0)
+
+    PRINT_SP(IDX_PIECE + 0, PawnValue);
+    PRINT_SP(IDX_PIECE + 1, KnightValue);
+    PRINT_SP(IDX_PIECE + 2, BishopValue);
+    PRINT_SP(IDX_PIECE + 3, RookValue);
+    PRINT_SP(IDX_PIECE + 4, QueenValue);
+
+    putchar('\n');
+
+    PRINT_SPA(IDX_PSQT, PawnSQT, 48);
+
+    putchar('\n');
+
+    PRINT_SPA(IDX_PSQT + 48 + 32 * 0, KnightSQT, 32);
+    putchar('\n');
+    PRINT_SPA(IDX_PSQT + 48 + 32 * 1, BishopSQT, 32);
+    putchar('\n');
+    PRINT_SPA(IDX_PSQT + 48 + 32 * 2, RookSQT, 32);
+    putchar('\n');
+    PRINT_SPA(IDX_PSQT + 48 + 32 * 3, QueenSQT, 32);
+    putchar('\n');
+    PRINT_SPA(IDX_PSQT + 48 + 32 * 4, KingSQT, 32);
+    putchar('\n');
+
+    PRINT_SP(IDX_CASTLING, CastlingBonus);
+    PRINT_SP(IDX_INITIATIVE, Initiative);
+    putchar('\n');
+
+    PRINT_SP(IDX_KS_KNIGHT, KnightWeight);
+    PRINT_SP(IDX_KS_BISHOP, BishopWeight);
+    PRINT_SP(IDX_KS_ROOK, RookWeight);
+    PRINT_SP(IDX_KS_QUEEN, QueenWeight);
+    putchar('\n');
+
+    PRINT_SP(IDX_KNIGHT_SHIELDED, KnightShielded);
+    PRINT_SP(IDX_KNIGHT_OUTPOST, KnightOutpost);
+    PRINT_SP(IDX_KNIGHT_CENTER_OUTPOST, KnightCenterOutpost);
+    PRINT_SP(IDX_KNIGHT_SOLID_OUTPOST, KnightSolidOutpost);
+    putchar('\n');
+
+    PRINT_SP(IDX_BISHOP_PAIR, BishopPairBonus);
+    PRINT_SP(IDX_BISHOP_SHIELDED, BishopShielded);
+    putchar('\n');
+
+    PRINT_SP(IDX_ROOK_SEMIOPEN, RookOnSemiOpenFile);
+    PRINT_SP(IDX_ROOK_OPEN, RookOnOpenFile);
+    PRINT_SP(IDX_ROOK_XRAY_QUEEN, RookXrayQueen);
+    putchar('\n');
+
+    PRINT_SPA(IDX_MOBILITY_KNIGHT, MobilityN, 9);
+    putchar('\n');
+    PRINT_SPA(IDX_MOBILITY_BISHOP, MobilityB, 14);
+    putchar('\n');
+    PRINT_SPA(IDX_MOBILITY_ROOK, MobilityR, 15);
+    putchar('\n');
+    PRINT_SPA(IDX_MOBILITY_QUEEN, MobilityQ, 28);
+    putchar('\n');
+
+    PRINT_SP(IDX_BACKWARD, BackwardPenalty);
+    PRINT_SP(IDX_STRAGGLER, StragglerPenalty);
+    PRINT_SP(IDX_DOUBLED, DoubledPenalty);
+    PRINT_SP(IDX_ISOLATED, IsolatedPenalty);
+    putchar('\n');
+
+    PRINT_SPA(IDX_PASSER, PassedBonus, 6);
+    putchar('\n');
+}
+
+double sigmoid(double K, double E)
+{
+    return (1.0 / (1.0 + exp(-E * K / 400.0)));
+}
+
+#endif
