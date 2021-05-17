@@ -62,13 +62,16 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
     if (ss->plies >= MAX_PLIES)
         return (!board->stack->checkers ? evaluate(board) : 0);
 
-    // Mate pruning.
+    if (!rootNode)
+    {
+        // Mate pruning.
 
-    alpha = max(alpha, mated_in(ss->plies));
-    beta = min(beta, mate_in(ss->plies + 1));
+        alpha = max(alpha, mated_in(ss->plies));
+        beta = min(beta, mate_in(ss->plies + 1));
 
-    if (alpha >= beta)
-        return (alpha);
+        if (alpha >= beta)
+            return (alpha);
+    }
 
     // Check for interesting tt values
 

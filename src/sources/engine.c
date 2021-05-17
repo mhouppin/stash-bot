@@ -317,6 +317,11 @@ __retry:
 
         if (SearchParams.mate && worker->rootMoves->prevScore >= mate_in(SearchParams.mate * 2))
             break ;
+
+        // During fixed depth or infinite searches, allow the non-main workers to keep searching
+        // as long as the main worker hasn't finished.
+        if (worker->idx && iterDepth == SearchParams.depth - 1)
+            --iterDepth;
     }
 
     // UCI protocol specifies that we shouldn't send the bestmove command
