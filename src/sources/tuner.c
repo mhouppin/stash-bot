@@ -130,6 +130,12 @@ void init_base_values(tp_vector_t base)
     INIT_BASE_SP(IDX_KS_BISHOP, BishopWeight);
     INIT_BASE_SP(IDX_KS_ROOK, RookWeight);
     INIT_BASE_SP(IDX_KS_QUEEN, QueenWeight);
+    INIT_BASE_SP(IDX_KS_ATTACK, AttackWeight);
+    INIT_BASE_SP(IDX_KS_CHECK_N, SafeKnightCheck);
+    INIT_BASE_SP(IDX_KS_CHECK_B, SafeBishopCheck);
+    INIT_BASE_SP(IDX_KS_CHECK_R, SafeRookCheck);
+    INIT_BASE_SP(IDX_KS_CHECK_Q, SafeQueenCheck);
+    INIT_BASE_SP(IDX_KS_OFFSET, SafetyOffset);
 
     INIT_BASE_SP(IDX_KNIGHT_SHIELDED, KnightShielded);
     INIT_BASE_SP(IDX_KNIGHT_OUTPOST, KnightOutpost);
@@ -229,8 +235,8 @@ bool init_tuner_entry(tune_entry_t *entry, const board_t *board)
     init_tuner_tuples(entry);
 
     entry->eval = Trace.eval;
-    entry->safetyAttackers[WHITE] = Trace.safetyAttackers[WHITE];
-    entry->safetyAttackers[BLACK] = Trace.safetyAttackers[BLACK];
+    entry->safety[WHITE] = Trace.safety[WHITE];
+    entry->safety[BLACK] = Trace.safety[BLACK];
     entry->scaleFactor = Trace.scaleFactor / 128.0;
     entry->sideToMove = board->sideToMove;
     return (true);
@@ -238,7 +244,7 @@ bool init_tuner_entry(tune_entry_t *entry, const board_t *board)
 
 bool is_safety_term(int i)
 {
-    return (i >= IDX_KS_KNIGHT && i <= IDX_KS_QUEEN);
+    return (i >= IDX_KS_KNIGHT && i <= IDX_KS_OFFSET);
 }
 
 bool is_active(int i)
@@ -324,47 +330,73 @@ double adjusted_eval_mse(const tune_data_t *data, const tp_vector_t delta, doubl
 
     #pragma omp parallel shared(total)
     {
-        double safetyScale[COLOR_NB];
+        double safetyScores[COLOR_NB][PHASE_NB];
 
         #pragma omp for schedule(static, data->size / THREADS) reduction(+:total)
         for (size_t i = 0; i < data->size; ++i)
-            total += pow(data->entries[i].gameResult - sigmoid(K, adjusted_eval(data->entries + i, delta, safetyScale)), 2);
+            total += pow(data->entries[i].gameResult - sigmoid(K, adjusted_eval(data->entries + i, delta, safetyScores)), 2);
     }
     return (total / data->size);
 }
 
-double adjusted_eval(const tune_entry_t *entry, const tp_vector_t delta, double safetyScale[COLOR_NB])
+double adjusted_eval(const tune_entry_t *entry, const tp_vector_t delta, double safetyScores[COLOR_NB][PHASE_NB])
 {
-    extern const int AttackRescale[8];
-
-    if (entry->safetyAttackers[WHITE] >= 8)      safetyScale[WHITE] = 1.0;
-    else if (entry->safetyAttackers[WHITE] >= 2) safetyScale[WHITE] = 1.0 - 1.0 / AttackRescale[entry->safetyAttackers[WHITE]];
-    else                                         safetyScale[WHITE] = 0.0;
-    if (entry->safetyAttackers[BLACK] >= 8)      safetyScale[BLACK] = 1.0;
-    else if (entry->safetyAttackers[BLACK] >= 2) safetyScale[BLACK] = 1.0 - 1.0 / AttackRescale[entry->safetyAttackers[BLACK]];
-    else                                         safetyScale[BLACK] = 0.0;
-
+    double mixed;
+    double midgame, endgame, wsafety[PHASE_NB], bsafety[PHASE_NB];
     double mg[2][COLOR_NB] = {0};
     double eg[2][COLOR_NB] = {0};
+    double normal[PHASE_NB], safety[PHASE_NB];
 
+    // Save any modifications for MG or EG for each evaluation type
     for (int i = 0; i < entry->tupleCount; ++i)
     {
         int index = entry->tuples[i].index;
-        bool safety = is_safety_term(index);
+        bool isSafety = is_safety_term(index);
 
-        mg[safety][WHITE] += entry->tuples[i].wcoeff * delta[index][MIDGAME];
-        mg[safety][BLACK] += entry->tuples[i].bcoeff * delta[index][MIDGAME];
-        eg[safety][WHITE] += entry->tuples[i].wcoeff * delta[index][ENDGAME];
-        eg[safety][BLACK] += entry->tuples[i].bcoeff * delta[index][ENDGAME];
+        mg[isSafety][WHITE] += entry->tuples[i].wcoeff * delta[index][MIDGAME];
+        mg[isSafety][BLACK] += entry->tuples[i].bcoeff * delta[index][MIDGAME];
+        eg[isSafety][WHITE] += entry->tuples[i].wcoeff * delta[index][ENDGAME];
+        eg[isSafety][BLACK] += entry->tuples[i].bcoeff * delta[index][ENDGAME];
     }
 
-    double midgame = midgame_score(entry->eval) + (mg[0][WHITE] - mg[0][BLACK]);
-    double endgame = endgame_score(entry->eval) + (eg[0][WHITE] - eg[0][BLACK]);
+    // Grab the original non-safety evaluations and add the modified parameters
 
-    midgame += mg[1][WHITE] * safetyScale[WHITE] - mg[1][BLACK] * safetyScale[BLACK];
-    endgame += eg[1][WHITE] * safetyScale[WHITE] - eg[1][BLACK] * safetyScale[BLACK];
+    normal[MIDGAME] = (double)midgame_score(entry->eval) + mg[0][WHITE] - mg[0][BLACK];
+    normal[ENDGAME] = (double)endgame_score(entry->eval) + eg[0][WHITE] - eg[0][BLACK];
 
-    return (midgame * entry->phaseFactors[MIDGAME] + endgame * entry->scaleFactor * entry->phaseFactors[ENDGAME]);
+    // Grab the original safety evaluations and add the modified parameters
+
+    wsafety[MIDGAME] = (double)midgame_score(entry->safety[WHITE]) + mg[1][WHITE];
+    wsafety[ENDGAME] = (double)endgame_score(entry->safety[WHITE]) + eg[1][WHITE];
+    bsafety[MIDGAME] = (double)midgame_score(entry->safety[BLACK]) + mg[1][BLACK];
+    bsafety[ENDGAME] = (double)endgame_score(entry->safety[BLACK]) + eg[1][BLACK];
+
+    // Remove the original safety evaluations from the normal evaluations
+
+    normal[MIDGAME] -= max(0, midgame_score(entry->safety[WHITE])) * midgame_score(entry->safety[WHITE]) / 256
+                     - max(0, midgame_score(entry->safety[BLACK])) * midgame_score(entry->safety[BLACK]) / 256;
+    normal[ENDGAME] -= max(0, endgame_score(entry->safety[WHITE])) / 16
+                     - max(0, endgame_score(entry->safety[BLACK])) / 16;
+
+    // Compute the new safety evaluations for each side
+
+    safety[MIDGAME] = fmax(0, wsafety[MIDGAME]) * wsafety[MIDGAME] / 256.0
+                    - fmax(0, bsafety[MIDGAME]) * bsafety[MIDGAME] / 256.0;
+    safety[ENDGAME] = fmax(0, wsafety[ENDGAME]) / 16.0 - fmax(0, bsafety[ENDGAME]) / 16.0;
+
+    // Save the safety scores for computing gradients later
+
+    safetyScores[WHITE][MIDGAME] = wsafety[MIDGAME];
+    safetyScores[WHITE][ENDGAME] = wsafety[ENDGAME];
+    safetyScores[BLACK][MIDGAME] = bsafety[MIDGAME];
+    safetyScores[BLACK][ENDGAME] = bsafety[ENDGAME];
+
+    midgame = normal[MIDGAME] + safety[MIDGAME];
+    endgame = normal[ENDGAME] + safety[ENDGAME];
+
+    mixed = midgame * entry->phaseFactors[MIDGAME] + endgame * entry->phaseFactors[ENDGAME] * entry->scaleFactor;
+
+    return (mixed);
 }
 
 void compute_gradient(const tune_data_t *data, tp_vector_t gradient, const tp_vector_t delta, double K, int batchIdx)
@@ -387,8 +419,8 @@ void compute_gradient(const tune_data_t *data, tp_vector_t gradient, const tp_ve
 
 void update_gradient(const tune_entry_t *entry, tp_vector_t gradient, const tp_vector_t delta, double K)
 {
-    double safetyScale[COLOR_NB];
-    double E = adjusted_eval(entry, delta, safetyScale);
+    double safetyValues[COLOR_NB][PHASE_NB];
+    double E = adjusted_eval(entry, delta, safetyValues);
     double S = sigmoid(K, E);
     double X = (entry->gameResult - S) * S * (1 - S);
     double mgBase = X * entry->phaseFactors[MIDGAME];
@@ -402,8 +434,10 @@ void update_gradient(const tune_entry_t *entry, tp_vector_t gradient, const tp_v
 
         if (is_safety_term(index))
         {
-            gradient[index][MIDGAME] += mgBase * (wcoeff * safetyScale[WHITE] - bcoeff * safetyScale[BLACK]);
-            gradient[index][MIDGAME] += egBase * (wcoeff * safetyScale[WHITE] - bcoeff * safetyScale[BLACK]) * entry->scaleFactor;
+            gradient[index][MIDGAME] += mgBase / 128.0
+                * (fmax(safetyValues[WHITE][MIDGAME], 0) * wcoeff - fmax(safetyValues[BLACK][MIDGAME], 0) * bcoeff);
+            gradient[index][ENDGAME] += egBase / 16.0 * entry->scaleFactor
+                * ((safetyValues[WHITE][MIDGAME] > 0.0) * wcoeff - (safetyValues[BLACK][ENDGAME] > 0.0) * bcoeff);
         }
         else
         {
@@ -461,6 +495,12 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
     PRINT_SP(IDX_KS_BISHOP, BishopWeight);
     PRINT_SP(IDX_KS_ROOK, RookWeight);
     PRINT_SP(IDX_KS_QUEEN, QueenWeight);
+    PRINT_SP(IDX_KS_ATTACK, AttackWeight);
+    PRINT_SP(IDX_KS_CHECK_N, SafeKnightCheck);
+    PRINT_SP(IDX_KS_CHECK_B, SafeBishopCheck);
+    PRINT_SP(IDX_KS_CHECK_R, SafeRookCheck);
+    PRINT_SP(IDX_KS_CHECK_Q, SafeQueenCheck);
+    PRINT_SP(IDX_KS_OFFSET, SafetyOffset);
     putchar('\n');
 
     PRINT_SP(IDX_KNIGHT_SHIELDED, KnightShielded);

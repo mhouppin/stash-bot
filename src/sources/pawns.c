@@ -21,18 +21,18 @@
 #include "pawns.h"
 
 const scorepair_t BackwardPenalty = SPAIR(-5, -4);
-const scorepair_t StragglerPenalty = SPAIR(-16, -17);
-const scorepair_t DoubledPenalty = SPAIR(-22, -40);
-const scorepair_t IsolatedPenalty = SPAIR(-11, -22);
+const scorepair_t StragglerPenalty = SPAIR(-16, -18);
+const scorepair_t DoubledPenalty = SPAIR(-21, -41);
+const scorepair_t IsolatedPenalty = SPAIR(-10, -22);
 
 const scorepair_t PassedBonus[RANK_NB] = {
     0,
-    SPAIR(-15, 16),
-    SPAIR(-16, 19),
-    SPAIR( -7, 55),
-    SPAIR( 24, 89),
-    SPAIR( 45,153),
-    SPAIR(124,254),
+    SPAIR(-17, 17),
+    SPAIR(-17, 19),
+    SPAIR( -7, 56),
+    SPAIR( 24, 90),
+    SPAIR( 49,153),
+    SPAIR( 98,258),
     0
 };
 
