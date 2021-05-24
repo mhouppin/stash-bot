@@ -36,6 +36,12 @@ typedef enum tune_idx_e
     IDX_KS_BISHOP,
     IDX_KS_ROOK,
     IDX_KS_QUEEN,
+    IDX_KS_ATTACK,
+    IDX_KS_CHECK_N,
+    IDX_KS_CHECK_B,
+    IDX_KS_CHECK_R,
+    IDX_KS_CHECK_Q,
+    IDX_KS_OFFSET,
     IDX_KNIGHT_SHIELDED,
     IDX_KNIGHT_OUTPOST,
     IDX_KNIGHT_CENTER_OUTPOST,
@@ -61,8 +67,8 @@ tune_idx_t;
 typedef struct evaltrace_s
 {
     int phase;
-    int safetyAttackers[COLOR_NB];
     scorepair_t eval;
+    scorepair_t safety[COLOR_NB];
     int scaleFactor;
     int8_t coeffs[IDX_COUNT][COLOR_NB];
 } evaltrace_t;
@@ -72,7 +78,7 @@ extern evaltrace_t Trace;
 # define TRACE_INIT memset(&Trace, 0, sizeof(Trace))
 # define TRACE_ADD(idx, color, n) Trace.coeffs[idx][color] += n
 # define TRACE_PHASE(p) Trace.phase = p
-# define TRACE_ATTACKERS(color, a) Trace.safetyAttackers[color] = a
+# define TRACE_SAFETY(c, v) Trace.safety[c] = v
 # define TRACE_EVAL(e) Trace.eval = e
 # define TRACE_FACTOR(f) Trace.scaleFactor = f
 
@@ -81,7 +87,7 @@ extern evaltrace_t Trace;
 # define TRACE_INIT
 # define TRACE_ADD(x, c, n)
 # define TRACE_PHASE(p)
-# define TRACE_ATTACKERS(color, a)
+# define TRACE_SAFETY(c, v)
 # define TRACE_EVAL(e)
 # define TRACE_FACTOR(f)
 
