@@ -131,6 +131,7 @@ void init_base_values(tp_vector_t base)
     INIT_BASE_SP(IDX_KS_ROOK, RookWeight);
     INIT_BASE_SP(IDX_KS_QUEEN, QueenWeight);
     INIT_BASE_SP(IDX_KS_ATTACK, AttackWeight);
+    INIT_BASE_SP(IDX_KS_WEAK_Z, WeakKingZone);
     INIT_BASE_SP(IDX_KS_CHECK_N, SafeKnightCheck);
     INIT_BASE_SP(IDX_KS_CHECK_B, SafeBishopCheck);
     INIT_BASE_SP(IDX_KS_CHECK_R, SafeRookCheck);
@@ -284,6 +285,7 @@ double compute_optimal_k(const tune_data_t *data)
     double cur = start;
     double error;
     double best = static_eval_mse(data, cur);
+    double bestK = cur;
 
     printf("Computing optimal K...\n");
     fflush(stdout);
@@ -298,13 +300,13 @@ double compute_optimal_k(const tune_data_t *data)
             if (error < best)
             {
                 best = error;
-                start = cur;
+                bestK = cur;
             }
         }
-        printf("Iteration %d/10, K %lf, MSE %lf\n", i + 1, start, best);
+        printf("Iteration %d/10, K %lf, MSE %lf\n", i + 1, bestK, best);
         fflush(stdout);
-        end = start + step;
-        start -= step;
+        end = bestK + step;
+        start = bestK - step;
         step /= 10;
     }
     putchar('\n');
@@ -496,6 +498,7 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
     PRINT_SP(IDX_KS_ROOK, RookWeight);
     PRINT_SP(IDX_KS_QUEEN, QueenWeight);
     PRINT_SP(IDX_KS_ATTACK, AttackWeight);
+    PRINT_SP(IDX_KS_WEAK_Z, WeakKingZone);
     PRINT_SP(IDX_KS_CHECK_N, SafeKnightCheck);
     PRINT_SP(IDX_KS_CHECK_B, SafeBishopCheck);
     PRINT_SP(IDX_KS_CHECK_R, SafeRookCheck);
