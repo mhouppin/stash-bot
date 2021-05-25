@@ -34,16 +34,17 @@ const scorepair_t Initiative = SPAIR(17, 17);
 
 // King Safety eval terms
 
-const scorepair_t KnightWeight = SPAIR(19, 59);
-const scorepair_t BishopWeight = SPAIR(14, -132);
-const scorepair_t RookWeight = SPAIR(13, -271);
-const scorepair_t QueenWeight = SPAIR(43, 246);
-const scorepair_t AttackWeight = SPAIR(34, 33);
-const scorepair_t SafeKnightCheck = SPAIR(30, 29);
-const scorepair_t SafeBishopCheck = SPAIR(22, 5);
-const scorepair_t SafeRookCheck = SPAIR(24, 25);
-const scorepair_t SafeQueenCheck = SPAIR(21, 152);
-const scorepair_t SafetyOffset = SPAIR(-48, -156);
+const scorepair_t KnightWeight    = SPAIR(  31,  81);
+const scorepair_t BishopWeight    = SPAIR(  25,-164);
+const scorepair_t RookWeight      = SPAIR(  30,-459);
+const scorepair_t QueenWeight     = SPAIR(  61, 431);
+const scorepair_t AttackWeight    = SPAIR(  21, 164);
+const scorepair_t WeakKingZone    = SPAIR(  17,-159);
+const scorepair_t SafeKnightCheck = SPAIR(  47, -45);
+const scorepair_t SafeBishopCheck = SPAIR(  41,  10);
+const scorepair_t SafeRookCheck   = SPAIR(  38,  55);
+const scorepair_t SafeQueenCheck  = SPAIR(  50,  88);
+const scorepair_t SafetyOffset    = SPAIR( -51,-350);
 
 // Knight eval terms
 
@@ -235,10 +236,15 @@ void eval_init(const board_t *board, evaluation_t *eval)
     TRACE_ADD(IDX_PSQT + 48 + (KING - KNIGHT) * 32 + to_sq32(bksq ^ SQ_A8), BLACK, 1);
 
     // Set the King Attack zone as the 3x4 square surrounding the king
-    // (counting an additional rank in front of the king)
+    // (counting an additional rank in front of the king). Init the attack
+    // tables at the same time.
 
     eval->kingZone[WHITE] = king_moves(bksq);
     eval->kingZone[BLACK] = king_moves(wksq);
+
+    eval->attacked[WHITE] = eval->attackedBy[WHITE][KING] = eval->kingZone[BLACK];
+    eval->attacked[BLACK] = eval->attackedBy[BLACK][KING] = eval->kingZone[WHITE];
+
     eval->kingZone[WHITE] |= shift_down(eval->kingZone[WHITE]);
     eval->kingZone[BLACK] |= shift_up(eval->kingZone[BLACK]);
 
@@ -248,8 +254,12 @@ void eval_init(const board_t *board, evaluation_t *eval)
     bitboard_t wattacks = wpawns_attacks_bb(wpawns);
     bitboard_t battacks = bpawns_attacks_bb(bpawns);
 
-    eval->attacked[WHITE] = eval->attackedBy[WHITE][PAWN] = wattacks;
-    eval->attacked[BLACK] = eval->attackedBy[BLACK][PAWN] = battacks;
+    eval->attackedBy[WHITE][PAWN] = wattacks;
+    eval->attackedBy[BLACK][PAWN] = battacks;
+    eval->attackedTwice[WHITE] |= eval->attacked[WHITE] & wattacks;
+    eval->attackedTwice[BLACK] |= eval->attacked[BLACK] & wattacks;
+    eval->attacked[WHITE] |= wattacks;
+    eval->attacked[BLACK] |= battacks;
 
     // Exclude opponent pawns' attacks from the Mobility and King Attack zones
 
@@ -549,12 +559,17 @@ scorepair_t evaluate_safety(const board_t *board, evaluation_t *eval, color_t us
         color_t them = not_color(us);
         square_t theirKing = get_king_square(board, them);
 
-        // We define safe squares as squares where we have more attackers than
-        // the opponent has defenders and where we can land on.
+        // We define weak squares as squares that we attack where the enemy has
+        // no defenders, or only the King as a defender
 
-        bitboard_t safe = ((eval->attacked[us] & ~eval->attacked[them])
-            | (eval->attackedTwice[us] & ~eval->attackedTwice[them]))
-            & ~color_bb(board, us);
+        bitboard_t weak = eval->attacked[us] & ~eval->attackedTwice[them]
+            & (~eval->attacked[them] | eval->attackedBy[them][KING]);
+
+        // We define safe squares as squares that are attacked (or weak and attacked twice),
+        // and where we can land on.
+
+        bitboard_t safe = ~color_bb(board, us)
+            & (~eval->attacked[them] | (weak & eval->attackedTwice[us]));
 
         bitboard_t rookCheckSpan = rook_moves(board, theirKing);
         bitboard_t bishopCheckSpan = bishop_moves(board, theirKing);
@@ -565,7 +580,9 @@ scorepair_t evaluate_safety(const board_t *board, evaluation_t *eval, color_t us
         bitboard_t queenChecks  = safe & eval->attackedBy[us][QUEEN ] & (bishopCheckSpan | rookCheckSpan);
 
         scorepair_t bonus = eval->safetyScore[us] + SafetyOffset;
+
         bonus += AttackWeight * eval->safetyAttacks[us];
+        bonus += WeakKingZone * popcount(weak & eval->kingZone[us]);
 
         bonus += SafeKnightCheck * popcount(knightChecks);
         bonus += SafeBishopCheck * popcount(bishopChecks);
@@ -573,6 +590,7 @@ scorepair_t evaluate_safety(const board_t *board, evaluation_t *eval, color_t us
         bonus += SafeQueenCheck  * popcount(queenChecks);
 
         TRACE_ADD(IDX_KS_OFFSET, us, 1);
+        TRACE_ADD(IDX_KS_WEAK_Z, us, popcount(weak & eval->kingZone[us]));
         TRACE_ADD(IDX_KS_CHECK_N, us, popcount(knightChecks));
         TRACE_ADD(IDX_KS_CHECK_B, us, popcount(bishopChecks));
         TRACE_ADD(IDX_KS_CHECK_R, us, popcount(rookChecks));
