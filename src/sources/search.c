@@ -273,19 +273,24 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
 
         // Can we apply LMR ?
 
-        if (depth >= 3 && moveCount > 2 + 2 * rootNode && isQuiet)
+        if (depth >= 3 && moveCount > 2 + 2 * rootNode)
         {
-            R = Reductions[min(depth, 63)][min(moveCount, 63)];
+            if (isQuiet)
+            {
+                R = Reductions[min(depth, 63)][min(moveCount, 63)];
 
-            // Increase for non-PV nodes
+                // Increase for non-PV nodes
 
-            R += !pvNode;
+                R += !pvNode;
 
-            // Increase/decrease based on history
+                // Increase/decrease based on history
 
-            R -= histScore / 4000;
+                R -= histScore / 4000;
 
-            R = max(R, 0);
+                R = max(R, 0);
+            }
+            else
+                R = 1;
         }
         else
             R = 0;
