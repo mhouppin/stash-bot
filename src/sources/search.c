@@ -287,7 +287,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
 
                 R -= histScore / 4000;
 
-                R = max(R, 0);
+                R = clamp(R, 0, newDepth - 1);
             }
             else
                 R = 1;
