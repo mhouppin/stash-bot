@@ -517,6 +517,7 @@ void uci_loop(int argc, char **argv)
     add_option_spin_int(&OptionList, "Move Overhead", &Options.moveOverhead, 0, 30000, NULL);
     add_option_spin_int(&OptionList, "MultiPV", &Options.multiPv, 1, 500, NULL);
     add_option_check(&OptionList, "UCI_Chess960", &Options.chess960, NULL);
+    add_option_check(&OptionList, "Ponder", &Options.ponder, NULL);
     add_option_button(&OptionList, "Clear Hash", &on_clear_hash);
 
     uci_position("startpos");
