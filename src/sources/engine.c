@@ -144,6 +144,7 @@ void *engine_go(void *ptr)
         worker->rootMoves[i].prevScore = -INF_SCORE;
         worker->rootMoves[i].score = -INF_SCORE;
         worker->rootMoves[i].pv[0] = NO_MOVE;
+        worker->rootMoves[i].pv[1] = NO_MOVE;
     }
 
     // Reset all history related stuff.
@@ -325,10 +326,11 @@ __retry:
     }
 
     // UCI protocol specifies that we shouldn't send the bestmove command
-    // before the GUI sends us the "stop" in infinite mode.
+    // before the GUI sends us the "stop" in infinite mode
+    // or "ponderhit" in ponder mode.
 
-    if (SearchParams.infinite)
-        while (!search_should_abort())
+    if (SearchParams.infinite || SearchParams.ponder)
+        while (!search_should_abort() && !(SearchParams.ponder && EnginePonderhit))
             if (!worker->idx)
                 check_time();
 
@@ -336,7 +338,34 @@ __retry:
 
     if (!worker->idx)
     {
-        printf("bestmove %s\n", move_to_str(worker->rootMoves->move, board->chess960));
+        printf("bestmove %s", move_to_str(worker->rootMoves->move, board->chess960));
+
+        move_t ponderMove = worker->rootMoves->pv[1];
+
+        // If we finished searching with a fail-high, try to see if we can get a ponder
+        // move in TT
+        if (ponderMove == NO_MOVE)
+        {
+            boardstack_t stack;
+            tt_entry_t *entry;
+            bool found;
+
+            do_move(board, worker->rootMoves->move, &stack);
+            entry = tt_probe(board->stack->boardKey, &found);
+            undo_move(board, worker->rootMoves->move);
+
+            if (found)
+            {
+                ponderMove = entry->bestmove;
+
+                // Take care of data races !
+                if (!move_is_pseudo_legal(board, ponderMove) || !move_is_legal(board, ponderMove))
+                    ponderMove = NO_MOVE;
+            }
+        }
+        if (ponderMove != NO_MOVE)
+            printf(" ponder %s", move_to_str(ponderMove, board->chess960));
+        putchar('\n');
         fflush(stdout);
 
         if (EngineSend != DO_ABORT)

@@ -50,6 +50,7 @@ void timeman_init(const board_t *board, timeman_t *tm, goparams_t *params, clock
     clock_t overhead = Options.moveOverhead;
 
     tm->start = start;
+    tm->pondering = false;
 
     if (params->wtime || params->btime)
     {
@@ -63,6 +64,15 @@ void timeman_init(const board_t *board, timeman_t *tm, goparams_t *params, clock
 
         tm->averageTime = time / mtg + inc;
         tm->maximalTime = time / sqrt(mtg) + inc;
+
+        // Allow for more time usage when we're pondering, since we're not using
+        // our clock as long as the opponent thinks
+        if (params->ponder)
+        {
+            tm->pondering = true;
+            tm->averageTime += tm->averageTime / 4;
+        }
+
         tm->averageTime = min(tm->averageTime, time);
         tm->maximalTime = min(tm->maximalTime, time);
         tm->optimalTime = tm->maximalTime;
