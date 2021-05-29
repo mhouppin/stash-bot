@@ -26,7 +26,7 @@
 # include <time.h>
 # include "inlining.h"
 
-# define UCI_VERSION "v30.6"
+# define UCI_VERSION "v30.7"
 
 # ifdef PRIu64
 #  define FMT_INFO PRIu64
@@ -66,6 +66,7 @@ typedef struct goparams_s
     int mate;
     int infinite;
     int perft;
+    int ponder;
     clock_t movetime;
 }
 goparams_t;
@@ -77,6 +78,7 @@ typedef struct ucioptions_s
     long moveOverhead;
     long multiPv;
     bool chess960;
+    bool ponder;
 }
 ucioptions_t;
 
@@ -86,6 +88,7 @@ extern pthread_mutex_t EngineMutex;
 extern pthread_cond_t EngineCond;
 extern enum e_egn_mode EngineMode;
 extern enum e_egn_send EngineSend;
+extern int EnginePonderhit;
 extern const char *Delimiters;
 extern goparams_t SearchParams;
 
@@ -115,6 +118,7 @@ void uci_d(const char *args);
 void uci_debug(const char *args);
 void uci_go(const char *args);
 void uci_isready(const char *args);
+void uci_ponderhit(const char *args);
 void uci_position(const char *args);
 void uci_quit(const char *args);
 void uci_setoption(const char *args);

@@ -37,11 +37,12 @@ pthread_cond_t EngineCond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t EngineMutex = PTHREAD_MUTEX_INITIALIZER;
 enum e_egn_mode EngineMode = THINKING;
 enum e_egn_send EngineSend = DO_NOTHING;
+int EnginePonderhit = 0;
 
 uint64_t Seed = 1048592ul;
 
 ucioptions_t Options = {
-    1, 16, 100, 1, false
+    1, 16, 100, 1, false, false
 };
 
 timeman_t Timeman;

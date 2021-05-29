@@ -34,6 +34,7 @@ const cmdlink_t commands[] =
     {"d", &uci_d},
     {"go", &uci_go},
     {"isready", &uci_isready},
+    {"ponderhit", &uci_ponderhit},
     {"position", &uci_position},
     {"quit", &uci_quit},
     {"setoption", &uci_setoption},
@@ -191,6 +192,11 @@ void uci_stop(const char *args __attribute__((unused)))
     pthread_cond_signal(&EngineCond);
 }
 
+void uci_ponderhit(const char *args __attribute__((unused)))
+{
+    EnginePonderhit = 1;
+}
+
 void uci_uci(const char *args __attribute__((unused)))
 {
     puts("id name Stash " UCI_VERSION);
@@ -307,6 +313,7 @@ void uci_go(const char *args)
     pthread_mutex_lock(&EngineMutex);
 
     EngineSend = DO_THINK;
+    EnginePonderhit = 0;
     memset(&SearchParams, 0, sizeof(goparams_t));
     list_all(&SearchMoves, &Board);
 
@@ -391,6 +398,9 @@ void uci_go(const char *args)
         }
         else if (strcmp(token, "infinite") == 0)
             SearchParams.infinite = 1;
+
+        else if (strcmp(token, "ponder") == 0)
+            SearchParams.ponder = 1;
 
         token = strtok(NULL, Delimiters);
     }
@@ -507,6 +517,7 @@ void uci_loop(int argc, char **argv)
     add_option_spin_int(&OptionList, "Move Overhead", &Options.moveOverhead, 0, 30000, NULL);
     add_option_spin_int(&OptionList, "MultiPV", &Options.multiPv, 1, 500, NULL);
     add_option_check(&OptionList, "UCI_Chess960", &Options.chess960, NULL);
+    add_option_check(&OptionList, "Ponder", &Options.ponder, NULL);
     add_option_button(&OptionList, "Clear Hash", &on_clear_hash);
 
     uci_position("startpos");
