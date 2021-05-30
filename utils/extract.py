@@ -1,5 +1,5 @@
 import chess.pgn
-import os, time, random, multiprocessing
+import os, time, random, multiprocessing, queue
 
 ## Configuration
 THREADS                 = 3
@@ -19,7 +19,8 @@ class Visitor(chess.pgn.BaseVisitor):
         self.fens = []
 
     def visit_move(self, board, move):
-        self.fens.append(board.fen())
+        if not board.is_capture(move):
+            self.fens.append(board.fen())
 
     def result(self):
         return self.fens
@@ -70,12 +71,13 @@ def parseGamesFromPGN():
                 if len(games) % 10000 == 0:
                     print("Initial parsing: {0} games read".format(len(games)))
 
-    print()
+    print("Total games {0}\n".format(len(games)))
     return games
 
-def parseFENSFromPGNS(id):
+def parseFENSFromPGNS(id, q):
 
-    accepted = rejected = 0; outputs = []
+    accepted = rejected = parsed = 0; outputs = []
+    nextCheckpoint = time.perf_counter() + 1.0
 
     # Parse only games from our designated PGN split
     with open("SPLIT_OUT_{0}.pgn".format(id), "r") as pgn:
@@ -83,12 +85,16 @@ def parseFENSFromPGNS(id):
         # Parse all games from the PGN
         while True:
 
-            if (accepted + rejected) % 10000 == 0:
-                print("Thread {0}: {1} games parsed".format(id, accepted + rejected))
+            if time.perf_counter() >= nextCheckpoint:
+                q.put(parsed)
+                parsed = 0
+                nextCheckpoint = time.perf_counter() + 1.0
 
             # Grab the next game in the PGN
             game = chess.pgn.read_game(pgn)
             if game == None: break
+
+            parsed += 1
 
             # Skip PGNs with strange end results (crashes, timelosses, disconnects, ...)
             if "Termination" in game.headers and game.headers["Termination"] != "adjudication":
@@ -121,15 +127,37 @@ def buildTexelBook():
 
     processes = [] # Process for each PGN parser
 
+    q = multiprocessing.Queue()
+
     # Launch all of the procsses
     for ii in range(THREADS):
         processes.append(
             multiprocessing.Process(
-                target=parseFENSFromPGNS, args=(ii,)))
+                target=parseFENSFromPGNS, args=(ii, q)))
 
     # Wait for each parser to finish
     for p in processes: p.start()
-    for p in processes: p.join()
+
+    count = 0
+
+    while len(processes) != 0:
+        time.sleep(0.5)
+        newCount = count
+        while True:
+            try:
+                value = q.get_nowait()
+                newCount += value
+            except queue.Empty:
+                break
+
+        if newCount != count:
+            count = newCount
+            print("{} games processed".format(count))
+
+        for p in processes[:]:
+            if not p.is_alive():
+                p.join()
+                processes.remove(p)
 
     # Build final FEN file from process outputs
     os.system("rm {0}".format(OUTPUT_NAME))
