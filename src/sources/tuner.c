@@ -27,16 +27,19 @@ void start_tuning_session(const char *filename)
 {
 #ifdef TUNE
     tp_vector_t delta = {}, base = {}, adagrad = {};
-    double K, mse, lr = LEARNING_RATE;
+    double K, lr = LEARNING_RATE;
     tune_data_t data = {};
 
     init_base_values(base);
     init_tuner_entries(&data, filename);
     K = compute_optimal_k(&data);
 
+    size_t batches = data.size / BATCH_SIZE;
+    batches = batches * 4 / 5;
+
     for (int iter = 0; iter < ITERS; ++iter)
     {
-        for (int batchIdx = 0; (size_t)batchIdx < data.size / BATCH_SIZE; ++batchIdx)
+        for (int batchIdx = 0; (size_t)batchIdx < batches; ++batchIdx)
         {
             tp_vector_t gradient = {};
             compute_gradient(&data, gradient, delta, K, batchIdx);
@@ -53,8 +56,10 @@ void start_tuning_session(const char *filename)
             }
         }
 
-        mse = adjusted_eval_mse(&data, delta, K);
-        printf("Iteration [%d], MSE [%g], LR [%g]\n", iter, mse, lr);
+        double resultPair[2];
+
+        adjusted_eval_mse(&data, delta, K, resultPair, batches * BATCH_SIZE);
+        printf("Iteration [%d], Train Loss [%.7f], Val. Loss [%.7f]\n", iter, resultPair[0], resultPair[1]);
 
         if (iter % LR_DROP_ITERS == LR_DROP_ITERS - 1)
             lr /= LR_DROP_VALUE;
@@ -326,19 +331,20 @@ double static_eval_mse(const tune_data_t *data, double K)
     return (total / data->size);
 }
 
-double adjusted_eval_mse(const tune_data_t *data, const tp_vector_t delta, double K)
+void adjusted_eval_mse(const tune_data_t *data, const tp_vector_t delta, double K, double resultPair[2], size_t split)
 {
-    double total = 0;
+    resultPair[0] = resultPair[1] = 0;
+    double safetyScores[COLOR_NB][PHASE_NB];
 
-    #pragma omp parallel shared(total)
-    {
-        double safetyScores[COLOR_NB][PHASE_NB];
+    for (size_t i = 0; i < split; ++i)
+        resultPair[0] += pow(data->entries[i].gameResult - sigmoid(K, adjusted_eval(data->entries + i, delta, safetyScores)), 2);
 
-        #pragma omp for schedule(static, data->size / THREADS) reduction(+:total)
-        for (size_t i = 0; i < data->size; ++i)
-            total += pow(data->entries[i].gameResult - sigmoid(K, adjusted_eval(data->entries + i, delta, safetyScores)), 2);
-    }
-    return (total / data->size);
+    resultPair[0] /= split;
+
+    for (size_t i = split; i < data->size; ++i)
+        resultPair[1] += pow(data->entries[i].gameResult - sigmoid(K, adjusted_eval(data->entries + i, delta, safetyScores)), 2);
+
+    resultPair[1] /= (data->size - split);
 }
 
 double adjusted_eval(const tune_entry_t *entry, const tp_vector_t delta, double safetyScores[COLOR_NB][PHASE_NB])
