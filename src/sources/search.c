@@ -225,7 +225,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
 
             // SEE Pruning.
 
-            if (depth <= 4 && !see_greater_than(board, currmove, (isQuiet ? -80 * depth : -25 * depth * depth)))
+            if (depth <= 5 && !see_greater_than(board, currmove, (isQuiet ? -80 * depth : -25 * depth * depth)))
                 continue ;
         }
 
