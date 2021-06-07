@@ -74,6 +74,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
     }
 
     bool inCheck = !!board->stack->checkers;
+    bool improving = false;
 
     // Check for interesting tt values
 
@@ -138,7 +139,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
         }
     }
 
-    bool improving = ss->plies >= 2 && ss->staticEval > (ss - 2)->staticEval;
+    improving = ss->plies >= 2 && ss->staticEval > (ss - 2)->staticEval;
 
     // Futility Pruning.
 
