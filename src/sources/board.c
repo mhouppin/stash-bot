@@ -423,13 +423,11 @@ void undo_move(board_t *board, move_t move)
 
     color_t us = board->sideToMove;
     square_t from = from_sq(move), to = to_sq(move);
-    piece_t piece = piece_on(board, to);
 
     if (move_type(move) == PROMOTION)
     {
         remove_piece(board, to);
-        piece = create_piece(us, PAWN);
-        put_piece(board, piece, to);
+        put_piece(board, create_piece(us, PAWN), to);
     }
 
     if (move_type(move) == CASTLING)
