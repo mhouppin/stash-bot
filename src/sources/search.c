@@ -73,6 +73,8 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
             return (alpha);
     }
 
+    bool inCheck = !!board->stack->checkers;
+
     // Check for interesting tt values
 
     int ttDepth = 0;
@@ -99,7 +101,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
         if (ttBound & (ttScore > eval ? LOWER_BOUND : UPPER_BOUND))
             eval = ttScore;
     }
-    else
+    else if (!inCheck)
     {
         eval = ss->staticEval = evaluate(board);
 
@@ -107,12 +109,17 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
 
         tt_save(entry, key, NO_SCORE, eval, 0, NO_BOUND, NO_MOVE);
     }
+    else
+        eval = ss->staticEval = NO_SCORE;
 
     if (rootNode && worker->pvLine)
         ttMove = worker->rootMoves[worker->pvLine].move;
 
     (ss + 1)->plies = ss->plies + 1;
     (ss + 2)->killers[0] = (ss + 2)->killers[1] = NO_MOVE;
+
+    if (inCheck)
+        goto __main_loop;
 
     // Razoring.
 
@@ -131,17 +138,16 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
         }
     }
 
-    bool inCheck = !!board->stack->checkers;
     bool improving = ss->plies >= 2 && ss->staticEval > (ss - 2)->staticEval;
 
     // Futility Pruning.
 
-    if (!pvNode && !inCheck && depth <= 8 && eval - 80 * depth >= beta && eval < VICTORY)
+    if (!pvNode && depth <= 8 && eval - 80 * depth >= beta && eval < VICTORY)
         return (eval);
 
     // Null move pruning.
 
-    if (!pvNode && depth >= 3 && !inCheck
+    if (!pvNode && depth >= 3
         && ss->plies >= worker->verifPlies && !ss->excludedMove
         && eval >= beta && eval >= ss->staticEval
         && board->stack->material[board->sideToMove])
@@ -182,6 +188,8 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
         }
     }
 
+__main_loop:
+
     movepick_init(&mp, false, board, worker, ttMove, ss);
 
     move_t currmove;
@@ -220,7 +228,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
 
             // Futility Pruning.
 
-            if (depth <= 4 && isQuiet && eval + 240 + 80 * depth <= alpha)
+            if (depth <= 4 && !inCheck && isQuiet && eval + 240 + 80 * depth <= alpha)
                 skipQuiets = true;
 
             // SEE Pruning.
