@@ -215,10 +215,9 @@ void *engine_go(void *ptr)
             score_t pvScore = worker->rootMoves[worker->pvLine].prevScore;
 
             // Don't set aspiration window bounds for low depths, as the scores are
-            // very volatile. We also disable them when the search score is high
-            // to improve mate search.
+            // very volatile.
 
-            if (iterDepth <= 9 || abs(pvScore) >= 1000)
+            if (iterDepth <= 9)
             {
                 delta = 0;
                 alpha = -INF_SCORE;
