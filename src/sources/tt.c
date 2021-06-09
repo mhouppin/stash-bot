@@ -82,7 +82,7 @@ void tt_save(tt_entry_t *entry, hashkey_t k, score_t s, score_t e, int d, int b,
 
     // Do not erase entries with higher depth for same position.
 
-    if (b == EXACT_BOUND || k != entry->key || d * 2 >= entry->depth)
+    if (b == EXACT_BOUND || k != entry->key || d + 4 >= entry->depth)
     {
         entry->key = k;
         entry->score = s;
