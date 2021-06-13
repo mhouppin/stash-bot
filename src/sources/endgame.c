@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "endgame.h"
+#include "pawns.h"
 
 endgame_entry_t EndgameTable[EGTB_SIZE];
 
@@ -138,6 +139,124 @@ score_t eval_knnkp(const board_t *board, color_t winningSide)
     return (board->sideToMove == winningSide ? score : -score);
 }
 
+score_t eval_kmpkn(const board_t *board, color_t winningSide)
+{
+    pawn_entry_t *pe = pawn_probe(board);
+    score_t score = endgame_score(pe->value + board->psqScorePair);
+    color_t losingSide = not_color(winningSide);
+    bool tempo = (board->sideToMove == losingSide);
+
+    square_t winningKsq = get_king_square(board, winningSide);
+    square_t winningPsq = bb_first_sq(piecetype_bb(board, PAWN));
+    square_t losingKsq = get_king_square(board, losingSide);
+    square_t losingNsq = bb_first_sq(piece_bb(board, losingSide, KNIGHT));
+
+    if (board->sideToMove == BLACK)
+        score = -score;
+
+    bitboard_t queeningPath = forward_file_bb(winningSide, winningPsq);
+    bitboard_t passedSpan = passed_pawn_span_bb(winningSide, winningPsq);
+
+    if (queeningPath & square_bb(losingKsq))
+        return (score / 16);
+
+    if (queeningPath & knight_moves(losingNsq))
+        return (score / 8);
+
+    if ((passedSpan & square_bb(losingKsq))
+        && !(passedSpan & square_bb(winningKsq))
+        && tempo)
+        return (score / 4);
+
+    return (score);
+}
+
+score_t eval_kmpkb(const board_t *board, color_t winningSide)
+{
+    pawn_entry_t *pe = pawn_probe(board);
+    score_t score = endgame_score(pe->value + board->psqScorePair);
+    color_t losingSide = not_color(winningSide);
+    bool tempo = (board->sideToMove == losingSide);
+
+    square_t winningKsq = get_king_square(board, winningSide);
+    square_t winningPsq = bb_first_sq(piecetype_bb(board, PAWN));
+    square_t losingKsq = get_king_square(board, losingSide);
+    square_t losingBsq = bb_first_sq(piece_bb(board, losingSide, BISHOP));
+
+    if (board->sideToMove == BLACK)
+        score = -score;
+
+    bitboard_t queeningPath = forward_file_bb(winningSide, winningPsq);
+    bitboard_t passedSpan = passed_pawn_span_bb(winningSide, winningPsq);
+
+    if (queeningPath & square_bb(losingKsq))
+        return (score / 16);
+
+    if (queeningPath & bishop_moves(board, losingBsq))
+        return (score / 8);
+
+    if ((passedSpan & square_bb(losingKsq))
+        && !(passedSpan & square_bb(winningKsq))
+        && tempo)
+        return (score / 4);
+
+    return (score);
+}
+
+score_t eval_krpkr(const board_t *board, color_t winningSide)
+{
+    pawn_entry_t *pe = pawn_probe(board);
+    score_t score = endgame_score(pe->value + board->psqScorePair);
+    color_t losingSide = not_color(winningSide);
+    bool tempo = (board->sideToMove == losingSide);
+
+    square_t winningKsq = relative_sq(get_king_square(board, winningSide), winningSide);
+    square_t winningPsq = relative_sq(bb_first_sq(piecetype_bb(board, PAWN)), winningSide);
+    square_t losingKsq = relative_sq(get_king_square(board, losingSide), winningSide);
+    square_t losingRsq = relative_sq(bb_first_sq(piece_bb(board, losingSide, ROOK)), winningSide);
+
+    if (board->sideToMove == BLACK)
+        score = -score;
+
+    // Check if a Philidor position can be built, or if back-rank defense
+    // can be used
+
+    if (passed_pawn_span_bb(WHITE, winningPsq) & square_bb(losingKsq))
+    {
+        rank_t rankLK = sq_rank(losingKsq);
+        rank_t rankLR = sq_rank(losingRsq);
+        rank_t rankWK = sq_rank(winningKsq);
+        rank_t rankWP = sq_rank(winningPsq);
+
+        if (rankLK == RANK_6 || rankLK == RANK_7)
+        {
+            if (rankLR == RANK_5 && rankWK < RANK_5 && rankWP < RANK_5)
+                return (score / 64);
+            if (rankLR == RANK_1 && rankWP == RANK_5)
+                return (score / 64);
+        }
+        if (rankLK >= RANK_7)
+        {
+            if (rankLR == RANK_6 && rankWK < RANK_6 && rankWP < RANK_6)
+                return (score / 64);
+            if (rankLR <= RANK_2 && rankWP == RANK_6)
+                return (score / 64);
+        }
+
+        if (rankLK == RANK_1 && rankLR == RANK_1)
+        {
+            if (square_bb(winningPsq) & (FILE_A_BITS | FILE_B_BITS | FILE_G_BITS | FILE_H_BITS))
+                return (score / 16);
+            if (rankWK + tempo < RANK_6)
+                return (score / 16);
+        }
+
+        return (score / 2);
+    }
+
+    return (score);
+}
+
 void add_colored_entry(color_t winningSide, char *wpieces, char *bpieces, endgame_func_t func)
 {
     char bcopy[16];
@@ -205,6 +324,11 @@ void init_endgame_table(void)
     // 5-man endgames
     add_endgame_entry("KBBvKB", &eval_draw);
     add_endgame_entry("KNNvKP", &eval_knnkp);
+    add_endgame_entry("KRPvKR", &eval_krpkr);
+    add_endgame_entry("KNPvKN", &eval_kmpkn);
+    add_endgame_entry("KBPvKN", &eval_kmpkn);
+    add_endgame_entry("KNPvKB", &eval_kmpkb);
+    add_endgame_entry("KBPvKB", &eval_kmpkb);
 
     add_endgame_entry("KBNvK", &eval_kbnk);
 }
