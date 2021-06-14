@@ -1,4 +1,4 @@
-import chess.pgn
+import chess, chess.pgn, chess.engine
 import os, time, random, multiprocessing, queue
 
 ## Configuration
@@ -6,6 +6,9 @@ THREADS                 = 3
 INPUT_NAME              = "Stash.pgn"
 OUTPUT_NAME             = "Stash.book"
 FENS_PER_GAME           = 10
+ENGINE_PATH             = "../src/stash-bot"
+SEARCH_DEPTH            = 11
+MAX_NODES               = 500000
 
 VALUE = {
     "1-0": "1.0",
@@ -19,8 +22,7 @@ class Visitor(chess.pgn.BaseVisitor):
         self.fens = []
 
     def visit_move(self, board, move):
-        if not board.is_capture(move):
-            self.fens.append(board.fen())
+        self.fens.append(board.fen())
 
     def result(self):
         return self.fens
@@ -76,6 +78,9 @@ def parseGamesFromPGN():
 
 def parseFENSFromPGNS(id, q):
 
+    engine = chess.engine.SimpleEngine.popen_uci(ENGINE_PATH)
+    engine.configure({"Hash": 4})
+
     accepted = rejected = parsed = 0; outputs = []
     nextCheckpoint = time.perf_counter() + 1.0
 
@@ -108,10 +113,28 @@ def parseFENSFromPGNS(id, q):
 
             # Sample FENS_PER_GAME times and save the position
             for fen in random.sample(fens, FENS_PER_GAME):
-                outputs.append("{0} {1}\n".format(fen, VALUE[game.headers["Result"]]))
+
+                # Make a shallow search and apply the PV to the position before saving it
+                board = chess.Board(fen)
+                info = engine.analyse(board, chess.engine.Limit(depth=SEARCH_DEPTH, nodes=MAX_NODES))
+
+                # Don't add the position to the dataset if we failed to finish search
+                if info["nodes"] >= MAX_NODES:
+                    continue
+
+                for move in info["pv"]:
+                    board.push(move)
+
+                # Don't add the position to the dataset if one side got mated/stalemated.
+                if board.is_checkmate() or board.is_stalemate():
+                    continue
+
+                outputs.append("{0} {1}\n".format(board.fen(), VALUE[game.headers["Result"]]))
 
             # No criteria met to skip this game
-            accepted += 1;
+            accepted += 1
+
+    engine.quit()
 
     # Output FENS to a thread specific file
     with open("SPLIT_PARSE_{0}.fen".format(id), "w") as fout:
