@@ -72,7 +72,7 @@ class Work:
         Q = self.lines_in_queue
         P = A * 100.0 / (A + Q)
         if A != 0:
-            print("queue/total: %d/%d (%.2f %% done, ETA %s)   " % (Q, A + Q, P), end='\r', flush=True)
+            print("queue/total: %d/%d (%.2f %% done)   " % (Q, A + Q, P), end='\r', flush=True)
         self.lock2.release()
 
 # Returns the MultiPV value to use for a given ply. Probably tweakable quite a bit.
