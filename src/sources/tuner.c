@@ -470,7 +470,7 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
         printf(prefix "(%*.lf,%*.lf)%s", \
             pad, base[idx + i][MIDGAME] + delta[idx + i][MIDGAME], \
             pad, base[idx + i][ENDGAME] + delta[idx + i][ENDGAME], \
-            (i == size - 1) ? "\n" : (i % lineSplit == lineSplit - 1) ? ",\n    " : " "); \
+            (i == size - 1) ? "\n" : (i % lineSplit == lineSplit - 1) ? ",\n    " : ", "); \
     puts("};"); \
 } while (0)
 
