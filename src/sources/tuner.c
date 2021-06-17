@@ -460,16 +460,18 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
     printf("\n Parameters:\n");
 
 #define PRINT_SP(idx, val) do { \
-    printf("- %20s -> (%.lf, %.lf), delta (%+.lf, %+.lf)\n", #val, \
-        base[idx][MIDGAME] + delta[idx][MIDGAME], base[idx][ENDGAME] + delta[idx][ENDGAME], \
-        delta[idx][MIDGAME], delta[idx][ENDGAME]); \
+    printf("scorepair_t %s = SPAIR(%.lf, %.lf);\n", #val, \
+        base[idx][MIDGAME] + delta[idx][MIDGAME], base[idx][ENDGAME] + delta[idx][ENDGAME]); \
 } while (0)
 
-#define PRINT_SPA(idx, val, size) do { \
+#define PRINT_SPA(idx, val, size, pad, lineSplit, prefix) do { \
+    printf("scorepair_t %s[%d] = {\n    ", #val, size); \
     for (int i = 0; i < size; ++i) \
-    printf("- %16s[%2d] -> (%.lf, %.lf), delta (%+.lf, %+.lf)\n", #val, i, \
-        base[idx + i][MIDGAME] + delta[idx + i][MIDGAME], base[idx + i][ENDGAME] + delta[idx + i][ENDGAME], \
-        delta[idx + i][MIDGAME], delta[idx + i][ENDGAME]); \
+        printf(prefix "(%*.lf,%*.lf)%s", \
+            pad, base[idx + i][MIDGAME] + delta[idx + i][MIDGAME], \
+            pad, base[idx + i][ENDGAME] + delta[idx + i][ENDGAME], \
+            (i == size - 1) ? "\n" : (i % lineSplit == lineSplit - 1) ? ",\n    " : " "); \
+    puts("};"); \
 } while (0)
 
     PRINT_SP(IDX_PIECE + 0, PawnValue);
@@ -480,19 +482,19 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
 
     putchar('\n');
 
-    PRINT_SPA(IDX_PSQT, PawnSQT, 48);
+    PRINT_SPA(IDX_PSQT, PawnSQT, 48, 3, 8, "S");
 
     putchar('\n');
 
-    PRINT_SPA(IDX_PSQT + 48 + 32 * 0, KnightSQT, 32);
+    PRINT_SPA(IDX_PSQT + 48 + 32 * 0, KnightSQT, 32, 4, 4, "S");
     putchar('\n');
-    PRINT_SPA(IDX_PSQT + 48 + 32 * 1, BishopSQT, 32);
+    PRINT_SPA(IDX_PSQT + 48 + 32 * 1, BishopSQT, 32, 4, 4, "S");
     putchar('\n');
-    PRINT_SPA(IDX_PSQT + 48 + 32 * 2, RookSQT, 32);
+    PRINT_SPA(IDX_PSQT + 48 + 32 * 2, RookSQT, 32, 4, 4, "S");
     putchar('\n');
-    PRINT_SPA(IDX_PSQT + 48 + 32 * 3, QueenSQT, 32);
+    PRINT_SPA(IDX_PSQT + 48 + 32 * 3, QueenSQT, 32, 4, 4, "S");
     putchar('\n');
-    PRINT_SPA(IDX_PSQT + 48 + 32 * 4, KingSQT, 32);
+    PRINT_SPA(IDX_PSQT + 48 + 32 * 4, KingSQT, 32, 4, 4, "S");
     putchar('\n');
 
     PRINT_SP(IDX_CASTLING, CastlingBonus);
@@ -527,13 +529,13 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
     PRINT_SP(IDX_ROOK_XRAY_QUEEN, RookXrayQueen);
     putchar('\n');
 
-    PRINT_SPA(IDX_MOBILITY_KNIGHT, MobilityN, 9);
+    PRINT_SPA(IDX_MOBILITY_KNIGHT, MobilityN, 9, 4, 4, "SPAIR");
     putchar('\n');
-    PRINT_SPA(IDX_MOBILITY_BISHOP, MobilityB, 14);
+    PRINT_SPA(IDX_MOBILITY_BISHOP, MobilityB, 14, 4, 4, "SPAIR");
     putchar('\n');
-    PRINT_SPA(IDX_MOBILITY_ROOK, MobilityR, 15);
+    PRINT_SPA(IDX_MOBILITY_ROOK, MobilityR, 15, 4, 4, "SPAIR");
     putchar('\n');
-    PRINT_SPA(IDX_MOBILITY_QUEEN, MobilityQ, 28);
+    PRINT_SPA(IDX_MOBILITY_QUEEN, MobilityQ, 28, 4, 4, "SPAIR");
     putchar('\n');
 
     PRINT_SP(IDX_BACKWARD, BackwardPenalty);
@@ -542,7 +544,7 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
     PRINT_SP(IDX_ISOLATED, IsolatedPenalty);
     putchar('\n');
 
-    PRINT_SPA(IDX_PASSER, PassedBonus, 6);
+    PRINT_SPA(IDX_PASSER, PassedBonus, 6, 3, 1, "SPAIR");
     putchar('\n');
 }
 
