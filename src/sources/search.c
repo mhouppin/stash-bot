@@ -74,7 +74,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
     }
 
     bool inCheck = !!board->stack->checkers;
-    bool improving = false;
+    bool improving;
 
     // Check for interesting tt values
 
@@ -98,11 +98,25 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
                 return (ttScore);
 
         ttMove = entry->bestmove;
+    }
+
+    (ss + 1)->plies = ss->plies + 1;
+    (ss + 2)->killers[0] = (ss + 2)->killers[1] = NO_MOVE;
+
+    if (inCheck)
+    {
+        eval = ss->staticEval = NO_SCORE;
+        improving = false;
+        goto __main_loop;
+    }
+    else if (found)
+    {
         eval = ss->staticEval = entry->eval;
+
         if (ttBound & (ttScore > eval ? LOWER_BOUND : UPPER_BOUND))
             eval = ttScore;
     }
-    else if (!inCheck)
+    else
     {
         eval = ss->staticEval = evaluate(board);
 
@@ -110,14 +124,9 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
 
         tt_save(entry, key, NO_SCORE, eval, 0, NO_BOUND, NO_MOVE);
     }
-    else
-        eval = ss->staticEval = NO_SCORE;
 
     if (rootNode && worker->pvLine)
         ttMove = worker->rootMoves[worker->pvLine].move;
-
-    (ss + 1)->plies = ss->plies + 1;
-    (ss + 2)->killers[0] = (ss + 2)->killers[1] = NO_MOVE;
 
     if (inCheck)
         goto __main_loop;
@@ -412,17 +421,29 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
             return (ttScore);
     }
 
-    score_t eval = found ? entry->eval : evaluate(board);
-    score_t bestScore = -INF_SCORE;
+    bool inCheck = !!board->stack->checkers;
+    score_t eval;
+    score_t bestScore;
 
-    // If not playing a capture is better because of better quiet moves,
-    // allow for a simple eval return.
-
-    if (!board->stack->checkers)
+    if (inCheck)
     {
-        bestScore = eval;
-        if (ttBound & (ttScore > eval ? LOWER_BOUND : UPPER_BOUND))
-            bestScore = ttScore;
+        eval = NO_SCORE;
+        bestScore = -INF_SCORE;
+    }
+    else
+    {
+        if (found)
+        {
+            eval = bestScore = entry->eval;
+
+            if (ttBound & (ttScore > eval ? LOWER_BOUND : UPPER_BOUND))
+                eval = bestScore = ttScore;
+        }
+        else
+            eval = bestScore = evaluate(board);
+
+        // If not playing a capture is better because of better quiet moves,
+        // allow for a simple eval return.
 
         alpha = max(alpha, bestScore);
         if (alpha >= beta)
@@ -444,7 +465,7 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
 
     // Check if delta pruning is possible.
 
-    const bool deltaPruning = (!board->stack->checkers && popcount(board->piecetypeBB[ALL_PIECES]) > 6);
+    const bool deltaPruning = (!inCheck && popcount(board->piecetypeBB[ALL_PIECES]) > 6);
     const score_t deltaBase = bestScore + PAWN_EG_SCORE * 2;
 
     while ((currmove = movepick_next_move(&mp, false)) != NO_MOVE)
@@ -506,7 +527,7 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
         }
     }
 
-    if (moveCount == 0 && board->stack->checkers)
+    if (moveCount == 0 && inCheck)
         bestScore = mated_in(ss->plies);
 
     int bound = (bestScore >= beta) ? LOWER_BOUND : (bestScore <= oldAlpha) ? UPPER_BOUND : EXACT_BOUND;
