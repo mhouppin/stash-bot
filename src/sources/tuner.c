@@ -165,12 +165,23 @@ void init_base_values(tp_vector_t base)
     INIT_BASE_SP(IDX_DOUBLED, DoubledPenalty);
     INIT_BASE_SP(IDX_ISOLATED, IsolatedPenalty);
 
-    extern const scorepair_t PassedBonus[RANK_NB];
+    extern const scorepair_t PassedBonus[RANK_NB], PhalanxBonus[RANK_NB], DefenderBonus[RANK_NB];
 
     for (rank_t r = RANK_2; r <= RANK_7; ++r)
     {
         base[IDX_PASSER + r - RANK_2][MIDGAME] = midgame_score(PassedBonus[r]);
         base[IDX_PASSER + r - RANK_2][ENDGAME] = endgame_score(PassedBonus[r]);
+
+        base[IDX_PHALANX + r - RANK_2][MIDGAME] = midgame_score(PhalanxBonus[r]);
+        base[IDX_PHALANX + r - RANK_2][ENDGAME] = endgame_score(PhalanxBonus[r]);
+
+        // No pawns can be defenders on the 7th rank
+
+        if (r != RANK_7)
+        {
+            base[IDX_DEFENDER + r - RANK_2][MIDGAME] = midgame_score(DefenderBonus[r]);
+            base[IDX_DEFENDER + r - RANK_2][ENDGAME] = endgame_score(DefenderBonus[r]);
+        }
     }
 }
 
@@ -250,7 +261,7 @@ bool init_tuner_entry(tune_entry_t *entry, const board_t *board)
 
 bool is_safety_term(int i)
 {
-    return (i >= IDX_KS_KNIGHT && i <= IDX_KS_OFFSET);
+    return (i >= IDX_KS_KNIGHT);
 }
 
 bool is_active(int i)
@@ -434,24 +445,39 @@ void update_gradient(const tune_entry_t *entry, tp_vector_t gradient, const tp_v
     double mgBase = X * entry->phaseFactors[MIDGAME];
     double egBase = X * entry->phaseFactors[ENDGAME];
 
-    for (int i = 0; i < entry->tupleCount; ++i)
+    int firstTermKS = 0;
+    int right = entry->tupleCount;
+
+    while (firstTermKS < right)
+    {
+        int mid = (firstTermKS + right) / 2;
+
+        if (is_safety_term(entry->tuples[mid].index))
+            right = mid;
+        else
+            firstTermKS = mid + 1;
+    }
+
+    for (int i = 0; i < firstTermKS; ++i)
     {
         int index = entry->tuples[i].index;
         int8_t wcoeff = entry->tuples[i].wcoeff;
         int8_t bcoeff = entry->tuples[i].bcoeff;
 
-        if (is_safety_term(index))
-        {
-            gradient[index][MIDGAME] += mgBase / 128.0
-                * (fmax(safetyValues[WHITE][MIDGAME], 0) * wcoeff - fmax(safetyValues[BLACK][MIDGAME], 0) * bcoeff);
-            gradient[index][ENDGAME] += egBase / 16.0 * entry->scaleFactor
-                * ((safetyValues[WHITE][MIDGAME] > 0.0) * wcoeff - (safetyValues[BLACK][ENDGAME] > 0.0) * bcoeff);
-        }
-        else
-        {
-            gradient[index][MIDGAME] += mgBase * (wcoeff - bcoeff);
-            gradient[index][ENDGAME] += egBase * (wcoeff - bcoeff) * entry->scaleFactor;
-        }
+        gradient[index][MIDGAME] += mgBase * (wcoeff - bcoeff);
+        gradient[index][ENDGAME] += egBase * (wcoeff - bcoeff) * entry->scaleFactor;
+    }
+
+    for (int i = firstTermKS; i < entry->tupleCount; ++i)
+    {
+        int index = entry->tuples[i].index;
+        int8_t wcoeff = entry->tuples[i].wcoeff;
+        int8_t bcoeff = entry->tuples[i].bcoeff;
+
+        gradient[index][MIDGAME] += mgBase / 128.0
+            * (fmax(safetyValues[WHITE][MIDGAME], 0) * wcoeff - fmax(safetyValues[BLACK][MIDGAME], 0) * bcoeff);
+        gradient[index][ENDGAME] += egBase / 16.0 * entry->scaleFactor
+            * ((safetyValues[WHITE][MIDGAME] > 0.0) * wcoeff - (safetyValues[BLACK][ENDGAME] > 0.0) * bcoeff);
     }
 }
 
@@ -545,6 +571,10 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
     putchar('\n');
 
     PRINT_SPA(IDX_PASSER, PassedBonus, 6, 3, 1, "SPAIR");
+    putchar('\n');
+    PRINT_SPA(IDX_PHALANX, PhalanxBonus, 6, 3, 1, "SPAIR");
+    putchar('\n');
+    PRINT_SPA(IDX_DEFENDER, DefenderBonus, 5, 3, 1, "SPAIR");
     putchar('\n');
 }
 

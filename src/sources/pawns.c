@@ -20,19 +20,41 @@
 #include "lazy_smp.h"
 #include "pawns.h"
 
-const scorepair_t BackwardPenalty = SPAIR(-5, -4);
-const scorepair_t StragglerPenalty = SPAIR(-16, -18);
-const scorepair_t DoubledPenalty = SPAIR(-21, -41);
-const scorepair_t IsolatedPenalty = SPAIR(-10, -22);
+const scorepair_t BackwardPenalty = SPAIR(-2, -5);
+const scorepair_t StragglerPenalty = SPAIR(-15, -19);
+const scorepair_t DoubledPenalty = SPAIR(-14, -41);
+const scorepair_t IsolatedPenalty = SPAIR(-5, -12);
 
 const scorepair_t PassedBonus[RANK_NB] = {
     0,
-    SPAIR(-17, 17),
-    SPAIR(-17, 19),
-    SPAIR( -7, 56),
-    SPAIR( 24, 90),
-    SPAIR( 49,153),
-    SPAIR( 98,258),
+    SPAIR(-15, 13),
+    SPAIR(-13, 17),
+    SPAIR(-10, 55),
+    SPAIR( 21, 87),
+    SPAIR( 47,155),
+    SPAIR( 91,259),
+    0
+};
+
+const scorepair_t PhalanxBonus[RANK_NB] = {
+    0,
+    SPAIR(  7, -3),
+    SPAIR( 14,  4),
+    SPAIR( 19, 20),
+    SPAIR( 32, 73),
+    SPAIR(158,213),
+    SPAIR(180,209),
+    0
+};
+
+const scorepair_t DefenderBonus[RANK_NB] = {
+    0,
+    SPAIR( 16, 13),
+    SPAIR( 11, 12),
+    SPAIR( 16, 20),
+    SPAIR( 47, 66),
+    SPAIR(150, 86),
+    0,
     0
 };
 
@@ -106,6 +128,33 @@ scorepair_t evaluate_backward(pawn_entry_t *entry, color_t us, bitboard_t ourPaw
     return (ret);
 }
 
+scorepair_t evaluate_connected(bitboard_t bb, color_t us)
+{
+    scorepair_t ret = 0;
+
+    bitboard_t phalanx = bb & shift_left(bb);
+
+    while (phalanx)
+    {
+        square_t sq = bb_pop_first_sq(&phalanx);
+
+        ret += PhalanxBonus[relative_sq_rank(sq, us)];
+        TRACE_ADD(IDX_PHALANX + relative_sq_rank(sq, us) - RANK_2, us, 1);
+    }
+
+    bitboard_t defenders = bb & (us == WHITE ? bpawns_attacks_bb(bb) : wpawns_attacks_bb(bb));
+
+    while (defenders)
+    {
+        square_t sq = bb_pop_first_sq(&defenders);
+
+        ret += DefenderBonus[relative_sq_rank(sq, us)];
+        TRACE_ADD(IDX_DEFENDER + relative_sq_rank(sq, us) - RANK_2, us, 1);
+    }
+
+    return (ret);
+}
+
 scorepair_t evaluate_doubled_isolated(bitboard_t bb, color_t us __attribute__((unused)))
 {
     scorepair_t ret = 0;
@@ -159,6 +208,8 @@ pawn_entry_t *pawn_probe(const board_t *board)
 
     entry->value += evaluate_backward(entry, WHITE, wpawns, bpawns);
     entry->value -= evaluate_backward(entry, BLACK, bpawns, wpawns);
+    entry->value += evaluate_connected(wpawns, WHITE);
+    entry->value -= evaluate_connected(bpawns, BLACK);
     entry->value += evaluate_passed(entry, WHITE, wpawns, bpawns);
     entry->value -= evaluate_passed(entry, BLACK, bpawns, wpawns);
     entry->value += evaluate_doubled_isolated(wpawns, WHITE);
