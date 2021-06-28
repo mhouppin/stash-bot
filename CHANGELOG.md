@@ -1,3 +1,178 @@
+## v31.0 (2021-06-26)
+
+### Regression test
+
+- LTC:
+  ```
+  ELO   | 61.64 +- 7.50 (95%)
+  SPRT  | 40.0+0.40s Threads=1 Hash=64MB
+  LLR   | 2.95 (-2.94, 2.94) [0.00, 1.00]
+  Games | N: 3736 W: 1176 L: 520 D: 2040
+  ```
+
+### Fixed (3 changes)
+
+- Fixed issues with benchmark containing commas for CI.
+- Fixed some odd behaviors on fixed depth/infinite search with SMP + mate
+  pruning on root nodes. (This is technically a functional change, but since
+  it only triggers in mate-in-one positions, no regression tests were made.)
+- Fixed a dead store of the variable 'piece' in undo_move() function.
+
+### Performance (11 changes)
+
+- Added AdaGrad tuning to the code base and retuned all eval parameters. To use
+  Stash in tuning mode, compile with `'CFLAGS="-DTUNE -fopenmp" make ...'`. You
+  then can do `./stash-bot dataset_file` to launch the tuning session. The
+  expected format for the dataset is `FEN OUTCOME`, with the outcome being 1.0
+  for White wins, 0.5 for draws, and 0.0 for Black wins. (Note that it is
+  possible to use more fine-grained values like 0.7 and such, but it hasn't
+  been tested yet.)
+  ```
+  ELO   | 9.47 +- 6.20 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.95 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 6496 W: 1840 L: 1663 D: 2993
+  ```
+  The tuner was later changed to include a validation loss and have a better
+  output of tuned values.
+
+- Rewrote the King Safety code from scratch, now including the total attack
+  count and the potential safe checks on the enemy King. Also changed the KS
+  scaling to be quadratic in middlegame, and linear in endgame.
+  ```
+  ELO   | 4.24 +- 3.38 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.96 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 19736 W: 4941 L: 4700 D: 10095
+  ```
+  Weak and safe squares were redefined in the next test, pushing the total gain
+  to +13 Elo.
+  ```
+  ELO   | 9.69 +- 5.90 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 3.08 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 6064 W: 1466 L: 1297 D: 3301
+  ```
+
+- Allowed capture/promotion moves to be reduced in LMR by one ply.
+  ```
+  ELO   | 4.88 +- 3.77 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.98 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 15174 W: 3640 L: 3427 D: 8107
+  ```
+
+- Forced LMR depth to be > 0 to avoid dropping into qsearch.
+  ```
+  ELO   | 3.14 +- 2.51 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.96 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 33842 W: 7925 L: 7619 D: 18298
+  ```
+
+- Added ponder support to the codebase.
+
+- Raised SEE Pruning max depth to 5.
+  ```
+  ELO   | 7.18 +- 4.95 (95%)
+  SPRT  | 10.0+0.10s Threads=1 Hash=16MB
+  LLR   | 2.99 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 8612 W: 2055 L: 1877 D: 4680
+  ```
+
+- Disabled all pruning code when in check and removed eval computing. The logic
+  behind that is that King Safety values get pretty wild for positions with
+  check, because if the piece attacking the King is a slider, it may have a lot
+  of other possible safe checks along the King line. This test was done in two
+  commits, the first one removing computations from search:
+  ```
+  ELO   | 2.36 +- 1.66 (95%)
+  SPRT  | 10.0+0.10s Threads=1 Hash=16MB
+  LLR   | 3.01 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 75936 W: 17338 L: 16822 D: 41776
+  ```
+  and the second one, done later, removing computations from qsearch:
+  ```
+  ELO   | 4.25 +- 3.35 (95%)
+  SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+  LLR   | 2.96 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 17976 W: 4038 L: 3818 D: 10120
+  ```
+
+- Allowed entries with lower depth to conditionally replace other ones in TT.
+  Credits to Jay Honnold (Berserk's author) for this patch.
+  ```
+  ELO   | 7.49 +- 5.03 (95%)
+  SPRT  | 10.0+0.10s Threads=1 Hash=16MB
+  LLR   | 3.03 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 8160 W: 1909 L: 1733 D: 4518
+
+  ELO   | 28.87 +- 11.52 (95%)
+  SPRT  | 5.0+0.05s Threads=8 Hash=64MB
+  LLR   | 2.95 (-2.94, 2.94) [-4.00, 1.00]
+  Games | N: 1520 W: 393 L: 267 D: 860
+  ```
+  A later patch that failed yellow was pushed to make Stash's behavior much
+  more stable when reaching positions with lots of fail-highs (such as mate
+  positions).
+  ```
+  ELO   | 0.76 +- 1.58 (95%)
+  SPRT  | 40.0+0.40s Threads=1 Hash=64MB
+  LLR   | -2.97 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 64400 W: 11243 L: 11102 D: 42055
+  ```
+
+- Changed Razoring method so that it only triggers at depth 1.
+  ```
+  ELO   | 8.05 +- 5.24 (95%)
+  SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+  LLR   | 3.04 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 7424 W: 1721 L: 1549 D: 4154
+  ```
+
+- Add draw specifications for 5-man endgames with an extra pawn on one side,
+  such as KRPvKR, KBPvKN and such. (KQPvKQ isn't supported yet.)
+  ```
+  ELO   | 3.29 +- 2.65 (95%)
+  SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+  LLR   | 2.95 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 28640 W: 6349 L: 6078 D: 16213
+  ```
+
+- Added bonuses for connected Pawns (Phalanx and Defender) in Pawn eval.
+  ```
+  ELO   | 25.38 +- 10.40 (95%)
+  SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+  LLR   | 3.00 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 2002 W: 540 L: 394 D: 1068
+
+  ELO   | 18.57 +- 8.45 (95%)
+  SPRT  | 40.0+0.40s Threads=1 Hash=64MB
+  LLR   | 2.96 (-2.94, 2.94) [0.00, 5.00]
+  Games | N: 2640 W: 608 L: 467 D: 1565
+  ```
+
+### Changed (3 changes)
+
+- Allowed qsearch to differentiate between PV and non-PV nodes. This also
+  permits querying the PV from qsearch.
+  ```
+  ELO   | 1.29 +- 3.16 (95%)
+  SPRT  | 10.0+0.1s Threads=1 Hash=16MB
+  LLR   | 2.98 (-2.94, 2.94) [-4.00, 1.00]
+  Games | N: 20200 W: 4433 L: 4358 D: 11409
+  ```
+
+- Removed the condition that used to disable aspiration windows with high
+  scores. (Latest TT patches made Stash much more competitive at finding mates
+  without this condition. This is technically  a functional change, but no
+  tests were run because the value is above the resign threshold used for test
+  games.)
+
+- Added a script for generating opening books in PGN format to the utils/
+  folder, and changed the FEN extractor to do a shallow search before adding
+  FENs to the dataset.
+
 ## v30.0 (2021-04-30)
 
 ### Regression test

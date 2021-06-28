@@ -7,7 +7,7 @@
 
 set -e
 
-version=30.0
+version=31.0
 
 cd $(dirname "$0")
 
