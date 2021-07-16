@@ -256,7 +256,8 @@ __main_loop:
         if (!rootNode)
         {
             if (depth >= 9 && currmove == ttMove && !ss->excludedMove
-                && (ttBound & LOWER_BOUND) && ttDepth >= depth - 2)
+                && (ttBound & LOWER_BOUND) && abs(ttScore) < VICTORY
+                && ttDepth >= depth - 2)
             {
                 score_t singularBeta = ttScore - depth;
                 int singularDepth = depth / 2;
