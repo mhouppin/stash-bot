@@ -471,6 +471,11 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
 
     while ((currmove = movepick_next_move(&mp, false)) != NO_MOVE)
     {
+        // Only analyse good capture moves.
+
+        if (bestScore > -MATE_FOUND && mp.stage == PICK_BAD_INSTABLE)
+            break ;
+
         if (!move_is_legal(board, currmove))
             continue ;
 
@@ -487,11 +492,6 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
             if (delta < alpha)
                 continue ;
         }
-
-        // Only analyse good capture moves.
-
-        if (bestScore > -MATE_FOUND && !see_greater_than(board, currmove, 0))
-            continue ;
 
         ss->currentMove = currmove;
         {
