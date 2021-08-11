@@ -35,7 +35,6 @@ void start_tuning_session(const char *filename)
     K = compute_optimal_k(&data);
 
     size_t batches = data.size / BATCH_SIZE;
-    batches = batches * 4 / 5;
 
     for (int iter = 0; iter < ITERS; ++iter)
     {
@@ -56,15 +55,13 @@ void start_tuning_session(const char *filename)
             }
         }
 
-        double resultPair[2];
-
-        adjusted_eval_mse(&data, delta, K, resultPair, batches * BATCH_SIZE);
-        printf("Iteration [%d], Train Loss [%.7f], Val. Loss [%.7f]\n", iter, resultPair[0], resultPair[1]);
+        double loss = adjusted_eval_mse(&data, delta, K);
+        printf("Iteration [%d], Loss [%.7f]\n", iter, loss);
 
         if (iter % LR_DROP_ITERS == LR_DROP_ITERS - 1)
             lr /= LR_DROP_VALUE;
 
-        if (iter % 50 == 49)
+        if (iter % 50 == 49 || iter == ITERS - 1)
             print_parameters(base, delta);
 
         fflush(stdout);
@@ -342,20 +339,15 @@ double static_eval_mse(const tune_data_t *data, double K)
     return (total / data->size);
 }
 
-void adjusted_eval_mse(const tune_data_t *data, const tp_vector_t delta, double K, double resultPair[2], size_t split)
+double adjusted_eval_mse(const tune_data_t *data, const tp_vector_t delta, double K)
 {
-    resultPair[0] = resultPair[1] = 0;
     double safetyScores[COLOR_NB][PHASE_NB];
+    double result = 0.0;
 
-    for (size_t i = 0; i < split; ++i)
-        resultPair[0] += pow(data->entries[i].gameResult - sigmoid(K, adjusted_eval(data->entries + i, delta, safetyScores)), 2);
+    for (size_t i = 0; i < data->size; ++i)
+        result += pow(data->entries[i].gameResult - sigmoid(K, adjusted_eval(data->entries + i, delta, safetyScores)), 2);
 
-    resultPair[0] /= split;
-
-    for (size_t i = split; i < data->size; ++i)
-        resultPair[1] += pow(data->entries[i].gameResult - sigmoid(K, adjusted_eval(data->entries + i, delta, safetyScores)), 2);
-
-    resultPair[1] /= (data->size - split);
+    return (result / data->size);
 }
 
 double adjusted_eval(const tune_entry_t *entry, const tp_vector_t delta, double safetyScores[COLOR_NB][PHASE_NB])
@@ -420,19 +412,25 @@ double adjusted_eval(const tune_entry_t *entry, const tp_vector_t delta, double 
 
 void compute_gradient(const tune_data_t *data, tp_vector_t gradient, const tp_vector_t delta, double K, int batchIdx)
 {
-    #pragma omp parallel shared(gradient)
+    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+    #pragma omp parallel shared(gradient, mutex)
     {
         tp_vector_t local = {};
 
-        #pragma omp for schedule(static, BATCH_SIZE / THREADS)
+        #pragma omp for schedule(static, (BATCH_SIZE - 1) / THREADS + 1)
         for (int i = 0; i < BATCH_SIZE; ++i)
             update_gradient(data->entries + (size_t)batchIdx * BATCH_SIZE + i, local, delta, K);
+
+        pthread_mutex_lock(&mutex);
 
         for (int i = 0; i < IDX_COUNT; ++i)
         {
             gradient[i][MIDGAME] += local[i][MIDGAME];
             gradient[i][ENDGAME] += local[i][ENDGAME];
         }
+
+        pthread_mutex_unlock(&mutex);
     }
 }
 
