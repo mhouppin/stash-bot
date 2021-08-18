@@ -273,7 +273,7 @@ INLINED square_t bb_first_sq(bitboard_t b)
 
 INLINED square_t bb_last_sq(bitboard_t b)
 {
-    return (SQ_A8 ^ __builtin_clzll(b));
+    return (SQ_H8 ^ __builtin_clzll(b));
 }
 
 # elif defined(_MSC_VER)

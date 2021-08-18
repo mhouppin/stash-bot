@@ -53,7 +53,7 @@ INLINED unsigned int kpk_index(color_t stm, square_t bksq, square_t wksq, square
             );
 }
 
-INLINED bool kpk_is_winning(color_t stm, square_t bksq, square_t wksq, square_t psq)
+bool kpk_is_winning(color_t stm, square_t bksq, square_t wksq, square_t psq)
 {
     unsigned int index = kpk_index(stm, bksq, wksq, psq);
 

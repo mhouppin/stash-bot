@@ -66,6 +66,7 @@ extern endgame_entry_t EndgameTable[EGTB_SIZE];
 
 void init_endgame_table(void);
 void init_kpk_bitbase(void);
+bool kpk_is_winning(color_t stm, square_t bksq, square_t wksq, square_t psq);
 
 score_t eval_draw(const board_t *board, color_t winningSide);
 score_t eval_krkn(const board_t *board, color_t winningSide);
@@ -75,7 +76,9 @@ score_t eval_kbnk(const board_t *board, color_t winningSide);
 score_t eval_kqkr(const board_t *board, color_t winningSide);
 score_t eval_kqkp(const board_t *board, color_t winningSide);
 score_t eval_kpk(const board_t *board, color_t winningSide);
+score_t eval_kpsk(const board_t *board, color_t winningSide);
 score_t eval_knnkp(const board_t *board, color_t winningSide);
+score_t eval_kbpsk(const board_t *board, color_t winningSide);
 
 const endgame_entry_t *endgame_probe(const board_t *board);
 
