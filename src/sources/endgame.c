@@ -257,6 +257,56 @@ score_t eval_krpkr(const board_t *board, color_t winningSide)
     return (score);
 }
 
+score_t eval_kbpsk(const board_t *board, color_t winningSide)
+{
+    pawn_entry_t *pe = pawn_probe(board);
+    score_t score = endgame_score(pe->value + board->psqScorePair);
+    color_t losingSide = not_color(winningSide);
+
+    square_t winningKsq = relative_sq(get_king_square(board, winningSide), winningSide);
+    square_t winningBsq = relative_sq(bb_first_sq(piecetype_bb(board, BISHOP)), winningSide);
+    square_t losingKsq = relative_sq(get_king_square(board, losingSide), winningSide);
+    bitboard_t winningPawns = piecetype_bb(board, PAWN);
+    bitboard_t wrongFile = (square_bb(winningBsq) & DARK_SQUARES) ? FILE_A_BITS : FILE_H_BITS;
+
+    if ((winningPawns & wrongFile) == winningPawns)
+    {
+        square_t mostAdvancedPawn = (winningSide == WHITE)
+            ? bb_last_sq(winningPawns)
+            : bb_first_sq(winningPawns) ^ SQ_A8;
+        color_t us = (board->sideToMove == winningSide) ? WHITE : BLACK;
+
+        if (!kpk_is_winning(us, losingKsq, winningKsq, mostAdvancedPawn))
+            return (0);
+    }
+
+    return (board->sideToMove == WHITE ? score : -score);
+}
+
+score_t eval_kpsk(const board_t *board, color_t winningSide)
+{
+    pawn_entry_t *pe = pawn_probe(board);
+    score_t score = endgame_score(pe->value + board->psqScorePair);
+    color_t losingSide = not_color(winningSide);
+
+    square_t winningKsq = relative_sq(get_king_square(board, winningSide), winningSide);
+    square_t losingKsq = relative_sq(get_king_square(board, losingSide), winningSide);
+    bitboard_t winningPawns = piecetype_bb(board, PAWN);
+
+    if ((winningPawns & FILE_A_BITS) == winningPawns || (winningPawns & FILE_H_BITS) == winningPawns)
+    {
+        square_t mostAdvancedPawn = (winningSide == WHITE)
+            ? bb_last_sq(winningPawns)
+            : bb_first_sq(winningPawns) ^ SQ_A8;
+        color_t us = (board->sideToMove == winningSide) ? WHITE : BLACK;
+
+        if (!kpk_is_winning(us, losingKsq, winningKsq, mostAdvancedPawn))
+            return (0);
+    }
+
+    return (board->sideToMove == WHITE ? score : -score);
+}
+
 void add_colored_entry(color_t winningSide, char *wpieces, char *bpieces, endgame_func_t func)
 {
     char bcopy[16];
@@ -329,6 +379,21 @@ void init_endgame_table(void)
     add_endgame_entry("KBPvKN", &eval_kmpkn);
     add_endgame_entry("KNPvKB", &eval_kmpkb);
     add_endgame_entry("KBPvKB", &eval_kmpkb);
+
+    // KPsK endgames
+
+    add_endgame_entry("KPPvK", &eval_kpsk);
+    add_endgame_entry("KPPPvK", &eval_kpsk);
+    add_endgame_entry("KPPPPvK", &eval_kpsk);
+    add_endgame_entry("KPPPPPvK", &eval_kpsk);
+    
+    // KBPsK endgames
+
+    add_endgame_entry("KBPvK", &eval_kbpsk);
+    add_endgame_entry("KBPPvK", &eval_kbpsk);
+    add_endgame_entry("KBPPPvK", &eval_kbpsk);
+    add_endgame_entry("KBPPPPvK", &eval_kbpsk);
+    add_endgame_entry("KBPPPPPvK", &eval_kbpsk);
 
     add_endgame_entry("KBNvK", &eval_kbnk);
 }
