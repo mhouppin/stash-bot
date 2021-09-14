@@ -278,6 +278,66 @@ void free_boardstack(boardstack_t *stack)
     }
 }
 
+const char *board_fen(const board_t *board)
+{
+    const char *pieceToChar = " PNBRQK  pnbrqk";
+    static char fenBuffer[128];
+    char *ptr = fenBuffer;
+
+    for (rank_t rank = RANK_8; rank >= RANK_1; --rank)
+    {
+        for (file_t file = FILE_A; file <= FILE_H; ++file)
+        {
+            int emptyCount;
+
+            for (emptyCount = 0; file <= FILE_H && empty_square(board, create_sq(file, rank)); ++file)
+                ++emptyCount;
+
+            if (emptyCount)
+                *(ptr++) = emptyCount + '0';
+
+            if (file <= FILE_H)
+                *(ptr++) = pieceToChar[piece_on(board, create_sq(file, rank))];
+        }
+
+        if (rank > RANK_1)
+            *(ptr++) = '/';
+    }
+
+    *(ptr++) = ' ';
+    *(ptr++) = (board->sideToMove == WHITE) ? 'w' : 'b';
+    *(ptr++) = ' ';
+
+    if (board->stack->castlings & WHITE_OO)
+        *(ptr++) = board->chess960 ? 'A' + sq_file(board->castlingRookSquare[WHITE_OO]) : 'K';
+
+    if (board->stack->castlings & WHITE_OOO)
+        *(ptr++) = board->chess960 ? 'A' + sq_file(board->castlingRookSquare[WHITE_OOO]) : 'Q';
+
+    if (board->stack->castlings & BLACK_OO)
+        *(ptr++) = board->chess960 ? 'a' + sq_file(board->castlingRookSquare[BLACK_OO]) : 'k';
+
+    if (board->stack->castlings & BLACK_OOO)
+        *(ptr++) = board->chess960 ? 'a' + sq_file(board->castlingRookSquare[BLACK_OOO]) : 'q';
+
+    if (!(board->stack->castlings & ANY_CASTLING))
+        *(ptr++) = '-';
+
+    *(ptr++) = ' ';
+
+    if (board->stack->enPassantSquare == SQ_NONE)
+        *(ptr++) = '-';
+    else
+    {
+        *(ptr++) = 'a' + sq_file(board->stack->enPassantSquare);
+        *(ptr++) = '1' + sq_rank(board->stack->enPassantSquare);
+    }
+
+    sprintf(ptr, " %d %d", board->stack->rule50, (board->ply - (board->sideToMove == BLACK)) / 2);
+
+    return fenBuffer;
+}
+
 void do_move_gc(board_t *board, move_t move, boardstack_t *next, bool givesCheck)
 {
     get_worker(board)->nodes += 1;

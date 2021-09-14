@@ -232,7 +232,7 @@ void uci_d(const char *args __attribute__((unused)))
         puts(grid);
     }
 
-    printf("\nKey: 0x%" KEY_INFO "\n", (info_t)Board.stack->boardKey);
+    printf("\nFEN: %s\nKey: 0x%" KEY_INFO "\n", board_fen(&Board), (info_t)Board.stack->boardKey);
 
     double eval = (double)evaluate(&Board) / 100.0;
 

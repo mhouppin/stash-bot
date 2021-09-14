@@ -464,10 +464,10 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
     if (pvNode)
         (ss + 1)->pv = pv;
 
-    // Check if delta pruning is possible.
+    // Check if futility pruning is possible.
 
-    const bool deltaPruning = (!inCheck && popcount(board->piecetypeBB[ALL_PIECES]) > 6);
-    const score_t deltaBase = bestScore + 200;
+    const bool canFutilityPrune = (!inCheck && popcount(board->piecetypeBB[ALL_PIECES]) > 6);
+    const score_t futilityBase = bestScore + 200;
 
     while ((currmove = movepick_next_move(&mp, false)) != NO_MOVE)
     {
@@ -483,9 +483,9 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
 
         bool givesCheck = move_gives_check(board, currmove);
 
-        if (bestScore > -MATE_FOUND && deltaPruning && !givesCheck && move_type(currmove) == NORMAL_MOVE)
+        if (bestScore > -MATE_FOUND && canFutilityPrune && !givesCheck && move_type(currmove) == NORMAL_MOVE)
         {
-            score_t delta = deltaBase + PieceScores[ENDGAME][piece_on(board, to_sq(currmove))];
+            score_t delta = futilityBase + PieceScores[ENDGAME][piece_on(board, to_sq(currmove))];
 
             // Check if the move is very unlikely to improve alpha.
 
