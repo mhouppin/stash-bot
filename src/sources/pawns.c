@@ -20,27 +20,27 @@
 #include "lazy_smp.h"
 #include "pawns.h"
 
-const scorepair_t BackwardPenalty = SPAIR(-2, -5);
-const scorepair_t StragglerPenalty = SPAIR(-15, -19);
+const scorepair_t BackwardPenalty = SPAIR(-5, -6);
+const scorepair_t StragglerPenalty = SPAIR(-14, -21);
 const scorepair_t DoubledPenalty = SPAIR(-14, -41);
-const scorepair_t IsolatedPenalty = SPAIR(-5, -12);
+const scorepair_t IsolatedPenalty = SPAIR(-8, -11);
 
 const scorepair_t PassedBonus[RANK_NB] = {
     0,
-    SPAIR(-15, 13),
-    SPAIR(-13, 17),
-    SPAIR(-10, 55),
-    SPAIR( 21, 87),
+    SPAIR(-13, 12),
+    SPAIR(-13, 15),
+    SPAIR( -8, 55),
+    SPAIR( 21, 88),
     SPAIR( 47,155),
-    SPAIR( 91,259),
+    SPAIR( 92,262),
     0
 };
 
 const scorepair_t PhalanxBonus[RANK_NB] = {
     0,
-    SPAIR(  7, -3),
+    SPAIR(  8, -2),
     SPAIR( 14,  4),
-    SPAIR( 19, 20),
+    SPAIR( 22, 21),
     SPAIR( 32, 73),
     SPAIR(158,213),
     SPAIR(180,209),
@@ -50,8 +50,8 @@ const scorepair_t PhalanxBonus[RANK_NB] = {
 const scorepair_t DefenderBonus[RANK_NB] = {
     0,
     SPAIR( 16, 13),
-    SPAIR( 11, 12),
-    SPAIR( 16, 20),
+    SPAIR( 12, 12),
+    SPAIR( 14, 21),
     SPAIR( 47, 66),
     SPAIR(150, 86),
     0,
