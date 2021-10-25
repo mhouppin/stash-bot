@@ -170,7 +170,7 @@ void set_board(board_t *board, char *fen, bool isChess960, boardstack_t *bstack)
     // allow the parsing to still work correctly.
 
     board->stack->rule50 = fenRule50 ? atoi(fenRule50) : 0;
-    board->ply = fenTurn ? atoi(fenTurn) : 0;
+    board->ply = fenTurn ? atoi(fenTurn) : 1;
     board->ply = max(0, 2 * (board->ply - 1));
     board->ply += (board->sideToMove == BLACK);
     board->chess960 = isChess960;
@@ -333,7 +333,7 @@ const char *board_fen(const board_t *board)
         *(ptr++) = '1' + sq_rank(board->stack->enPassantSquare);
     }
 
-    sprintf(ptr, " %d %d", board->stack->rule50, (board->ply - (board->sideToMove == BLACK)) / 2);
+    sprintf(ptr, " %d %d", board->stack->rule50, 1 + (board->ply - (board->sideToMove == BLACK)) / 2);
 
     return fenBuffer;
 }

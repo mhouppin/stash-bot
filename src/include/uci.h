@@ -26,9 +26,9 @@
 # include <time.h>
 # include "inlining.h"
 
-# define UCI_VERSION "v31.9"
+# define UCI_VERSION "v31.10"
 
-# ifdef PRIu64
+# if (SIZE_MAX == UINT64_MAX)
 #  define FMT_INFO PRIu64
 #  define KEY_INFO PRIx64
 typedef uint64_t info_t;
