@@ -186,6 +186,17 @@ void init_base_values(tp_vector_t base)
             base[IDX_DEFENDER + r - RANK_2][ENDGAME] = endgame_score(DefenderBonus[r]);
         }
     }
+
+    extern const scorepair_t PP_OurKingProximity[8], PP_TheirKingProximity[8];
+
+    for (int distance = 1; distance <= 7; ++distance)
+    {
+        base[IDX_PP_OUR_KING_PROX + distance - 1][MIDGAME] = midgame_score(PP_OurKingProximity[distance]);
+        base[IDX_PP_OUR_KING_PROX + distance - 1][ENDGAME] = endgame_score(PP_OurKingProximity[distance]);
+
+        base[IDX_PP_THEIR_KING_PROX + distance - 1][MIDGAME] = midgame_score(PP_TheirKingProximity[distance]);
+        base[IDX_PP_THEIR_KING_PROX + distance - 1][ENDGAME] = endgame_score(PP_TheirKingProximity[distance]);
+    }
 }
 
 void init_tuner_entries(tune_data_t *data, const char *filename)
@@ -226,6 +237,7 @@ void init_tuner_entries(tune_data_t *data, const char *filename)
             fputs("Unable to read game result\n", stdout);
             exit(EXIT_FAILURE);
         }
+
 
         set_board(&board, linebuf, false, &stack);
         if (init_tuner_entry(cur, &board))
@@ -579,6 +591,11 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
     PRINT_SPA(IDX_PHALANX, PhalanxBonus, 6, 3, 1, "SPAIR");
     putchar('\n');
     PRINT_SPA(IDX_DEFENDER, DefenderBonus, 5, 3, 1, "SPAIR");
+    putchar('\n');
+
+    PRINT_SPA(IDX_PP_OUR_KING_PROX, PP_OurKingProximity, 7, 3, 1, "SPAIR");
+    putchar('\n');
+    PRINT_SPA(IDX_PP_THEIR_KING_PROX, PP_TheirKingProximity, 7, 3, 1, "SPAIR");
     putchar('\n');
 }
 
