@@ -27,6 +27,7 @@ typedef struct pawn_entry_s
     bitboard_t attackSpan[COLOR_NB];
     bitboard_t attacks[COLOR_NB];
     bitboard_t attacks2[COLOR_NB];
+    bitboard_t passed[COLOR_NB];
     scorepair_t value;
 }
 pawn_entry_t;

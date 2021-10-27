@@ -21,39 +21,39 @@
 #include "pawns.h"
 
 const scorepair_t BackwardPenalty = SPAIR(-5, -5);
-const scorepair_t StragglerPenalty = SPAIR(-13, -22);
-const scorepair_t DoubledPenalty = SPAIR(-16, -41);
-const scorepair_t IsolatedPenalty = SPAIR(-8, -10);
+const scorepair_t StragglerPenalty = SPAIR(-15, -22);
+const scorepair_t DoubledPenalty = SPAIR(-18, -37);
+const scorepair_t IsolatedPenalty = SPAIR(-10, -9);
 
 const scorepair_t PassedBonus[RANK_NB] = {
     0,
-    SPAIR(-12, 10),
-    SPAIR(-13, 12),
-    SPAIR( -7, 54),
-    SPAIR( 20, 89),
-    SPAIR( 47,154),
-    SPAIR( 93,266),
+    SPAIR(-14,-29),
+    SPAIR( -9,-17),
+    SPAIR( -6, 45),
+    SPAIR( 18, 97),
+    SPAIR( 46,173),
+    SPAIR( 78,308),
     0
 };
 
 const scorepair_t PhalanxBonus[RANK_NB] = {
     0,
-    SPAIR(  8, -2),
-    SPAIR( 14,  4),
-    SPAIR( 22, 21),
-    SPAIR( 32, 72),
-    SPAIR(158,213),
-    SPAIR(180,209),
+    SPAIR(  3,  1),
+    SPAIR( 12,  5),
+    SPAIR( 24, 22),
+    SPAIR( 41, 48),
+    SPAIR(158,212),
+    SPAIR(181,216),
     0
 };
 
 const scorepair_t DefenderBonus[RANK_NB] = {
     0,
-    SPAIR( 15, 13),
-    SPAIR( 12, 13),
-    SPAIR( 14, 21),
-    SPAIR( 47, 66),
-    SPAIR(150, 86),
+    SPAIR( 11, 16),
+    SPAIR( 11, 15),
+    SPAIR( 17, 24),
+    SPAIR( 44, 74),
+    SPAIR(152, 91),
     0,
     0
 };
@@ -75,6 +75,7 @@ scorepair_t evaluate_passed(pawn_entry_t *entry, color_t us, bitboard_t ourPawns
             && (queening & entry->attacks2[not_color(us)] & ~entry->attacks2[us]) == 0)
         {
             ret += PassedBonus[relative_sq_rank(sq, us)];
+            entry->passed[us] |= square_bb(sq);
             TRACE_ADD(IDX_PASSER + relative_sq_rank(sq, us) - RANK_2, us, 1);
         }
     }
@@ -197,6 +198,7 @@ pawn_entry_t *pawn_probe(const board_t *board)
     entry->key = board->stack->pawnKey;
     entry->value = 0;
     entry->attackSpan[WHITE] = entry->attackSpan[BLACK] = 0;
+    entry->passed[WHITE] = entry->passed[BLACK] = 0;
 
     const bitboard_t wpawns = piece_bb(board, WHITE, PAWN);
     const bitboard_t bpawns = piece_bb(board, BLACK, PAWN);
