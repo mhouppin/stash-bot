@@ -26,7 +26,7 @@
 # include <time.h>
 # include "inlining.h"
 
-# define UCI_VERSION "v31.11"
+# define UCI_VERSION "v31.12"
 
 # if (SIZE_MAX == UINT64_MAX)
 #  define FMT_INFO PRIu64
