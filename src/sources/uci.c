@@ -210,7 +210,7 @@ void uci_ucinewgame(const char *args)
 {
     (void)args;
     wait_search_end();
-    tt_bzero();
+    tt_bzero((size_t)Options.threads);
     wpool_reset();
 }
 
@@ -497,7 +497,7 @@ void on_hash_set(void *data)
 
 void on_clear_hash(void *nothing __attribute__((unused)))
 {
-    tt_bzero();
+    tt_bzero((size_t)Options.threads);
     puts("info string cleared hash");
     fflush(stdout);
 }

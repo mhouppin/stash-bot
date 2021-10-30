@@ -24,9 +24,9 @@
 # include <stdbool.h>
 # include <stddef.h>
 # include <time.h>
-# include "inlining.h"
+# include "lazy_smp.h"
 
-# define UCI_VERSION "v31.12"
+# define UCI_VERSION "v31.13"
 
 # if (SIZE_MAX == UINT64_MAX)
 #  define FMT_INFO PRIu64
