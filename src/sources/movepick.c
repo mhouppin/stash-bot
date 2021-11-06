@@ -53,21 +53,31 @@ void movepick_init(movepick_t *mp, bool inQsearch, const board_t *board,
 
 static void score_captures(movepick_t *mp, extmove_t *begin, extmove_t *end)
 {
+    static const score_t MVV_LVA[PIECETYPE_NB] = {
+        0, 0, 640, 640, 1280, 2560, 0, 0
+    };
+
     while (begin < end)
     {
-        if (move_type(begin->move) == PROMOTION)
-            begin->score = promotion_type(begin->move) == QUEEN ? 4096 : -1;
+        move_t move = begin->move;
+        square_t to = to_sq(move);
+        piece_t movedPiece = piece_on(mp->board, from_sq(move));
+        piecetype_t captured = piece_type(piece_on(mp->board, to));
 
-        else if (move_type(begin->move) == EN_PASSANT)
-            begin->score = PAWN * 8 - PAWN;
-
-        else
+        if (move_type(move) == PROMOTION)
         {
-            piecetype_t moved = piece_type(piece_on(mp->board, from_sq(begin->move)));
-            piecetype_t captured = piece_type(piece_on(mp->board, to_sq(begin->move)));
-
-            begin->score = captured * 8 - moved;
+            begin->score = MVV_LVA[promotion_type(move)];
+            captured = piece_type(promotion_type(move));
         }
+        else if (move_type(move) == EN_PASSANT)
+        {
+            begin->score = MVV_LVA[PAWN];
+            captured = PAWN;
+        }
+        else
+            begin->score = MVV_LVA[captured];
+
+        begin->score += get_cap_history_score(mp->worker->capHistory, movedPiece, to, captured);
 
         ++begin;
     }
@@ -142,7 +152,7 @@ __top:
             {
                 place_top_move(mp->cur, mp->list.last);
 
-                if (mp->cur->move != mp->ttMove && mp->cur->score >= 0 && see_greater_than(mp->board, mp->cur->move, 0))
+                if (mp->cur->move != mp->ttMove && see_greater_than(mp->board, mp->cur->move, 0))
                     return ((mp->cur++)->move);
 
                 *(mp->badCaptures++) = *(mp->cur++);

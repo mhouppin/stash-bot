@@ -152,6 +152,7 @@ void *engine_go(void *ptr)
     memset(worker->bfHistory, 0, sizeof(butterfly_history_t));
     memset(worker->ctHistory, 0, sizeof(continuation_history_t));
     memset(worker->cmHistory, 0, sizeof(countermove_history_t));
+    memset(worker->capHistory, 0, sizeof(capture_history_t));
     worker->verifPlies = 0;
 
     // The main thread initializes all the shared things for search here:

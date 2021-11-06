@@ -47,6 +47,7 @@ typedef struct worker_s
     butterfly_history_t bfHistory;
     continuation_history_t ctHistory;
     countermove_history_t cmHistory;
+    capture_history_t capHistory;
     pawn_entry_t *pawnTable;
 
     int seldepth;
