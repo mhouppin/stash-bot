@@ -19,15 +19,15 @@
 #include "engine.h"
 #include "lazy_smp.h"
 
-void    update_quiet_history(const board_t *board, int depth,
-        move_t bestmove, const move_t quiets[64], int qcount, searchstack_t *ss)
+void update_quiet_history(const board_t *board, int depth,
+    move_t bestmove, const move_t quiets[64], int qcount, searchstack_t *ss)
 {
     butterfly_history_t *bfHist = &get_worker(board)->bfHistory;
     square_t lastTo = SQ_A1;
     piece_t lastPiece = NO_PIECE;
     square_t to;
     piece_t piece;
-    int bonus = (depth <= 12) ? 32 * depth * depth : 40;
+    int bonus = history_bonus(depth);
     move_t previousMove = (ss - 1)->currentMove;
 
     piece = piece_on(board, from_sq(bestmove));
@@ -69,4 +69,33 @@ void    update_quiet_history(const board_t *board, int depth,
         if ((ss - 2)->pieceHistory != NULL)
             add_pc_history(*(ss - 2)->pieceHistory, piece, to, -bonus);
     }
+}
+
+void update_single_capture(capture_history_t *capHist, const board_t *board,
+    move_t move, int bonus)
+{
+    square_t from = from_sq(move);
+    piece_t movedPiece = piece_on(board, from);
+    square_t to = to_sq(move);
+    piecetype_t captured = piece_type(piece_on(board, to));
+
+    if (move_type(move) == PROMOTION)
+        captured = piece_type(promotion_type(move));
+    else if (move_type(move) == EN_PASSANT)
+        captured = PAWN;
+
+    add_cap_history(*capHist, movedPiece, to, captured, bonus);
+}
+
+void update_capture_history(const board_t *board, int depth,
+    move_t bestmove, const move_t captures[64], int ccount, searchstack_t *ss)
+{
+    (void)ss;
+    capture_history_t *capHist = &get_worker(board)->capHistory;
+    int bonus = history_bonus(depth);
+
+    update_single_capture(capHist, board, bestmove, bonus);
+
+    for (int i = 0; i < ccount; ++i)
+        update_single_capture(capHist, board, captures[i], -bonus);
 }

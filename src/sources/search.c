@@ -195,6 +195,8 @@ __main_loop:
     int moveCount = 0;
     move_t quiets[64];
     int qcount = 0;
+    move_t captures[64];
+    int ccount = 0;
     bool skipQuiets = false;
 
     while ((currmove = movepick_next_move(&mp, skipQuiets)) != NO_MOVE)
@@ -354,6 +356,8 @@ __main_loop:
                 {
                     if (isQuiet)
                         update_quiet_history(board, depth, bestmove, quiets, qcount, ss);
+                    else if (moveCount != 1)
+                        update_capture_history(board, depth, bestmove, captures, ccount, ss);
                     break ;
                 }
             }
@@ -361,6 +365,8 @@ __main_loop:
 
         if (qcount < 64 && isQuiet)
             quiets[qcount++] = currmove;
+        else if (ccount < 64 && !isQuiet)
+            captures[ccount++] = currmove;
     }
 
     // Checkmate/Stalemate ?
