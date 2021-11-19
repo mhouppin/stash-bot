@@ -292,6 +292,9 @@ __main_loop:
 
                 R += !pvNode;
 
+                // Decrease if the move is a killer or countermove
+                R -= (currmove == mp.killer1 || currmove == mp.killer2 || currmove == mp.counter);
+
                 // Increase/decrease based on history
 
                 R -= histScore / 4000;
