@@ -79,6 +79,7 @@ typedef struct ucioptions_s
     long multiPv;
     bool chess960;
     bool ponder;
+    bool showCurrLine;
 }
 ucioptions_t;
 
