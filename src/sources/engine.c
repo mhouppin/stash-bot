@@ -253,18 +253,25 @@ __retry:
 
             if (!worker->idx)
             {
-                clock_t time = chess_clock() - Timeman.start;
+                clock_t now = chess_clock();
+                clock_t time = now - Timeman.start;
 
                 // Don't update Multi-PV lines if not all analysed at current depth
                 // and not enough time elapsed
 
                 if (multiPv == 1 && (bound == EXACT_BOUND || time > 3000))
                 {
+                    // Update the ping time since we sent some info
+                    Timeman.lastPing = now;
+
                     print_pv(board, worker->rootMoves, 1, iterDepth, time, bound);
                     fflush(stdout);
                 }
                 else if (multiPv > 1 && bound == EXACT_BOUND && (worker->pvLine == multiPv - 1 || time > 3000))
                 {
+                    // Update the ping time since we sent some info
+                    Timeman.lastPing = now;
+
                     for (int i = 0; i < multiPv; ++i)
                         print_pv(board, worker->rootMoves + i, i + 1, iterDepth, time, bound);
 
@@ -332,7 +339,7 @@ __retry:
     if (SearchParams.infinite || SearchParams.ponder)
         while (!search_should_abort() && !(SearchParams.ponder && EnginePonderhit))
             if (!worker->idx)
-                check_time();
+                check_time(NULL, board);
 
     // The main thread sends the bestmove here and wait for all workers to stop activity
 

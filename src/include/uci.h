@@ -26,7 +26,7 @@
 # include <time.h>
 # include "lazy_smp.h"
 
-# define UCI_VERSION "v31.17"
+# define UCI_VERSION "v31.18"
 
 # if (SIZE_MAX == UINT64_MAX)
 #  define FMT_INFO PRIu64
@@ -79,6 +79,7 @@ typedef struct ucioptions_s
     long multiPv;
     bool chess960;
     bool ponder;
+    bool showCurrLine;
 }
 ucioptions_t;
 

@@ -51,7 +51,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
     bool rootNode = (ss->plies == 0);
 
     if (!worker->idx)
-        check_time();
+        check_time(ss, board);
 
     if (pvNode && worker->seldepth < ss->plies + 1)
         worker->seldepth = ss->plies + 1;
@@ -244,6 +244,9 @@ __main_loop:
             printf("info depth %d currmove %s currmovenumber %d\n",
                 depth, move_to_str(currmove, board->chess960), moveCount + worker->pvLine);
             fflush(stdout);
+
+            // Update the ping time since we sent some info
+            Timeman.lastPing = chess_clock();
         }
 
         boardstack_t stack;
@@ -395,7 +398,7 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
     move_t pv[256];
 
     if (!worker->idx)
-        check_time();
+        check_time(ss, board);
 
     if (pvNode && worker->seldepth < ss->plies + 1)
         worker->seldepth = ss->plies + 1;

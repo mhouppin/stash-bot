@@ -42,7 +42,7 @@ int EnginePonderhit = 0;
 uint64_t Seed = 1048592ul;
 
 ucioptions_t Options = {
-    1, 16, 100, 1, false, false
+    1, 16, 100, 1, false, false, false
 };
 
 timeman_t Timeman;
