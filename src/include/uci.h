@@ -26,7 +26,7 @@
 # include <time.h>
 # include "lazy_smp.h"
 
-# define UCI_VERSION "v31.18"
+# define UCI_VERSION "v31.19"
 
 # if (SIZE_MAX == UINT64_MAX)
 #  define FMT_INFO PRIu64
