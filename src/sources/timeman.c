@@ -17,11 +17,9 @@
 */
 
 #include <math.h>
-#include <stdio.h>
 #include "engine.h"
 #include "imath.h"
 #include "lazy_smp.h"
-#include "movepick.h"
 #include "timeman.h"
 
 // Scaling table based on the move type
@@ -51,7 +49,7 @@ void timeman_init(const board_t *board, timeman_t *tm, goparams_t *params, clock
 {
     clock_t overhead = Options.moveOverhead;
 
-    tm->start = tm->lastPing = start;
+    tm->start = start;
     tm->pondering = false;
 
     if (params->wtime || params->btime)
@@ -171,30 +169,14 @@ void timeman_update(timeman_t *tm, const board_t *board, move_t bestmove, score_
     tm->optimalTime = min(tm->maximalTime, tm->averageTime * scale);
 }
 
-void check_time(const void *ptr, const board_t *board)
+void check_time(void)
 {
-    const searchstack_t *ss = ptr;
     if (--WPool.checks > 0)
         return ;
 
     // Reset check counter
 
     WPool.checks = 1000;
-
-    // Check if the last ping time is at least 3 seconds old.
-    // If that is the case, and "UCI_ShowCurrLine" is set to true,
-    // print the move stack to stdout. (Note that ss might be NULL
-    // when reaching the end of the search)
-    clock_t now = chess_clock();
-
-    if (now - Timeman.lastPing > 3000 && Options.showCurrLine && ss)
-    {
-        printf("info currline");
-        for (const searchstack_t *stack = ss - ss->plies; stack <= ss; ++stack)
-            printf(" %s", move_to_str(stack->currentMove, board->chess960));
-        puts("");
-        Timeman.lastPing = now;
-    }
 
     // If we are in infinite mode, or the stop has already been set,
     // we can safely return.
@@ -205,7 +187,7 @@ void check_time(const void *ptr, const board_t *board)
     if (get_node_count() >= SearchParams.nodes)
         goto __set_stop;
 
-    if (timeman_must_stop_search(&Timeman, now))
+    if (timeman_must_stop_search(&Timeman, chess_clock()))
         goto __set_stop;
 
     return ;
