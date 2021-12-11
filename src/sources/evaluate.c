@@ -221,7 +221,7 @@ score_t scale_endgame(const board_t *board, score_t eg)
     // No pawns and low material difference, the endgame is either drawn
     // or very difficult to win.
     if (!strongPawns && strongMat - weakMat <= BISHOP_MG_SCORE)
-        factor = (strongMat <= BISHOP_MG_SCORE) ? 0 : clamp((strongMat - weakMat) / 8, 8, 32);
+        factor = (strongMat <= BISHOP_MG_SCORE) ? 0 : max((int32_t)(strongMat - weakMat) * 8 / BISHOP_MG_SCORE, 0);
 
     // OCB endgames: scale based on the number of remaining pieces of the strong side.
     else if (ocb_endgame(board))

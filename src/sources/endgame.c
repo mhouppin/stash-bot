@@ -243,7 +243,7 @@ score_t eval_krpkr(const board_t *board, color_t winningSide)
                 return (score / 64);
         }
 
-        if (rankLK == RANK_1 && rankLR == RANK_1)
+        if (rankLK == RANK_8 && rankLR == RANK_8)
         {
             if (square_bb(winningPsq) & (FILE_A_BITS | FILE_B_BITS | FILE_G_BITS | FILE_H_BITS))
                 return (score / 16);
