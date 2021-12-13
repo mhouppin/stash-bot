@@ -54,6 +54,7 @@ int main(int argc, char **argv)
     bitboard_init();
     psq_score_init();
     zobrist_init();
+    cyclic_init();
     init_kpk_bitbase();
     init_endgame_table();
 
