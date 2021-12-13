@@ -41,6 +41,15 @@ void update_pv(move_t *pv, move_t bestmove, move_t *subPv)
 
 score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchstack_t *ss, bool pvNode)
 {
+    bool rootNode = (ss->plies == 0);
+
+    if (!rootNode && board->stack->rule50 >= 3 && alpha < 0 && game_has_cycle(board, ss->plies))
+    {
+        alpha = 0;
+        if (alpha >= beta)
+            return (alpha);
+    }
+
     if (depth <= 0)
         return (qsearch(board, alpha, beta, ss, pvNode));
 
@@ -48,7 +57,6 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
     movepick_t mp;
     move_t pv[256];
     score_t bestScore = -INF_SCORE;
-    bool rootNode = (ss->plies == 0);
 
     if (!worker->idx)
         check_time();

@@ -70,6 +70,7 @@ board_t;
 
 extern board_t Board;
 
+void cyclic_init(void);
 bitboard_t attackers_list(const board_t *board, square_t s, bitboard_t occupied);
 void do_castling(board_t *board, color_t us, square_t kingFrom, square_t *kingTo,
     square_t *rookFrom, square_t *rookTo);
@@ -77,6 +78,7 @@ void do_move_gc(board_t *board, move_t move, boardstack_t *stack, bool givesChec
 void do_null_move(board_t *board, boardstack_t *stack);
 const char *board_fen(const board_t *board);
 bool game_is_drawn(const board_t *board, int ply);
+bool game_has_cycle(const board_t *board, int ply);
 bool move_is_legal(const board_t *board, move_t move);
 bool move_is_pseudo_legal(const board_t *board, move_t move);
 bool move_gives_check(const board_t *board, move_t move);

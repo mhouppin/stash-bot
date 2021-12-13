@@ -27,6 +27,59 @@
 #include "tt.h"
 #include "uci.h"
 
+hashkey_t CyclicKeys[8192];
+move_t CyclicMoves[8192];
+
+INLINED uint16_t cyclic_index_lo(hashkey_t key)
+{
+    return key & 0x1FFFu;
+}
+
+INLINED uint16_t cyclic_index_hi(hashkey_t key)
+{
+    return (key >> 13) & 0x1FFFu;
+}
+
+void cyclic_init(void)
+{
+    // Map all reversible move Zobrist keys to their corresponding move.
+    for (piecetype_t pt = KNIGHT; pt <= KING; ++pt)
+        for (color_t c = WHITE; c <= BLACK; ++c)
+            for (square_t from = SQ_A1; from <= SQ_H8; ++from)
+                for (square_t to = from + 1; to <= SQ_H8; ++to)
+                    if (piece_moves(pt, from, 0) & square_bb(to))
+                    {
+                        move_t move = create_move(from, to);
+                        piece_t piece = create_piece(c, pt);
+                        hashkey_t key = ZobristPsq[piece][from] ^ ZobristPsq[piece][to] ^ ZobristBlackToMove;
+
+                        uint16_t index = cyclic_index_lo(key);
+
+                        // Swap the current move/key pair with the table content
+                        // until we find an empty slot.
+                        while (true)
+                        {
+                            hashkey_t tmpKey = CyclicKeys[index];
+                            CyclicKeys[index] = key;
+                            key = tmpKey;
+
+                            move_t tmpMove = CyclicMoves[index];
+                            CyclicMoves[index] = move;
+                            move = tmpMove;
+
+                            if (move == NO_MOVE)
+                                break ;
+
+                            // Trick: change the section of the key for indexing
+                            // by xor-ing the index value with the low and high
+                            // key indexes:
+                            // - if index == hi, index ^ lo ^ hi == lo
+                            // - if index == lo, index ^ lo ^ hi == hi
+                            index ^= cyclic_index_lo(key) ^ cyclic_index_hi(key);
+                        }
+                    }
+}
+
 void set_board(board_t *board, char *fen, bool isChess960, boardstack_t *bstack)
 {
     square_t square = SQ_A8;
@@ -629,6 +682,63 @@ bool game_is_drawn(const board_t *board, int ply)
     }
 
     return (!!board->stack->repetition && board->stack->repetition < ply);
+}
+
+bool game_has_cycle(const board_t *board, int ply)
+{
+    uint16_t index;
+    int maxPlies = min(board->stack->rule50, board->stack->pliesFromNullMove);
+
+    // If we have less than 3 plies without an irreversible move or a null move,
+    // we are guaranteed to not find a cycle in the position.
+    if (maxPlies < 3)
+        return (false);
+
+    hashkey_t originalKey = board->stack->boardKey;
+    boardstack_t *stackIt = board->stack->prev;
+
+    for (int i = 3; i <= maxPlies; i += 2)
+    {
+        // Only check for cycles from a single side.
+        stackIt = stackIt->prev->prev;
+
+        hashkey_t moveKey = originalKey ^ stackIt->boardKey;
+
+        // Check if the move key corresponds to a reversible move.
+        index = cyclic_index_lo(moveKey);
+        if (CyclicKeys[index] != moveKey)
+        {
+            index = cyclic_index_hi(moveKey);
+            if (CyclicKeys[index] != moveKey)
+                continue ;
+        }
+
+        move_t move = CyclicMoves[index];
+        square_t from = from_sq(move);
+        square_t to = to_sq(move);
+
+        // Check if there are no pieces between 'from' and 'to'.
+        if (between_bb(from, to) & occupancy_bb(board))
+            continue ;
+
+        // If the cycle is contained in the search tree, return true.
+        if (ply > i)
+            return (true);
+
+        // For nodes before the search tree or at the root, we check if the
+        // move created a repetition earlier (in the same logic spirit that
+        // we check for 2-fold repetitions in the search tree, or 3-fold for
+        // repetitions prior to root).
+        if (!stackIt->repetition)
+            continue ;
+
+        // Verify that we're making the cycle with our move. (This is only
+        // necessary for repetitions prior to root).
+        if (piece_color(piece_on(board, empty_square(board, from) ? to : from)) != board->sideToMove)
+            return (true);
+    }
+
+    return (false);
 }
 
 bool move_gives_check(const board_t *board, move_t move)
