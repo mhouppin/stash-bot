@@ -1,4 +1,3 @@
-
 /*
 **    Stash, a UCI chess playing engine developed from scratch
 **    Copyright (C) 2019-2021 Morgan Houppin
@@ -30,12 +29,19 @@
 #include "uci.h"
 
 int Reductions[64][64];
+int Pruning[2][10];
 
 void init_reduction_table(void)
 {
     for (int d = 1; d < 64; ++d)
         for (int m = 1; m < 64; ++m)
             Reductions[d][m] = -1.34 + log(d) * log(m) / 1.26;
+
+    for (int d = 1; d < 10; ++d)
+    {
+        Pruning[1][d] = +3.17 + 3.66 * pow(d, 1.09);
+        Pruning[0][d] = -1.25 + 3.13 * pow(d, 0.65);
+    }
 }
 
 uint64_t perft(board_t *board, unsigned int depth)
