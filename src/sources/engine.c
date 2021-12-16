@@ -1,4 +1,3 @@
-
 /*
 **    Stash, a UCI chess playing engine developed from scratch
 **    Copyright (C) 2019-2021 Morgan Houppin
@@ -31,12 +30,6 @@
 
 int Reductions[64][64];
 int Pruning[2][10];
-double LMP_IB = -4.0;
-double LMP_IK = 6.0;
-double LMP_IN = 1.0;
-double LMP_NB = -2.0;
-double LMP_NK = 3.0;
-double LMP_NN = 1.0;
 
 void init_reduction_table(void)
 {
@@ -46,8 +39,8 @@ void init_reduction_table(void)
 
     for (int d = 1; d < 10; ++d)
     {
-        Pruning[1][d] = LMP_IB + LMP_IK * pow(d, LMP_IN);
-        Pruning[0][d] = LMP_NB + LMP_NK * pow(d, LMP_NN);
+        Pruning[1][d] = +3.17 + 3.66 * pow(d, 1.09);
+        Pruning[0][d] = -1.25 + 3.13 * pow(d, 0.65);
     }
 }
 
@@ -175,7 +168,6 @@ void *engine_go(void *ptr)
     {
         tt_clear();
         timeman_init(board, &Timeman, &SearchParams, chess_clock());
-        init_reduction_table();
 
         if (SearchParams.depth == 0)
             SearchParams.depth = MAX_PLIES;

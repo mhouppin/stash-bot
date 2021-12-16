@@ -71,6 +71,7 @@ int main(int argc, char **argv)
 
     tt_resize(16);
     wpool_init(1);
+    init_reduction_table();
 
     // Start the main engine thread
 
