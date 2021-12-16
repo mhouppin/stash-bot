@@ -30,12 +30,25 @@
 #include "uci.h"
 
 int Reductions[64][64];
+int Pruning[2][10];
+double LMP_IB = -4.0;
+double LMP_IK = 6.0;
+double LMP_IN = 1.0;
+double LMP_NB = -2.0;
+double LMP_NK = 3.0;
+double LMP_NN = 1.0;
 
 void init_reduction_table(void)
 {
     for (int d = 1; d < 64; ++d)
         for (int m = 1; m < 64; ++m)
             Reductions[d][m] = -1.34 + log(d) * log(m) / 1.26;
+
+    for (int d = 1; d < 10; ++d)
+    {
+        Pruning[1][d] = LMP_IB + LMP_IK * pow(d, LMP_IN);
+        Pruning[0][d] = LMP_NB + LMP_NK * pow(d, LMP_NN);
+    }
 }
 
 uint64_t perft(board_t *board, unsigned int depth)
@@ -162,6 +175,7 @@ void *engine_go(void *ptr)
     {
         tt_clear();
         timeman_init(board, &Timeman, &SearchParams, chess_clock());
+        init_reduction_table();
 
         if (SearchParams.depth == 0)
             SearchParams.depth = MAX_PLIES;

@@ -28,6 +28,8 @@
 #include "tt.h"
 #include "uci.h"
 
+extern int Pruning[2][10];
+
 void update_pv(move_t *pv, move_t bestmove, move_t *subPv)
 {
     size_t i;
@@ -231,7 +233,7 @@ __main_loop:
         {
             // Late Move Pruning.
 
-            if (depth <= 5 && moveCount > (depth * 3 - 2) * (1 + improving))
+            if (depth <= 5 && moveCount > Pruning[improving][depth])
                 skipQuiets = true;
 
             // Futility Pruning.
