@@ -29,7 +29,7 @@
 #include "uci.h"
 
 int Reductions[64][64];
-int Pruning[2][10];
+int Pruning[2][7];
 
 void init_reduction_table(void)
 {
@@ -37,7 +37,7 @@ void init_reduction_table(void)
         for (int m = 1; m < 64; ++m)
             Reductions[d][m] = -1.34 + log(d) * log(m) / 1.26;
 
-    for (int d = 1; d < 10; ++d)
+    for (int d = 1; d < 7; ++d)
     {
         Pruning[1][d] = +3.17 + 3.66 * pow(d, 1.09);
         Pruning[0][d] = -1.25 + 3.13 * pow(d, 0.65);
