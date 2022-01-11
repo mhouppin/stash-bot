@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2021 Morgan Houppin
+**    Copyright (C) 2019-2022 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -376,7 +376,8 @@ double adjusted_eval(const tune_entry_t *entry, const tp_vector_t delta, double 
     double eg[2][COLOR_NB] = {0};
     double normal[PHASE_NB], safety[PHASE_NB];
 
-    // Save any modifications for MG or EG for each evaluation type
+    // Save any modifications for MG or EG for each evaluation type.
+
     for (int i = 0; i < entry->tupleCount; ++i)
     {
         int index = entry->tuples[i].index;
@@ -388,32 +389,32 @@ double adjusted_eval(const tune_entry_t *entry, const tp_vector_t delta, double 
         eg[isSafety][BLACK] += entry->tuples[i].bcoeff * delta[index][ENDGAME];
     }
 
-    // Grab the original non-safety evaluations and add the modified parameters
+    // Grab the original non-safety evaluations and add the modified parameters.
 
     normal[MIDGAME] = (double)midgame_score(entry->eval) + mg[0][WHITE] - mg[0][BLACK];
     normal[ENDGAME] = (double)endgame_score(entry->eval) + eg[0][WHITE] - eg[0][BLACK];
 
-    // Grab the original safety evaluations and add the modified parameters
+    // Grab the original safety evaluations and add the modified parameters.
 
     wsafety[MIDGAME] = (double)midgame_score(entry->safety[WHITE]) + mg[1][WHITE];
     wsafety[ENDGAME] = (double)endgame_score(entry->safety[WHITE]) + eg[1][WHITE];
     bsafety[MIDGAME] = (double)midgame_score(entry->safety[BLACK]) + mg[1][BLACK];
     bsafety[ENDGAME] = (double)endgame_score(entry->safety[BLACK]) + eg[1][BLACK];
 
-    // Remove the original safety evaluations from the normal evaluations
+    // Remove the original safety evaluations from the normal evaluations.
 
     normal[MIDGAME] -= max(0, midgame_score(entry->safety[WHITE])) * midgame_score(entry->safety[WHITE]) / 256
                      - max(0, midgame_score(entry->safety[BLACK])) * midgame_score(entry->safety[BLACK]) / 256;
     normal[ENDGAME] -= max(0, endgame_score(entry->safety[WHITE])) / 16
                      - max(0, endgame_score(entry->safety[BLACK])) / 16;
 
-    // Compute the new safety evaluations for each side
+    // Compute the new safety evaluations for each side.
 
     safety[MIDGAME] = fmax(0, wsafety[MIDGAME]) * wsafety[MIDGAME] / 256.0
                     - fmax(0, bsafety[MIDGAME]) * bsafety[MIDGAME] / 256.0;
     safety[ENDGAME] = fmax(0, wsafety[ENDGAME]) / 16.0 - fmax(0, bsafety[ENDGAME]) / 16.0;
 
-    // Save the safety scores for computing gradients later
+    // Save the safety scores for computing gradients later.
 
     safetyScores[WHITE][MIDGAME] = wsafety[MIDGAME];
     safetyScores[WHITE][ENDGAME] = wsafety[ENDGAME];

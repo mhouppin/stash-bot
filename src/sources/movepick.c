@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2021 Morgan Houppin
+**    Copyright (C) 2019-2022 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -25,12 +25,9 @@ void movepick_init(movepick_t *mp, bool inQsearch, const board_t *board,
 
     if (board->stack->checkers)
         mp->stage = CHECK_PICK_TT + !(ttMove && move_is_pseudo_legal(board, ttMove));
-
     else
-    {
         mp->stage = PICK_TT + !(ttMove && (!inQsearch || is_capture_or_promotion(board, ttMove))
             && move_is_pseudo_legal(board, ttMove));
-    }
 
     mp->ttMove = ttMove;
     mp->killer1 = ss->killers[0];

@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2021 Morgan Houppin
+**    Copyright (C) 2019-2022 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@
 #include "tt.h"
 #include "uci.h"
 
-#define UCI_VERSION "v32.4"
+#define UCI_VERSION "v32.5"
 
 const cmdlink_t commands[] =
 {
@@ -221,14 +221,14 @@ void uci_ucinewgame(const char *args)
 void uci_d(const char *args __attribute__((unused)))
 {
     const char *grid = "+---+---+---+---+---+---+---+---+";
-    const char *pieceToChar = " PNBRQK  pnbrqk";
+    extern const char PieceIndexes[PIECE_NB];
 
     puts(grid);
 
     for (file_t rank = RANK_8; rank >= RANK_1; --rank)
     {
         for (file_t file = FILE_A; file <= FILE_H; ++file)
-            printf("| %c ", pieceToChar[piece_on(&Board, create_sq(file, rank))]);
+            printf("| %c ", PieceIndexes[piece_on(&Board, create_sq(file, rank))]);
 
         puts("|");
         puts(grid);
@@ -437,7 +437,8 @@ void uci_setoption(const char *args)
         *(valueToken - 1) = '\0';
         strcpy(valueBuf, valueToken + 6);
 
-        // Remove the final newline to valueBuf
+        // Remove the final newline to valueBuf.
+
         char *maybeNewline = &valueBuf[strlen(valueBuf) - 1];
         if (*maybeNewline == '\n')
             *maybeNewline = '\0';

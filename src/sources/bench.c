@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2021 Morgan Houppin
+**    Copyright (C) 2019-2022 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -26,12 +26,14 @@
 
 void uci_bench(const char *args)
 {
-    // If bench depth isn't given, use default depth of 13
+    // If bench depth isn't given, use default depth of 13.
+
     if (!args || !atoi(args))
         args = "13";
 
     // List of positions to search
-    const char  *positions[] = {
+
+    const char *positions[] = {
         "fen r3k2r/2pb1ppp/2pp1q2/p7/1nP1B3/1P2P3/P2N1PPP/R2QK2R w KQkq a6 0 14",
         "fen 4rrk1/2p1b1p1/p1p3q1/4p3/2P2n1p/1P1NR2P/PB3PP1/3R1QK1 b - - 2 24",
         "fen r3qbrk/6p1/2b2pPp/p3pP1Q/PpPpP2P/3P1B2/2PB3K/R5R1 w - - 16 42",
@@ -85,12 +87,12 @@ void uci_bench(const char *args)
         NULL
     };
 
-    clock_t     benchTime = chess_clock();
-    uint64_t    totalNodes = 0;
+    clock_t benchTime = chess_clock();
+    uint64_t totalNodes = 0;
 
     for (size_t i = 0; positions[i]; ++i)
     {
-        char    buf[4096];
+        char buf[4096];
 
         strcpy(buf, "depth ");
         strcat(buf, args);
@@ -99,7 +101,8 @@ void uci_bench(const char *args)
         uci_go(buf);
         wait_search_end();
 
-        // Retrieve the node counter
+        // Retrieve the node counter.
+
         totalNodes += get_node_count();
     }
 

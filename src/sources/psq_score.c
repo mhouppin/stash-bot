@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2021 Morgan Houppin
+**    Copyright (C) 2019-2022 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -123,6 +123,7 @@ void psq_score_init(void)
 
             if (piece == WHITE_PAWN)
                 psqEntry = pieceValue + PawnBonus[sq_rank(square)][sq_file(square)];
+
             else
             {
                 file_t queensideFile = min(sq_file(square), sq_file(square) ^ 7);

@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2021 Morgan Houppin
+**    Copyright (C) 2019-2022 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@ void wpool_init(int threads)
 
     WPool.size = threads;
     WPool.list = malloc(sizeof(worker_t) * threads);
+
     if (WPool.list == NULL)
     {
         perror("Unable to allocate worker pool");
@@ -42,6 +43,7 @@ void wpool_init(int threads)
         worker->idx = i;
         worker->stack = NULL;
         worker->pawnTable = malloc(sizeof(pawn_entry_t) * PawnTableSize);
+
         if (worker->pawnTable == NULL)
         {
             perror("Unable to allocate pawn table");
@@ -57,21 +59,13 @@ void wpool_init(int threads)
 void wpool_reset(void)
 {
     for (int i = 0; i < WPool.size; ++i)
-    {
-        worker_t *worker = WPool.list + i;
-
-        memset(worker->pawnTable, 0, sizeof(pawn_entry_t) * PawnTableSize);
-    }
+        memset(WPool.list[i].pawnTable, 0, sizeof(pawn_entry_t) * PawnTableSize);
 }
 
 void    wpool_quit(void)
 {
     for (int i = 0; i < WPool.size; ++i)
-    {
-        worker_t *worker = WPool.list + i;
-
-        free(worker->pawnTable);
-    }
+        free(WPool.list[i].pawnTable);
 
     free(WPool.list);
     WPool.list = NULL;

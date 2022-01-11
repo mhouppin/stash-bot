@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2021 Morgan Houppin
+**    Copyright (C) 2019-2022 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -20,10 +20,10 @@
 #include "lazy_smp.h"
 #include "pawns.h"
 
-const scorepair_t BackwardPenalty = SPAIR(-6, -5);
-const scorepair_t StragglerPenalty = SPAIR(-15, -22);
-const scorepair_t DoubledPenalty = SPAIR(-18, -38);
-const scorepair_t IsolatedPenalty = SPAIR(-9, -8);
+const scorepair_t BackwardPenalty  = SPAIR( -6, -5);
+const scorepair_t StragglerPenalty = SPAIR(-15,-22);
+const scorepair_t DoubledPenalty   = SPAIR(-18,-38);
+const scorepair_t IsolatedPenalty  = SPAIR( -9, -8);
 
 const scorepair_t PassedBonus[RANK_NB] = {
     0,
@@ -92,7 +92,8 @@ scorepair_t evaluate_backward(pawn_entry_t *entry, color_t us, bitboard_t ourPaw
     while (bb)
         ourAttackSpan |= pawn_attack_span_bb(us, bb_pop_first_sq(&bb));
 
-    // Save the pawn attack span to the entry
+    // Save the pawn attack span to the entry.
+
     entry->attackSpan[us] = ourAttackSpan;
 
     bitboard_t theirAttacks = (us == WHITE) ? bpawns_attacks_bb(theirPawns) : wpawns_attacks_bb(theirPawns);

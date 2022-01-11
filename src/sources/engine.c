@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2021 Morgan Houppin
+**    Copyright (C) 2019-2022 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -48,28 +48,27 @@ uint64_t perft(board_t *board, unsigned int depth)
 {
     if (depth == 0)
         return (1);
-    else
+
+    movelist_t list;
+    list_all(&list, board);
+
+    // Bulk counting: the perft number at depth 1 equals the number of legal moves.
+    // Large perft speedup from not having to do the make/unmake move stuff.
+
+    if (depth == 1)
+        return (movelist_size(&list));
+
+    uint64_t sum = 0;
+    boardstack_t stack;
+
+    for (extmove_t *extmove = list.moves; extmove < list.last; ++extmove)
     {
-        movelist_t list;
-        list_all(&list, board);
-
-        // Bulk counting: the perft number at depth 1 equals the number of legal moves.
-        // Large perft speedup from not having to do the make/unmake move stuff.
-
-        if (depth == 1)
-            return (movelist_size(&list));
-
-        uint64_t sum = 0;
-        boardstack_t stack;
-
-        for (extmove_t *extmove = list.moves; extmove < list.last; ++extmove)
-        {
-            do_move(board, extmove->move, &stack);
-            sum += perft(board, depth - 1);
-            undo_move(board, extmove->move);
-        }
-        return (sum);
+        do_move(board, extmove->move, &stack);
+        sum += perft(board, depth - 1);
+        undo_move(board, extmove->move);
     }
+
+    return (sum);
 }
 
 INLINED int rtm_greater_than(root_move_t *right, root_move_t *left)
@@ -88,11 +87,13 @@ void sort_root_moves(root_move_t *begin, root_move_t *end)
     {
         root_move_t tmp = begin[i];
         int j = i - 1;
+
         while (j >= 0 && rtm_greater_than(&tmp, begin + j))
         {
             begin[j + 1] = begin[j];
             --j;
         }
+
         begin[j + 1] = tmp;
     }
 }
@@ -103,6 +104,7 @@ root_move_t *find_root_move(root_move_t *begin, root_move_t *end, move_t move)
     {
         if (begin->move == move)
             return (begin);
+
         ++begin;
     }
     return (NULL);
@@ -131,8 +133,10 @@ void *engine_go(void *ptr)
         return (NULL);
     }
 
-    worker->rootCount = movelist_size(&SearchMoves);
     // If we don't have any move here, we're (stale)mated, so we can abort the search now.
+
+    worker->rootCount = movelist_size(&SearchMoves);
+
     if (worker->rootCount == 0)
     {
         printf("info depth 0 score %s 0\nbestmove 0000\n", (board->stack->checkers) ? "mate" : "cp");
@@ -143,6 +147,7 @@ void *engine_go(void *ptr)
     // Init root move structure here
 
     worker->rootMoves = malloc(sizeof(root_move_t) * worker->rootCount);
+
     for (size_t i = 0; i < worker->rootCount; ++i)
     {
         worker->rootMoves[i].move = SearchMoves.moves[i].move;
@@ -327,6 +332,7 @@ __retry:
 
         // During fixed depth or infinite searches, allow the non-main workers to keep searching
         // as long as the main worker hasn't finished.
+
         if (worker->idx && iterDepth == SearchParams.depth - 1)
             --iterDepth;
     }
@@ -349,7 +355,8 @@ __retry:
         move_t ponderMove = worker->rootMoves->pv[1];
 
         // If we finished searching with a fail-high, try to see if we can get a ponder
-        // move in TT
+        // move in TT.
+
         if (ponderMove == NO_MOVE)
         {
             boardstack_t stack;
@@ -365,12 +372,15 @@ __retry:
                 ponderMove = entry->bestmove;
 
                 // Take care of data races !
+
                 if (!move_is_pseudo_legal(board, ponderMove) || !move_is_legal(board, ponderMove))
                     ponderMove = NO_MOVE;
             }
         }
+
         if (ponderMove != NO_MOVE)
             printf(" ponder %s", move_to_str(ponderMove, board->chess960));
+
         putchar('\n');
         fflush(stdout);
 

@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2021 Morgan Houppin
+**    Copyright (C) 2019-2022 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -377,7 +377,7 @@ extmove_t *generate_evasions(extmove_t *movelist, const board_t *board)
     while (b)
         (movelist++)->move = create_move(kingSquare, bb_pop_first_sq(&b));
 
-    // If in check in multiple times, we know only king moves can be legal.
+    // If in check in multiple times, we know only King moves can be legal.
 
     if (more_than_one(board->stack->checkers))
         return (movelist);

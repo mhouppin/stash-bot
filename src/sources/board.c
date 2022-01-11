@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2021 Morgan Houppin
+**    Copyright (C) 2019-2022 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -26,6 +26,8 @@
 #include "movelist.h"
 #include "tt.h"
 #include "uci.h"
+
+const char PieceIndexes[PIECE_NB] = " PNBRQK  pnbrqk";
 
 hashkey_t CyclicKeys[8192];
 move_t CyclicMoves[8192];
@@ -100,70 +102,18 @@ void set_board(board_t *board, char *fen, bool isChess960, boardstack_t *bstack)
 
     for (size_t i = 0; fenPieces[i]; ++i)
     {
-        switch (fenPieces[i])
+        if (fenPieces[i] >= '1' && fenPieces[i] <= '8')
+            square += fenPieces[i] - '0';
+
+        else if (fenPieces[i] == '/')
+            square += 2 * SOUTH;
+
+        else
         {
-            case '1':
-            case '2':
-            case '3':
-            case '4':
-            case '5':
-            case '6':
-            case '7':
-            case '8':
-                square += (fenPieces[i] - '0');
-                break ;
+            const char *piecePtr = strchr(PieceIndexes, fenPieces[i]);
 
-            case '/':
-                square += 2 * SOUTH;
-                break ;
-
-            case 'P':
-                put_piece(board, WHITE_PAWN, square++);
-                break ;
-
-            case 'N':
-                put_piece(board, WHITE_KNIGHT, square++);
-                break ;
-
-            case 'B':
-                put_piece(board, WHITE_BISHOP, square++);
-                break ;
-
-            case 'R':
-                put_piece(board, WHITE_ROOK, square++);
-                break ;
-
-            case 'Q':
-                put_piece(board, WHITE_QUEEN, square++);
-                break ;
-
-            case 'K':
-                put_piece(board, WHITE_KING, square++);
-                break ;
-
-            case 'p':
-                put_piece(board, BLACK_PAWN, square++);
-                break ;
-
-            case 'n':
-                put_piece(board, BLACK_KNIGHT, square++);
-                break ;
-
-            case 'b':
-                put_piece(board, BLACK_BISHOP, square++);
-                break ;
-
-            case 'r':
-                put_piece(board, BLACK_ROOK, square++);
-                break ;
-
-            case 'q':
-                put_piece(board, BLACK_QUEEN, square++);
-                break ;
-
-            case 'k':
-                put_piece(board, BLACK_KING, square++);
-                break ;
+            if (piecePtr != NULL)
+                put_piece(board, (piece_t)(piecePtr - (const char *)PieceIndexes), square++);
         }
     }
 

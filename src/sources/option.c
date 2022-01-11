@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2021 Morgan Houppin
+**    Copyright (C) 2019-2022 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -88,7 +88,7 @@ option_t *insert_option(option_list_t *list, const char *name)
             option_allocation_failure();
     }
 
-    // Binary search to find the index of our new option.
+    // Do a binary search to find the index of our new option.
 
     size_t left = 0;
     size_t right = list->size;
