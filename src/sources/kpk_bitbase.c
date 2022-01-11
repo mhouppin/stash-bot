@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2021 Morgan Houppin
+**    Copyright (C) 2019-2022 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -73,18 +73,22 @@ void kpk_set(kpk_position_t *pos, unsigned int index)
     pos->pawnSquare = psq;
 
     // Overlapping/adjacent Kings ?
+
     if (SquareDistance[wksq][bksq] <= 1)
         pos->result = KPK_INVALID;
 
     // Overlapping King with Pawn ?
+
     else if (wksq == psq || bksq == psq)
         pos->result = KPK_INVALID;
 
     // Losing king in check while the winning side has the move ?
+
     else if (stm == WHITE && (PawnMoves[WHITE][psq] & square_bb(bksq)))
         pos->result = KPK_INVALID;
 
     // Can we promote without getting captured ?
+
     else if (stm == WHITE
             && sq_rank(psq) == RANK_7
             && wksq != psq + NORTH
@@ -92,10 +96,12 @@ void kpk_set(kpk_position_t *pos, unsigned int index)
         pos->result = KPK_WIN;
 
     // Is it stalemate ?
+
     else if (stm == BLACK && !(king_moves(bksq) & ~(king_moves(wksq) | PawnMoves[WHITE][psq])))
         pos->result = KPK_DRAW;
 
     // Can the losing side capture the Pawn ?
+
     else if (stm == BLACK && (king_moves(bksq) & ~king_moves(wksq) & square_bb(psq)))
         pos->result = KPK_DRAW;
 
@@ -119,9 +125,10 @@ void kpk_classify(kpk_position_t *pos, kpk_position_t *kpkTable)
     // We will pack all moves' results in the result variable with bitwise 'or's.
     // We exploit the fact that invalid entries with overlapping pieces are stored
     // as KPK_INVALID (aka 0) to avoid checking for move legality (expect for double
-    // pawn pushes, where we need to check if the square above the pawn is empty).
+    // Pawn pushes, where we need to check if the square above the pawn is empty).
 
-    // Get all entries' results for king moves
+    // Get all entries' results for King moves.
+
     while (b)
     {
         if (stm == WHITE)
@@ -130,14 +137,17 @@ void kpk_classify(kpk_position_t *pos, kpk_position_t *kpkTable)
             result |= kpkTable[kpk_index(WHITE, bb_pop_first_sq(&b), wksq, psq)].result;
     }
 
-    // If the winning side has the move, also get all entries' results for pawn moves
+    // If the winning side has the move, also get all entries' results for Pawn moves.
+
     if (stm == WHITE)
     {
         // Single push
+
         if (sq_rank(psq) < RANK_7)
             result |= kpkTable[kpk_index(BLACK, bksq, wksq, psq + NORTH)].result;
 
         // Double push
+
         if (sq_rank(psq) == RANK_2 && psq + NORTH != wksq && psq + NORTH != bksq)
             result |= kpkTable[kpk_index(BLACK, bksq, wksq, psq + NORTH + NORTH)].result;
     }

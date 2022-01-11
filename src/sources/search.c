@@ -1,7 +1,7 @@
 
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2021 Morgan Houppin
+**    Copyright (C) 2019-2022 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -84,7 +84,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
     bool inCheck = !!board->stack->checkers;
     bool improving;
 
-    // Check for interesting tt values
+    // Check for interesting TT values.
 
     int ttDepth = 0;
     int ttBound = NO_BOUND;
@@ -128,7 +128,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
     {
         eval = ss->staticEval = evaluate(board);
 
-        // Save the eval in TT so that other workers won't have to recompute it
+        // Save the eval in TT so that other workers won't have to recompute it.
 
         tt_save(entry, key, NO_SCORE, eval, 0, NO_BOUND, NO_MOVE);
     }
@@ -211,7 +211,7 @@ __main_loop:
     {
         if (rootNode)
         {
-            // Exclude already searched PV lines for root nodes
+            // Exclude already searched PV lines for root nodes.
 
             if (find_root_move(worker->rootMoves + worker->pvLine,
                 worker->rootMoves + worker->rootCount, currmove) == NULL)
@@ -245,7 +245,7 @@ __main_loop:
                 continue ;
         }
 
-        // Report currmove info if enough time has passed
+        // Report currmove info if enough time has passed.
 
         if (rootNode && !worker->idx && chess_clock() - Timeman.start > 3000)
         {
@@ -296,14 +296,15 @@ __main_loop:
             {
                 R = Reductions[min(depth, 63)][min(moveCount, 63)];
 
-                // Increase for non-PV nodes
+                // Increase for non-PV nodes.
 
                 R += !pvNode;
 
-                // Decrease if the move is a killer or countermove
+                // Decrease if the move is a killer or countermove.
+
                 R -= (currmove == mp.killer1 || currmove == mp.killer2 || currmove == mp.counter);
 
-                // Increase/decrease based on history
+                // Increase/decrease based on history.
 
                 R -= histScore / 4000;
 
@@ -318,7 +319,7 @@ __main_loop:
         if (R)
             score = -search(board, newDepth - R, -alpha - 1, -alpha, ss + 1, false);
 
-        // If LMR is not possible, or our LMR failed, do a search with no reductions
+        // If LMR is not possible, or our LMR failed, do a search with no reductions.
 
         if ((R && score > alpha) || (!R && !(pvNode && moveCount == 1)))
             score = -search(board, newDepth + extension, -alpha - 1, -alpha, ss + 1, false);
@@ -339,7 +340,7 @@ __main_loop:
             root_move_t *cur = find_root_move(worker->rootMoves + worker->pvLine,
                 worker->rootMoves + worker->rootCount, currmove);
 
-            // Update PV for root
+            // Update PV for root.
 
             if (moveCount == 1 || alpha < score)
             {
@@ -422,7 +423,7 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
     if (alpha >= beta)
         return (alpha);
 
-    // Check for interesting tt values
+    // Check for interesting TT values
 
     score_t ttScore = NO_SCORE;
     int ttBound = NO_BOUND;

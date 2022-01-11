@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2021 Morgan Houppin
+**    Copyright (C) 2019-2022 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -66,7 +66,8 @@ void timeman_init(const board_t *board, timeman_t *tm, goparams_t *params, clock
         tm->maximalTime = time / sqrt(mtg) + inc;
 
         // Allow for more time usage when we're pondering, since we're not using
-        // our clock as long as the opponent thinks
+        // our clock as long as the opponent thinks.
+
         if (params->ponder)
         {
             tm->pondering = true;
@@ -109,11 +110,13 @@ double score_difference_scale(score_t s)
 
 void timeman_update(timeman_t *tm, const board_t *board, move_t bestmove, score_t score)
 {
-    // Only update timeman when we need one
+    // Only update timeman when we need one.
+
     if (tm->mode != Tournament)
         return ;
 
-    // Update bestmove + stability statistics
+    // Update bestmove + stability statistics.
+
     if (tm->prevBestmove != bestmove)
     {
         movelist_t list;
@@ -123,7 +126,8 @@ void timeman_update(timeman_t *tm, const board_t *board, move_t bestmove, score_
         tm->prevBestmove = bestmove;
         tm->stability = 0;
 
-        // Do we only have one legal move ? Don't burn much time on these
+        // Do we only have one legal move ? Don't burn much time on these.
+
         list_all(&list, board);
         if (movelist_size(&list) == 1)
             tm->type = OneLegalMove;
@@ -152,19 +156,23 @@ void timeman_update(timeman_t *tm, const board_t *board, move_t bestmove, score_
     else
         tm->stability = min(tm->stability + 1, 4);
 
-    // Scale the time usage based on the type of bestmove we have
+    // Scale the time usage based on the type of bestmove we have.
+
     double scale = BestmoveTypeScale[tm->type];
 
     // Scale the time usage based on how long this bestmove has held
-    // through search iterations
+    // through search iterations.
+
     scale *= BestmoveStabilityScale[tm->stability];
 
     // Scale the time usage based on how the score changed from the
-    // previous iteration (the higher it goes, the quicker we stop searching)
+    // previous iteration (the higher it goes, the quicker we stop searching).
+
     if (tm->prevScore != NO_SCORE)
         scale *= score_difference_scale(tm->prevScore - score);
 
-    // Update score + optimal time usage
+    // Update score + optimal time usage.
+
     tm->prevScore = score;
     tm->optimalTime = min(tm->maximalTime, tm->averageTime * scale);
 }
@@ -174,7 +182,7 @@ void check_time(void)
     if (--WPool.checks > 0)
         return ;
 
-    // Reset check counter
+    // Reset check counter.
 
     WPool.checks = 1000;
 

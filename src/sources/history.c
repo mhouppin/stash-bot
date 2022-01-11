@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2021 Morgan Houppin
+**    Copyright (C) 2019-2022 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ void update_quiet_history(const board_t *board, int depth,
     piece = piece_on(board, from_sq(bestmove));
     to = to_sq(bestmove);
 
-    // Apply history bonuses to the bestmove
+    // Apply history bonuses to the bestmove.
 
     if ((ss - 1)->pieceHistory != NULL)
     {
@@ -48,7 +48,7 @@ void update_quiet_history(const board_t *board, int depth,
 
     add_bf_history(*bfHist, piece, bestmove, bonus);
 
-    // Set the bestmove as a killer
+    // Set the bestmove as a killer.
 
     if (ss->killers[0] != bestmove)
     {
@@ -56,7 +56,7 @@ void update_quiet_history(const board_t *board, int depth,
         ss->killers[0] = bestmove;
     }
 
-    // Apply history penalties to all previous failing quiet moves
+    // Apply history penalties to all previous failing quiet moves.
 
     for (int i = 0; i < qcount; ++i)
     {
