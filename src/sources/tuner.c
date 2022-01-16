@@ -144,6 +144,7 @@ void init_base_values(tp_vector_t base)
     INIT_BASE_SP(IDX_KS_CHECK_B, SafeBishopCheck);
     INIT_BASE_SP(IDX_KS_CHECK_R, SafeRookCheck);
     INIT_BASE_SP(IDX_KS_CHECK_Q, SafeQueenCheck);
+    INIT_BASE_SP(IDX_KS_QUEENLESS, QueenlessAttack);
     INIT_BASE_SP(IDX_KS_OFFSET, SafetyOffset);
 
     INIT_BASE_SP(IDX_KNIGHT_SHIELDED, KnightShielded);
@@ -554,6 +555,7 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
     PRINT_SP(IDX_KS_CHECK_B, SafeBishopCheck);
     PRINT_SP(IDX_KS_CHECK_R, SafeRookCheck);
     PRINT_SP(IDX_KS_CHECK_Q, SafeQueenCheck);
+    PRINT_SP(IDX_KS_QUEENLESS, QueenlessAttack);
     PRINT_SP(IDX_KS_OFFSET, SafetyOffset);
     putchar('\n');
 
