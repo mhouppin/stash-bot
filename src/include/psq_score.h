@@ -31,11 +31,11 @@ enum
     ROOK_MG_SCORE = 482,
     QUEEN_MG_SCORE = 1085,
 
-    PAWN_EG_SCORE = 168,
-    KNIGHT_EG_SCORE = 571,
+    PAWN_EG_SCORE = 166,
+    KNIGHT_EG_SCORE = 570,
     BISHOP_EG_SCORE = 609,
-    ROOK_EG_SCORE = 974,
-    QUEEN_EG_SCORE = 1810
+    ROOK_EG_SCORE = 975,
+    QUEEN_EG_SCORE = 1812
 };
 
 extern const score_t PieceScores[PHASE_NB][PIECE_NB];
