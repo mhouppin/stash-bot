@@ -64,6 +64,7 @@ typedef enum tune_idx_e
     IDX_KS_CHECK_B,
     IDX_KS_CHECK_R,
     IDX_KS_CHECK_Q,
+    IDX_KS_QUEENLESS,
     IDX_KS_OFFSET,
     IDX_COUNT
 }
