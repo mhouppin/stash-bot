@@ -147,6 +147,7 @@ void init_base_values(tp_vector_t base)
     INIT_BASE_SP(IDX_KS_QUEENLESS, QueenlessAttack);
     INIT_BASE_SP(IDX_KS_OFFSET, SafetyOffset);
 
+    INIT_BASE_SPA(IDX_KNIGHT_CLOSED_POS, ClosedPosKnight, 5);
     INIT_BASE_SP(IDX_KNIGHT_SHIELDED, KnightShielded);
     INIT_BASE_SP(IDX_KNIGHT_OUTPOST, KnightOutpost);
     INIT_BASE_SP(IDX_KNIGHT_CENTER_OUTPOST, KnightCenterOutpost);
@@ -559,6 +560,8 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
     PRINT_SP(IDX_KS_OFFSET, SafetyOffset);
     putchar('\n');
 
+    PRINT_SPA(IDX_KNIGHT_CLOSED_POS, ClosedPosKnight, 5, 4, 4, "SPAIR");
+    putchar('\n');
     PRINT_SP(IDX_KNIGHT_SHIELDED, KnightShielded);
     PRINT_SP(IDX_KNIGHT_OUTPOST, KnightOutpost);
     PRINT_SP(IDX_KNIGHT_CENTER_OUTPOST, KnightCenterOutpost);
@@ -596,9 +599,9 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
     PRINT_SPA(IDX_DEFENDER, DefenderBonus, 5, 3, 1, "SPAIR");
     putchar('\n');
 
-    PRINT_SPA(IDX_PP_OUR_KING_PROX, PP_OurKingProximity, 7, 3, 1, "SPAIR");
+    PRINT_SPA(IDX_PP_OUR_KING_PROX, PP_OurKingProximity, 7, 4, 1, "SPAIR");
     putchar('\n');
-    PRINT_SPA(IDX_PP_THEIR_KING_PROX, PP_TheirKingProximity, 7, 3, 1, "SPAIR");
+    PRINT_SPA(IDX_PP_THEIR_KING_PROX, PP_TheirKingProximity, 7, 4, 1, "SPAIR");
     putchar('\n');
 }
 
