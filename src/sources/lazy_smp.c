@@ -62,7 +62,7 @@ void wpool_reset(void)
         memset(WPool.list[i].pawnTable, 0, sizeof(pawn_entry_t) * PawnTableSize);
 }
 
-void    wpool_quit(void)
+void wpool_quit(void)
 {
     for (int i = 0; i < WPool.size; ++i)
         free(WPool.list[i].pawnTable);
