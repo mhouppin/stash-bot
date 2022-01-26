@@ -42,10 +42,11 @@ void update_pv(move_t *pv, move_t bestmove, move_t *subPv)
 score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchstack_t *ss, bool pvNode)
 {
     bool rootNode = (ss->plies == 0);
+    worker_t *worker = get_worker(board);
 
     if (!rootNode && board->stack->rule50 >= 3 && alpha < 0 && game_has_cycle(board, ss->plies))
     {
-        alpha = 0;
+        alpha = draw_score(worker);
         if (alpha >= beta)
             return (alpha);
     }
@@ -53,7 +54,6 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
     if (depth <= 0)
         return (qsearch(board, alpha, beta, ss, pvNode));
 
-    worker_t *worker = get_worker(board);
     movepick_t mp;
     move_t pv[256];
     score_t bestScore = -INF_SCORE;
@@ -65,10 +65,10 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
         worker->seldepth = ss->plies + 1;
 
     if (search_should_abort() || game_is_drawn(board, ss->plies))
-        return (0);
+        return (draw_score(worker));
 
     if (ss->plies >= MAX_PLIES)
-        return (!board->stack->checkers ? evaluate(board) : 0);
+        return (!board->stack->checkers ? evaluate(board) : draw_score(worker));
 
     if (!rootNode)
     {
@@ -410,10 +410,10 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
         worker->seldepth = ss->plies + 1;
 
     if (search_should_abort() || game_is_drawn(board, ss->plies))
-        return (0);
+        return (draw_score(worker));
 
     if (ss->plies >= MAX_PLIES)
-        return (!board->stack->checkers ? evaluate(board) : 0);
+        return (!board->stack->checkers ? evaluate(board) : draw_score(worker));
 
     // Mate pruning.
 
