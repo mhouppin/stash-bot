@@ -37,7 +37,11 @@ tt_entry_t;
 
 enum { ClusterSize = 4 };
 
-typedef tt_entry_t cluster_t[ClusterSize];
+typedef struct cluster_s
+{
+    tt_entry_t clEntry[ClusterSize];
+}
+cluster_t;
 
 typedef struct transposition_s
 {
@@ -51,7 +55,7 @@ extern transposition_t TT;
 
 INLINED tt_entry_t *tt_entry_at(hashkey_t k)
 {
-    return (TT.table[mul_hi64(k, TT.clusterCount)]);
+    return (TT.table[mul_hi64(k, TT.clusterCount)].clEntry);
 }
 
 INLINED void tt_clear(void)
