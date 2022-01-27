@@ -43,7 +43,7 @@ void *tt_bzero_thread(void *data)
 
     for (size_t i = threadData->start; i < threadData->end; ++i)
         for (size_t j = 0; j < ClusterSize; ++j)
-            TT.table[i][j] = zeroEntry;
+            TT.table[i].clEntry[j] = zeroEntry;
 
     return (NULL);
 }
@@ -85,7 +85,7 @@ int tt_hashfull(void)
 
     for (int i = 0; i < 1000; ++i)
         for (int j = 0; j < ClusterSize; ++j)
-            count += (TT.table[i][j].genbound & 0xFC) == TT.generation;
+            count += (TT.table[i].clEntry[j].genbound & 0xFC) == TT.generation;
 
     return (count / ClusterSize);
 }

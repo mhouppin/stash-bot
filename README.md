@@ -1,4 +1,5 @@
-## stash-bot
+
+## Stash
 
 Stash is a UCI-compliant chess engine developed from scratch. Preferably used
 with a GUI like Arena, CuteChess, Fritz, etc.
@@ -12,8 +13,8 @@ The repository consists of the following files:
   * src, the directory containing all the source code + a Makefile that can be
     used to compile Stash on Unix-like systems (or Windows if you installed
     MinGW).
-  * utils\\unix\_build.sh and utils\\windows\_build.sh, two shell scripts that
-    can generate profiled builds for your architecture.
+  * utils\\build.sh, a shell script that can generate profiled builds for your
+    architecture.
   * utils\\release\_build.sh, a shell script mainly intended for the
     contributors to automatically generate all binaries when creating releases.
 
