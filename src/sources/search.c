@@ -1,4 +1,3 @@
-
 /*
 **    Stash, a UCI chess playing engine developed from scratch
 **    Copyright (C) 2019-2022 Morgan Houppin
