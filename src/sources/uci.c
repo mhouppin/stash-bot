@@ -28,7 +28,7 @@
 #include "tt.h"
 #include "uci.h"
 
-#define UCI_VERSION "v32.8"
+#define UCI_VERSION "v32.9"
 
 const cmdlink_t commands[] =
 {
