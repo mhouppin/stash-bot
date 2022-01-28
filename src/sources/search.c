@@ -99,12 +99,16 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
         ttScore = score_from_tt(entry->score, ss->plies);
         ttBound = entry->genbound & 3;
         ttDepth = entry->depth;
+        ttMove = entry->bestmove;
 
         if (ttDepth >= depth && !pvNode)
             if (((ttBound & LOWER_BOUND) && ttScore >= beta) || ((ttBound & UPPER_BOUND) && ttScore <= alpha))
-                return (ttScore);
+            {
+                if ((ttBound & LOWER_BOUND) && !is_capture_or_promotion(board, ttMove))
+                    update_quiet_history(board, depth, ttMove, NULL, 0, ss);
 
-        ttMove = entry->bestmove;
+                return (ttScore);
+            }
     }
 
     (ss + 1)->plies = ss->plies + 1;
