@@ -30,7 +30,7 @@ enum
 {
     DRAW = 0,
     VICTORY = 10000,
-    MATE_FOUND = 31000,
+    MATE_FOUND = 31760,
     MATE = 32000,
     INF_SCORE = 32001,
     NO_SCORE = 32002

@@ -170,6 +170,13 @@ void init_base_values(tp_vector_t base)
     INIT_BASE_SP(IDX_DOUBLED, DoubledPenalty);
     INIT_BASE_SP(IDX_ISOLATED, IsolatedPenalty);
 
+    INIT_BASE_SP(IDX_PAWN_ATK_MINOR, PawnAttacksMinor);
+    INIT_BASE_SP(IDX_PAWN_ATK_ROOK, PawnAttacksRook);
+    INIT_BASE_SP(IDX_PAWN_ATK_QUEEN, PawnAttacksQueen);
+    INIT_BASE_SP(IDX_MINOR_ATK_ROOK, MinorAttacksRook);
+    INIT_BASE_SP(IDX_MINOR_ATK_QUEEN, MinorAttacksQueen);
+    INIT_BASE_SP(IDX_ROOK_ATK_QUEEN, RookAttacksQueen);
+
     extern const scorepair_t PassedBonus[RANK_NB], PhalanxBonus[RANK_NB], DefenderBonus[RANK_NB];
 
     for (rank_t r = RANK_2; r <= RANK_7; ++r)
@@ -602,6 +609,14 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
     PRINT_SPA(IDX_PP_OUR_KING_PROX, PP_OurKingProximity, 7, 4, 1, "SPAIR");
     putchar('\n');
     PRINT_SPA(IDX_PP_THEIR_KING_PROX, PP_TheirKingProximity, 7, 4, 1, "SPAIR");
+    putchar('\n');
+
+    PRINT_SP(IDX_PAWN_ATK_MINOR, PawnAttacksMinor);
+    PRINT_SP(IDX_PAWN_ATK_ROOK, PawnAttacksRook);
+    PRINT_SP(IDX_PAWN_ATK_QUEEN, PawnAttacksQueen);
+    PRINT_SP(IDX_MINOR_ATK_ROOK, MinorAttacksRook);
+    PRINT_SP(IDX_MINOR_ATK_QUEEN, MinorAttacksQueen);
+    PRINT_SP(IDX_ROOK_ATK_QUEEN, RookAttacksQueen);
     putchar('\n');
 }
 
