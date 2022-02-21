@@ -197,6 +197,11 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
         }
     }
 
+    // Reduce depth if the node is absent from TT.
+
+    if (!rootNode && !found && depth >= 5)
+        --depth;
+
 __main_loop:
 
     movepick_init(&mp, false, board, worker, ttMove, ss);
