@@ -28,14 +28,14 @@ hashkey_t ZobristBlackToMove;
 
 void zobrist_init(void)
 {
-    qseed(0x7F6E5D4C3B2A1908ull);
+    uint64_t seed = 0x7F6E5D4C3B2A1908ull;
 
     for (piece_t piece = WHITE_PAWN; piece <= BLACK_KING; ++piece)
         for (square_t square = SQ_A1; square <= SQ_H8; ++square)
-            ZobristPsq[piece][square] = qrandom();
+            ZobristPsq[piece][square] = qrandom(&seed);
 
     for (file_t file = FILE_A; file <= FILE_H; ++file)
-        ZobristEnPassant[file] = qrandom();
+        ZobristEnPassant[file] = qrandom(&seed);
 
     for (int cr = 0; cr < CASTLING_NB; ++cr)
     {
@@ -44,9 +44,9 @@ void zobrist_init(void)
         while (b)
         {
             hashkey_t k = ZobristCastling[1ull << bb_pop_first_sq(&b)];
-            ZobristCastling[cr] ^= k ? k : qrandom();
+            ZobristCastling[cr] ^= k ? k : qrandom(&seed);
         }
     }
 
-    ZobristBlackToMove = qrandom();
+    ZobristBlackToMove = qrandom(&seed);
 }
