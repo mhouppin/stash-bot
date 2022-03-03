@@ -59,6 +59,7 @@ void magic_init(bitboard_t *table, magic_t *magics, const direction_t *direction
 #ifndef USE_PEXT
     bitboard_t occupancy[4096];
     int epoch[4096] = {0}, counter = 0;
+    uint64_t seed = 64;
 #endif
 
     int size = 0;
@@ -93,12 +94,10 @@ void magic_init(bitboard_t *table, magic_t *magics, const direction_t *direction
 
 #ifndef USE_PEXT
 
-        qseed(4);
-
         for (int i = 0; i < size; )
         {
             for (m->magic = 0; popcount((m->magic * m->mask) >> 56) < 6; )
-                m->magic = qrandom() & qrandom() & qrandom();
+                m->magic = qrandom(&seed) & qrandom(&seed) & qrandom(&seed);
 
             for (++counter, i = 0; i < size; ++i)
             {
