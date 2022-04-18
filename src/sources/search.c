@@ -286,6 +286,9 @@ __main_loop:
 
                 if (singularScore < singularBeta)
                     extension = 1;
+
+                else if (singularBeta >= beta)
+                    return (singularBeta);
             }
             else if (givesCheck)
                 extension = 1;
