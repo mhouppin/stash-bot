@@ -87,7 +87,7 @@ static void score_quiet(movepick_t *mp, extmove_t *begin, extmove_t *end)
         piece_t moved = piece_on(mp->board, from_sq(begin->move));
         square_t to = to_sq(begin->move);
 
-        begin->score = get_bf_history_score(mp->worker->bfHistory, moved, begin->move);
+        begin->score = get_bf_history_score(mp->worker->bfHistory, moved, begin->move) / 2;
 
         if (mp->pieceHistory[0] != NULL)
             begin->score += get_pc_history_score(*mp->pieceHistory[0], moved, to);
@@ -114,7 +114,7 @@ static void score_evasions(movepick_t *mp, extmove_t *begin, extmove_t *end)
             piece_t moved = piece_on(mp->board, from_sq(begin->move));
             square_t to = to_sq(begin->move);
 
-            begin->score = get_bf_history_score(mp->worker->bfHistory, moved, begin->move);
+            begin->score = get_bf_history_score(mp->worker->bfHistory, moved, begin->move) / 2;
 
             if (mp->pieceHistory[0] != NULL)
                 begin->score += get_pc_history_score(*mp->pieceHistory[0], moved, to);
