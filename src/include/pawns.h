@@ -17,9 +17,9 @@
 */
 
 #ifndef PAWNS_H
-# define PAWNS_H
+#define PAWNS_H
 
-# include "board.h"
+#include "board.h"
 
 typedef struct pawn_entry_s
 {

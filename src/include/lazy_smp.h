@@ -17,12 +17,12 @@
 */
 
 #ifndef LAZY_SMP_H
-# define LAZY_SMP_H
+#define LAZY_SMP_H
 
-# include <pthread.h>
-# include "board.h"
-# include "history.h"
-# include "pawns.h"
+#include <pthread.h>
+#include "board.h"
+#include "history.h"
+#include "pawns.h"
 
 // Struct for root moves.
 

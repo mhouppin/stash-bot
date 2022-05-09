@@ -17,14 +17,14 @@
 */
 
 #ifndef ENGINE_H
-# define ENGINE_H
+#define ENGINE_H
 
-# include <time.h>
-# include "board.h"
-# include "history.h"
-# include "movepick.h"
+#include <time.h>
+#include "board.h"
+#include "history.h"
+#include "movepick.h"
 
-# ifdef TUNE
+#ifdef TUNE
 
 typedef enum tune_idx_e
 {
@@ -88,23 +88,23 @@ typedef struct evaltrace_s
 
 extern evaltrace_t Trace;
 
-# define TRACE_INIT memset(&Trace, 0, sizeof(Trace))
-# define TRACE_ADD(idx, color, n) Trace.coeffs[idx][color] += n
-# define TRACE_PHASE(p) Trace.phase = p
-# define TRACE_SAFETY(c, v) Trace.safety[c] = v
-# define TRACE_EVAL(e) Trace.eval = e
-# define TRACE_FACTOR(f) Trace.scaleFactor = f
+#define TRACE_INIT memset(&Trace, 0, sizeof(Trace))
+#define TRACE_ADD(idx, color, n) Trace.coeffs[idx][color] += n
+#define TRACE_PHASE(p) Trace.phase = p
+#define TRACE_SAFETY(c, v) Trace.safety[c] = v
+#define TRACE_EVAL(e) Trace.eval = e
+#define TRACE_FACTOR(f) Trace.scaleFactor = f
 
-# else
+#else
 
-# define TRACE_INIT
-# define TRACE_ADD(x, c, n)
-# define TRACE_PHASE(p)
-# define TRACE_SAFETY(c, v)
-# define TRACE_EVAL(e)
-# define TRACE_FACTOR(f)
+#define TRACE_INIT
+#define TRACE_ADD(x, c, n)
+#define TRACE_PHASE(p)
+#define TRACE_SAFETY(c, v)
+#define TRACE_EVAL(e)
+#define TRACE_FACTOR(f)
 
-# endif
+#endif
 
 enum { MAX_PLIES = 240 };
 

@@ -17,11 +17,9 @@
 */
 
 #ifndef HASHKEY_H
-# define HASHKEY_H
+#define HASHKEY_H
 
-# include "castling.h"
-# include "piece.h"
-# include "square.h"
+#include "types.h"
 
 typedef uint64_t hashkey_t;
 
@@ -45,4 +43,4 @@ extern hashkey_t ZobristBlackToMove;
 
 void zobrist_init(void);
 
-#endif
+#endif // HASHKEY_H

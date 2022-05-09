@@ -20,11 +20,11 @@
 #include <stdlib.h>
 #include "board.h"
 #include "engine.h"
-#include "imath.h"
 #include "lazy_smp.h"
 #include "movepick.h"
 #include "timeman.h"
 #include "tt.h"
+#include "types.h"
 #include "uci.h"
 
 void update_pv(move_t *pv, move_t bestmove, move_t *subPv)

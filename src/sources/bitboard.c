@@ -18,8 +18,8 @@
 
 #include <stdlib.h>
 #include "bitboard.h"
-#include "imath.h"
 #include "random.h"
+#include "types.h"
 
 bitboard_t LineBits[SQUARE_NB][SQUARE_NB];
 bitboard_t PseudoMoves[PIECETYPE_NB][SQUARE_NB];

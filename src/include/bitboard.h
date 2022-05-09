@@ -17,47 +17,43 @@
 */
 
 #ifndef BITBOARD_H
-# define BITBOARD_H
+#define BITBOARD_H
 
-# if (defined(USE_PREFETCH) || defined(USE_POPCNT) || defined(USE_PEXT))
+#if (defined(USE_PREFETCH) || defined(USE_POPCNT) || defined(USE_PEXT))
 // Do not include the header if unspecified, because some compilers might
 // not have it.
-#  include <immintrin.h>
-# endif
+#include <immintrin.h>
+#endif
 
-# include <stdbool.h>
-# include <stdint.h>
-# include "inlining.h"
-# include "piece.h"
-# include "square.h"
+#include "types.h"
 
 typedef uint64_t bitboard_t;
 
-# define FILE_A_BITS 0x0101010101010101ull
-# define FILE_B_BITS 0x0202020202020202ull
-# define FILE_C_BITS 0x0404040404040404ull
-# define FILE_D_BITS 0x0808080808080808ull
-# define FILE_E_BITS 0x1010101010101010ull
-# define FILE_F_BITS 0x2020202020202020ull
-# define FILE_G_BITS 0x4040404040404040ull
-# define FILE_H_BITS 0x8080808080808080ull
+#define FILE_A_BITS 0x0101010101010101ull
+#define FILE_B_BITS 0x0202020202020202ull
+#define FILE_C_BITS 0x0404040404040404ull
+#define FILE_D_BITS 0x0808080808080808ull
+#define FILE_E_BITS 0x1010101010101010ull
+#define FILE_F_BITS 0x2020202020202020ull
+#define FILE_G_BITS 0x4040404040404040ull
+#define FILE_H_BITS 0x8080808080808080ull
 
-# define RANK_1_BITS 0x00000000000000FFull
-# define RANK_2_BITS 0x000000000000FF00ull
-# define RANK_3_BITS 0x0000000000FF0000ull
-# define RANK_4_BITS 0x00000000FF000000ull
-# define RANK_5_BITS 0x000000FF00000000ull
-# define RANK_6_BITS 0x0000FF0000000000ull
-# define RANK_7_BITS 0x00FF000000000000ull
-# define RANK_8_BITS 0xFF00000000000000ull
+#define RANK_1_BITS 0x00000000000000FFull
+#define RANK_2_BITS 0x000000000000FF00ull
+#define RANK_3_BITS 0x0000000000FF0000ull
+#define RANK_4_BITS 0x00000000FF000000ull
+#define RANK_5_BITS 0x000000FF00000000ull
+#define RANK_6_BITS 0x0000FF0000000000ull
+#define RANK_7_BITS 0x00FF000000000000ull
+#define RANK_8_BITS 0xFF00000000000000ull
 
-# define FULL_BITS 0xFFFFFFFFFFFFFFFFull
+#define FULL_BITS 0xFFFFFFFFFFFFFFFFull
 
-# define DARK_SQUARES 0xAA55AA55AA55AA55ull
+#define DARK_SQUARES 0xAA55AA55AA55AA55ull
 
-# define KINGSIDE_BITS 0xF0F0F0F0F0F0F0F0ull
-# define QUEENSIDE_BITS 0x0F0F0F0F0F0F0F0Full
-# define CENTER_FILES_BITS 0x3C3C3C3C3C3C3C3Cull
+#define KINGSIDE_BITS 0xF0F0F0F0F0F0F0F0ull
+#define QUEENSIDE_BITS 0x0F0F0F0F0F0F0F0Full
+#define CENTER_FILES_BITS 0x3C3C3C3C3C3C3C3Cull
 
 extern bitboard_t LineBits[SQUARE_NB][SQUARE_NB];
 extern bitboard_t PseudoMoves[PIECETYPE_NB][SQUARE_NB];
@@ -74,9 +70,9 @@ magic_t;
 
 INLINED unsigned int magic_index(const magic_t *magic, bitboard_t occupied)
 {
-# ifdef USE_PEXT
+#ifdef USE_PEXT
     return (_pext_u64(occupied, magic->mask));
-# else
+#else
     return ((unsigned int)(((occupied & magic->mask) * magic->magic) >> magic->shift));
 #endif
 }
@@ -263,7 +259,7 @@ INLINED int popcount(bitboard_t b)
 #endif
 }
 
-# if defined(__GNUC__)
+#if defined(__GNUC__)
 
 INLINED square_t bb_first_sq(bitboard_t b)
 {
@@ -275,7 +271,7 @@ INLINED square_t bb_last_sq(bitboard_t b)
     return (SQ_H8 ^ __builtin_clzll(b));
 }
 
-# elif defined(_MSC_VER)
+#elif defined(_MSC_VER)
 
 INLINED square_t bb_first_sq(bitboard_t b)
 {
@@ -291,9 +287,9 @@ INLINED square_t bb_last_sq(bitboard_t b)
     return ((square_t)index);
 }
 
-# else
-#  error "Unsupported compiler."
-# endif
+#else
+#error "Unsupported compiler."
+#endif
 
 INLINED square_t bb_pop_first_sq(bitboard_t *b)
 {
@@ -316,4 +312,4 @@ INLINED void prefetch(void *ptr __attribute__((unused)))
 #endif
 }
 
-#endif
+#endif // BITBOARD_H

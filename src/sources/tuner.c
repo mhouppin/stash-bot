@@ -20,8 +20,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "imath.h"
 #include "tuner.h"
+#include "types.h"
 
 void start_tuning_session(const char *filename)
 {

@@ -17,9 +17,9 @@
 */
 
 #ifndef ENDGAME_H
-# define ENDGAME_H
+#define ENDGAME_H
 
-# include "board.h"
+#include "board.h"
 
 enum { EGTB_SIZE = 2048 };
 

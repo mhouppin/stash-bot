@@ -17,11 +17,9 @@
 */
 
 #ifndef PSQ_SCORE_H
-# define PSQ_SCORE_H
+#define PSQ_SCORE_H
 
-# include "piece.h"
-# include "score.h"
-# include "square.h"
+#include "types.h"
 
 enum
 {
@@ -43,4 +41,4 @@ extern scorepair_t PsqScore[PIECE_NB][SQUARE_NB];
 
 void psq_score_init(void);
 
-#endif
+#endif // PSQ_SCORE_H

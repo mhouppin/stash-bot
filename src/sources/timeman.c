@@ -18,9 +18,9 @@
 
 #include <math.h>
 #include "engine.h"
-#include "imath.h"
 #include "lazy_smp.h"
 #include "timeman.h"
+#include "types.h"
 
 // Scaling table based on the move type
 

@@ -21,11 +21,11 @@
 #include <stdlib.h>
 #include "engine.h"
 #include "history.h"
-#include "imath.h"
 #include "lazy_smp.h"
 #include "pawns.h"
 #include "timeman.h"
 #include "tt.h"
+#include "types.h"
 #include "uci.h"
 
 int Reductions[64][64];

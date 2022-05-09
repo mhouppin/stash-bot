@@ -17,26 +17,26 @@
 */
 
 #ifndef UCI_H
-# define UCI_H
+#define UCI_H
 
-# include <inttypes.h>
-# include <pthread.h>
-# include <stdbool.h>
-# include <stddef.h>
-# include <time.h>
-# include "lazy_smp.h"
+#include <inttypes.h>
+#include <pthread.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <time.h>
+#include "lazy_smp.h"
 
-# if (SIZE_MAX == UINT64_MAX)
-#  define FMT_INFO PRIu64
-#  define KEY_INFO PRIx64
+#if (SIZE_MAX == UINT64_MAX)
+#define FMT_INFO PRIu64
+#define KEY_INFO PRIx64
 typedef uint64_t info_t;
-# define MAX_HASH 33554432
-# else
-#  define FMT_INFO PRIu32
-#  define KEY_INFO PRIx32
+#define MAX_HASH 33554432
+#else
+#define FMT_INFO PRIu32
+#define KEY_INFO PRIx32
 typedef uint32_t info_t;
-# define MAX_HASH 2048
-# endif
+#define MAX_HASH 2048
+#endif
 
 enum e_egn_mode
 {
