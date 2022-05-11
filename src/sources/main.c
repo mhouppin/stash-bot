@@ -47,7 +47,7 @@ ucioptions_t Options = {
 
 timeman_t Timeman;
 
-const char *Delimiters = " \t\n";
+const char *Delimiters = " \r\t\n";
 
 int main(int argc, char **argv)
 {
