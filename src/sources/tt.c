@@ -50,6 +50,12 @@ void *tt_bzero_thread(void *data)
 
 void tt_bzero(size_t threadCount)
 {
+    if (threadCount == 0)
+    {
+        fputs("Unable to zero TT: thread count equals zero\n", stderr);
+        exit(EXIT_FAILURE);
+    }
+
     tt_thread_t *threadList = malloc(sizeof(tt_thread_t) * threadCount);
 
     if (threadList == NULL)
