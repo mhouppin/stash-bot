@@ -16,8 +16,8 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "imath.h"
 #include "psq_score.h"
+#include "types.h"
 
 scorepair_t PsqScore[PIECE_NB][SQUARE_NB];
 const score_t PieceScores[PHASE_NB][PIECE_NB] = {

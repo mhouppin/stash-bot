@@ -17,12 +17,12 @@
 */
 
 #ifndef TIMEMAN_H
-# define TIMEMAN_H
+#define TIMEMAN_H
 
-# include <time.h>
-# include <sys/timeb.h>
-# include "board.h"
-# include "uci.h"
+#include <time.h>
+#include <sys/timeb.h>
+#include "board.h"
+#include "uci.h"
 
 INLINED clock_t chess_clock(void)
 {

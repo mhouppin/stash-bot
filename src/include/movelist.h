@@ -17,14 +17,11 @@
 */
 
 #ifndef MOVELIST_H
-# define MOVELIST_H
+#define MOVELIST_H
 
-# include <stdbool.h>
-# include <stddef.h>
-# include <stdint.h>
-# include "board.h"
-# include "inlining.h"
-# include "move.h"
+#include <stddef.h>
+#include "board.h"
+#include "types.h"
 
 typedef struct extmove_s
 {
@@ -87,4 +84,4 @@ INLINED bool movelist_has_move(const movelist_t *movelist, move_t move)
     return (false);
 }
 
-#endif
+#endif // MOVELIST_H

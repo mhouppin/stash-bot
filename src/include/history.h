@@ -17,12 +17,10 @@
 */
 
 #ifndef HISTORY_H
-# define HISTORY_H
+#define HISTORY_H
 
-# include <stdlib.h>
-# include "move.h"
-# include "piece.h"
-# include "score.h"
+#include <stdlib.h>
+#include "types.h"
 
 enum
 {
@@ -78,4 +76,4 @@ INLINED score_t get_cap_history_score(const capture_history_t hist, piece_t pc, 
     return (hist[pc][to][piece_type(captured)] / HistoryScale);
 }
 
-#endif
+#endif // HISTORY_H

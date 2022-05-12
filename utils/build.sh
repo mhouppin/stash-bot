@@ -8,3 +8,5 @@ CFLAGS="$CFLAGS -fprofile-generate" LDFLAGS="$LDFLAGS -lgcov" ARCH="$ARCH" make 
 
 CFLAGS="$CFLAGS -fprofile-use -fno-peel-loops -fno-tracer" LDFLAGS="$LDFLAGS -lgcov" \
     ARCH="$ARCH" make re
+
+rm sources/*.gcda

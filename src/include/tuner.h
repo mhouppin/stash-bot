@@ -17,19 +17,19 @@
 */
 
 #ifndef TUNER_H
-# define TUNER_H
+#define TUNER_H
 
-# include <stddef.h>
-# include "engine.h"
+#include <stddef.h>
+#include "engine.h"
 
-# ifdef TUNE
+#ifdef TUNE
 
-# define THREADS 3
-# define ITERS 10000
-# define LEARNING_RATE 0.001
-# define LR_DROP_ITERS 10000
-# define LR_DROP_VALUE 1.0
-# define BATCH_SIZE 2048
+#define THREADS 3
+#define ITERS 10000
+#define LEARNING_RATE 0.001
+#define LR_DROP_ITERS 10000
+#define LR_DROP_VALUE 1.0
+#define BATCH_SIZE 2048
 
 typedef struct tune_tuple_s
 {

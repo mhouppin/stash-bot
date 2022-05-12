@@ -22,13 +22,13 @@
 #include <string.h>
 #include <unistd.h>
 #include "engine.h"
-#include "imath.h"
 #include "lazy_smp.h"
 #include "option.h"
 #include "tt.h"
+#include "types.h"
 #include "uci.h"
 
-#define UCI_VERSION "v32.17"
+#define UCI_VERSION "v32.18"
 
 const cmdlink_t commands[] =
 {

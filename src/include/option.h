@@ -17,12 +17,11 @@
 */
 
 #ifndef OPTION_H
-# define OPTION_H
+#define OPTION_H
 
-# include <stdbool.h>
-# include <stdlib.h>
-# include <string.h>
-# include "score.h"
+#include <stdlib.h>
+#include <string.h>
+#include "types.h"
 
 typedef enum option_type_e
 {
@@ -124,4 +123,4 @@ void add_option_scorepair(option_list_t *list, const char *name,
 void show_options(const option_list_t *list);
 void set_option(option_list_t *list, const char *name, const char *value);
 
-#endif
+#endif // OPTION_H

@@ -17,12 +17,11 @@
 */
 
 #ifndef TT_H
-# define TT_H
+#define TT_H
 
-# include <string.h>
-# include "score.h"
-# include "hashkey.h"
-# include "move.h"
+#include <string.h>
+#include "hashkey.h"
+#include "types.h"
 
 typedef struct tt_entry_s
 {
@@ -79,4 +78,4 @@ void tt_save(tt_entry_t *entry, hashkey_t k, score_t s, score_t e, int d, int b,
 int tt_hashfull(void);
 void tt_resize(size_t mbsize);
 
-#endif
+#endif // TT_H

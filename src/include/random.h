@@ -17,10 +17,9 @@
 */
 
 #ifndef RANDOM_H
-# define RANDOM_H
+#define RANDOM_H
 
-# include <stdint.h>
-# include "inlining.h"
+#include "types.h"
 
 INLINED uint64_t qrandom(uint64_t *seed)
 {
@@ -34,4 +33,4 @@ INLINED uint64_t qrandom(uint64_t *seed)
     return (x * UINT64_C(0x2545F4914F6CDD1D));
 }
 
-#endif
+#endif // RANDOM_H

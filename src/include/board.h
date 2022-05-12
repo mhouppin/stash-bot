@@ -17,18 +17,12 @@
 */
 
 #ifndef BOARD_H
-# define BOARD_H
+#define BOARD_H
 
-# include <stdbool.h>
-# include "bitboard.h"
-# include "castling.h"
-# include "color.h"
-# include "hashkey.h"
-# include "inlining.h"
-# include "move.h"
-# include "piece.h"
-# include "square.h"
-# include "psq_score.h"
+#include "bitboard.h"
+#include "hashkey.h"
+#include "psq_score.h"
+#include "types.h"
 
 typedef struct boardstack_s
 {
@@ -254,4 +248,4 @@ INLINED void do_move(board_t *board, move_t move, boardstack_t *stack)
     do_move_gc(board, move, stack, move_gives_check(board, move));
 }
 
-#endif
+#endif // BOARD_H

@@ -21,10 +21,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include "board.h"
-#include "imath.h"
 #include "lazy_smp.h"
 #include "movelist.h"
 #include "tt.h"
+#include "types.h"
 #include "uci.h"
 
 const char PieceIndexes[PIECE_NB] = " PNBRQK  pnbrqk";

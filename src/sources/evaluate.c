@@ -20,8 +20,8 @@
 #include <string.h>
 #include "endgame.h"
 #include "engine.h"
-#include "imath.h"
 #include "pawns.h"
+#include "types.h"
 
 #ifdef TUNE
 evaltrace_t Trace;
