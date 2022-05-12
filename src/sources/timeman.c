@@ -63,7 +63,7 @@ void timeman_init(const board_t *board, timeman_t *tm, goparams_t *params, clock
         time = max(0, time - overhead);
 
         tm->averageTime = time / mtg + inc;
-        tm->maximalTime = time / sqrt(mtg) + inc;
+        tm->maximalTime = time / pow(mtg, 0.4) + inc;
 
         // Allow for more time usage when we're pondering, since we're not using
         // our clock as long as the opponent thinks.
