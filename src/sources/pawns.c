@@ -17,8 +17,8 @@
 */
 
 #include "engine.h"
-#include "lazy_smp.h"
 #include "pawns.h"
+#include "worker.h"
 
 const scorepair_t BackwardPenalty  = SPAIR( -5, -5);
 const scorepair_t StragglerPenalty = SPAIR(-15,-22);

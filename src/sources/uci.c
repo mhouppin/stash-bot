@@ -22,13 +22,12 @@
 #include <string.h>
 #include <unistd.h>
 #include "engine.h"
-#include "lazy_smp.h"
 #include "option.h"
 #include "tt.h"
 #include "types.h"
 #include "uci.h"
 
-#define UCI_VERSION "v33.0"
+#define UCI_VERSION "v33.1"
 
 const cmdlink_t commands[] =
 {
@@ -77,14 +76,6 @@ char *get_next_token(char **str)
     **str = '\0';
     ++(*str);
     return (retval);
-}
-
-void wait_search_end(void)
-{
-    pthread_mutex_lock(&EngineMutex);
-    while (EngineMode != WAITING)
-        pthread_cond_wait(&EngineCond, &EngineMutex);
-    pthread_mutex_unlock(&EngineMutex);
 }
 
 const char *move_to_str(move_t move, bool isChess960)
@@ -157,7 +148,7 @@ const char *score_to_str(score_t score)
 
 void print_pv(const board_t *board, root_move_t *rootMove, int multiPv, int depth, clock_t time, int bound)
 {
-    uint64_t nodes = get_node_count();
+    uint64_t nodes = wpool_get_total_nodes(&WPool);
     uint64_t nps = nodes / (time + !time) * 1000;
     bool searchedMove = (rootMove->score != -INF_SCORE);
     score_t rootScore = (searchedMove) ? rootMove->score : rootMove->prevScore;
@@ -180,23 +171,17 @@ void uci_isready(const char *args __attribute__((unused)))
 
 void uci_quit(const char *args __attribute__((unused)))
 {
-    pthread_mutex_lock(&EngineMutex);
-    EngineSend = DO_ABORT;
-    pthread_mutex_unlock(&EngineMutex);
-    pthread_cond_signal(&EngineCond);
+    WPool.stop = true;
 }
 
 void uci_stop(const char *args __attribute__((unused)))
 {
-    pthread_mutex_lock(&EngineMutex);
-    EngineSend = DO_EXIT;
-    pthread_mutex_unlock(&EngineMutex);
-    pthread_cond_signal(&EngineCond);
+    WPool.stop = true;
 }
 
 void uci_ponderhit(const char *args __attribute__((unused)))
 {
-    EnginePonderhit = 1;
+    WPool.ponder = false;
 }
 
 void uci_uci(const char *args __attribute__((unused)))
@@ -211,9 +196,9 @@ void uci_uci(const char *args __attribute__((unused)))
 void uci_ucinewgame(const char *args)
 {
     (void)args;
-    wait_search_end();
+    worker_wait_search_end(wpool_main_worker(&WPool));
     tt_bzero((size_t)Options.threads);
-    wpool_reset();
+    wpool_reset(&WPool);
 }
 
 // Pretty prints the board, along with the hash key and the eval.
@@ -246,8 +231,6 @@ void uci_position(const char *args)
 {
     static boardstack_t **hiddenList = NULL;
     static size_t hiddenSize = 0;
-
-    wait_search_end();
 
     if (hiddenSize > 0)
     {
@@ -291,7 +274,7 @@ void uci_position(const char *args)
         return ;
 
     set_board(&Board, fen, Options.chess960, *hiddenList);
-    Board.worker = WPool.list;
+    Board.worker = wpool_main_worker(&WPool);
     free(fen);
     token = get_next_token(&ptr);
 
@@ -311,11 +294,8 @@ void uci_position(const char *args)
 
 void uci_go(const char *args)
 {
-    wait_search_end();
-    pthread_mutex_lock(&EngineMutex);
+    worker_wait_search_end(wpool_main_worker(&WPool));
 
-    EngineSend = DO_THINK;
-    EnginePonderhit = 0;
     memset(&SearchParams, 0, sizeof(goparams_t));
     list_all(&SearchMoves, &Board);
 
@@ -407,10 +387,7 @@ void uci_go(const char *args)
         token = strtok(NULL, Delimiters);
     }
 
-    EngineMode = THINKING;
-
-    pthread_cond_broadcast(&EngineCond);
-    pthread_mutex_unlock(&EngineMutex);
+    wpool_start_search(&WPool, &Board, &SearchParams);
     free(copy);
 }
 
@@ -507,7 +484,7 @@ void on_clear_hash(void *nothing __attribute__((unused)))
 
 void on_thread_set(void *data)
 {
-    wpool_init((int)*(long *)data);
+    wpool_init(&WPool, (unsigned long)*(long *)data);
     printf("info string set Threads to %lu\n", *(long *)data);
     fflush(stdout);
 }
@@ -539,7 +516,6 @@ void uci_loop(int argc, char **argv)
         free(line);
     }
 
-    wait_search_end();
     uci_quit(NULL);
     quit_option_list(&OptionList);
 }

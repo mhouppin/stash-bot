@@ -17,7 +17,7 @@
 */
 
 #include "engine.h"
-#include "lazy_smp.h"
+#include "worker.h"
 
 void update_quiet_history(const board_t *board, int depth,
     move_t bestmove, const move_t quiets[64], int qcount, searchstack_t *ss)

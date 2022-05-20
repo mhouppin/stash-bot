@@ -18,9 +18,9 @@
 
 #include <math.h>
 #include "engine.h"
-#include "lazy_smp.h"
 #include "timeman.h"
 #include "types.h"
+#include "worker.h"
 
 // Scaling table based on the move type
 
@@ -189,10 +189,10 @@ void check_time(void)
     // If we are in infinite mode, or the stop has already been set,
     // we can safely return.
 
-    if (SearchParams.infinite || search_should_abort())
+    if (SearchParams.infinite || WPool.stop)
         return ;
 
-    if (get_node_count() >= SearchParams.nodes)
+    if (wpool_get_total_nodes(&WPool) >= SearchParams.nodes)
         goto __set_stop;
 
     if (timeman_must_stop_search(&Timeman, chess_clock()))
@@ -201,7 +201,5 @@ void check_time(void)
     return ;
 
 __set_stop:
-    pthread_mutex_lock(&EngineMutex);
-    EngineSend = DO_EXIT;
-    pthread_mutex_unlock(&EngineMutex);
+    WPool.stop = true;
 }
