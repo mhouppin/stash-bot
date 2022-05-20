@@ -147,8 +147,10 @@ void wpool_init(worker_pool_t *wpool, size_t threads)
     {
         worker_wait_search_end(wpool_main_worker(wpool));
 
-        while (wpool->size--)
+        while (wpool->size)
         {
+            --wpool->size;
+
             worker_t *curWorker = wpool->workerList[wpool->size];
 
             worker_destroy(curWorker);
