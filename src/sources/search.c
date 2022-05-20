@@ -107,6 +107,18 @@ void main_worker_search(worker_t *worker)
     }
     else
     {
+        // The main thread initializes all the shared things for search here:
+        // node counter, time manager, workers' board and threads, and TT reset.
+
+        tt_clear();
+        timeman_init(board, &Timeman, &SearchParams, chess_clock());
+
+        if (SearchParams.depth == 0)
+            SearchParams.depth = MAX_PLIES;
+
+        if (SearchParams.nodes == 0)
+            --SearchParams.nodes;
+
         wpool_start_workers(&WPool);
         worker_search(worker);
     }
@@ -182,21 +194,6 @@ void worker_search(worker_t *worker)
     memset(worker->cmHistory, 0, sizeof(countermove_history_t));
     memset(worker->capHistory, 0, sizeof(capture_history_t));
     worker->verifPlies = 0;
-
-    // The main thread initializes all the shared things for search here:
-    // node counter, time manager, workers' board and threads, and TT reset.
-
-    if (!worker->idx)
-    {
-        tt_clear();
-        timeman_init(board, &Timeman, &SearchParams, chess_clock());
-
-        if (SearchParams.depth == 0)
-            SearchParams.depth = MAX_PLIES;
-
-        if (SearchParams.nodes == 0)
-            --SearchParams.nodes;
-    }
 
     // Clamp MultiPV to the maximal number of lines available
 

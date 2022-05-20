@@ -193,7 +193,7 @@ void wpool_reset(worker_pool_t *wpool)
     for (size_t i = 0; i < wpool->size; ++i)
         worker_reset(wpool->workerList[i]);
 
-    wpool->checks = 0;
+    wpool->checks = 1000;
 }
 
 void wpool_start_search(worker_pool_t *wpool, const board_t *rootBoard,
