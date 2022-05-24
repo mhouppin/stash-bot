@@ -21,7 +21,6 @@
 #include <string.h>
 #include <unistd.h>
 #include "board.h"
-#include "lazy_smp.h"
 #include "timeman.h"
 
 void uci_bench(const char *args)
@@ -99,11 +98,11 @@ void uci_bench(const char *args)
         uci_ucinewgame(NULL);
         uci_position(positions[i]);
         uci_go(buf);
-        wait_search_end();
+        worker_wait_search_end(wpool_main_worker(&WPool));
 
         // Retrieve the node counter.
 
-        totalNodes += get_node_count();
+        totalNodes += wpool_get_total_nodes(&WPool);
     }
 
     benchTime = chess_clock() - benchTime;

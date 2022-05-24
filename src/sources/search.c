@@ -16,16 +16,59 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "board.h"
 #include "engine.h"
-#include "lazy_smp.h"
 #include "movepick.h"
 #include "timeman.h"
 #include "tt.h"
 #include "types.h"
 #include "uci.h"
+
+int Reductions[64][64];
+int Pruning[2][7];
+
+void init_reduction_table(void)
+{
+    for (int d = 1; d < 64; ++d)
+        for (int m = 1; m < 64; ++m)
+            Reductions[d][m] = -1.34 + log(d) * log(m) / 1.26;
+
+    for (int d = 1; d < 7; ++d)
+    {
+        Pruning[1][d] = +3.17 + 3.66 * pow(d, 1.09);
+        Pruning[0][d] = -1.25 + 3.13 * pow(d, 0.65);
+    }
+}
+
+uint64_t perft(board_t *board, unsigned int depth)
+{
+    if (depth == 0)
+        return (1);
+
+    movelist_t list;
+    list_all(&list, board);
+
+    // Bulk counting: the perft number at depth 1 equals the number of legal moves.
+    // Large perft speedup from not having to do the make/unmake move stuff.
+
+    if (depth == 1)
+        return (movelist_size(&list));
+
+    uint64_t sum = 0;
+    boardstack_t stack;
+
+    for (extmove_t *extmove = list.moves; extmove < list.last; ++extmove)
+    {
+        do_move(board, extmove->move, &stack);
+        sum += perft(board, depth - 1);
+        undo_move(board, extmove->move);
+    }
+
+    return (sum);
+}
 
 void update_pv(move_t *pv, move_t bestmove, move_t *subPv)
 {
@@ -36,6 +79,261 @@ void update_pv(move_t *pv, move_t bestmove, move_t *subPv)
         pv[i + 1] = subPv[i];
 
     pv[i + 1] = NO_MOVE;
+}
+
+void main_worker_search(worker_t *worker)
+{
+    board_t *board = &worker->board;
+
+    if (SearchParams.perft)
+    {
+        clock_t time = chess_clock();
+        uint64_t nodes = perft(board, (unsigned int)SearchParams.perft);
+
+        time = chess_clock() - time;
+
+        uint64_t nps = nodes / (time + !time) * 1000;
+
+        printf("info nodes %" FMT_INFO " nps %" FMT_INFO " time %" FMT_INFO "\n",
+            (info_t)nodes, (info_t)nps, (info_t)time);
+
+        return ;
+    }
+
+    if (worker->rootCount == 0)
+    {
+        printf("info depth 0 score %s 0\n", (board->stack->checkers) ? "mate" : "cp");
+        fflush(stdout);
+    }
+    else
+    {
+        // The main thread initializes all the shared things for search here:
+        // node counter, time manager, workers' board and threads, and TT reset.
+
+        tt_clear();
+        timeman_init(board, &Timeman, &SearchParams, chess_clock());
+
+        if (SearchParams.depth == 0)
+            SearchParams.depth = MAX_PLIES;
+
+        if (SearchParams.nodes == 0)
+            --SearchParams.nodes;
+
+        wpool_start_workers(&WPool);
+        worker_search(worker);
+    }
+
+    // UCI protocol specifies that we shouldn't send the bestmove command
+    // before the GUI sends us the "stop" in infinite mode
+    // or "ponderhit" in ponder mode.
+
+    while (!WPool.stop && (WPool.ponder || SearchParams.infinite))
+        ;
+
+    WPool.stop = true;
+
+    if (worker->rootCount == 0)
+    {
+        puts("bestmove 0000");
+        fflush(stdout);
+        free(worker->rootMoves);
+        free_boardstack(worker->stack);
+        return ;
+    }
+
+    // Wait for all threads to stop searching.
+
+    wpool_wait_search_end(&WPool);
+
+    printf("bestmove %s", move_to_str(worker->rootMoves->move, board->chess960));
+
+    move_t ponderMove = worker->rootMoves->pv[1];
+
+    // If we finished searching with a fail-high, try to see if we can get a ponder
+    // move in TT.
+
+    if (ponderMove == NO_MOVE)
+    {
+        boardstack_t stack;
+        tt_entry_t *entry;
+        bool found;
+
+        do_move(board, worker->rootMoves->move, &stack);
+        entry = tt_probe(board->stack->boardKey, &found);
+        undo_move(board, worker->rootMoves->move);
+
+        if (found)
+        {
+            ponderMove = entry->bestmove;
+
+            // Take care of data races !
+
+            if (!move_is_pseudo_legal(board, ponderMove) || !move_is_legal(board, ponderMove))
+                ponderMove = NO_MOVE;
+        }
+    }
+
+    if (ponderMove != NO_MOVE)
+        printf(" ponder %s", move_to_str(ponderMove, board->chess960));
+
+    putchar('\n');
+    fflush(stdout);
+
+    free(worker->rootMoves);
+    free_boardstack(worker->stack);
+}
+
+void worker_search(worker_t *worker)
+{
+    board_t *board = &worker->board;
+
+    // Reset all history related stuff.
+
+    memset(worker->bfHistory, 0, sizeof(butterfly_history_t));
+    memset(worker->ctHistory, 0, sizeof(continuation_history_t));
+    memset(worker->cmHistory, 0, sizeof(countermove_history_t));
+    memset(worker->capHistory, 0, sizeof(capture_history_t));
+    worker->verifPlies = 0;
+
+    // Clamp MultiPV to the maximal number of lines available
+
+    const int multiPv = min(Options.multiPv, worker->rootCount);
+
+    for (int iterDepth = 0; iterDepth < SearchParams.depth; ++iterDepth)
+    {
+        bool hasSearchAborted;
+        searchstack_t sstack[256];
+
+        // Reset the search stack data
+
+        memset(sstack, 0, sizeof(sstack));
+
+        for (worker->pvLine = 0; worker->pvLine < multiPv; ++worker->pvLine)
+        {
+            // Reset the seldepth value after each depth increment, and for each
+            // PV line
+
+            worker->seldepth = 0;
+
+            score_t alpha, beta, delta;
+            score_t pvScore = worker->rootMoves[worker->pvLine].prevScore;
+
+            // Don't set aspiration window bounds for low depths, as the scores are
+            // very volatile.
+
+            if (iterDepth <= 9)
+            {
+                delta = 0;
+                alpha = -INF_SCORE;
+                beta = INF_SCORE;
+            }
+            else
+            {
+                delta = 15;
+                alpha = max(-INF_SCORE, pvScore - delta);
+                beta = min(INF_SCORE, pvScore + delta);
+            }
+
+__retry:
+            search(board, iterDepth + 1, alpha, beta, &sstack[2], true);
+
+            // Catch search aborting
+
+            hasSearchAborted = WPool.stop;
+
+            sort_root_moves(worker->rootMoves + worker->pvLine, worker->rootMoves + worker->rootCount);
+            pvScore = worker->rootMoves[worker->pvLine].score;
+
+            // Note: we set the bound to be EXACT_BOUND when the search aborts, even if the last
+            // search finished on a fail low/high.
+
+            int bound = (abs(pvScore) == INF_SCORE) ? EXACT_BOUND
+                : (pvScore >= beta) ? LOWER_BOUND
+                : (pvScore <= alpha) ? UPPER_BOUND : EXACT_BOUND;
+
+            if (bound == EXACT_BOUND)
+                sort_root_moves(worker->rootMoves, worker->rootMoves + multiPv);
+
+            if (!worker->idx)
+            {
+                clock_t time = chess_clock() - Timeman.start;
+
+                // Don't update Multi-PV lines if not all analysed at current depth
+                // and not enough time elapsed
+
+                if (multiPv == 1 && (bound == EXACT_BOUND || time > 3000))
+                {
+                    print_pv(board, worker->rootMoves, 1, iterDepth, time, bound);
+                    fflush(stdout);
+                }
+                else if (multiPv > 1 && bound == EXACT_BOUND && (worker->pvLine == multiPv - 1 || time > 3000))
+                {
+                    for (int i = 0; i < multiPv; ++i)
+                        print_pv(board, worker->rootMoves + i, i + 1, iterDepth, time, bound);
+
+                    fflush(stdout);
+                }
+            }
+
+            if (hasSearchAborted)
+                break ;
+
+            // Update aspiration window bounds in case of fail low/high
+
+            if (bound == UPPER_BOUND)
+            {
+                beta = (alpha + beta) / 2;
+                alpha = max(-INF_SCORE, (int)pvScore - delta);
+                delta += delta / 4;
+                goto __retry;
+            }
+            else if (bound == LOWER_BOUND)
+            {
+                beta = min(INF_SCORE, (int)pvScore + delta);
+                delta += delta / 4;
+                goto __retry;
+            }
+        }
+
+        // Reset root moves' score for the next search
+
+        for (root_move_t *i = worker->rootMoves; i < worker->rootMoves + worker->rootCount; ++i)
+        {
+            i->prevScore = i->score;
+            i->score = -INF_SCORE;
+        }
+
+        if (hasSearchAborted)
+            break ;
+
+        // If we went over optimal time usage, we just finished our iteration,
+        // so we can safely return our bestmove.
+
+        if (!worker->idx)
+        {
+            timeman_update(&Timeman, board, worker->rootMoves->move, worker->rootMoves->prevScore);
+            if (timeman_can_stop_search(&Timeman, chess_clock()))
+                break ;
+        }
+
+        // If we're searching for mate and have found a mate equal or better than the given one,
+        // stop the search.
+
+        if (SearchParams.mate && worker->rootMoves->prevScore >= mate_in(SearchParams.mate * 2))
+            break ;
+
+        // During fixed depth or infinite searches, allow the non-main workers to keep searching
+        // as long as the main worker hasn't finished.
+
+        if (worker->idx && iterDepth == SearchParams.depth - 1)
+            --iterDepth;
+    }
+
+    if (worker->idx)
+    {
+        free(worker->rootMoves);
+        free_boardstack(worker->stack);
+    }
 }
 
 score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchstack_t *ss, bool pvNode)
@@ -63,7 +361,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
     if (pvNode && worker->seldepth < ss->plies + 1)
         worker->seldepth = ss->plies + 1;
 
-    if (search_should_abort() || game_is_drawn(board, ss->plies))
+    if (WPool.stop || game_is_drawn(board, ss->plies))
         return (draw_score(worker));
 
     if (ss->plies >= MAX_PLIES)
@@ -343,7 +641,7 @@ __main_loop:
         }
 
         undo_move(board, currmove);
-        if (search_should_abort())
+        if (WPool.stop)
             return (0);
 
         if (rootNode)
@@ -420,7 +718,7 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
     if (pvNode && worker->seldepth < ss->plies + 1)
         worker->seldepth = ss->plies + 1;
 
-    if (search_should_abort() || game_is_drawn(board, ss->plies))
+    if (WPool.stop || game_is_drawn(board, ss->plies))
         return (draw_score(worker));
 
     if (ss->plies >= MAX_PLIES)
@@ -537,7 +835,7 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
         score_t score = -qsearch(board, -beta, -alpha, ss + 1, pvNode);
         undo_move(board, currmove);
 
-        if (search_should_abort())
+        if (WPool.stop)
             return (0);
 
         if (bestScore < score)

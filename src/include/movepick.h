@@ -19,7 +19,7 @@
 #ifndef MOVEPICK_H
 #define MOVEPICK_H
 
-#include "lazy_smp.h"
+#include "worker.h"
 #include "movelist.h"
 
 typedef struct

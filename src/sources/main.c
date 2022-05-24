@@ -16,28 +16,22 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <pthread.h>
+#include <stdio.h>
 #include "endgame.h"
 #include "engine.h"
-#include "lazy_smp.h"
 #include "option.h"
 #include "timeman.h"
 #include "tt.h"
 #include "tuner.h"
 #include "uci.h"
-#include <pthread.h>
-#include <stdio.h>
+#include "worker.h"
 
 board_t Board;
 pthread_attr_t WorkerSettings;
 goparams_t SearchParams;
 option_list_t OptionList;
 movelist_t SearchMoves;
-
-pthread_cond_t EngineCond = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t EngineMutex = PTHREAD_MUTEX_INITIALIZER;
-enum e_egn_mode EngineMode = THINKING;
-enum e_egn_send EngineSend = DO_NOTHING;
-int EnginePonderhit = 0;
 
 uint64_t Seed = 1048592ul;
 
@@ -70,29 +64,16 @@ int main(int argc, char **argv)
 #else
 
     tt_resize(16);
-    wpool_init(1);
     init_reduction_table();
-
-    // Start the main engine thread
-
-    pthread_t engineThread;
-
     pthread_attr_init(&WorkerSettings);
     pthread_attr_setstacksize(&WorkerSettings, 4ul * 1024 * 1024);
-
-    if (pthread_create(&engineThread, &WorkerSettings, &engine_thread, NULL))
-    {
-        perror("Failed to boot engine thread");
-        return (1);
-    }
+    wpool_init(&WPool, 1);
 
     // Wait for the engine thread to be ready
 
-    wait_search_end();
-
+    worker_wait_search_end(wpool_main_worker(&WPool));
     uci_loop(argc, argv);
-
-    wpool_quit();
+    wpool_init(&WPool, 0);
 
 #endif
 

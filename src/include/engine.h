@@ -23,6 +23,7 @@
 #include "board.h"
 #include "history.h"
 #include "movepick.h"
+#include "worker.h"
 
 #ifdef TUNE
 
