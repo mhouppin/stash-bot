@@ -16,7 +16,8 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "engine.h"
+#include "history.h"
+#include "search.h"
 #include "worker.h"
 
 void update_quiet_history(const board_t *board, int depth,

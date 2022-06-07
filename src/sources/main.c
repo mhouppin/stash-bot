@@ -19,8 +19,9 @@
 #include <pthread.h>
 #include <stdio.h>
 #include "endgame.h"
-#include "engine.h"
+#include "movelist.h"
 #include "option.h"
+#include "search.h"
 #include "timeman.h"
 #include "tt.h"
 #include "tuner.h"
@@ -64,7 +65,7 @@ int main(int argc, char **argv)
 #else
 
     tt_resize(16);
-    init_reduction_table();
+    init_search_tables();
     pthread_attr_init(&WorkerSettings);
     pthread_attr_setstacksize(&WorkerSettings, 4ul * 1024 * 1024);
     wpool_init(&WPool, 1);

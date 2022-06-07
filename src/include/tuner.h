@@ -20,7 +20,7 @@
 #define TUNER_H
 
 #include <stddef.h>
-#include "engine.h"
+#include "evaluate.h"
 
 #ifdef TUNE
 

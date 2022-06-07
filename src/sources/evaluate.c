@@ -19,7 +19,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "endgame.h"
-#include "engine.h"
+#include "evaluate.h"
+#include "movelist.h"
 #include "pawns.h"
 #include "types.h"
 

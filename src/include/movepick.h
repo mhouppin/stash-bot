@@ -19,20 +19,9 @@
 #ifndef MOVEPICK_H
 #define MOVEPICK_H
 
-#include "worker.h"
 #include "movelist.h"
-
-typedef struct
-{
-    int plies;
-    score_t staticEval;
-    move_t killers[2];
-    move_t excludedMove;
-    move_t currentMove;
-    move_t *pv;
-    piece_history_t *pieceHistory;
-}
-searchstack_t;
+#include "search.h"
+#include "worker.h"
 
 enum
 {

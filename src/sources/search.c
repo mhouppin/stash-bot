@@ -20,8 +20,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "board.h"
-#include "engine.h"
+#include "evaluate.h"
 #include "movepick.h"
+#include "search.h"
 #include "timeman.h"
 #include "tt.h"
 #include "types.h"
@@ -30,7 +31,7 @@
 int Reductions[64][64];
 int Pruning[2][7];
 
-void init_reduction_table(void)
+void init_search_tables(void)
 {
     for (int d = 1; d < 64; ++d)
         for (int m = 1; m < 64; ++m)

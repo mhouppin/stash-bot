@@ -17,7 +17,7 @@
 */
 
 #include <math.h>
-#include "engine.h"
+#include "movelist.h"
 #include "timeman.h"
 #include "types.h"
 #include "worker.h"

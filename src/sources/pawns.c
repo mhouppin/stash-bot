@@ -16,7 +16,7 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "engine.h"
+#include "evaluate.h"
 #include "pawns.h"
 #include "worker.h"
 
