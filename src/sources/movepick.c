@@ -18,16 +18,17 @@
 
 #include "movepick.h"
 
-void movepick_init(movepick_t *mp, bool inQsearch, const board_t *board,
-    const worker_t *worker, move_t ttMove, searchstack_t *ss)
+void movepick_init(movepick_t *mp, bool inQsearch, const board_t *board, const worker_t *worker,
+    move_t ttMove, searchstack_t *ss)
 {
     mp->inQsearch = inQsearch;
 
     if (board->stack->checkers)
         mp->stage = CHECK_PICK_TT + !(ttMove && move_is_pseudo_legal(board, ttMove));
     else
-        mp->stage = PICK_TT + !(ttMove && (!inQsearch || is_capture_or_promotion(board, ttMove))
-            && move_is_pseudo_legal(board, ttMove));
+        mp->stage = PICK_TT
+                    + !(ttMove && (!inQsearch || is_capture_or_promotion(board, ttMove))
+                        && move_is_pseudo_legal(board, ttMove));
 
     mp->ttMove = ttMove;
     mp->killer1 = ss->killers[0];
@@ -50,9 +51,7 @@ void movepick_init(movepick_t *mp, bool inQsearch, const board_t *board,
 
 static void score_captures(movepick_t *mp, extmove_t *begin, extmove_t *end)
 {
-    static const score_t MVV_LVA[PIECETYPE_NB] = {
-        0, 0, 640, 640, 1280, 2560, 0, 0
-    };
+    static const score_t MVV_LVA[PIECETYPE_NB] = {0, 0, 640, 640, 1280, 2560, 0, 0};
 
     while (begin < end)
     {
@@ -133,9 +132,7 @@ __top:
     switch (mp->stage)
     {
         case PICK_TT:
-        case CHECK_PICK_TT:
-            ++mp->stage;
-            return (mp->ttMove);
+        case CHECK_PICK_TT: ++mp->stage; return (mp->ttMove);
 
         case GEN_INSTABLE:
             ++mp->stage;
@@ -166,28 +163,22 @@ __top:
 
         case PICK_KILLER1:
             ++mp->stage;
-            if (mp->killer1
-                && mp->killer1 != mp->ttMove
+            if (mp->killer1 && mp->killer1 != mp->ttMove
                 && move_is_pseudo_legal(mp->board, mp->killer1))
                 return (mp->killer1);
             // Fallthrough
 
         case PICK_KILLER2:
             ++mp->stage;
-            if (mp->killer2
-                && mp->killer2 != mp->ttMove
-                && mp->killer2 != mp->killer1
+            if (mp->killer2 && mp->killer2 != mp->ttMove && mp->killer2 != mp->killer1
                 && move_is_pseudo_legal(mp->board, mp->killer2))
                 return (mp->killer2);
             // Fallthrough
 
         case PICK_COUNTER:
             ++mp->stage;
-            if (mp->counter
-                && mp->counter != mp->ttMove
-                && mp->counter != mp->killer1
-                && mp->counter != mp->killer2
-                && move_is_pseudo_legal(mp->board, mp->counter))
+            if (mp->counter && mp->counter != mp->ttMove && mp->counter != mp->killer1
+                && mp->counter != mp->killer2 && move_is_pseudo_legal(mp->board, mp->counter))
                 return (mp->counter);
             // Fallthrough
 
@@ -207,9 +198,7 @@ __top:
                     place_top_move(mp->cur, mp->list.last);
                     move_t move = (mp->cur++)->move;
 
-                    if (move != mp->ttMove
-                        && move != mp->killer1
-                        && move != mp->killer2
+                    if (move != mp->ttMove && move != mp->killer1 && move != mp->killer2
                         && move != mp->counter)
                         return (move);
                 }
@@ -221,12 +210,11 @@ __top:
         case PICK_BAD_INSTABLE:
             while (mp->cur < mp->badCaptures)
             {
-                if (mp->cur->move != mp->ttMove)
-                    return ((mp->cur++)->move);
+                if (mp->cur->move != mp->ttMove) return ((mp->cur++)->move);
 
                 mp->cur++;
             }
-            break ;
+            break;
 
         case CHECK_GEN_ALL:
             ++mp->stage;
@@ -240,12 +228,11 @@ __top:
             {
                 place_top_move(mp->cur, mp->list.last);
 
-                if (mp->cur->move != mp->ttMove)
-                    return ((mp->cur++)->move);
+                if (mp->cur->move != mp->ttMove) return ((mp->cur++)->move);
 
                 mp->cur++;
             }
-            break ;
+            break;
     }
     return (NO_MOVE);
 }

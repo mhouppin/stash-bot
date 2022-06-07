@@ -16,9 +16,11 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "evaluate.h"
 #include "pawns.h"
+#include "evaluate.h"
 #include "worker.h"
+
+// clang-format off
 
 const scorepair_t BackwardPenalty  = SPAIR( -5, -5);
 const scorepair_t StragglerPenalty = SPAIR(-15,-22);
@@ -58,7 +60,10 @@ const scorepair_t DefenderBonus[RANK_NB] = {
     0
 };
 
-scorepair_t evaluate_passed(pawn_entry_t *entry, color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
+// clang-format on
+
+scorepair_t evaluate_passed(
+    pawn_entry_t *entry, color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
 {
     scorepair_t ret = 0;
 
@@ -83,46 +88,43 @@ scorepair_t evaluate_passed(pawn_entry_t *entry, color_t us, bitboard_t ourPawns
     return (ret);
 }
 
-scorepair_t evaluate_backward(pawn_entry_t *entry, color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
+scorepair_t evaluate_backward(
+    pawn_entry_t *entry, color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
 {
     bitboard_t stopSquares = (us == WHITE) ? shift_up(ourPawns) : shift_down(ourPawns);
     bitboard_t ourAttackSpan = 0;
     bitboard_t bb = ourPawns;
 
-    while (bb)
-        ourAttackSpan |= pawn_attack_span_bb(us, bb_pop_first_sq(&bb));
+    while (bb) ourAttackSpan |= pawn_attack_span_bb(us, bb_pop_first_sq(&bb));
 
     // Save the pawn attack span to the entry.
 
     entry->attackSpan[us] = ourAttackSpan;
 
-    bitboard_t theirAttacks = (us == WHITE) ? bpawns_attacks_bb(theirPawns) : wpawns_attacks_bb(theirPawns);
+    bitboard_t theirAttacks =
+        (us == WHITE) ? bpawns_attacks_bb(theirPawns) : wpawns_attacks_bb(theirPawns);
     bitboard_t backward = stopSquares & theirAttacks & ~ourAttackSpan;
 
     backward = (us == WHITE) ? shift_down(backward) : shift_up(backward);
 
     scorepair_t ret = 0;
 
-    if (!backward)
-        return (ret);
+    if (!backward) return (ret);
 
     ret += BackwardPenalty * popcount(backward);
     TRACE_ADD(IDX_BACKWARD, us, popcount(backward));
 
     backward &= (us == WHITE) ? (RANK_2_BITS | RANK_3_BITS) : (RANK_6_BITS | RANK_7_BITS);
 
-    if (!backward)
-        return (ret);
+    if (!backward) return (ret);
 
     bitboard_t theirFiles = 0;
 
-    while (theirPawns)
-        theirFiles |= forward_file_bb(not_color(us), bb_pop_first_sq(&theirPawns));
+    while (theirPawns) theirFiles |= forward_file_bb(not_color(us), bb_pop_first_sq(&theirPawns));
 
     backward &= ~theirFiles;
 
-    if (!backward)
-        return (ret);
+    if (!backward) return (ret);
 
     ret += StragglerPenalty * popcount(backward);
     TRACE_ADD(IDX_STRAGGLER, us, popcount(backward));
@@ -188,8 +190,7 @@ pawn_entry_t *pawn_probe(const board_t *board)
 #ifndef TUNE
     pawn_entry_t *entry = get_worker(board)->pawnTable + (board->stack->pawnKey % PawnTableSize);
 
-    if (entry->key == board->stack->pawnKey)
-        return (entry);
+    if (entry->key == board->stack->pawnKey) return (entry);
 
 #else
     static pawn_entry_t e;

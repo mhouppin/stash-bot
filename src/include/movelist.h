@@ -19,23 +19,21 @@
 #ifndef MOVELIST_H
 #define MOVELIST_H
 
-#include <stddef.h>
 #include "board.h"
 #include "types.h"
+#include <stddef.h>
 
 typedef struct extmove_s
 {
     move_t move;
     score_t score;
-}
-extmove_t;
+} extmove_t;
 
 typedef struct movelist_s
 {
     extmove_t moves[256];
     extmove_t *last;
-}
-movelist_t;
+} movelist_t;
 
 extern movelist_t SearchMoves;
 
@@ -54,9 +52,8 @@ INLINED void list_all(movelist_t *movelist, const board_t *board)
 
 INLINED void list_pseudo(movelist_t *movelist, const board_t *board)
 {
-    movelist->last = board->stack->checkers
-        ? generate_evasions(movelist->moves, board)
-        : generate_classic(movelist->moves, board);
+    movelist->last = board->stack->checkers ? generate_evasions(movelist->moves, board)
+                                            : generate_classic(movelist->moves, board);
 }
 
 INLINED size_t movelist_size(const movelist_t *movelist)
@@ -64,22 +61,15 @@ INLINED size_t movelist_size(const movelist_t *movelist)
     return (movelist->last - movelist->moves);
 }
 
-INLINED const extmove_t *movelist_begin(const movelist_t *movelist)
-{
-    return (movelist->moves);
-}
+INLINED const extmove_t *movelist_begin(const movelist_t *movelist) { return (movelist->moves); }
 
-INLINED const extmove_t *movelist_end(const movelist_t *movelist)
-{
-    return (movelist->last);
-}
+INLINED const extmove_t *movelist_end(const movelist_t *movelist) { return (movelist->last); }
 
 INLINED bool movelist_has_move(const movelist_t *movelist, move_t move)
 {
-    for (const extmove_t *extmove = movelist_begin(movelist);
-            extmove < movelist_end(movelist); ++extmove)
-        if (extmove->move == move)
-            return (true);
+    for (const extmove_t *extmove = movelist_begin(movelist); extmove < movelist_end(movelist);
+         ++extmove)
+        if (extmove->move == move) return (true);
 
     return (false);
 }

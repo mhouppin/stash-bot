@@ -19,15 +19,15 @@
 #ifndef TIMEMAN_H
 #define TIMEMAN_H
 
-#include <time.h>
-#include <sys/timeb.h>
 #include "board.h"
 #include "uci.h"
+#include <sys/timeb.h>
+#include <time.h>
 
 INLINED clock_t chess_clock(void)
 {
 #if defined(_WIN32) || defined(_WIN64)
-    struct timeb    tp;
+    struct timeb tp;
 
     ftime(&tp);
     return ((clock_t)tp.time * 1000 + tp.millitm);
@@ -51,8 +51,7 @@ typedef enum
     WeirdCheck,
     WeirdQuiet,
     BM_TYPE_NB
-}
-bestmove_type_t;
+} bestmove_type_t;
 
 extern const double BestmoveTypeScale[BM_TYPE_NB];
 extern const double BestmoveStabilityScale[5];
@@ -62,8 +61,7 @@ typedef enum tm_mode_e
     Tournament,
     Movetime,
     NoTimeman
-}
-tm_mode_t;
+} tm_mode_t;
 
 typedef struct timeman_s
 {
@@ -79,8 +77,7 @@ typedef struct timeman_s
     move_t prevBestmove;
     int stability;
     bestmove_type_t type;
-}
-timeman_t;
+} timeman_t;
 
 extern timeman_t Timeman;
 
@@ -90,15 +87,13 @@ void check_time(void);
 
 INLINED bool timeman_can_stop_search(timeman_t *tm, clock_t cur)
 {
-    if (tm->pondering && WPool.ponder)
-        return (false);
+    if (tm->pondering && WPool.ponder) return (false);
     return (tm->mode != NoTimeman && cur >= tm->start + tm->optimalTime);
 }
 
 INLINED bool timeman_must_stop_search(timeman_t *tm, clock_t cur)
 {
-    if (tm->pondering && WPool.ponder)
-        return (false);
+    if (tm->pondering && WPool.ponder) return (false);
     return (tm->mode != NoTimeman && cur >= tm->start + tm->maximalTime);
 }
 

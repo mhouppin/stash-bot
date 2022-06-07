@@ -21,12 +21,14 @@
 
 #include "board.h"
 
-enum { EGTB_SIZE = 2048 };
+enum
+{
+    EGTB_SIZE = 2048
+};
 
 INLINED square_t normalize_square(const board_t *board, color_t winning, square_t sq)
 {
-    if (sq_file(bb_first_sq(piece_bb(board, winning, PAWN))) >= FILE_E)
-        sq ^= FILE_H;
+    if (sq_file(bb_first_sq(piece_bb(board, winning, PAWN))) >= FILE_E) sq ^= FILE_H;
 
     return (relative_sq(sq, winning));
 }
@@ -59,8 +61,7 @@ typedef struct endgame_entry_s
     hashkey_t key;
     endgame_func_t func;
     color_t winningSide;
-}
-endgame_entry_t;
+} endgame_entry_t;
 
 extern endgame_entry_t EndgameTable[EGTB_SIZE];
 

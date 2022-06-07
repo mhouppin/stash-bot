@@ -19,8 +19,8 @@
 #ifndef HISTORY_H
 #define HISTORY_H
 
-#include <stdlib.h>
 #include "types.h"
+#include <stdlib.h>
 
 enum
 {
@@ -35,10 +35,7 @@ typedef int16_t capture_history_t[PIECE_NB][SQUARE_NB][PIECETYPE_NB];
 typedef piece_history_t continuation_history_t[PIECE_NB][SQUARE_NB];
 typedef move_t countermove_history_t[PIECE_NB][SQUARE_NB];
 
-INLINED int history_bonus(int depth)
-{
-    return (depth <= 11 ? 14 * depth * depth : 2000);
-}
+INLINED int history_bonus(int depth) { return (depth <= 11 ? 14 * depth * depth : 2000); }
 
 INLINED void add_bf_history(butterfly_history_t hist, piece_t piece, move_t move, int32_t bonus)
 {
@@ -64,14 +61,16 @@ INLINED score_t get_pc_history_score(const piece_history_t hist, piece_t pc, squ
     return (hist[pc][to] / HistoryScale);
 }
 
-INLINED void add_cap_history(capture_history_t hist, piece_t pc, square_t to, piece_t captured, int32_t bonus)
+INLINED void add_cap_history(
+    capture_history_t hist, piece_t pc, square_t to, piece_t captured, int32_t bonus)
 {
     int16_t *entry = &hist[pc][to][piece_type(captured)];
 
     *entry += bonus - (int32_t)*entry * abs(bonus) / HistoryResolution;
 }
 
-INLINED score_t get_cap_history_score(const capture_history_t hist, piece_t pc, square_t to, piece_t captured)
+INLINED score_t get_cap_history_score(
+    const capture_history_t hist, piece_t pc, square_t to, piece_t captured)
 {
     return (hist[pc][to][piece_type(captured)] / HistoryScale);
 }

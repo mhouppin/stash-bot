@@ -19,12 +19,12 @@
 #ifndef UCI_H
 #define UCI_H
 
+#include "worker.h"
 #include <inttypes.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <time.h>
-#include "worker.h"
 
 #if (SIZE_MAX == UINT64_MAX)
 #define FMT_INFO PRIu64
@@ -46,8 +46,7 @@ typedef struct ucioptions_s
     long multiPv;
     bool chess960;
     bool ponder;
-}
-ucioptions_t;
+} ucioptions_t;
 
 extern pthread_attr_t WorkerSettings;
 extern ucioptions_t Options;
@@ -57,8 +56,7 @@ typedef struct cmdlink_s
 {
     const char *commandName;
     void (*call)(const char *);
-}
-cmdlink_t;
+} cmdlink_t;
 
 char *get_next_token(char **str);
 

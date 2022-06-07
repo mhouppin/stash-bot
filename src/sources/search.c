@@ -16,17 +16,17 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "search.h"
 #include "board.h"
 #include "evaluate.h"
 #include "movepick.h"
-#include "search.h"
 #include "timeman.h"
 #include "tt.h"
 #include "types.h"
 #include "uci.h"
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 int Reductions[64][64];
 int Pruning[2][7];
@@ -34,8 +34,7 @@ int Pruning[2][7];
 void init_search_tables(void)
 {
     for (int d = 1; d < 64; ++d)
-        for (int m = 1; m < 64; ++m)
-            Reductions[d][m] = -1.34 + log(d) * log(m) / 1.26;
+        for (int m = 1; m < 64; ++m) Reductions[d][m] = -1.34 + log(d) * log(m) / 1.26;
 
     for (int d = 1; d < 7; ++d)
     {
@@ -46,8 +45,7 @@ void init_search_tables(void)
 
 uint64_t perft(board_t *board, unsigned int depth)
 {
-    if (depth == 0)
-        return (1);
+    if (depth == 0) return (1);
 
     movelist_t list;
     list_all(&list, board);
@@ -55,8 +53,7 @@ uint64_t perft(board_t *board, unsigned int depth)
     // Bulk counting: the perft number at depth 1 equals the number of legal moves.
     // Large perft speedup from not having to do the make/unmake move stuff.
 
-    if (depth == 1)
-        return (movelist_size(&list));
+    if (depth == 1) return (movelist_size(&list));
 
     uint64_t sum = 0;
     boardstack_t stack;
@@ -76,8 +73,7 @@ void update_pv(move_t *pv, move_t bestmove, move_t *subPv)
     size_t i;
 
     pv[0] = bestmove;
-    for (i = 0; subPv[i] != NO_MOVE; ++i)
-        pv[i + 1] = subPv[i];
+    for (i = 0; subPv[i] != NO_MOVE; ++i) pv[i + 1] = subPv[i];
 
     pv[i + 1] = NO_MOVE;
 }
@@ -95,10 +91,10 @@ void main_worker_search(worker_t *worker)
 
         uint64_t nps = nodes / (time + !time) * 1000;
 
-        printf("info nodes %" FMT_INFO " nps %" FMT_INFO " time %" FMT_INFO "\n",
-            (info_t)nodes, (info_t)nps, (info_t)time);
+        printf("info nodes %" FMT_INFO " nps %" FMT_INFO " time %" FMT_INFO "\n", (info_t)nodes,
+            (info_t)nps, (info_t)time);
 
-        return ;
+        return;
     }
 
     if (worker->rootCount == 0)
@@ -114,11 +110,9 @@ void main_worker_search(worker_t *worker)
         tt_clear();
         timeman_init(board, &Timeman, &SearchParams, chess_clock());
 
-        if (SearchParams.depth == 0)
-            SearchParams.depth = MAX_PLIES;
+        if (SearchParams.depth == 0) SearchParams.depth = MAX_PLIES;
 
-        if (SearchParams.nodes == 0)
-            --SearchParams.nodes;
+        if (SearchParams.nodes == 0) --SearchParams.nodes;
 
         wpool_start_workers(&WPool);
         worker_search(worker);
@@ -139,7 +133,7 @@ void main_worker_search(worker_t *worker)
         fflush(stdout);
         free(worker->rootMoves);
         free_boardstack(worker->stack);
-        return ;
+        return;
     }
 
     // Wait for all threads to stop searching.
@@ -174,8 +168,7 @@ void main_worker_search(worker_t *worker)
         }
     }
 
-    if (ponderMove != NO_MOVE)
-        printf(" ponder %s", move_to_str(ponderMove, board->chess960));
+    if (ponderMove != NO_MOVE) printf(" ponder %s", move_to_str(ponderMove, board->chess960));
 
     putchar('\n');
     fflush(stdout);
@@ -243,15 +236,17 @@ __retry:
 
             hasSearchAborted = WPool.stop;
 
-            sort_root_moves(worker->rootMoves + worker->pvLine, worker->rootMoves + worker->rootCount);
+            sort_root_moves(
+                worker->rootMoves + worker->pvLine, worker->rootMoves + worker->rootCount);
             pvScore = worker->rootMoves[worker->pvLine].score;
 
             // Note: we set the bound to be EXACT_BOUND when the search aborts, even if the last
             // search finished on a fail low/high.
 
             int bound = (abs(pvScore) == INF_SCORE) ? EXACT_BOUND
-                : (pvScore >= beta) ? LOWER_BOUND
-                : (pvScore <= alpha) ? UPPER_BOUND : EXACT_BOUND;
+                        : (pvScore >= beta)         ? LOWER_BOUND
+                        : (pvScore <= alpha)        ? UPPER_BOUND
+                                                    : EXACT_BOUND;
 
             if (bound == EXACT_BOUND)
                 sort_root_moves(worker->rootMoves, worker->rootMoves + multiPv);
@@ -268,7 +263,8 @@ __retry:
                     print_pv(board, worker->rootMoves, 1, iterDepth, time, bound);
                     fflush(stdout);
                 }
-                else if (multiPv > 1 && bound == EXACT_BOUND && (worker->pvLine == multiPv - 1 || time > 3000))
+                else if (multiPv > 1 && bound == EXACT_BOUND
+                         && (worker->pvLine == multiPv - 1 || time > 3000))
                 {
                     for (int i = 0; i < multiPv; ++i)
                         print_pv(board, worker->rootMoves + i, i + 1, iterDepth, time, bound);
@@ -277,8 +273,7 @@ __retry:
                 }
             }
 
-            if (hasSearchAborted)
-                break ;
+            if (hasSearchAborted) break;
 
             // Update aspiration window bounds in case of fail low/high
 
@@ -307,8 +302,7 @@ __retry:
             i->score = -INF_SCORE;
         }
 
-        if (hasSearchAborted)
-            break ;
+        if (hasSearchAborted) break;
 
         // If we went over optimal time usage, we just finished our iteration,
         // so we can safely return our bestmove.
@@ -316,21 +310,19 @@ __retry:
         if (!worker->idx)
         {
             timeman_update(&Timeman, board, worker->rootMoves->move, worker->rootMoves->prevScore);
-            if (timeman_can_stop_search(&Timeman, chess_clock()))
-                break ;
+            if (timeman_can_stop_search(&Timeman, chess_clock())) break;
         }
 
         // If we're searching for mate and have found a mate equal or better than the given one,
         // stop the search.
 
         if (SearchParams.mate && worker->rootMoves->prevScore >= mate_in(SearchParams.mate * 2))
-            break ;
+            break;
 
         // During fixed depth or infinite searches, allow the non-main workers to keep searching
         // as long as the main worker hasn't finished.
 
-        if (worker->idx && iterDepth == SearchParams.depth - 1)
-            --iterDepth;
+        if (worker->idx && iterDepth == SearchParams.depth - 1) --iterDepth;
     }
 
     if (worker->idx)
@@ -340,7 +332,8 @@ __retry:
     }
 }
 
-score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchstack_t *ss, bool pvNode)
+score_t search(
+    board_t *board, int depth, score_t alpha, score_t beta, searchstack_t *ss, bool pvNode)
 {
     bool rootNode = (ss->plies == 0);
     worker_t *worker = get_worker(board);
@@ -348,25 +341,20 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
     if (!rootNode && board->stack->rule50 >= 3 && alpha < 0 && game_has_cycle(board, ss->plies))
     {
         alpha = draw_score(worker);
-        if (alpha >= beta)
-            return (alpha);
+        if (alpha >= beta) return (alpha);
     }
 
-    if (depth <= 0)
-        return (qsearch(board, alpha, beta, ss, pvNode));
+    if (depth <= 0) return (qsearch(board, alpha, beta, ss, pvNode));
 
     movepick_t mp;
     move_t pv[256];
     score_t bestScore = -INF_SCORE;
 
-    if (!worker->idx)
-        check_time();
+    if (!worker->idx) check_time();
 
-    if (pvNode && worker->seldepth < ss->plies + 1)
-        worker->seldepth = ss->plies + 1;
+    if (pvNode && worker->seldepth < ss->plies + 1) worker->seldepth = ss->plies + 1;
 
-    if (WPool.stop || game_is_drawn(board, ss->plies))
-        return (draw_score(worker));
+    if (WPool.stop || game_is_drawn(board, ss->plies)) return (draw_score(worker));
 
     if (ss->plies >= MAX_PLIES)
         return (!board->stack->checkers ? evaluate(board) : draw_score(worker));
@@ -378,8 +366,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
         alpha = max(alpha, mated_in(ss->plies));
         beta = min(beta, mate_in(ss->plies + 1));
 
-        if (alpha >= beta)
-            return (alpha);
+        if (alpha >= beta) return (alpha);
     }
 
     bool inCheck = !!board->stack->checkers;
@@ -404,7 +391,8 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
         ttMove = entry->bestmove;
 
         if (ttDepth >= depth && !pvNode)
-            if (((ttBound & LOWER_BOUND) && ttScore >= beta) || ((ttBound & UPPER_BOUND) && ttScore <= alpha))
+            if (((ttBound & LOWER_BOUND) && ttScore >= beta)
+                || ((ttBound & UPPER_BOUND) && ttScore <= alpha))
             {
                 if ((ttBound & LOWER_BOUND) && !is_capture_or_promotion(board, ttMove))
                     update_quiet_history(board, depth, ttMove, NULL, 0, ss);
@@ -426,8 +414,7 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
     {
         eval = ss->staticEval = entry->eval;
 
-        if (ttBound & (ttScore > eval ? LOWER_BOUND : UPPER_BOUND))
-            eval = ttScore;
+        if (ttBound & (ttScore > eval ? LOWER_BOUND : UPPER_BOUND)) eval = ttScore;
     }
     else
     {
@@ -438,11 +425,9 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
         tt_save(entry, key, NO_SCORE, eval, 0, NO_BOUND, NO_MOVE);
     }
 
-    if (rootNode && worker->pvLine)
-        ttMove = worker->rootMoves[worker->pvLine].move;
+    if (rootNode && worker->pvLine) ttMove = worker->rootMoves[worker->pvLine].move;
 
-    if (inCheck)
-        goto __main_loop;
+    if (inCheck) goto __main_loop;
 
     // Razoring.
 
@@ -458,10 +443,8 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
 
     // Null move pruning.
 
-    if (!pvNode && depth >= 3
-        && ss->plies >= worker->verifPlies && !ss->excludedMove
-        && eval >= beta && eval >= ss->staticEval
-        && board->stack->material[board->sideToMove])
+    if (!pvNode && depth >= 3 && ss->plies >= worker->verifPlies && !ss->excludedMove
+        && eval >= beta && eval >= ss->staticEval && board->stack->material[board->sideToMove])
     {
         boardstack_t stack;
 
@@ -478,13 +461,11 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
         {
             // Do not trust mate claims.
 
-            if (score > MATE_FOUND)
-                score = beta;
+            if (score > MATE_FOUND) score = beta;
 
             // Do not trust win claims.
 
-            if (worker->verifPlies || (depth <= 10 && abs(beta) < VICTORY))
-                return (score);
+            if (worker->verifPlies || (depth <= 10 && abs(beta) < VICTORY)) return (score);
 
             // Zugzwang checking.
 
@@ -494,15 +475,13 @@ score_t search(board_t *board, int depth, score_t alpha, score_t beta, searchsta
 
             worker->verifPlies = 0;
 
-            if (zzscore >= beta)
-                return (score);
+            if (zzscore >= beta) return (score);
         }
     }
 
     // Reduce depth if the node is absent from TT.
 
-    if (!rootNode && !found && depth >= 5)
-        --depth;
+    if (!rootNode && !found && depth >= 5) --depth;
 
 __main_loop:
 
@@ -524,13 +503,13 @@ __main_loop:
             // Exclude already searched PV lines for root nodes.
 
             if (find_root_move(worker->rootMoves + worker->pvLine,
-                worker->rootMoves + worker->rootCount, currmove) == NULL)
-                continue ;
+                    worker->rootMoves + worker->rootCount, currmove)
+                == NULL)
+                continue;
         }
         else
         {
-            if (!move_is_legal(board, currmove) || currmove == ss->excludedMove)
-                continue ;
+            if (!move_is_legal(board, currmove) || currmove == ss->excludedMove) continue;
         }
 
         moveCount++;
@@ -541,8 +520,7 @@ __main_loop:
         {
             // Late Move Pruning.
 
-            if (depth <= 6 && moveCount > Pruning[improving][depth])
-                skipQuiets = true;
+            if (depth <= 6 && moveCount > Pruning[improving][depth]) skipQuiets = true;
 
             // Futility Pruning.
 
@@ -551,16 +529,18 @@ __main_loop:
 
             // SEE Pruning.
 
-            if (depth <= 5 && !see_greater_than(board, currmove, (isQuiet ? -80 * depth : -25 * depth * depth)))
-                continue ;
+            if (depth <= 5
+                && !see_greater_than(
+                    board, currmove, (isQuiet ? -80 * depth : -25 * depth * depth)))
+                continue;
         }
 
         // Report currmove info if enough time has passed.
 
         if (rootNode && !worker->idx && chess_clock() - Timeman.start > 3000)
         {
-            printf("info depth %d currmove %s currmovenumber %d\n",
-                depth, move_to_str(currmove, board->chess960), moveCount + worker->pvLine);
+            printf("info depth %d currmove %s currmovenumber %d\n", depth,
+                move_to_str(currmove, board->chess960), moveCount + worker->pvLine);
             fflush(stdout);
         }
 
@@ -570,20 +550,21 @@ __main_loop:
         int extension = 0;
         int newDepth = depth - 1;
         bool givesCheck = move_gives_check(board, currmove);
-        int histScore = isQuiet
-            ? get_bf_history_score(worker->bfHistory, piece_on(board, from_sq(currmove)), currmove) : 0;
+        int histScore = isQuiet ? get_bf_history_score(
+                            worker->bfHistory, piece_on(board, from_sq(currmove)), currmove)
+                                : 0;
 
         if (!rootNode)
         {
-            if (depth >= 9 && currmove == ttMove && !ss->excludedMove
-                && (ttBound & LOWER_BOUND) && abs(ttScore) < VICTORY
-                && ttDepth >= depth - 2)
+            if (depth >= 9 && currmove == ttMove && !ss->excludedMove && (ttBound & LOWER_BOUND)
+                && abs(ttScore) < VICTORY && ttDepth >= depth - 2)
             {
                 score_t singularBeta = ttScore - depth;
                 int singularDepth = depth / 2;
 
                 ss->excludedMove = ttMove;
-                score_t singularScore = search(board, singularDepth, singularBeta - 1, singularBeta, ss, false);
+                score_t singularScore =
+                    search(board, singularDepth, singularBeta - 1, singularBeta, ss, false);
                 ss->excludedMove = NO_MOVE;
 
                 if (singularScore < singularBeta)
@@ -629,8 +610,7 @@ __main_loop:
         else
             R = 0;
 
-        if (R)
-            score = -search(board, newDepth - R, -alpha - 1, -alpha, ss + 1, false);
+        if (R) score = -search(board, newDepth - R, -alpha - 1, -alpha, ss + 1, false);
 
         // If LMR is not possible, or our LMR failed, do a search with no reductions.
 
@@ -645,8 +625,7 @@ __main_loop:
         }
 
         undo_move(board, currmove);
-        if (WPool.stop)
-            return (0);
+        if (WPool.stop) return (0);
 
         if (rootNode)
         {
@@ -674,8 +653,7 @@ __main_loop:
             {
                 bestmove = currmove;
                 alpha = bestScore;
-                if (pvNode && !rootNode)
-                    update_pv(ss->pv, currmove, (ss + 1)->pv);
+                if (pvNode && !rootNode) update_pv(ss->pv, currmove, (ss + 1)->pv);
 
                 if (alpha >= beta)
                 {
@@ -683,7 +661,7 @@ __main_loop:
                         update_quiet_history(board, depth, bestmove, quiets, qcount, ss);
                     else if (moveCount != 1)
                         update_capture_history(board, depth, bestmove, captures, ccount, ss);
-                    break ;
+                    break;
                 }
             }
         }
@@ -698,12 +676,15 @@ __main_loop:
 
     if (moveCount == 0)
         bestScore = (ss->excludedMove) ? alpha : (board->stack->checkers) ? mated_in(ss->plies) : 0;
-    
+
     if (!rootNode || worker->pvLine == 0)
     {
-        int bound = (bestScore >= beta) ? LOWER_BOUND : (pvNode && bestmove) ? EXACT_BOUND : UPPER_BOUND;
+        int bound = (bestScore >= beta)    ? LOWER_BOUND
+                    : (pvNode && bestmove) ? EXACT_BOUND
+                                           : UPPER_BOUND;
 
-        tt_save(entry, key, score_to_tt(bestScore, ss->plies), ss->staticEval, depth, bound, bestmove);
+        tt_save(
+            entry, key, score_to_tt(bestScore, ss->plies), ss->staticEval, depth, bound, bestmove);
     }
 
     return (bestScore);
@@ -716,14 +697,11 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
     movepick_t mp;
     move_t pv[256];
 
-    if (!worker->idx)
-        check_time();
+    if (!worker->idx) check_time();
 
-    if (pvNode && worker->seldepth < ss->plies + 1)
-        worker->seldepth = ss->plies + 1;
+    if (pvNode && worker->seldepth < ss->plies + 1) worker->seldepth = ss->plies + 1;
 
-    if (WPool.stop || game_is_drawn(board, ss->plies))
-        return (draw_score(worker));
+    if (WPool.stop || game_is_drawn(board, ss->plies)) return (draw_score(worker));
 
     if (ss->plies >= MAX_PLIES)
         return (!board->stack->checkers ? evaluate(board) : draw_score(worker));
@@ -733,8 +711,7 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
     alpha = max(alpha, mated_in(ss->plies));
     beta = min(beta, mate_in(ss->plies + 1));
 
-    if (alpha >= beta)
-        return (alpha);
+    if (alpha >= beta) return (alpha);
 
     // Check for interesting TT values
 
@@ -748,8 +725,9 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
         ttBound = entry->genbound & 3;
         ttScore = score_from_tt(entry->score, ss->plies);
 
-        if (!pvNode && (((ttBound & LOWER_BOUND) && ttScore >= beta)
-            || ((ttBound & UPPER_BOUND) && ttScore <= alpha)))
+        if (!pvNode
+            && (((ttBound & LOWER_BOUND) && ttScore >= beta)
+                || ((ttBound & UPPER_BOUND) && ttScore <= alpha)))
             return (ttScore);
     }
 
@@ -768,8 +746,7 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
         {
             eval = bestScore = entry->eval;
 
-            if (ttBound & (ttScore > eval ? LOWER_BOUND : UPPER_BOUND))
-                eval = bestScore = ttScore;
+            if (ttBound & (ttScore > eval ? LOWER_BOUND : UPPER_BOUND)) eval = bestScore = ttScore;
         }
         else
             eval = bestScore = evaluate(board);
@@ -778,8 +755,7 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
         // allow for a simple eval return.
 
         alpha = max(alpha, bestScore);
-        if (alpha >= beta)
-            return (alpha);
+        if (alpha >= beta) return (alpha);
     }
 
     move_t ttMove = entry->bestmove;
@@ -792,8 +768,7 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
     move_t bestmove = NO_MOVE;
     int moveCount = 0;
 
-    if (pvNode)
-        (ss + 1)->pv = pv;
+    if (pvNode) (ss + 1)->pv = pv;
 
     // Check if futility pruning is possible.
 
@@ -804,24 +779,22 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
     {
         // Only analyse good capture moves.
 
-        if (bestScore > -MATE_FOUND && mp.stage == PICK_BAD_INSTABLE)
-            break ;
+        if (bestScore > -MATE_FOUND && mp.stage == PICK_BAD_INSTABLE) break;
 
-        if (!move_is_legal(board, currmove))
-            continue ;
+        if (!move_is_legal(board, currmove)) continue;
 
         moveCount++;
 
         bool givesCheck = move_gives_check(board, currmove);
 
-        if (bestScore > -MATE_FOUND && canFutilityPrune && !givesCheck && move_type(currmove) == NORMAL_MOVE)
+        if (bestScore > -MATE_FOUND && canFutilityPrune && !givesCheck
+            && move_type(currmove) == NORMAL_MOVE)
         {
             score_t delta = futilityBase + PieceScores[ENDGAME][piece_on(board, to_sq(currmove))];
 
             // Check if the move is very unlikely to improve alpha.
 
-            if (delta < alpha)
-                continue ;
+            if (delta < alpha) continue;
         }
 
         ss->currentMove = currmove;
@@ -832,15 +805,13 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
 
         boardstack_t stack;
 
-        if (pvNode)
-            pv[0] = NO_MOVE;
+        if (pvNode) pv[0] = NO_MOVE;
 
         do_move_gc(board, currmove, &stack, givesCheck);
         score_t score = -qsearch(board, -beta, -alpha, ss + 1, pvNode);
         undo_move(board, currmove);
 
-        if (WPool.stop)
-            return (0);
+        if (WPool.stop) return (0);
 
         if (bestScore < score)
         {
@@ -850,21 +821,21 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
                 alpha = bestScore;
                 bestmove = currmove;
 
-                if (pvNode)
-                    update_pv(ss->pv, bestmove, (ss + 1)->pv);
+                if (pvNode) update_pv(ss->pv, bestmove, (ss + 1)->pv);
 
-                if (alpha >= beta)
-                    break ;
+                if (alpha >= beta) break;
             }
         }
     }
 
-    if (moveCount == 0 && inCheck)
-        bestScore = mated_in(ss->plies);
+    if (moveCount == 0 && inCheck) bestScore = mated_in(ss->plies);
 
-    int bound = (bestScore >= beta) ? LOWER_BOUND : (bestScore <= oldAlpha) ? UPPER_BOUND : EXACT_BOUND;
+    int bound = (bestScore >= beta)       ? LOWER_BOUND
+                : (bestScore <= oldAlpha) ? UPPER_BOUND
+                                          : EXACT_BOUND;
 
-    tt_save(entry, board->stack->boardKey, score_to_tt(bestScore, ss->plies), eval, 0, bound, bestmove);
+    tt_save(
+        entry, board->stack->boardKey, score_to_tt(bestScore, ss->plies), eval, 0, bound, bestmove);
 
     return (bestScore);
 }

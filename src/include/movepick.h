@@ -53,12 +53,11 @@ typedef struct movepick_s
     const board_t *board;
     const worker_t *worker;
     piece_history_t *pieceHistory[2];
-}
-movepick_t;
+} movepick_t;
 
-void movepick_init(movepick_t *mp, bool inQsearch, const board_t *board,
-    const worker_t *worker, move_t ttMove, searchstack_t *ss);
+void movepick_init(movepick_t *mp, bool inQsearch, const board_t *board, const worker_t *worker,
+    move_t ttMove, searchstack_t *ss);
 
-move_t  movepick_next_move(movepick_t *mp, bool skipQuiets);
+move_t movepick_next_move(movepick_t *mp, bool skipQuiets);
 
 #endif

@@ -16,10 +16,10 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-# include <math.h>
-# include "bitboard.h"
-# include "hashkey.h"
-# include "random.h"
+#include "hashkey.h"
+#include "bitboard.h"
+#include "random.h"
+#include <math.h>
 
 hashkey_t ZobristPsq[PIECE_NB][SQUARE_NB];
 hashkey_t ZobristEnPassant[FILE_NB];
@@ -34,8 +34,7 @@ void zobrist_init(void)
         for (square_t square = SQ_A1; square <= SQ_H8; ++square)
             ZobristPsq[piece][square] = qrandom(&seed);
 
-    for (file_t file = FILE_A; file <= FILE_H; ++file)
-        ZobristEnPassant[file] = qrandom(&seed);
+    for (file_t file = FILE_A; file <= FILE_H; ++file) ZobristEnPassant[file] = qrandom(&seed);
 
     for (int cr = 0; cr < CASTLING_NB; ++cr)
     {

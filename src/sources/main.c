@@ -16,8 +16,6 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <pthread.h>
-#include <stdio.h>
 #include "endgame.h"
 #include "movelist.h"
 #include "option.h"
@@ -27,6 +25,8 @@
 #include "tuner.h"
 #include "uci.h"
 #include "worker.h"
+#include <pthread.h>
+#include <stdio.h>
 
 board_t Board;
 pthread_attr_t WorkerSettings;
@@ -36,9 +36,7 @@ movelist_t SearchMoves;
 
 uint64_t Seed = 1048592ul;
 
-ucioptions_t Options = {
-    1, 16, 100, 1, false, false
-};
+ucioptions_t Options = {1, 16, 100, 1, false, false};
 
 timeman_t Timeman;
 

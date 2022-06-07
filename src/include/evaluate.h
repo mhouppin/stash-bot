@@ -71,8 +71,7 @@ typedef enum tune_idx_e
     IDX_KS_QUEENLESS,
     IDX_KS_OFFSET,
     IDX_COUNT
-}
-tune_idx_t;
+} tune_idx_t;
 
 typedef struct evaltrace_s
 {

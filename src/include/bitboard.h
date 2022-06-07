@@ -65,8 +65,7 @@ typedef struct magic_s
     bitboard_t magic;
     bitboard_t *moves;
     unsigned int shift;
-}
-magic_t;
+} magic_t;
 
 INLINED unsigned int magic_index(const magic_t *magic, bitboard_t occupied)
 {
@@ -82,50 +81,23 @@ extern magic_t BishopMagics[SQUARE_NB];
 
 void bitboard_init(void);
 
-INLINED bitboard_t square_bb(square_t square)
-{
-    return ((bitboard_t)1 << square);
-}
+INLINED bitboard_t square_bb(square_t square) { return ((bitboard_t)1 << square); }
 
-INLINED bitboard_t shift_up(bitboard_t b)
-{
-    return (b << 8);
-}
+INLINED bitboard_t shift_up(bitboard_t b) { return (b << 8); }
 
-INLINED bitboard_t shift_down(bitboard_t b)
-{
-    return (b >> 8);
-}
+INLINED bitboard_t shift_down(bitboard_t b) { return (b >> 8); }
 
-INLINED bitboard_t shift_left(bitboard_t b)
-{
-    return ((b & ~FILE_A_BITS) >> 1);
-}
+INLINED bitboard_t shift_left(bitboard_t b) { return ((b & ~FILE_A_BITS) >> 1); }
 
-INLINED bitboard_t shift_right(bitboard_t b)
-{
-    return ((b & ~FILE_H_BITS) << 1);
-}
+INLINED bitboard_t shift_right(bitboard_t b) { return ((b & ~FILE_H_BITS) << 1); }
 
-INLINED bitboard_t shift_up_left(bitboard_t b)
-{
-    return ((b & ~FILE_A_BITS) << 7);
-}
+INLINED bitboard_t shift_up_left(bitboard_t b) { return ((b & ~FILE_A_BITS) << 7); }
 
-INLINED bitboard_t shift_up_right(bitboard_t b)
-{
-    return ((b & ~FILE_H_BITS) << 9);
-}
+INLINED bitboard_t shift_up_right(bitboard_t b) { return ((b & ~FILE_H_BITS) << 9); }
 
-INLINED bitboard_t shift_down_left(bitboard_t b)
-{
-    return ((b & ~FILE_A_BITS) >> 9);
-}
+INLINED bitboard_t shift_down_left(bitboard_t b) { return ((b & ~FILE_A_BITS) >> 9); }
 
-INLINED bitboard_t shift_down_right(bitboard_t b)
-{
-    return ((b & ~FILE_H_BITS) >> 7);
-}
+INLINED bitboard_t shift_down_right(bitboard_t b) { return ((b & ~FILE_H_BITS) >> 7); }
 
 INLINED bitboard_t relative_shift_up(bitboard_t b, color_t c)
 {
@@ -137,34 +109,20 @@ INLINED bitboard_t relative_shift_down(bitboard_t b, color_t c)
     return ((c == WHITE) ? shift_down(b) : shift_up(b));
 }
 
-INLINED bool more_than_one(bitboard_t b)
-{
-    return (b & (b - 1));
-}
+INLINED bool more_than_one(bitboard_t b) { return (b & (b - 1)); }
 
-INLINED bitboard_t file_bb(file_t file)
-{
-    return (FILE_A_BITS << file);
-}
+INLINED bitboard_t file_bb(file_t file) { return (FILE_A_BITS << file); }
 
-INLINED bitboard_t sq_file_bb(square_t square)
-{
-    return (file_bb(sq_file(square)));
-}
+INLINED bitboard_t sq_file_bb(square_t square) { return (file_bb(sq_file(square))); }
 
-INLINED bitboard_t rank_bb(rank_t rank)
-{
-    return (RANK_1_BITS << (8 * rank));
-}
+INLINED bitboard_t rank_bb(rank_t rank) { return (RANK_1_BITS << (8 * rank)); }
 
-INLINED bitboard_t sq_rank_bb(square_t square)
-{
-    return (rank_bb(sq_rank(square)));
-}
+INLINED bitboard_t sq_rank_bb(square_t square) { return (rank_bb(sq_rank(square))); }
 
 INLINED bitboard_t between_bb(square_t sq1, square_t sq2)
 {
-    return (LineBits[sq1][sq2] & ((FULL_BITS << (sq1 + (sq1 < sq2))) ^ (FULL_BITS << (sq2 + !(sq1 < sq2)))));
+    return (LineBits[sq1][sq2]
+            & ((FULL_BITS << (sq1 + (sq1 < sq2))) ^ (FULL_BITS << (sq2 + !(sq1 < sq2)))));
 }
 
 INLINED bool sq_aligned(square_t sq1, square_t sq2, square_t sq3)
@@ -248,7 +206,7 @@ INLINED int popcount(bitboard_t b)
     b = (b + (b >> 4)) & m4;
     return ((b * hx) >> 56);
 
-#elif defined(_MSC_VER) || defined (__INTEL_COMPILER)
+#elif defined(_MSC_VER) || defined(__INTEL_COMPILER)
 
     return ((int)_mm_popcnt_u64(b));
 
@@ -261,15 +219,9 @@ INLINED int popcount(bitboard_t b)
 
 #if defined(__GNUC__)
 
-INLINED square_t bb_first_sq(bitboard_t b)
-{
-    return (__builtin_ctzll(b));
-}
+INLINED square_t bb_first_sq(bitboard_t b) { return (__builtin_ctzll(b)); }
 
-INLINED square_t bb_last_sq(bitboard_t b)
-{
-    return (SQ_H8 ^ __builtin_clzll(b));
-}
+INLINED square_t bb_last_sq(bitboard_t b) { return (SQ_H8 ^ __builtin_clzll(b)); }
 
 #elif defined(_MSC_VER)
 

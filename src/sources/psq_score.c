@@ -19,6 +19,8 @@
 #include "psq_score.h"
 #include "types.h"
 
+// clang-format off
+
 scorepair_t PsqScore[PIECE_NB][SQUARE_NB];
 const score_t PieceScores[PHASE_NB][PIECE_NB] = {
     {
@@ -111,11 +113,14 @@ const scorepair_t PieceBonus[PIECETYPE_NB][RANK_NB][FILE_NB / 2] = {
 
 #undef S
 
+// clang-format on
+
 void psq_score_init(void)
 {
     for (piece_t piece = WHITE_PAWN; piece <= WHITE_KING; ++piece)
     {
-        scorepair_t pieceValue = create_scorepair(PieceScores[MIDGAME][piece], PieceScores[ENDGAME][piece]);
+        scorepair_t pieceValue =
+            create_scorepair(PieceScores[MIDGAME][piece], PieceScores[ENDGAME][piece]);
 
         for (square_t square = SQ_A1; square <= SQ_H8; ++square)
         {

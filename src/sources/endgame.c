@@ -16,16 +16,17 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "endgame.h"
+#include "pawns.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "endgame.h"
-#include "pawns.h"
 
 endgame_entry_t EndgameTable[EGTB_SIZE];
 
-score_t eval_draw(const board_t *board __attribute__((unused)), color_t winningSide __attribute__((unused)))
+score_t eval_draw(
+    const board_t *board __attribute__((unused)), color_t winningSide __attribute__((unused)))
 {
     return (0);
 }
@@ -37,7 +38,8 @@ score_t eval_krkp(const board_t *board, color_t winningSide)
     square_t winningRook = bb_first_sq(piecetype_bb(board, ROOK));
     square_t losingPawn = bb_first_sq(piecetype_bb(board, PAWN));
     square_t pushSquare = losingPawn + pawn_direction(not_color(winningSide));
-    square_t promoteSquare = create_sq(sq_file(losingPawn), relative_rank(RANK_8, not_color(winningSide)));
+    square_t promoteSquare =
+        create_sq(sq_file(losingPawn), relative_rank(RANK_8, not_color(winningSide)));
     score_t score;
 
     // Does the winning King control the promotion path ?
@@ -48,22 +50,24 @@ score_t eval_krkp(const board_t *board, color_t winningSide)
     // Is the losing King unable to reach either the Rook or its Pawn ?
 
     else if (SquareDistance[losingKsq][losingPawn] >= 3 + (board->sideToMove != winningSide)
-        && SquareDistance[losingKsq][winningRook] >= 3)
+             && SquareDistance[losingKsq][winningRook] >= 3)
         score = ROOK_EG_SCORE - SquareDistance[winningKsq][losingPawn];
 
     // Is the Pawn close to the promotion square and defended by its King ?
     // Also, is the winning King unable to reach the Pawn ?
 
     else if (relative_rank(winningSide, losingKsq) <= RANK_3
-        && SquareDistance[losingKsq][losingPawn] == 1
-        && relative_rank(winningSide, winningKsq) >= RANK_4
-        && SquareDistance[winningKsq][losingPawn] >= 3 + (board->sideToMove == winningSide))
+             && SquareDistance[losingKsq][losingPawn] == 1
+             && relative_rank(winningSide, winningKsq) >= RANK_4
+             && SquareDistance[winningKsq][losingPawn] >= 3 + (board->sideToMove == winningSide))
         score = 40 - 4 * SquareDistance[winningKsq][losingPawn];
 
     else
-        score = 100 - 4 * (SquareDistance[winningKsq][pushSquare]
-            - SquareDistance[losingKsq][pushSquare]
-            - SquareDistance[losingPawn][promoteSquare]);
+        score =
+            100
+            - 4
+                  * (SquareDistance[winningKsq][pushSquare] - SquareDistance[losingKsq][pushSquare]
+                      - SquareDistance[losingPawn][promoteSquare]);
 
     return (board->sideToMove == winningSide ? score : -score);
 }
@@ -94,8 +98,7 @@ score_t eval_kbnk(const board_t *board, color_t winningSide)
 
     // Don't push the king to the wrong corner
 
-    if (piecetype_bb(board, BISHOP) & DARK_SQUARES)
-        losingKsq ^= SQ_A8;
+    if (piecetype_bb(board, BISHOP) & DARK_SQUARES) losingKsq ^= SQ_A8;
 
     score += abs(sq_file(losingKsq) - sq_rank(losingKsq)) * 100;
 
@@ -151,21 +154,16 @@ score_t eval_kmpkn(const board_t *board, color_t winningSide)
     square_t losingKsq = get_king_square(board, losingSide);
     square_t losingNsq = bb_first_sq(piece_bb(board, losingSide, KNIGHT));
 
-    if (board->sideToMove == BLACK)
-        score = -score;
+    if (board->sideToMove == BLACK) score = -score;
 
     bitboard_t queeningPath = forward_file_bb(winningSide, winningPsq);
     bitboard_t passedSpan = passed_pawn_span_bb(winningSide, winningPsq);
 
-    if (queeningPath & square_bb(losingKsq))
-        return (score / 16);
+    if (queeningPath & square_bb(losingKsq)) return (score / 16);
 
-    if (queeningPath & knight_moves(losingNsq))
-        return (score / 8);
+    if (queeningPath & knight_moves(losingNsq)) return (score / 8);
 
-    if ((passedSpan & square_bb(losingKsq))
-        && !(passedSpan & square_bb(winningKsq))
-        && tempo)
+    if ((passedSpan & square_bb(losingKsq)) && !(passedSpan & square_bb(winningKsq)) && tempo)
         return (score / 4);
 
     return (score);
@@ -183,21 +181,16 @@ score_t eval_kmpkb(const board_t *board, color_t winningSide)
     square_t losingKsq = get_king_square(board, losingSide);
     square_t losingBsq = bb_first_sq(piece_bb(board, losingSide, BISHOP));
 
-    if (board->sideToMove == BLACK)
-        score = -score;
+    if (board->sideToMove == BLACK) score = -score;
 
     bitboard_t queeningPath = forward_file_bb(winningSide, winningPsq);
     bitboard_t passedSpan = passed_pawn_span_bb(winningSide, winningPsq);
 
-    if (queeningPath & square_bb(losingKsq))
-        return (score / 16);
+    if (queeningPath & square_bb(losingKsq)) return (score / 16);
 
-    if (queeningPath & bishop_moves(board, losingBsq))
-        return (score / 8);
+    if (queeningPath & bishop_moves(board, losingBsq)) return (score / 8);
 
-    if ((passedSpan & square_bb(losingKsq))
-        && !(passedSpan & square_bb(winningKsq))
-        && tempo)
+    if ((passedSpan & square_bb(losingKsq)) && !(passedSpan & square_bb(winningKsq)) && tempo)
         return (score / 4);
 
     return (score);
@@ -215,8 +208,7 @@ score_t eval_krpkr(const board_t *board, color_t winningSide)
     square_t losingKsq = relative_sq(get_king_square(board, losingSide), winningSide);
     square_t losingRsq = relative_sq(bb_first_sq(piece_bb(board, losingSide, ROOK)), winningSide);
 
-    if (board->sideToMove == BLACK)
-        score = -score;
+    if (board->sideToMove == BLACK) score = -score;
 
     // Check if a Philidor position can be built, or if back-rank defense
     // can be used
@@ -230,25 +222,20 @@ score_t eval_krpkr(const board_t *board, color_t winningSide)
 
         if (rankLK == RANK_6 || rankLK == RANK_7)
         {
-            if (rankLR == RANK_5 && rankWK < RANK_5 && rankWP < RANK_5)
-                return (score / 64);
-            if (rankLR == RANK_1 && rankWP == RANK_5)
-                return (score / 64);
+            if (rankLR == RANK_5 && rankWK < RANK_5 && rankWP < RANK_5) return (score / 64);
+            if (rankLR == RANK_1 && rankWP == RANK_5) return (score / 64);
         }
         if (rankLK >= RANK_7)
         {
-            if (rankLR == RANK_6 && rankWK < RANK_6 && rankWP < RANK_6)
-                return (score / 64);
-            if (rankLR <= RANK_2 && rankWP == RANK_6)
-                return (score / 64);
+            if (rankLR == RANK_6 && rankWK < RANK_6 && rankWP < RANK_6) return (score / 64);
+            if (rankLR <= RANK_2 && rankWP == RANK_6) return (score / 64);
         }
 
         if (rankLK == RANK_8 && rankLR == RANK_8)
         {
             if (square_bb(winningPsq) & (FILE_A_BITS | FILE_B_BITS | FILE_G_BITS | FILE_H_BITS))
                 return (score / 16);
-            if (rankWK + tempo < RANK_6)
-                return (score / 16);
+            if (rankWK + tempo < RANK_6) return (score / 16);
         }
 
         return (score / 2);
@@ -271,9 +258,8 @@ score_t eval_kbpsk(const board_t *board, color_t winningSide)
 
     if ((winningPawns & wrongFile) == winningPawns)
     {
-        square_t mostAdvancedPawn = (winningSide == WHITE)
-            ? bb_last_sq(winningPawns)
-            : bb_first_sq(winningPawns) ^ SQ_A8;
+        square_t mostAdvancedPawn =
+            (winningSide == WHITE) ? bb_last_sq(winningPawns) : bb_first_sq(winningPawns) ^ SQ_A8;
 
         // Don't forget to map the pieces to the queenside for a kingside Pawn
         if (sq_file(mostAdvancedPawn) == FILE_H)
@@ -285,8 +271,7 @@ score_t eval_kbpsk(const board_t *board, color_t winningSide)
 
         color_t us = (board->sideToMove == winningSide) ? WHITE : BLACK;
 
-        if (!kpk_is_winning(us, losingKsq, winningKsq, mostAdvancedPawn))
-            return (0);
+        if (!kpk_is_winning(us, losingKsq, winningKsq, mostAdvancedPawn)) return (0);
     }
 
     return (board->sideToMove == WHITE ? score : -score);
@@ -302,15 +287,14 @@ score_t eval_kpsk(const board_t *board, color_t winningSide)
     square_t losingKsq = relative_sq(get_king_square(board, losingSide), winningSide);
     bitboard_t winningPawns = piecetype_bb(board, PAWN);
 
-    if ((winningPawns & FILE_A_BITS) == winningPawns || (winningPawns & FILE_H_BITS) == winningPawns)
+    if ((winningPawns & FILE_A_BITS) == winningPawns
+        || (winningPawns & FILE_H_BITS) == winningPawns)
     {
-        square_t mostAdvancedPawn = (winningSide == WHITE)
-            ? bb_last_sq(winningPawns)
-            : bb_first_sq(winningPawns) ^ SQ_A8;
+        square_t mostAdvancedPawn =
+            (winningSide == WHITE) ? bb_last_sq(winningPawns) : bb_first_sq(winningPawns) ^ SQ_A8;
         color_t us = (board->sideToMove == winningSide) ? WHITE : BLACK;
 
-        if (!kpk_is_winning(us, losingKsq, winningKsq, mostAdvancedPawn))
-            return (0);
+        if (!kpk_is_winning(us, losingKsq, winningKsq, mostAdvancedPawn)) return (0);
     }
 
     return (board->sideToMove == WHITE ? score : -score);
@@ -323,10 +307,10 @@ void add_colored_entry(color_t winningSide, char *wpieces, char *bpieces, endgam
 
     strcpy(bcopy, bpieces);
 
-    for (size_t i = 0; bcopy[i]; ++i)
-        bcopy[i] = tolower(bcopy[i]);
+    for (size_t i = 0; bcopy[i]; ++i) bcopy[i] = tolower(bcopy[i]);
 
-    sprintf(fen, "8/%s%d/8/8/8/8/%s%d/8 w - - 0 1", bcopy, 8 - (int)strlen(bcopy), wpieces, 8 - (int)strlen(wpieces));
+    sprintf(fen, "8/%s%d/8/8/8/8/%s%d/8 w - - 0 1", bcopy, 8 - (int)strlen(bcopy), wpieces,
+        8 - (int)strlen(wpieces));
 
     board_t board;
     boardstack_t stack;
@@ -395,7 +379,7 @@ void init_endgame_table(void)
     add_endgame_entry("KPPPvK", &eval_kpsk);
     add_endgame_entry("KPPPPvK", &eval_kpsk);
     add_endgame_entry("KPPPPPvK", &eval_kpsk);
-    
+
     // KBPsK endgames
 
     add_endgame_entry("KBPvK", &eval_kbpsk);

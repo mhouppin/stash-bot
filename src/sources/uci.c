@@ -16,19 +16,21 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include "uci.h"
 #include "evaluate.h"
 #include "movelist.h"
 #include "option.h"
 #include "tt.h"
 #include "types.h"
-#include "uci.h"
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #define UCI_VERSION "v33.3"
+
+// clang-format off
 
 const cmdlink_t commands[] =
 {
@@ -53,6 +55,8 @@ const char *BoundStr[] = {
     ""
 };
 
+// clang-format on
+
 // Finds the next token in the given string, writes a nullbyte to its end,
 // and returns it (after incrementing the string pointer).
 // This is mainly used as a replacement to strtok_r(), which isn't available
@@ -60,19 +64,15 @@ const char *BoundStr[] = {
 
 char *get_next_token(char **str)
 {
-    while (isspace(**str) && **str != '\0')
-        ++(*str);
+    while (isspace(**str) && **str != '\0') ++(*str);
 
-    if (**str == '\0')
-        return (NULL);
+    if (**str == '\0') return (NULL);
 
     char *retval = *str;
 
-    while (!isspace(**str) && **str != '\0')
-        ++(*str);
+    while (!isspace(**str) && **str != '\0') ++(*str);
 
-    if (**str == '\0')
-        return (retval);
+    if (**str == '\0') return (retval);
 
     **str = '\0';
     ++(*str);
@@ -83,11 +83,9 @@ const char *move_to_str(move_t move, bool isChess960)
 {
     static char buf[6];
 
-    if (move == NO_MOVE)
-        return ("none");
+    if (move == NO_MOVE) return ("none");
 
-    if (move == NULL_MOVE)
-        return ("0000");
+    if (move == NULL_MOVE) return ("0000");
 
     square_t from = from_sq(move), to = to_sq(move);
 
@@ -114,8 +112,7 @@ move_t str_to_move(const board_t *board, const char *str)
 {
     char *trick = strdup(str);
 
-    if (strlen(str) == 5)
-        trick[4] = tolower(trick[4]);
+    if (strlen(str) == 5) trick[4] = tolower(trick[4]);
 
     movelist_t movelist;
 
@@ -147,7 +144,8 @@ const char *score_to_str(score_t score)
     return (buf);
 }
 
-void print_pv(const board_t *board, root_move_t *rootMove, int multiPv, int depth, clock_t time, int bound)
+void print_pv(
+    const board_t *board, root_move_t *rootMove, int multiPv, int depth, clock_t time, int bound)
 {
     uint64_t nodes = wpool_get_total_nodes(&WPool);
     uint64_t nps = nodes / (time + !time) * 1000;
@@ -170,20 +168,11 @@ void uci_isready(const char *args __attribute__((unused)))
     fflush(stdout);
 }
 
-void uci_quit(const char *args __attribute__((unused)))
-{
-    WPool.stop = true;
-}
+void uci_quit(const char *args __attribute__((unused))) { WPool.stop = true; }
 
-void uci_stop(const char *args __attribute__((unused)))
-{
-    WPool.stop = true;
-}
+void uci_stop(const char *args __attribute__((unused))) { WPool.stop = true; }
 
-void uci_ponderhit(const char *args __attribute__((unused)))
-{
-    WPool.ponder = false;
-}
+void uci_ponderhit(const char *args __attribute__((unused))) { WPool.ponder = false; }
 
 void uci_uci(const char *args __attribute__((unused)))
 {
@@ -235,8 +224,7 @@ void uci_position(const char *args)
 
     if (hiddenSize > 0)
     {
-        for (size_t i = 0; i < hiddenSize; ++i)
-            free(hiddenList[i]);
+        for (size_t i = 0; i < hiddenSize; ++i) free(hiddenList[i]);
         free(hiddenList);
     }
 
@@ -272,7 +260,7 @@ void uci_position(const char *args)
         }
     }
     else
-        return ;
+        return;
 
     set_board(&Board, fen, Options.chess960, *hiddenList);
     Board.worker = wpool_main_worker(&WPool);
@@ -317,67 +305,57 @@ void uci_go(const char *args)
                 token = strtok(NULL, Delimiters);
             }
             SearchMoves.last = m;
-            break ;
+            break;
         }
         else if (strcmp(token, "wtime") == 0)
         {
             token = strtok(NULL, Delimiters);
-            if (token)
-                SearchParams.wtime = (clock_t)atoll(token);
+            if (token) SearchParams.wtime = (clock_t)atoll(token);
         }
         else if (strcmp(token, "btime") == 0)
         {
             token = strtok(NULL, Delimiters);
-            if (token)
-                SearchParams.btime = (clock_t)atoll(token);
+            if (token) SearchParams.btime = (clock_t)atoll(token);
         }
         else if (strcmp(token, "winc") == 0)
         {
             token = strtok(NULL, Delimiters);
-            if (token)
-                SearchParams.winc = (clock_t)atoll(token);
+            if (token) SearchParams.winc = (clock_t)atoll(token);
         }
         else if (strcmp(token, "binc") == 0)
         {
             token = strtok(NULL, Delimiters);
-            if (token)
-                SearchParams.binc = (clock_t)atoll(token);
+            if (token) SearchParams.binc = (clock_t)atoll(token);
         }
         else if (strcmp(token, "movestogo") == 0)
         {
             token = strtok(NULL, Delimiters);
-            if (token)
-                SearchParams.movestogo = atoi(token);
+            if (token) SearchParams.movestogo = atoi(token);
         }
         else if (strcmp(token, "depth") == 0)
         {
             token = strtok(NULL, Delimiters);
-            if (token)
-                SearchParams.depth = atoi(token);
+            if (token) SearchParams.depth = atoi(token);
         }
         else if (strcmp(token, "nodes") == 0)
         {
             token = strtok(NULL, Delimiters);
-            if (token)
-                SearchParams.nodes = (size_t)atoll(token);
+            if (token) SearchParams.nodes = (size_t)atoll(token);
         }
         else if (strcmp(token, "mate") == 0)
         {
             token = strtok(NULL, Delimiters);
-            if (token)
-                SearchParams.mate = atoi(token);
+            if (token) SearchParams.mate = atoi(token);
         }
         else if (strcmp(token, "perft") == 0)
         {
             token = strtok(NULL, Delimiters);
-            if (token)
-                SearchParams.perft = atoi(token);
+            if (token) SearchParams.perft = atoi(token);
         }
         else if (strcmp(token, "movetime") == 0)
         {
             token = strtok(NULL, Delimiters);
-            if (token)
-                SearchParams.movetime = (clock_t)atoll(token);
+            if (token) SearchParams.movetime = (clock_t)atoll(token);
         }
         else if (strcmp(token, "infinite") == 0)
             SearchParams.infinite = 1;
@@ -394,8 +372,7 @@ void uci_go(const char *args)
 
 void uci_setoption(const char *args)
 {
-    if (!args)
-        return ;
+    if (!args) return;
 
     char *copy = strdup(args);
     char *nameToken = strstr(copy, "name");
@@ -404,7 +381,7 @@ void uci_setoption(const char *args)
     if (!nameToken)
     {
         free(copy);
-        return ;
+        return;
     }
 
     char nameBuf[1024] = {0};
@@ -418,8 +395,7 @@ void uci_setoption(const char *args)
         // Remove the final newline to valueBuf.
 
         char *maybeNewline = &valueBuf[strlen(valueBuf) - 1];
-        if (*maybeNewline == '\n')
-            *maybeNewline = '\0';
+        if (*maybeNewline == '\n') *maybeNewline = '\0';
     }
     else
         valueBuf[0] = '\0';
@@ -431,8 +407,7 @@ void uci_setoption(const char *args)
     {
         strcat(nameBuf, token);
         token = strtok(NULL, Delimiters);
-        if (token)
-            strcat(nameBuf, " ");
+        if (token) strcat(nameBuf, " ");
     }
 
     set_option(&OptionList, nameBuf, valueBuf);
@@ -455,7 +430,7 @@ int execute_uci_cmd(const char *command)
         if (strcmp(commands[i].commandName, cmd) == 0)
         {
             commands[i].call(strtok(NULL, ""));
-            break ;
+            break;
         }
     }
 
@@ -471,7 +446,7 @@ int execute_uci_cmd(const char *command)
 
 void on_hash_set(void *data)
 {
-    tt_resize((size_t)*(long *)data);
+    tt_resize((size_t) * (long *)data);
     printf("info string set Hash to %lu MB\n", *(long *)data);
     fflush(stdout);
 }
@@ -504,15 +479,13 @@ void uci_loop(int argc, char **argv)
     uci_position("startpos");
 
     if (argc > 1)
-        for (int i = 1; i < argc; ++i)
-            execute_uci_cmd(argv[i]);
+        for (int i = 1; i < argc; ++i) execute_uci_cmd(argv[i]);
     else
     {
         char *line = malloc(16384);
 
         while (fgets(line, 16384, stdin) != NULL)
-            if (execute_uci_cmd(line) == 0)
-                break ;
+            if (execute_uci_cmd(line) == 0) break;
 
         free(line);
     }

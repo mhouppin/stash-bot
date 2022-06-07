@@ -16,34 +16,28 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "tt.h"
+#include "uci.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "tt.h"
-#include "uci.h"
 
-transposition_t TT = {
-    0, NULL, 0
-};
+transposition_t TT = {0, NULL, 0};
 
 typedef struct tt_thread_s
 {
     size_t start;
     size_t end;
     pthread_t thread;
-}
-tt_thread_t;
+} tt_thread_t;
 
 void *tt_bzero_thread(void *data)
 {
     tt_thread_t *threadData = data;
-    const tt_entry_t zeroEntry = {
-        0, NO_SCORE, NO_SCORE, 0, 0, NO_MOVE
-    };
+    const tt_entry_t zeroEntry = {0, NO_SCORE, NO_SCORE, 0, 0, NO_MOVE};
 
     for (size_t i = threadData->start; i < threadData->end; ++i)
-        for (size_t j = 0; j < ClusterSize; ++j)
-            TT.table[i].clEntry[j] = zeroEntry;
+        for (size_t j = 0; j < ClusterSize; ++j) TT.table[i].clEntry[j] = zeroEntry;
 
     return (NULL);
 }
@@ -79,8 +73,7 @@ void tt_bzero(size_t threadCount)
 
     tt_bzero_thread(&threadList[0]);
 
-    for (size_t i = 1; i < threadCount; ++i)
-        pthread_join(threadList[i].thread, NULL);
+    for (size_t i = 1; i < threadCount; ++i) pthread_join(threadList[i].thread, NULL);
 
     free(threadList);
 }
@@ -98,8 +91,7 @@ int tt_hashfull(void)
 
 void tt_resize(size_t mbsize)
 {
-    if (TT.table)
-        free(TT.table);
+    if (TT.table) free(TT.table);
 
     TT.clusterCount = mbsize * 1024 * 1024 / sizeof(cluster_t);
     TT.table = malloc(TT.clusterCount * sizeof(cluster_t));
@@ -138,8 +130,7 @@ tt_entry_t *tt_probe(hashkey_t key, bool *found)
 
 void tt_save(tt_entry_t *entry, hashkey_t k, score_t s, score_t e, int d, int b, move_t m)
 {
-    if (m || k != entry->key)
-        entry->bestmove = (uint16_t)m;
+    if (m || k != entry->key) entry->bestmove = (uint16_t)m;
 
     // Do not erase entries with higher depth for same position.
 

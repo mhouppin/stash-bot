@@ -31,23 +31,25 @@ typedef struct
     move_t currentMove;
     move_t *pv;
     piece_history_t *pieceHistory;
-}
-searchstack_t;
+} searchstack_t;
 
 extern int Reductions[64][64];
 extern int Pruning[2][7];
 
-enum { MAX_PLIES = 240 };
+enum
+{
+    MAX_PLIES = 240
+};
 
 void init_search_tables(void);
 
-void update_quiet_history(const board_t *board, int depth,
-    move_t bestmove, const move_t quiets[64], int qcount, searchstack_t *ss);
-void update_capture_history(const board_t *board, int depth,
-    move_t bestmove, const move_t captures[64], int ccount, searchstack_t *ss);
+void update_quiet_history(const board_t *board, int depth, move_t bestmove, const move_t quiets[64],
+    int qcount, searchstack_t *ss);
+void update_capture_history(const board_t *board, int depth, move_t bestmove,
+    const move_t captures[64], int ccount, searchstack_t *ss);
 
 score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, bool pvNode);
-score_t search(board_t *board, int depth, score_t alpha, score_t beta,
-    searchstack_t *ss, bool pvNode);
+score_t search(
+    board_t *board, int depth, score_t alpha, score_t beta, searchstack_t *ss, bool pvNode);
 
 #endif

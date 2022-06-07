@@ -1,11 +1,29 @@
+/*
+**    Stash, a UCI chess playing engine developed from scratch
+**    Copyright (C) 2019-2022 Morgan Houppin
+**
+**    Stash is free software: you can redistribute it and/or modify
+**    it under the terms of the GNU General Public License as published by
+**    the Free Software Foundation, either version 3 of the License, or
+**    (at your option) any later version.
+**
+**    Stash is distributed in the hope that it will be useful,
+**    but WITHOUT ANY WARRANTY; without even the implied warranty of
+**    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**    GNU General Public License for more details.
+**
+**    You should have received a copy of the GNU General Public License
+**    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #ifndef WORKER_H
 #define WORKER_H
 
-#include <pthread.h>
 #include "board.h"
 #include "history.h"
 #include "pawns.h"
 #include "uci.h"
+#include <pthread.h>
 
 // Struct for search params.
 
@@ -23,8 +41,7 @@ typedef struct goparams_s
     int perft;
     int ponder;
     clock_t movetime;
-}
-goparams_t;
+} goparams_t;
 
 extern goparams_t SearchParams;
 
@@ -32,18 +49,17 @@ extern goparams_t SearchParams;
 
 typedef struct root_move_s
 {
-    move_t  move;
+    move_t move;
     int seldepth;
     score_t prevScore;
     score_t score;
-    move_t  pv[512];
-}
-root_move_t;
+    move_t pv[512];
+} root_move_t;
 
 void sort_root_moves(root_move_t *begin, root_move_t *end);
 root_move_t *find_root_move(root_move_t *begin, root_move_t *end, move_t move);
-void print_pv(const board_t *board, root_move_t *rootMove, int multiPv,
-    int depth, clock_t time, int bound);
+void print_pv(
+    const board_t *board, root_move_t *rootMove, int multiPv, int depth, clock_t time, int bound);
 
 // Struct for worker thread data.
 
@@ -71,18 +87,11 @@ typedef struct worker_s
     pthread_cond_t condVar;
     bool exit;
     bool searching;
-}
-worker_t;
+} worker_t;
 
-INLINED worker_t *get_worker(const board_t *board)
-{
-    return (board->worker);
-}
+INLINED worker_t *get_worker(const board_t *board) { return (board->worker); }
 
-INLINED score_t draw_score(const worker_t *worker)
-{
-    return (worker->nodes & 2) - 1;
-}
+INLINED score_t draw_score(const worker_t *worker) { return (worker->nodes & 2) - 1; }
 
 void worker_init(worker_t *worker, size_t idx);
 void worker_destroy(worker_t *worker);
@@ -102,20 +111,16 @@ typedef struct worker_pool_s
     _Atomic bool stop;
 
     worker_t **workerList;
-}
-worker_pool_t;
+} worker_pool_t;
 
 extern worker_pool_t WPool;
 
-INLINED worker_t *wpool_main_worker(worker_pool_t *wpool)
-{
-    return wpool->workerList[0];
-}
+INLINED worker_t *wpool_main_worker(worker_pool_t *wpool) { return wpool->workerList[0]; }
 
 void wpool_init(worker_pool_t *wpool, size_t threads);
 void wpool_reset(worker_pool_t *wpool);
-void wpool_start_search(worker_pool_t *wpool, const board_t *rootBoard,
-    const goparams_t *searchParams);
+void wpool_start_search(
+    worker_pool_t *wpool, const board_t *rootBoard, const goparams_t *searchParams);
 void wpool_start_workers(worker_pool_t *wpool);
 void wpool_wait_search_end(worker_pool_t *wpool);
 uint64_t wpool_get_total_nodes(worker_pool_t *wpool);

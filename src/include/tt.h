@@ -19,9 +19,9 @@
 #ifndef TT_H
 #define TT_H
 
-#include <string.h>
 #include "hashkey.h"
 #include "types.h"
+#include <string.h>
 
 typedef struct tt_entry_s
 {
@@ -31,24 +31,24 @@ typedef struct tt_entry_s
     uint8_t depth;
     uint8_t genbound;
     uint16_t bestmove;
-}
-tt_entry_t;
+} tt_entry_t;
 
-enum { ClusterSize = 4 };
+enum
+{
+    ClusterSize = 4
+};
 
 typedef struct cluster_s
 {
     tt_entry_t clEntry[ClusterSize];
-}
-cluster_t;
+} cluster_t;
 
 typedef struct transposition_s
 {
     size_t clusterCount;
     cluster_t *table;
     uint8_t generation;
-}
-transposition_t;
+} transposition_t;
 
 extern transposition_t TT;
 
@@ -57,10 +57,7 @@ INLINED tt_entry_t *tt_entry_at(hashkey_t k)
     return (TT.table[mul_hi64(k, TT.clusterCount)].clEntry);
 }
 
-INLINED void tt_clear(void)
-{
-    TT.generation += 4;
-}
+INLINED void tt_clear(void) { TT.generation += 4; }
 
 INLINED score_t score_to_tt(score_t s, int plies)
 {
