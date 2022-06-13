@@ -26,6 +26,7 @@ enum
     EGTB_SIZE = 2048
 };
 
+// Maps a square relative to the given color.
 INLINED square_t normalize_square(const board_t *board, color_t winning, square_t sq)
 {
     if (sq_file(bb_first_sq(piece_bb(board, winning, PAWN))) >= FILE_E) sq ^= FILE_H;
@@ -33,6 +34,7 @@ INLINED square_t normalize_square(const board_t *board, color_t winning, square_
     return (relative_sq(sq, winning));
 }
 
+// Bonus for pieces on the edge of the board.
 INLINED score_t edge_bonus(square_t sq)
 {
     int rank = sq_rank(sq);
@@ -44,18 +46,22 @@ INLINED score_t edge_bonus(square_t sq)
     return (50 - 2 * (file * file + rank * rank));
 }
 
+// Bonus for pieces close to each other.
 INLINED score_t close_bonus(square_t sq1, square_t sq2)
 {
     return (70 - 10 * SquareDistance[sq1][sq2]);
 }
 
+// Bonus for pieces far from each other.
 INLINED score_t away_bonus(square_t sq1, square_t sq2)
 {
     return (10 + 10 * SquareDistance[sq1][sq2]);
 }
 
+// Typedef for specialized endgame functions
 typedef score_t (*endgame_func_t)(const board_t *, color_t);
 
+// Struct holding a specialized endgame
 typedef struct endgame_entry_s
 {
     hashkey_t key;
@@ -63,12 +69,19 @@ typedef struct endgame_entry_s
     color_t winningSide;
 } endgame_entry_t;
 
+// Global table for hasing endgames
 extern endgame_entry_t EndgameTable[EGTB_SIZE];
 
+// Initializes the endgame table.
 void init_endgame_table(void);
+
+// Initializes the KPK bitbase.
 void init_kpk_bitbase(void);
+
+// Checks if the given KPK endgame is winning.
 bool kpk_is_winning(color_t stm, square_t bksq, square_t wksq, square_t psq);
 
+// A list of all specialized endgames.
 score_t eval_draw(const board_t *board, color_t winningSide);
 score_t eval_krkn(const board_t *board, color_t winningSide);
 score_t eval_krkp(const board_t *board, color_t winningSide);
@@ -81,6 +94,7 @@ score_t eval_kpsk(const board_t *board, color_t winningSide);
 score_t eval_knnkp(const board_t *board, color_t winningSide);
 score_t eval_kbpsk(const board_t *board, color_t winningSide);
 
+// Probes the endgame table for the given board.
 const endgame_entry_t *endgame_probe(const board_t *board);
 
 #endif

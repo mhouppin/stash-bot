@@ -102,7 +102,10 @@ extern evaltrace_t Trace;
 
 #endif
 
+// Evaluates the position.
 score_t evaluate(const board_t *board);
+
+// Returns the scaled value of the endgame score.
 score_t scale_endgame(const board_t *board, score_t eg);
 
 #endif

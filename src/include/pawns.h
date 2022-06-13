@@ -21,6 +21,7 @@
 
 #include "board.h"
 
+// Struct for pawn eval data
 typedef struct pawn_entry_s
 {
     hashkey_t key;
@@ -36,6 +37,7 @@ enum
     PawnTableSize = 1 << 15
 };
 
+// Probes the pawn hash table for the given position.
 pawn_entry_t *pawn_probe(const board_t *board);
 
 #endif

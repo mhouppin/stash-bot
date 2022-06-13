@@ -22,6 +22,7 @@
 #include "board.h"
 #include "history.h"
 
+// Struct for holding search data
 typedef struct
 {
     int plies;
@@ -33,7 +34,10 @@ typedef struct
     piece_history_t *pieceHistory;
 } searchstack_t;
 
+// Global for Late Move Reductions
 extern int Reductions[64][64];
+
+// Global for Late Move Pruning
 extern int Pruning[2][7];
 
 enum
@@ -41,14 +45,21 @@ enum
     MAX_PLIES = 240
 };
 
+// Initializes the search tables.
 void init_search_tables(void);
 
+// Updates the quiet history for the bestmove and all failed quiets.
 void update_quiet_history(const board_t *board, int depth, move_t bestmove, const move_t quiets[64],
     int qcount, searchstack_t *ss);
+
+// Updates the capture history for the bestmove and all failed captures.
 void update_capture_history(const board_t *board, int depth, move_t bestmove,
     const move_t captures[64], int ccount, searchstack_t *ss);
 
+// Quiescence search.
 score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, bool pvNode);
+
+// Standard search.
 score_t search(
     board_t *board, int depth, score_t alpha, score_t beta, searchstack_t *ss, bool pvNode);
 
