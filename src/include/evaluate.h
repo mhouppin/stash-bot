@@ -16,14 +16,10 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ENGINE_H
-#define ENGINE_H
+#ifndef EVALUATE_H
+#define EVALUATE_H
 
-#include <time.h>
 #include "board.h"
-#include "history.h"
-#include "movepick.h"
-#include "worker.h"
 
 #ifdef TUNE
 
@@ -75,8 +71,7 @@ typedef enum tune_idx_e
     IDX_KS_QUEENLESS,
     IDX_KS_OFFSET,
     IDX_COUNT
-}
-tune_idx_t;
+} tune_idx_t;
 
 typedef struct evaltrace_s
 {
@@ -107,29 +102,10 @@ extern evaltrace_t Trace;
 
 #endif
 
-enum { MAX_PLIES = 240 };
-
-extern int Reductions[64][64];
-extern int Pruning[2][7];
-
-void sort_root_moves(root_move_t *begin, root_move_t *end);
-root_move_t *find_root_move(root_move_t *begin, root_move_t *end, move_t move);
-
-void *engine_go(void *ptr);
-score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, bool pvNode);
-score_t search(board_t *board, int depth, score_t alpha, score_t beta,
-    searchstack_t *ss, bool pvNode);
-
-void update_quiet_history(const board_t *board, int depth,
-    move_t bestmove, const move_t quiets[64], int qcount, searchstack_t *ss);
-void update_capture_history(const board_t *board, int depth,
-    move_t bestmove, const move_t captures[64], int ccount, searchstack_t *ss);
-
+// Evaluates the position.
 score_t evaluate(const board_t *board);
+
+// Returns the scaled value of the endgame score.
 score_t scale_endgame(const board_t *board, score_t eg);
-
-void init_reduction_table(void);
-
-void *engine_thread(void *nothing);
 
 #endif

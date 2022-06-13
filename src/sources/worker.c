@@ -1,8 +1,8 @@
-#include <stdio.h>
-#include <string.h>
+#include "worker.h"
 #include "movelist.h"
 #include "uci.h"
-#include "worker.h"
+#include <stdio.h>
+#include <string.h>
 
 worker_pool_t WPool;
 
@@ -37,8 +37,7 @@ root_move_t *find_root_move(root_move_t *begin, root_move_t *end, move_t move)
 {
     while (begin < end)
     {
-        if (begin->move == move)
-            return (begin);
+        if (begin->move == move) return (begin);
 
         ++begin;
     }
@@ -59,8 +58,7 @@ void worker_init(worker_t *worker, size_t idx)
         exit(EXIT_FAILURE);
     }
 
-    if (pthread_mutex_init(&worker->mutex, NULL)
-        || pthread_cond_init(&worker->condVar, NULL))
+    if (pthread_mutex_init(&worker->mutex, NULL) || pthread_cond_init(&worker->condVar, NULL))
     {
         perror("Unable to initialize worker lock");
         exit(EXIT_FAILURE);
@@ -109,8 +107,7 @@ void worker_start_search(worker_t *worker)
 void worker_wait_search_end(worker_t *worker)
 {
     pthread_mutex_lock(&worker->mutex);
-    while (worker->searching)
-        pthread_cond_wait(&worker->condVar, &worker->mutex);
+    while (worker->searching) pthread_cond_wait(&worker->condVar, &worker->mutex);
     pthread_mutex_unlock(&worker->mutex);
 }
 
@@ -124,11 +121,9 @@ void *worker_entry(void *ptr)
         worker->searching = false;
         pthread_cond_signal(&worker->condVar);
 
-        while (!worker->searching)
-            pthread_cond_wait(&worker->condVar, &worker->mutex);
+        while (!worker->searching) pthread_cond_wait(&worker->condVar, &worker->mutex);
 
-        if (worker->exit)
-            break ;
+        if (worker->exit) break;
 
         pthread_mutex_unlock(&worker->mutex);
 
@@ -190,14 +185,13 @@ void wpool_init(worker_pool_t *wpool, size_t threads)
 
 void wpool_reset(worker_pool_t *wpool)
 {
-    for (size_t i = 0; i < wpool->size; ++i)
-        worker_reset(wpool->workerList[i]);
+    for (size_t i = 0; i < wpool->size; ++i) worker_reset(wpool->workerList[i]);
 
     wpool->checks = 1000;
 }
 
-void wpool_start_search(worker_pool_t *wpool, const board_t *rootBoard,
-    const goparams_t *searchParams)
+void wpool_start_search(
+    worker_pool_t *wpool, const board_t *rootBoard, const goparams_t *searchParams)
 {
     worker_wait_search_end(wpool_main_worker(wpool));
 
@@ -237,22 +231,19 @@ void wpool_start_search(worker_pool_t *wpool, const board_t *rootBoard,
 
 void wpool_start_workers(worker_pool_t *wpool)
 {
-    for (size_t i = 1; i < wpool->size; ++i)
-        worker_start_search(wpool->workerList[i]);
+    for (size_t i = 1; i < wpool->size; ++i) worker_start_search(wpool->workerList[i]);
 }
 
 void wpool_wait_search_end(worker_pool_t *wpool)
 {
-    for (size_t i = 1; i < wpool->size; ++i)
-        worker_wait_search_end(wpool->workerList[i]);
+    for (size_t i = 1; i < wpool->size; ++i) worker_wait_search_end(wpool->workerList[i]);
 }
 
 uint64_t wpool_get_total_nodes(worker_pool_t *wpool)
 {
     uint64_t totalNodes = 0;
 
-    for (size_t i = 0; i < wpool->size; ++i)
-        totalNodes += wpool->workerList[i]->nodes;
+    for (size_t i = 0; i < wpool->size; ++i) totalNodes += wpool->workerList[i]->nodes;
 
     return (totalNodes);
 }

@@ -16,10 +16,10 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdlib.h>
 #include "bitboard.h"
 #include "random.h"
 #include "types.h"
+#include <stdlib.h>
 
 bitboard_t LineBits[SQUARE_NB][SQUARE_NB];
 bitboard_t PseudoMoves[PIECETYPE_NB][SQUARE_NB];
@@ -40,11 +40,10 @@ bitboard_t sliding_attack(const direction_t *directions, square_t square, bitboa
 
     for (int i = 0; i < 4; ++i)
         for (square_t s = square + directions[i];
-            is_valid_sq(s) && SquareDistance[s][s - directions[i]] == 1; s += directions[i])
+             is_valid_sq(s) && SquareDistance[s][s - directions[i]] == 1; s += directions[i])
         {
             attack |= square_bb(s);
-            if (occupied & square_bb(s))
-                break ;
+            if (occupied & square_bb(s)) break;
         }
 
     return (attack);
@@ -67,7 +66,7 @@ void magic_init(bitboard_t *table, magic_t *magics, const direction_t *direction
     for (square_t square = SQ_A1; square <= SQ_H8; ++square)
     {
         edges = ((RANK_1_BITS | RANK_8_BITS) & ~sq_rank_bb(square))
-            | ((FILE_A_BITS | FILE_H_BITS) & ~sq_file_bb(square));
+                | ((FILE_A_BITS | FILE_H_BITS) & ~sq_file_bb(square));
 
         magic_t *m = magics + square;
 
@@ -89,14 +88,13 @@ void magic_init(bitboard_t *table, magic_t *magics, const direction_t *direction
 #endif
             size++;
             b = (b - m->mask) & m->mask;
-        }
-        while (b);
+        } while (b);
 
 #ifndef USE_PEXT
 
-        for (int i = 0; i < size; )
+        for (int i = 0; i < size;)
         {
-            for (m->magic = 0; popcount((m->magic * m->mask) >> 56) < 6; )
+            for (m->magic = 0; popcount((m->magic * m->mask) >> 56) < 6;)
                 m->magic = qrandom(&seed) & qrandom(&seed) & qrandom(&seed);
 
             for (++counter, i = 0; i < size; ++i)
@@ -109,7 +107,7 @@ void magic_init(bitboard_t *table, magic_t *magics, const direction_t *direction
                     m->moves[index] = reference[i];
                 }
                 else if (m->moves[index] != reference[i])
-                    break ;
+                    break;
             }
         }
 #endif
@@ -120,18 +118,10 @@ void magic_init(bitboard_t *table, magic_t *magics, const direction_t *direction
 
 void bitboard_init(void)
 {
-    static const direction_t kingDirections[8] = {
-        -9, -8, -7, -1, 1, 7, 8, 9
-    };
-    static const direction_t knightDirections[8] = {
-        -17, -15, -10, -6, 6, 10, 15, 17
-    };
-    static const direction_t bishopDirections[4] = {
-        -9, -7, 7, 9
-    };
-    static const direction_t rookDirections[4] = {
-        -8, -1, 1, 8
-    };
+    static const direction_t kingDirections[8] = {-9, -8, -7, -1, 1, 7, 8, 9};
+    static const direction_t knightDirections[8] = {-17, -15, -10, -6, 6, 10, 15, 17};
+    static const direction_t bishopDirections[4] = {-9, -7, 7, 9};
+    static const direction_t rookDirections[4] = {-8, -1, 1, 8};
 
     // Initializes square distance table.
 
@@ -189,11 +179,11 @@ void bitboard_init(void)
         {
             if (PseudoMoves[BISHOP][sq1] & square_bb(sq2))
                 LineBits[sq1][sq2] = (bishop_moves_bb(sq1, 0) & bishop_moves_bb(sq2, 0))
-                    | square_bb(sq1) | square_bb(sq2);
+                                     | square_bb(sq1) | square_bb(sq2);
 
             if (PseudoMoves[ROOK][sq1] & square_bb(sq2))
                 LineBits[sq1][sq2] = (rook_moves_bb(sq1, 0) & rook_moves_bb(sq2, 0))
-                    | square_bb(sq1) | square_bb(sq2);
+                                     | square_bb(sq1) | square_bb(sq2);
         }
     }
 }

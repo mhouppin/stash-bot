@@ -16,16 +16,19 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdlib.h>
-#include <string.h>
+#include "evaluate.h"
 #include "endgame.h"
-#include "engine.h"
+#include "movelist.h"
 #include "pawns.h"
 #include "types.h"
+#include <stdlib.h>
+#include <string.h>
 
 #ifdef TUNE
 evaltrace_t Trace;
 #endif
+
+// clang-format off
 
 // Special eval terms
 
@@ -135,6 +138,8 @@ const scorepair_t MinorAttacksRook  = SPAIR( 47, 30);
 const scorepair_t MinorAttacksQueen = SPAIR( 37, 12);
 const scorepair_t RookAttacksQueen  = SPAIR( 39, 16);
 
+// clang-format on
+
 typedef struct evaluation_s
 {
     bitboard_t kingZone[COLOR_NB];
@@ -146,15 +151,13 @@ typedef struct evaluation_s
     int safetyAttacks[COLOR_NB];
     scorepair_t safetyScore[COLOR_NB];
     int positionClosed;
-}
-evaluation_t;
+} evaluation_t;
 
 bool is_kxk_endgame(const board_t *board, color_t us)
 {
     // Weak side has pieces or Pawns, this is not a KXK endgame.
 
-    if (more_than_one(color_bb(board, not_color(us))))
-        return (false);
+    if (more_than_one(color_bb(board, not_color(us)))) return (false);
 
     return (board->stack->material[us] >= ROOK_MG_SCORE);
 }
@@ -168,13 +171,13 @@ score_t eval_kxk(const board_t *board, color_t us)
         movelist_t list;
 
         list_all(&list, board);
-        if (movelist_size(&list) == 0)
-            return (0);
+        if (movelist_size(&list) == 0) return (0);
     }
 
     square_t winningKsq = get_king_square(board, us);
     square_t losingKsq = get_king_square(board, not_color(us));
-    score_t score = board->stack->material[us] + popcount(piecetype_bb(board, PAWN)) * PAWN_MG_SCORE;
+    score_t score =
+        board->stack->material[us] + popcount(piecetype_bb(board, PAWN)) * PAWN_MG_SCORE;
 
     // Push the weak King to the corner.
 
@@ -195,10 +198,8 @@ score_t eval_kxk(const board_t *board, color_t us)
     bitboard_t knights = piecetype_bb(board, KNIGHT);
     bitboard_t bishops = piecetype_bb(board, BISHOP);
 
-    if (piecetype_bb(board, QUEEN) || piecetype_bb(board, ROOK)
-        || (knights && bishops)
-        || ((bishops & DARK_SQUARES) && (bishops & ~DARK_SQUARES))
-        || (popcount(knights) >= 3))
+    if (piecetype_bb(board, QUEEN) || piecetype_bb(board, ROOK) || (knights && bishops)
+        || ((bishops & DARK_SQUARES) && (bishops & ~DARK_SQUARES)) || (popcount(knights) >= 3))
         score += VICTORY;
 
     return (board->sideToMove == us ? score : -score);
@@ -210,13 +211,11 @@ bool ocb_endgame(const board_t *board)
 
     bitboard_t wbishop = piece_bb(board, WHITE, BISHOP);
 
-    if (!wbishop || more_than_one(wbishop))
-        return (false);
+    if (!wbishop || more_than_one(wbishop)) return (false);
 
     bitboard_t bbishop = piece_bb(board, BLACK, BISHOP);
 
-    if (!bbishop || more_than_one(bbishop))
-        return (false);
+    if (!bbishop || more_than_one(bbishop)) return (false);
 
     // Then check that the Bishops are on opposite colored squares.
 
@@ -233,14 +232,18 @@ score_t scale_endgame(const board_t *board, score_t eg)
 
     color_t strongSide = (eg > 0) ? WHITE : BLACK, weakSide = not_color(strongSide);
     int factor;
-    score_t strongMat = board->stack->material[strongSide], weakMat = board->stack->material[weakSide];
-    bitboard_t strongPawns = piece_bb(board, strongSide, PAWN), weakPawns = piece_bb(board, weakSide, PAWN);
+    score_t strongMat = board->stack->material[strongSide],
+            weakMat = board->stack->material[weakSide];
+    bitboard_t strongPawns = piece_bb(board, strongSide, PAWN),
+               weakPawns = piece_bb(board, weakSide, PAWN);
 
     // No Pawns and low material difference, the endgame is either drawn
     // or very difficult to win.
 
     if (!strongPawns && strongMat - weakMat <= BISHOP_MG_SCORE)
-        factor = (strongMat <= BISHOP_MG_SCORE) ? 0 : max((int32_t)(strongMat - weakMat) * 8 / BISHOP_MG_SCORE, 0);
+        factor = (strongMat <= BISHOP_MG_SCORE)
+                     ? 0
+                     : max((int32_t)(strongMat - weakMat) * 8 / BISHOP_MG_SCORE, 0);
 
     // OCB endgames: scale based on the number of remaining pieces of the strong side.
 
@@ -252,9 +255,9 @@ score_t scale_endgame(const board_t *board, score_t eg)
     // his own Pawns.
 
     else if (strongMat == ROOK_MG_SCORE && weakMat == ROOK_MG_SCORE
-        && (popcount(strongPawns) - popcount(weakPawns) < 2)
-        && !!(KINGSIDE_BITS & strongPawns) != !!(QUEENSIDE_BITS & strongPawns)
-        && (king_moves(get_king_square(board, weakSide)) & weakPawns))
+             && (popcount(strongPawns) - popcount(weakPawns) < 2)
+             && !!(KINGSIDE_BITS & strongPawns) != !!(QUEENSIDE_BITS & strongPawns)
+             && (king_moves(get_king_square(board, weakSide)) & weakPawns))
         factor = 64;
 
     // Other endgames. Decrease the endgame score as the number of pawns of the strong
@@ -333,7 +336,8 @@ void eval_init(const board_t *board, evaluation_t *eval)
     eval->positionClosed = min(4, popcount(fixedPawns) / 2);
 }
 
-scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, const pawn_entry_t *pe, color_t us)
+scorepair_t evaluate_knights(
+    const board_t *board, evaluation_t *eval, const pawn_entry_t *pe, color_t us)
 {
     scorepair_t ret = 0;
     bitboard_t bb = piece_bb(board, us, KNIGHT);
@@ -356,8 +360,7 @@ scorepair_t evaluate_knights(const board_t *board, evaluation_t *eval, const paw
 
         // If the Knight is pinned, it has no Mobility squares.
 
-        if (board->stack->kingBlockers[us] & sqbb)
-            b = 0;
+        if (board->stack->kingBlockers[us] & sqbb) b = 0;
 
         // Update attack tables.
 
@@ -440,8 +443,7 @@ scorepair_t evaluate_bishops(const board_t *board, evaluation_t *eval, color_t u
         // If the Bishop is pinned, reduce its mobility to all the squares
         // between the King and the pinner.
 
-        if (board->stack->kingBlockers[us] & sqbb)
-            b &= LineBits[get_king_square(board, us)][sq];
+        if (board->stack->kingBlockers[us] & sqbb) b &= LineBits[get_king_square(board, us)][sq];
 
         // Update attack tables.
 
@@ -454,7 +456,7 @@ scorepair_t evaluate_bishops(const board_t *board, evaluation_t *eval, color_t u
         ret += MobilityB[popcount(b & eval->mobilityZone[us])];
         TRACE_ADD(IDX_MOBILITY_BISHOP + popcount(b & eval->mobilityZone[us]), us, 1);
 
-		// Bonus for Bishop with a Pawn above it
+        // Bonus for Bishop with a Pawn above it
 
         if (relative_shift_up(square_bb(sq), us) & ourPawns)
         {
@@ -498,8 +500,7 @@ scorepair_t evaluate_rooks(const board_t *board, evaluation_t *eval, color_t us)
         // If the Rook is pinned, reduce its mobility to all the squares
         // between the King and the pinner.
 
-        if (board->stack->kingBlockers[us] & sqbb)
-            b &= LineBits[get_king_square(board, us)][sq];
+        if (board->stack->kingBlockers[us] & sqbb) b &= LineBits[get_king_square(board, us)][sq];
 
         // Update attack tables.
 
@@ -560,8 +561,7 @@ scorepair_t evaluate_queens(const board_t *board, evaluation_t *eval, color_t us
         // If the Queen is pinned, reduce its mobility to all the squares
         // between the King and the pinner.
 
-        if (board->stack->kingBlockers[us] & sqbb)
-            b &= LineBits[get_king_square(board, us)][sq];
+        if (board->stack->kingBlockers[us] & sqbb) b &= LineBits[get_king_square(board, us)][sq];
 
         // Update attack tables.
 
@@ -693,21 +693,22 @@ scorepair_t evaluate_safety(const board_t *board, evaluation_t *eval, color_t us
         // no defenders, or only the King as a defender.
 
         bitboard_t weak = eval->attacked[us] & ~eval->attackedTwice[them]
-            & (~eval->attacked[them] | eval->attackedBy[them][KING]);
+                          & (~eval->attacked[them] | eval->attackedBy[them][KING]);
 
         // We define safe squares as squares that are attacked (or weak and attacked twice),
         // and where we can land on.
 
-        bitboard_t safe = ~color_bb(board, us)
-            & (~eval->attacked[them] | (weak & eval->attackedTwice[us]));
+        bitboard_t safe =
+            ~color_bb(board, us) & (~eval->attacked[them] | (weak & eval->attackedTwice[us]));
 
         bitboard_t rookCheckSpan = rook_moves(board, theirKing);
         bitboard_t bishopCheckSpan = bishop_moves(board, theirKing);
 
         bitboard_t knightChecks = safe & eval->attackedBy[us][KNIGHT] & knight_moves(theirKing);
         bitboard_t bishopChecks = safe & eval->attackedBy[us][BISHOP] & bishopCheckSpan;
-        bitboard_t rookChecks   = safe & eval->attackedBy[us][ROOK  ] & rookCheckSpan;
-        bitboard_t queenChecks  = safe & eval->attackedBy[us][QUEEN ] & (bishopCheckSpan | rookCheckSpan);
+        bitboard_t rookChecks = safe & eval->attackedBy[us][ROOK] & rookCheckSpan;
+        bitboard_t queenChecks =
+            safe & eval->attackedBy[us][QUEEN] & (bishopCheckSpan | rookCheckSpan);
 
         scorepair_t bonus = eval->safetyScore[us] + SafetyOffset;
 
@@ -717,8 +718,8 @@ scorepair_t evaluate_safety(const board_t *board, evaluation_t *eval, color_t us
 
         bonus += SafeKnightCheck * popcount(knightChecks);
         bonus += SafeBishopCheck * popcount(bishopChecks);
-        bonus += SafeRookCheck   * popcount(rookChecks);
-        bonus += SafeQueenCheck  * popcount(queenChecks);
+        bonus += SafeRookCheck * popcount(rookChecks);
+        bonus += SafeQueenCheck * popcount(queenChecks);
 
         TRACE_ADD(IDX_KS_OFFSET, us, 1);
         TRACE_ADD(IDX_KS_QUEENLESS, us, queenless);
@@ -743,15 +744,12 @@ score_t evaluate(const board_t *board)
     // Do we have a specialized endgame eval for the current configuration ?
     const endgame_entry_t *entry = endgame_probe(board);
 
-    if (entry != NULL)
-        return (entry->func(board, entry->winningSide));
+    if (entry != NULL) return (entry->func(board, entry->winningSide));
 
     // Is there a KXK situation ? (lone King vs mating material)
 
-    if (is_kxk_endgame(board, WHITE))
-        return (eval_kxk(board, WHITE));
-    if (is_kxk_endgame(board, BLACK))
-        return (eval_kxk(board, BLACK));
+    if (is_kxk_endgame(board, WHITE)) return (eval_kxk(board, WHITE));
+    if (is_kxk_endgame(board, BLACK)) return (eval_kxk(board, BLACK));
 
     evaluation_t eval;
     scorepair_t tapered = board->psqScorePair;
@@ -825,8 +823,8 @@ score_t evaluate(const board_t *board)
 
     {
         int phase = 4 * popcount(piecetype_bb(board, QUEEN))
-            + 2 * popcount(piecetype_bb(board, ROOK))
-            + popcount(piecetypes_bb(board, KNIGHT, BISHOP));
+                    + 2 * popcount(piecetype_bb(board, ROOK))
+                    + popcount(piecetypes_bb(board, KNIGHT, BISHOP));
 
         if (phase >= 24)
         {

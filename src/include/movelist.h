@@ -19,67 +19,80 @@
 #ifndef MOVELIST_H
 #define MOVELIST_H
 
-#include <stddef.h>
 #include "board.h"
 #include "types.h"
+#include <stddef.h>
 
+// Structure for holding moves along with their score
 typedef struct extmove_s
 {
     move_t move;
     score_t score;
-}
-extmove_t;
+} extmove_t;
 
+// Structure for holding a list of moves
 typedef struct movelist_s
 {
     extmove_t moves[256];
     extmove_t *last;
-}
-movelist_t;
+} movelist_t;
 
+// Global list for the "go searchmoves" option
 extern movelist_t SearchMoves;
 
+// Generates all legal moves for the given board and stores them in the given movelist.
 extmove_t *generate_all(extmove_t *movelist, const board_t *board);
+
+// Generates all pseudo-legal moves for the given board (only for not in-check positions) and stores
+// them in the given movelist.
 extmove_t *generate_classic(extmove_t *movelist, const board_t *board);
+
+// Generates all pseudo-legal moves for the given board (only for in-check positions) and stores
+// them in the given movelist.
 extmove_t *generate_evasions(extmove_t *movelist, const board_t *board);
+
+// Generates all pseudo-legal captures/queen promotions for the given board and stores them in the
+// given movelist.
 extmove_t *generate_captures(extmove_t *movelist, const board_t *board, bool inQsearch);
+
+// Generates all pseudo-legal non-captures/non-queen promotions for the given board and stores them
+// in the given movelist.
 extmove_t *generate_quiet(extmove_t *movelist, const board_t *board);
 
+// Places the move with the highest score in the first position of the movelist.
 void place_top_move(extmove_t *begin, extmove_t *end);
 
+// Generates all legal moves for the given board.
 INLINED void list_all(movelist_t *movelist, const board_t *board)
 {
     movelist->last = generate_all(movelist->moves, board);
 }
 
+// Generates all pseudo-legal moves for the given board.
 INLINED void list_pseudo(movelist_t *movelist, const board_t *board)
 {
-    movelist->last = board->stack->checkers
-        ? generate_evasions(movelist->moves, board)
-        : generate_classic(movelist->moves, board);
+    movelist->last = board->stack->checkers ? generate_evasions(movelist->moves, board)
+                                            : generate_classic(movelist->moves, board);
 }
 
+// Returns the size of the movelist.
 INLINED size_t movelist_size(const movelist_t *movelist)
 {
     return (movelist->last - movelist->moves);
 }
 
-INLINED const extmove_t *movelist_begin(const movelist_t *movelist)
-{
-    return (movelist->moves);
-}
+// Returns the start of the movelist.
+INLINED const extmove_t *movelist_begin(const movelist_t *movelist) { return (movelist->moves); }
 
-INLINED const extmove_t *movelist_end(const movelist_t *movelist)
-{
-    return (movelist->last);
-}
+// Returns the end of the movelist.
+INLINED const extmove_t *movelist_end(const movelist_t *movelist) { return (movelist->last); }
 
+// Checks if the movelist contains the given move.
 INLINED bool movelist_has_move(const movelist_t *movelist, move_t move)
 {
-    for (const extmove_t *extmove = movelist_begin(movelist);
-            extmove < movelist_end(movelist); ++extmove)
-        if (extmove->move == move)
-            return (true);
+    for (const extmove_t *extmove = movelist_begin(movelist); extmove < movelist_end(movelist);
+         ++extmove)
+        if (extmove->move == move) return (true);
 
     return (false);
 }

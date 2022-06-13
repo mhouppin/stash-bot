@@ -16,11 +16,11 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <math.h>
-#include "engine.h"
 #include "timeman.h"
+#include "movelist.h"
 #include "types.h"
 #include "worker.h"
+#include <math.h>
 
 // Scaling table based on the move type
 
@@ -37,13 +37,7 @@ const double BestmoveTypeScale[BM_TYPE_NB] = {
 
 // Scaling table based on the number of consecutive iterations the bestmove held
 
-const double BestmoveStabilityScale[5] = {
-    2.50,
-    1.20,
-    0.90,
-    0.80,
-    0.75
-};
+const double BestmoveStabilityScale[5] = {2.50, 1.20, 0.90, 0.80, 0.75};
 
 void timeman_init(const board_t *board, timeman_t *tm, goparams_t *params, clock_t start)
 {
@@ -112,8 +106,7 @@ void timeman_update(timeman_t *tm, const board_t *board, move_t bestmove, score_
 {
     // Only update timeman when we need one.
 
-    if (tm->mode != Tournament)
-        return ;
+    if (tm->mode != Tournament) return;
 
     // Update bestmove + stability statistics.
 
@@ -168,8 +161,7 @@ void timeman_update(timeman_t *tm, const board_t *board, move_t bestmove, score_
     // Scale the time usage based on how the score changed from the
     // previous iteration (the higher it goes, the quicker we stop searching).
 
-    if (tm->prevScore != NO_SCORE)
-        scale *= score_difference_scale(tm->prevScore - score);
+    if (tm->prevScore != NO_SCORE) scale *= score_difference_scale(tm->prevScore - score);
 
     // Update score + optimal time usage.
 
@@ -179,8 +171,7 @@ void timeman_update(timeman_t *tm, const board_t *board, move_t bestmove, score_
 
 void check_time(void)
 {
-    if (--WPool.checks > 0)
-        return ;
+    if (--WPool.checks > 0) return;
 
     // Reset check counter.
 
@@ -189,16 +180,13 @@ void check_time(void)
     // If we are in infinite mode, or the stop has already been set,
     // we can safely return.
 
-    if (SearchParams.infinite || WPool.stop)
-        return ;
+    if (SearchParams.infinite || WPool.stop) return;
 
-    if (wpool_get_total_nodes(&WPool) >= SearchParams.nodes)
-        goto __set_stop;
+    if (wpool_get_total_nodes(&WPool) >= SearchParams.nodes) goto __set_stop;
 
-    if (timeman_must_stop_search(&Timeman, chess_clock()))
-        goto __set_stop;
+    if (timeman_must_stop_search(&Timeman, chess_clock())) goto __set_stop;
 
-    return ;
+    return;
 
 __set_stop:
     WPool.stop = true;

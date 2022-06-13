@@ -19,8 +19,8 @@
 #ifndef TUNER_H
 #define TUNER_H
 
+#include "evaluate.h"
 #include <stddef.h>
-#include "engine.h"
 
 #ifdef TUNE
 
@@ -36,8 +36,7 @@ typedef struct tune_tuple_s
     uint16_t index;
     int8_t wcoeff;
     int8_t bcoeff;
-}
-tune_tuple_t;
+} tune_tuple_t;
 
 typedef struct tune_entry_s
 {
@@ -51,16 +50,14 @@ typedef struct tune_entry_s
     double scaleFactor;
     double phaseFactors[PHASE_NB];
     tune_tuple_t *tuples;
-}
-tune_entry_t;
+} tune_entry_t;
 
 typedef struct tune_data_s
 {
     tune_entry_t *entries;
     size_t size;
     size_t maxSize;
-}
-tune_data_t;
+} tune_data_t;
 
 typedef int tp_array_t[IDX_COUNT];
 typedef double tp_vector_t[IDX_COUNT][2];
@@ -76,9 +73,12 @@ void init_tuner_entries(tune_data_t *data, const char *filename);
 bool init_tuner_entry(tune_entry_t *entry, const board_t *board);
 void init_tuner_tuples(tune_entry_t *entry);
 double compute_optimal_k(const tune_data_t *data);
-void compute_gradient(const tune_data_t *data, tp_vector_t gradient, const tp_vector_t delta, double K, int batchIdx);
-void update_gradient(const tune_entry_t *entry, tp_vector_t gradient, const tp_vector_t delta, double K);
-double adjusted_eval(const tune_entry_t *entry, const tp_vector_t delta, double safetyScores[COLOR_NB][PHASE_NB]);
+void compute_gradient(
+    const tune_data_t *data, tp_vector_t gradient, const tp_vector_t delta, double K, int batchIdx);
+void update_gradient(
+    const tune_entry_t *entry, tp_vector_t gradient, const tp_vector_t delta, double K);
+double adjusted_eval(
+    const tune_entry_t *entry, const tp_vector_t delta, double safetyScores[COLOR_NB][PHASE_NB]);
 double static_eval_mse(const tune_data_t *data, double K);
 double adjusted_eval_mse(const tune_data_t *data, const tp_vector_t delta, double K);
 double sigmoid(double K, double E);

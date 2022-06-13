@@ -16,16 +16,17 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <pthread.h>
-#include <stdio.h>
 #include "endgame.h"
-#include "engine.h"
+#include "movelist.h"
 #include "option.h"
+#include "search.h"
 #include "timeman.h"
 #include "tt.h"
 #include "tuner.h"
 #include "uci.h"
 #include "worker.h"
+#include <pthread.h>
+#include <stdio.h>
 
 board_t Board;
 pthread_attr_t WorkerSettings;
@@ -35,9 +36,7 @@ movelist_t SearchMoves;
 
 uint64_t Seed = 1048592ul;
 
-ucioptions_t Options = {
-    1, 16, 100, 1, false, false
-};
+ucioptions_t Options = {1, 16, 100, 1, false, false};
 
 timeman_t Timeman;
 
@@ -64,7 +63,7 @@ int main(int argc, char **argv)
 #else
 
     tt_resize(16);
-    init_reduction_table();
+    init_search_tables();
     pthread_attr_init(&WorkerSettings);
     pthread_attr_setstacksize(&WorkerSettings, 4ul * 1024 * 1024);
     wpool_init(&WPool, 1);

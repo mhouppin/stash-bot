@@ -21,6 +21,7 @@
 
 #include "types.h"
 
+// Generates a random 64-bit unsigned integer based on the given seed using Xorshift.
 INLINED uint64_t qrandom(uint64_t *seed)
 {
     uint64_t x = *seed;

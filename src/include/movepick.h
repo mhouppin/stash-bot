@@ -19,21 +19,11 @@
 #ifndef MOVEPICK_H
 #define MOVEPICK_H
 
-#include "worker.h"
 #include "movelist.h"
+#include "search.h"
+#include "worker.h"
 
-typedef struct
-{
-    int plies;
-    score_t staticEval;
-    move_t killers[2];
-    move_t excludedMove;
-    move_t currentMove;
-    move_t *pv;
-    piece_history_t *pieceHistory;
-}
-searchstack_t;
-
+// Enum for various stages of the move picker
 enum
 {
     PICK_TT,
@@ -51,6 +41,7 @@ enum
     CHECK_PICK_ALL
 };
 
+// Struct for the move picker
 typedef struct movepick_s
 {
     movelist_t list;
@@ -64,12 +55,13 @@ typedef struct movepick_s
     const board_t *board;
     const worker_t *worker;
     piece_history_t *pieceHistory[2];
-}
-movepick_t;
+} movepick_t;
 
-void movepick_init(movepick_t *mp, bool inQsearch, const board_t *board,
-    const worker_t *worker, move_t ttMove, searchstack_t *ss);
+// Initializes the move picker.
+void movepick_init(movepick_t *mp, bool inQsearch, const board_t *board, const worker_t *worker,
+    move_t ttMove, searchstack_t *ss);
 
-move_t  movepick_next_move(movepick_t *mp, bool skipQuiets);
+// Returns the next move in the move picker.
+move_t movepick_next_move(movepick_t *mp, bool skipQuiets);
 
 #endif

@@ -21,8 +21,10 @@
 
 #include "types.h"
 
+// Typedef for hashing keys
 typedef uint64_t hashkey_t;
 
+// Multiplies two 64-bit unsigned integers and returns the high 64 bits of the result.
 INLINED uint64_t mul_hi64(uint64_t x, uint64_t n)
 {
     uint64_t xlo = (uint32_t)x;
@@ -36,9 +38,16 @@ INLINED uint64_t mul_hi64(uint64_t x, uint64_t n)
     return (xhi * nhi + (c2 >> 32) + (c3 >> 32));
 }
 
+// Global table for Zobrist Piece-Square hashes
 extern hashkey_t ZobristPsq[PIECE_NB][SQUARE_NB];
+
+// Global table for Zobrist Enpassant hashes
 extern hashkey_t ZobristEnPassant[FILE_NB];
+
+// Global table for Zobrist Castling hashes
 extern hashkey_t ZobristCastling[CASTLING_NB];
+
+// Global value for Zobrist STM hash
 extern hashkey_t ZobristBlackToMove;
 
 void zobrist_init(void);

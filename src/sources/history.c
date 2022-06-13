@@ -16,11 +16,12 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "engine.h"
+#include "history.h"
+#include "search.h"
 #include "worker.h"
 
-void update_quiet_history(const board_t *board, int depth,
-    move_t bestmove, const move_t quiets[64], int qcount, searchstack_t *ss)
+void update_quiet_history(const board_t *board, int depth, move_t bestmove, const move_t quiets[64],
+    int qcount, searchstack_t *ss)
 {
     butterfly_history_t *bfHist = &get_worker(board)->bfHistory;
     square_t lastTo = SQ_A1;
@@ -43,8 +44,7 @@ void update_quiet_history(const board_t *board, int depth,
         get_worker(board)->cmHistory[lastPiece][lastTo] = bestmove;
         add_pc_history(*(ss - 1)->pieceHistory, piece, to, bonus);
     }
-    if ((ss - 2)->pieceHistory != NULL)
-        add_pc_history(*(ss - 2)->pieceHistory, piece, to, bonus);
+    if ((ss - 2)->pieceHistory != NULL) add_pc_history(*(ss - 2)->pieceHistory, piece, to, bonus);
 
     add_bf_history(*bfHist, piece, bestmove, bonus);
 
@@ -71,8 +71,7 @@ void update_quiet_history(const board_t *board, int depth,
     }
 }
 
-void update_single_capture(capture_history_t *capHist, const board_t *board,
-    move_t move, int bonus)
+void update_single_capture(capture_history_t *capHist, const board_t *board, move_t move, int bonus)
 {
     square_t from = from_sq(move);
     piece_t movedPiece = piece_on(board, from);
@@ -87,8 +86,8 @@ void update_single_capture(capture_history_t *capHist, const board_t *board,
     add_cap_history(*capHist, movedPiece, to, captured, bonus);
 }
 
-void update_capture_history(const board_t *board, int depth,
-    move_t bestmove, const move_t captures[64], int ccount, searchstack_t *ss)
+void update_capture_history(const board_t *board, int depth, move_t bestmove,
+    const move_t captures[64], int ccount, searchstack_t *ss)
 {
     (void)ss;
     capture_history_t *capHist = &get_worker(board)->capHistory;
@@ -96,6 +95,5 @@ void update_capture_history(const board_t *board, int depth,
 
     update_single_capture(capHist, board, bestmove, bonus);
 
-    for (int i = 0; i < ccount; ++i)
-        update_single_capture(capHist, board, captures[i], -bonus);
+    for (int i = 0; i < ccount; ++i) update_single_capture(capHist, board, captures[i], -bonus);
 }

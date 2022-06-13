@@ -21,6 +21,7 @@
 
 #include "types.h"
 
+// Enum for all pieces' midgame and endgame scores
 enum
 {
     PAWN_MG_SCORE = 75,
@@ -36,9 +37,13 @@ enum
     QUEEN_EG_SCORE = 1823
 };
 
+// Global for the piece values indexed by phase and piece
 extern const score_t PieceScores[PHASE_NB][PIECE_NB];
+
+// Global for the PSQT
 extern scorepair_t PsqScore[PIECE_NB][SQUARE_NB];
 
+// Initializes the PSQT
 void psq_score_init(void);
 
 #endif // PSQ_SCORE_H

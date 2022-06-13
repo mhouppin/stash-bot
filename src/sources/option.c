@@ -16,9 +16,9 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "option.h"
 #include <inttypes.h>
 #include <stdio.h>
-#include "option.h"
 
 void option_allocation_failure(void)
 {
@@ -51,25 +51,21 @@ void quit_option_list(option_list_t *list)
                 free(cur->def);
                 free(cur->min);
                 free(cur->max);
-                break ;
+                break;
 
             case OptionCombo:
-                for (size_t k = 0; cur->comboList[k]; ++k)
-                    free(cur->comboList[k]);
+                for (size_t k = 0; cur->comboList[k]; ++k) free(cur->comboList[k]);
                 free(cur->comboList);
                 // Fallthrough
 
             case OptionString:
                 free(*(char **)cur->data);
                 *(char **)cur->data = NULL;
-                break ;
+                break;
 
-            case OptionCheck:
-                free(cur->def);
-                break ;
+            case OptionCheck: free(cur->def); break;
 
-            case OptionButton:
-                break ;
+            case OptionButton: break;
         }
     }
 
@@ -84,8 +80,7 @@ option_t *insert_option(option_list_t *list, const char *name)
     {
         list->maxSize += (!list->maxSize) ? 16 : list->maxSize;
         list->options = realloc(list->options, list->maxSize * sizeof(option_t));
-        if (!list->options)
-            option_allocation_failure();
+        if (!list->options) option_allocation_failure();
     }
 
     // Do a binary search to find the index of our new option.
@@ -107,16 +102,15 @@ option_t *insert_option(option_list_t *list, const char *name)
 
     list->options[left].name = strdup(name);
 
-    if (!list->options[left].name)
-        option_allocation_failure();
+    if (!list->options[left].name) option_allocation_failure();
 
     list->size++;
 
     return (&list->options[left]);
 }
 
-void add_option_spin_int(option_list_t *list, const char *name, long *data, long min, long max,
-    void (*callback)(void *))
+void add_option_spin_int(
+    option_list_t *list, const char *name, long *data, long min, long max, void (*callback)(void *))
 {
     option_t *cur = insert_option(list, name);
 
@@ -126,16 +120,15 @@ void add_option_spin_int(option_list_t *list, const char *name, long *data, long
     cur->def = malloc(sizeof(long));
     cur->min = malloc(sizeof(long));
     cur->max = malloc(sizeof(long));
-    if (!cur->def || !cur->min || !cur->max)
-        option_allocation_failure();
+    if (!cur->def || !cur->min || !cur->max) option_allocation_failure();
 
     *(long *)cur->def = *data;
     *(long *)cur->min = min;
     *(long *)cur->max = max;
 }
 
-void add_option_spin_flt(option_list_t *list, const char *name, double *data, double min, double max,
-    void (*callback)(void *))
+void add_option_spin_flt(option_list_t *list, const char *name, double *data, double min,
+    double max, void (*callback)(void *))
 {
     option_t *cur = insert_option(list, name);
 
@@ -145,16 +138,15 @@ void add_option_spin_flt(option_list_t *list, const char *name, double *data, do
     cur->def = malloc(sizeof(double));
     cur->min = malloc(sizeof(double));
     cur->max = malloc(sizeof(double));
-    if (!cur->def || !cur->min || !cur->max)
-        option_allocation_failure();
+    if (!cur->def || !cur->min || !cur->max) option_allocation_failure();
 
     *(double *)cur->def = *data;
     *(double *)cur->min = min;
     *(double *)cur->max = max;
 }
 
-void add_option_score(option_list_t *list, const char *name, score_t *data, score_t min, score_t max,
-    void (*callback)(void *))
+void add_option_score(option_list_t *list, const char *name, score_t *data, score_t min,
+    score_t max, void (*callback)(void *))
 {
     option_t *cur = insert_option(list, name);
 
@@ -164,21 +156,19 @@ void add_option_score(option_list_t *list, const char *name, score_t *data, scor
     cur->def = malloc(sizeof(score_t));
     cur->min = malloc(sizeof(score_t));
     cur->max = malloc(sizeof(score_t));
-    if (!cur->def || !cur->min || !cur->max)
-        option_allocation_failure();
+    if (!cur->def || !cur->min || !cur->max) option_allocation_failure();
 
     *(score_t *)cur->def = *data;
     *(score_t *)cur->min = min;
     *(score_t *)cur->max = max;
 }
 
-void add_option_scorepair(option_list_t *list, const char *name, scorepair_t *data, scorepair_t min, scorepair_t max,
-    void (*callback)(void *))
+void add_option_scorepair(option_list_t *list, const char *name, scorepair_t *data, scorepair_t min,
+    scorepair_t max, void (*callback)(void *))
 {
     char *buffer = malloc(strlen(name) + 3);
 
-    if (!buffer)
-        option_allocation_failure();
+    if (!buffer) option_allocation_failure();
 
     strcpy(buffer, name);
     strcat(buffer, "MG");
@@ -191,8 +181,7 @@ void add_option_scorepair(option_list_t *list, const char *name, scorepair_t *da
     cur->def = malloc(sizeof(score_t));
     cur->min = malloc(sizeof(score_t));
     cur->max = malloc(sizeof(score_t));
-    if (!cur->def || !cur->min || !cur->max)
-        option_allocation_failure();
+    if (!cur->def || !cur->min || !cur->max) option_allocation_failure();
 
     *(score_t *)cur->def = midgame_score(*data);
     *(score_t *)cur->min = midgame_score(min);
@@ -208,8 +197,7 @@ void add_option_scorepair(option_list_t *list, const char *name, scorepair_t *da
     cur->def = malloc(sizeof(score_t));
     cur->min = malloc(sizeof(score_t));
     cur->max = malloc(sizeof(score_t));
-    if (!cur->def || !cur->min || !cur->max)
-        option_allocation_failure();
+    if (!cur->def || !cur->min || !cur->max) option_allocation_failure();
 
     *(score_t *)cur->def = endgame_score(*data);
     *(score_t *)cur->min = endgame_score(min);
@@ -225,13 +213,12 @@ void add_option_check(option_list_t *list, const char *name, bool *data, void (*
     cur->data = data;
     cur->callback = callback;
     cur->def = malloc(sizeof(bool));
-    if (!cur->def)
-        option_allocation_failure();
+    if (!cur->def) option_allocation_failure();
     *(bool *)cur->def = *data;
 }
 
-void add_option_combo(option_list_t *list, const char *name, char **data, const char *const *comboList,
-    void (*callback)(void *))
+void add_option_combo(option_list_t *list, const char *name, char **data,
+    const char *const *comboList, void (*callback)(void *))
 {
     option_t *cur = insert_option(list, name);
 
@@ -240,21 +227,19 @@ void add_option_combo(option_list_t *list, const char *name, char **data, const 
     cur->callback = callback;
     cur->def = strdup(*data ? *data : "");
 
-    if (!cur->def)
-        option_allocation_failure();
+    if (!cur->def) option_allocation_failure();
 
     size_t length;
-    for (length = 0; comboList[length]; ++length);
+    for (length = 0; comboList[length]; ++length)
+        ;
 
     cur->comboList = malloc(sizeof(char *) * (length + 1));
-    if (!cur->comboList)
-        option_allocation_failure();
+    if (!cur->comboList) option_allocation_failure();
 
     for (size_t i = 0; i < length; ++i)
     {
         cur->comboList[i] = strdup(comboList[i]);
-        if (!cur->comboList[i])
-            option_allocation_failure();
+        if (!cur->comboList[i]) option_allocation_failure();
     }
     cur->comboList[length] = NULL;
 }
@@ -276,8 +261,7 @@ void add_option_string(option_list_t *list, const char *name, char **data, void 
     cur->callback = callback;
     cur->def = strdup(*data ? *data : "");
 
-    if (!cur->def)
-        option_allocation_failure();
+    if (!cur->def) option_allocation_failure();
 }
 
 void set_option(option_list_t *list, const char *name, const char *value)
@@ -307,37 +291,36 @@ void set_option(option_list_t *list, const char *name, const char *value)
             {
                 case OptionSpinInt:
                     sscanf(value, "%ld", &l);
-                    if (l >= *(long *)cur->min && l <= *(long *)cur->max)
-                        *(long *)cur->data = l;
-                    break ;
+                    if (l >= *(long *)cur->min && l <= *(long *)cur->max) *(long *)cur->data = l;
+                    break;
 
                 case OptionSpinFlt:
                     sscanf(value, "%lf", &d);
                     if (d >= *(double *)cur->min && d <= *(double *)cur->max)
                         *(double *)cur->data = d;
-                    break ;
+                    break;
 
                 case OptionScore:
                     sscanf(value, "%" SCNd16, &s);
                     if (s >= *(score_t *)cur->min && s <= *(score_t *)cur->max)
                         *(score_t *)cur->data = s;
-                    break ;
+                    break;
 
                 case OptionSpairMG:
                     sscanf(value, "%" SCNd16, &s);
                     if (s >= *(score_t *)cur->min && s <= *(score_t *)cur->max)
-                        *(scorepair_t *)cur->data = create_scorepair(s, endgame_score(*(scorepair_t *)cur->data));
-                    break ;
+                        *(scorepair_t *)cur->data =
+                            create_scorepair(s, endgame_score(*(scorepair_t *)cur->data));
+                    break;
 
                 case OptionSpairEG:
                     sscanf(value, "%" SCNd16, &s);
                     if (s >= *(score_t *)cur->min && s <= *(score_t *)cur->max)
-                        *(scorepair_t *)cur->data = create_scorepair(midgame_score(*(scorepair_t *)cur->data), s);
-                    break ;
+                        *(scorepair_t *)cur->data =
+                            create_scorepair(midgame_score(*(scorepair_t *)cur->data), s);
+                    break;
 
-                case OptionCheck:
-                    *(bool *)cur->data = !strcmp(value, "true");
-                    break ;
+                case OptionCheck: *(bool *)cur->data = !strcmp(value, "true"); break;
 
                 case OptionCombo:
                 case OptionString:
@@ -348,16 +331,14 @@ void set_option(option_list_t *list, const char *name, const char *value)
                         perror("Unable to set option");
                         exit(EXIT_FAILURE);
                     }
-                    break ;
+                    break;
 
-                case OptionButton:
-                    break ;
+                case OptionButton: break;
             }
 
-            if (cur->callback)
-                cur->callback(cur->data);
+            if (cur->callback) cur->callback(cur->data);
 
-            return ;
+            return;
         }
     }
 }
@@ -371,47 +352,42 @@ void show_options(const option_list_t *list)
         switch (cur->type)
         {
             case OptionSpinInt:
-                printf("option name %s type spin default %ld min %ld max %ld\n",
-                    cur->name, *(long *)cur->def, *(long *)cur->min, *(long *)cur->max);
-                break ;
+                printf("option name %s type spin default %ld min %ld max %ld\n", cur->name,
+                    *(long *)cur->def, *(long *)cur->min, *(long *)cur->max);
+                break;
 
-            // Tricky case: spins can't be floats, so we show them as strings and
-            // handle them internally.
+                // Tricky case: spins can't be floats, so we show them as strings and
+                // handle them internally.
 
             case OptionSpinFlt:
-                printf("option name %s type string default %lf\n",
-                    cur->name, *(double *)cur->def);
-                break ;
+                printf("option name %s type string default %lf\n", cur->name, *(double *)cur->def);
+                break;
 
             case OptionScore:
             case OptionSpairMG:
             case OptionSpairEG:
-                printf("option name %s type spin default %" PRId16 " min %" PRId16 " max %" PRId16 "\n",
+                printf("option name %s type spin default %" PRId16 " min %" PRId16 " max %" PRId16
+                       "\n",
                     cur->name, *(score_t *)cur->def, *(score_t *)cur->min, *(score_t *)cur->max);
-                break ;
+                break;
 
             case OptionCheck:
-                printf("option name %s type check default %s\n",
-                    cur->name, *(bool *)cur->def ? "true" : "false");
-                break ;
+                printf("option name %s type check default %s\n", cur->name,
+                    *(bool *)cur->def ? "true" : "false");
+                break;
 
             case OptionCombo:
-                printf("option name %s type combo default %s",
-                    cur->name, (char *)cur->def);
+                printf("option name %s type combo default %s", cur->name, (char *)cur->def);
 
-                for (size_t k = 0; cur->comboList[k]; ++k)
-                    printf(" var %s", cur->comboList[k]);
+                for (size_t k = 0; cur->comboList[k]; ++k) printf(" var %s", cur->comboList[k]);
                 puts("");
-                break ;
+                break;
 
-            case OptionButton:
-                printf("option name %s type button\n", cur->name);
-                break ;
+            case OptionButton: printf("option name %s type button\n", cur->name); break;
 
             case OptionString:
-                printf("option name %s type string default %s\n",
-                    cur->name, (char *)cur->def);
-                break ;
+                printf("option name %s type string default %s\n", cur->name, (char *)cur->def);
+                break;
         }
     }
     fflush(stdout);

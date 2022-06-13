@@ -16,10 +16,10 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "endgame.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "endgame.h"
 
 enum
 {
@@ -33,24 +33,18 @@ enum
 
 typedef struct kpk_position_s
 {
-    color_t     sideToMove;
-    square_t    kingSquare[COLOR_NB];
-    square_t    pawnSquare;
-    uint8_t     result;
-}
-kpk_position_t;
+    color_t sideToMove;
+    square_t kingSquare[COLOR_NB];
+    square_t pawnSquare;
+    uint8_t result;
+} kpk_position_t;
 
 uint8_t KPK_Bitbase[KPK_SIZE / 8];
 
 INLINED unsigned int kpk_index(color_t stm, square_t bksq, square_t wksq, square_t psq)
 {
-    return (
-            (unsigned int)wksq
-            | ((unsigned int)bksq << 6)
-            | ((unsigned int)stm << 12)
-            | ((unsigned int)sq_file(psq) << 13)
-            | ((unsigned int)(RANK_7 - sq_rank(psq)) << 15)
-            );
+    return ((unsigned int)wksq | ((unsigned int)bksq << 6) | ((unsigned int)stm << 12)
+            | ((unsigned int)sq_file(psq) << 13) | ((unsigned int)(RANK_7 - sq_rank(psq)) << 15));
 }
 
 bool kpk_is_winning(color_t stm, square_t bksq, square_t wksq, square_t psq)
@@ -65,7 +59,8 @@ void kpk_set(kpk_position_t *pos, unsigned int index)
     const square_t wksq = (square_t)(index & 0x3F);
     const square_t bksq = (square_t)((index >> 6) & 0x3F);
     const color_t stm = (color_t)((index >> 12) & 1);
-    const square_t psq = create_sq((file_t)((index >> 13) & 0x3), (rank_t)(RANK_7 - ((index >> 15) & 0x7)));
+    const square_t psq =
+        create_sq((file_t)((index >> 13) & 0x3), (rank_t)(RANK_7 - ((index >> 15) & 0x7)));
 
     pos->sideToMove = stm;
     pos->kingSquare[WHITE] = wksq;
@@ -74,8 +69,7 @@ void kpk_set(kpk_position_t *pos, unsigned int index)
 
     // Overlapping/adjacent Kings ?
 
-    if (SquareDistance[wksq][bksq] <= 1)
-        pos->result = KPK_INVALID;
+    if (SquareDistance[wksq][bksq] <= 1) pos->result = KPK_INVALID;
 
     // Overlapping King with Pawn ?
 
@@ -89,10 +83,8 @@ void kpk_set(kpk_position_t *pos, unsigned int index)
 
     // Can we promote without getting captured ?
 
-    else if (stm == WHITE
-            && sq_rank(psq) == RANK_7
-            && wksq != psq + NORTH
-            && (SquareDistance[bksq][psq + NORTH] > 1 || SquareDistance[wksq][psq + NORTH] == 1))
+    else if (stm == WHITE && sq_rank(psq) == RANK_7 && wksq != psq + NORTH
+             && (SquareDistance[bksq][psq + NORTH] > 1 || SquareDistance[wksq][psq + NORTH] == 1))
         pos->result = KPK_WIN;
 
     // Is it stalemate ?
@@ -152,7 +144,9 @@ void kpk_classify(kpk_position_t *pos, kpk_position_t *kpkTable)
             result |= kpkTable[kpk_index(BLACK, bksq, wksq, psq + NORTH + NORTH)].result;
     }
 
-    pos->result = (result & goodResult ? goodResult : result & KPK_UNKNOWN ? KPK_UNKNOWN : badResult);
+    pos->result = (result & goodResult    ? goodResult
+                   : result & KPK_UNKNOWN ? KPK_UNKNOWN
+                                          : badResult);
 }
 
 void init_kpk_bitbase(void)
@@ -169,11 +163,9 @@ void init_kpk_bitbase(void)
     bool repeat;
 
     memset(KPK_Bitbase, 0, sizeof(KPK_Bitbase));
-    for (index = 0; index < KPK_SIZE; ++index)
-        kpk_set(kpkTable + index, index);
+    for (index = 0; index < KPK_SIZE; ++index) kpk_set(kpkTable + index, index);
 
-    do
-    {
+    do {
         repeat = false;
         for (index = 0; index < KPK_SIZE; ++index)
             if (kpkTable[index].result == KPK_UNKNOWN)
@@ -181,12 +173,10 @@ void init_kpk_bitbase(void)
                 kpk_classify(kpkTable + index, kpkTable);
                 repeat |= kpkTable[index].result != KPK_UNKNOWN;
             }
-    }
-    while (repeat);
+    } while (repeat);
 
     for (index = 0; index < KPK_SIZE; ++index)
-        if (kpkTable[index].result == KPK_WIN)
-            KPK_Bitbase[index / 8] |= 1 << (index % 8);
+        if (kpkTable[index].result == KPK_WIN) KPK_Bitbase[index / 8] |= 1 << (index % 8);
 
     free(kpkTable);
 }
@@ -203,7 +193,8 @@ score_t eval_kpk(const board_t *board, color_t winningSide)
     losingKing = normalize_square(board, winningSide, losingKing);
 
     score_t score = kpk_is_winning(us, losingKing, winningKing, winningPawn)
-        ? VICTORY + PAWN_EG_SCORE + sq_rank(winningPawn) * 3 : 0;
+                        ? VICTORY + PAWN_EG_SCORE + sq_rank(winningPawn) * 3
+                        : 0;
 
     return (winningSide == board->sideToMove ? score : -score);
 }
