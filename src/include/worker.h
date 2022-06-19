@@ -24,6 +24,7 @@
 #include "pawns.h"
 #include "uci.h"
 #include <pthread.h>
+#include <time.h>
 
 // Struct for search params.
 
