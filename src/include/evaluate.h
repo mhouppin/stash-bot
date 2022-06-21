@@ -20,6 +20,7 @@
 #define EVALUATE_H
 
 #include "board.h"
+#include "pawns.h"
 
 #ifdef TUNE
 
@@ -106,6 +107,6 @@ extern evaltrace_t Trace;
 score_t evaluate(const board_t *board);
 
 // Returns the scaled value of the endgame score.
-score_t scale_endgame(const board_t *board, score_t eg);
+score_t scale_endgame(const board_t *board, const pawn_entry_t *pe, score_t eg);
 
 #endif
