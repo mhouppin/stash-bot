@@ -292,6 +292,15 @@ score_t eval_kpsk(const board_t *board, color_t winningSide)
     {
         square_t mostAdvancedPawn =
             (winningSide == WHITE) ? bb_last_sq(winningPawns) : bb_first_sq(winningPawns) ^ SQ_A8;
+
+        // Don't forget to map the pieces to the queenside for a kingside Pawn
+        if (sq_file(mostAdvancedPawn) == FILE_H)
+        {
+            winningKsq ^= FILE_H;
+            losingKsq ^= FILE_H;
+            mostAdvancedPawn ^= FILE_H;
+        }
+
         color_t us = (board->sideToMove == winningSide) ? WHITE : BLACK;
 
         if (!kpk_is_winning(us, losingKsq, winningKsq, mostAdvancedPawn)) return (0);
