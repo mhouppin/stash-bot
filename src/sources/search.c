@@ -746,7 +746,7 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
         {
             eval = bestScore = entry->eval;
 
-            if (ttBound & (ttScore > eval ? LOWER_BOUND : UPPER_BOUND)) eval = bestScore = ttScore;
+            if (ttBound & (ttScore > eval ? LOWER_BOUND : UPPER_BOUND)) bestScore = ttScore;
         }
         else
             eval = bestScore = evaluate(board);
