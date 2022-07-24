@@ -119,6 +119,7 @@ extern worker_pool_t WPool;
 INLINED worker_t *wpool_main_worker(worker_pool_t *wpool) { return wpool->workerList[0]; }
 
 void wpool_init(worker_pool_t *wpool, size_t threads);
+void wpool_new_search(worker_pool_t *wpool);
 void wpool_reset(worker_pool_t *wpool);
 void wpool_start_search(
     worker_pool_t *wpool, const board_t *rootBoard, const goparams_t *searchParams);
