@@ -183,6 +183,13 @@ void wpool_init(worker_pool_t *wpool, size_t threads)
     }
 }
 
+void wpool_new_search(worker_pool_t *wpool)
+{
+    for (size_t i = 0; i < wpool->size; ++i) wpool->workerList[i]->verifPlies = 0;
+
+    wpool->checks = 1000;
+}
+
 void wpool_reset(worker_pool_t *wpool)
 {
     for (size_t i = 0; i < wpool->size; ++i) worker_reset(wpool->workerList[i]);

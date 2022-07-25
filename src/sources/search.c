@@ -108,6 +108,7 @@ void main_worker_search(worker_t *worker)
         // node counter, time manager, workers' board and threads, and TT reset.
 
         tt_clear();
+        wpool_new_search(&WPool);
         timeman_init(board, &Timeman, &SearchParams, chess_clock());
 
         if (SearchParams.depth == 0) SearchParams.depth = MAX_PLIES;
@@ -180,14 +181,6 @@ void main_worker_search(worker_t *worker)
 void worker_search(worker_t *worker)
 {
     board_t *board = &worker->board;
-
-    // Reset all history related stuff.
-
-    memset(worker->bfHistory, 0, sizeof(butterfly_history_t));
-    memset(worker->ctHistory, 0, sizeof(continuation_history_t));
-    memset(worker->cmHistory, 0, sizeof(countermove_history_t));
-    memset(worker->capHistory, 0, sizeof(capture_history_t));
-    worker->verifPlies = 0;
 
     // Clamp MultiPV to the maximal number of lines available
 
