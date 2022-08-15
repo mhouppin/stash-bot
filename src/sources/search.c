@@ -522,9 +522,9 @@ __main_loop:
 
             // SEE Pruning.
 
-            if (depth <= 7
+            if (depth <= 8
                 && !see_greater_than(
-                    board, currmove, (isQuiet ? -80 * depth : -25 * depth * depth)))
+                    board, currmove, (isQuiet ? -62 * depth : -24 * depth * depth)))
                 continue;
         }
 
