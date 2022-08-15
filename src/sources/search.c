@@ -474,7 +474,7 @@ score_t search(
 
     // Reduce depth if the node is absent from TT.
 
-    if (!rootNode && !found && depth >= 5) --depth;
+    if (!rootNode && !found && depth >= 4) --depth;
 
 __main_loop:
 
