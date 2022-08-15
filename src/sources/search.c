@@ -517,7 +517,7 @@ __main_loop:
 
             // Futility Pruning.
 
-            if (depth <= 4 && !inCheck && isQuiet && eval + 240 + 80 * depth <= alpha)
+            if (depth <= 5 && !inCheck && isQuiet && eval + 241 + 71 * depth <= alpha)
                 skipQuiets = true;
 
             // SEE Pruning.
