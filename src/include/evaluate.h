@@ -70,7 +70,9 @@ typedef enum tune_idx_e
     IDX_KS_CHECK_R,
     IDX_KS_CHECK_Q,
     IDX_KS_QUEENLESS,
-    IDX_KS_OFFSET,
+    IDX_KS_STORM,
+    IDX_KS_SHELTER = IDX_KS_STORM + 24,
+    IDX_KS_OFFSET = IDX_KS_SHELTER + 24,
     IDX_COUNT
 } tune_idx_t;
 

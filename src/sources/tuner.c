@@ -19,6 +19,7 @@
 #include "tuner.h"
 #include "types.h"
 #include <math.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -150,6 +151,8 @@ void init_base_values(tp_vector_t base)
     INIT_BASE_SP(IDX_KS_CHECK_R, SafeRookCheck);
     INIT_BASE_SP(IDX_KS_CHECK_Q, SafeQueenCheck);
     INIT_BASE_SP(IDX_KS_QUEENLESS, QueenlessAttack);
+    INIT_BASE_SPA(IDX_KS_STORM, KingStorm, 24);
+    INIT_BASE_SPA(IDX_KS_SHELTER, KingShelter, 24);
     INIT_BASE_SP(IDX_KS_OFFSET, SafetyOffset);
 
     INIT_BASE_SPA(IDX_KNIGHT_CLOSED_POS, ClosedPosKnight, 5);
@@ -578,6 +581,11 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
     PRINT_SP(IDX_KS_CHECK_R, SafeRookCheck);
     PRINT_SP(IDX_KS_CHECK_Q, SafeQueenCheck);
     PRINT_SP(IDX_KS_QUEENLESS, QueenlessAttack);
+    putchar('\n');
+    PRINT_SPA(IDX_KS_STORM, KingStorm, 24, 4, 4, "SPAIR");
+    putchar('\n');
+    PRINT_SPA(IDX_KS_SHELTER, KingShelter, 24, 4, 4, "SPAIR");
+    putchar('\n');
     PRINT_SP(IDX_KS_OFFSET, SafetyOffset);
     putchar('\n');
 
