@@ -22,6 +22,12 @@
 #include "board.h"
 #include "pawns.h"
 
+enum
+{
+    MIDGAME_COUNT = 24,
+    ENDGAME_COUNT = 4
+};
+
 #ifdef TUNE
 
 typedef enum tune_idx_e
