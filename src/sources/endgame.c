@@ -250,7 +250,6 @@ score_t eval_kbpsk(const board_t *board, color_t winningSide)
     score_t score = endgame_score(pe->value + board->psqScorePair);
     color_t losingSide = not_color(winningSide);
 
-    square_t winningKsq = relative_sq(get_king_square(board, winningSide), winningSide);
     square_t winningBsq = relative_sq(bb_first_sq(piecetype_bb(board, BISHOP)), winningSide);
     square_t losingKsq = relative_sq(get_king_square(board, losingSide), winningSide);
     bitboard_t winningPawns = piecetype_bb(board, PAWN);
@@ -258,20 +257,15 @@ score_t eval_kbpsk(const board_t *board, color_t winningSide)
 
     if ((winningPawns & wrongFile) == winningPawns)
     {
-        square_t mostAdvancedPawn =
-            (winningSide == WHITE) ? bb_last_sq(winningPawns) : bb_first_sq(winningPawns) ^ SQ_A8;
+        bitboard_t queeningSquare = (square_bb(winningBsq) & DARK_SQUARES) ? SQ_A8 : SQ_H8;
 
-        // Don't forget to map the pieces to the queenside for a kingside Pawn
-        if (sq_file(mostAdvancedPawn) == FILE_H)
-        {
-            winningKsq ^= FILE_H;
-            losingKsq ^= FILE_H;
-            mostAdvancedPawn ^= FILE_H;
-        }
+        int queeningDistance = SquareDistance[losingKsq][queeningSquare];
 
-        color_t us = (board->sideToMove == winningSide) ? WHITE : BLACK;
+        // Losing King in control of the queening square.
+        if (queeningDistance < 2)
+            return (0);
 
-        if (!kpk_is_winning(us, losingKsq, winningKsq, mostAdvancedPawn)) return (0);
+        return (score * (queeningDistance - 1) / queeningDistance);
     }
 
     return (board->sideToMove == WHITE ? score : -score);
