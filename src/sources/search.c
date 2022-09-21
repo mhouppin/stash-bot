@@ -347,7 +347,7 @@ score_t search(
 
     if (pvNode && worker->seldepth < ss->plies + 1) worker->seldepth = ss->plies + 1;
 
-    if (WPool.stop || game_is_drawn(board, ss->plies)) return (draw_score(worker));
+    if (!rootNode && (WPool.stop || game_is_drawn(board, ss->plies))) return (draw_score(worker));
 
     if (ss->plies >= MAX_PLIES)
         return (!board->stack->checkers ? evaluate(board) : draw_score(worker));
