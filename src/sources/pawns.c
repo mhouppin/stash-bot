@@ -22,40 +22,40 @@
 
 // clang-format off
 
-const scorepair_t BackwardPenalty  = SPAIR( -5, -6);
+const scorepair_t BackwardPenalty  = SPAIR( -5, -7);
 const scorepair_t StragglerPenalty = SPAIR(-15,-22);
 const scorepair_t DoubledPenalty   = SPAIR(-16,-37);
 const scorepair_t IsolatedPenalty  = SPAIR( -8, -8);
 
 const scorepair_t PassedBonus[RANK_NB] = {
     0,
-    SPAIR( -9,-34),
+    SPAIR(-11,-35),
     SPAIR(-14,-18),
-    SPAIR(-10, 38),
-    SPAIR( 17, 92),
-    SPAIR( 38,180),
+    SPAIR( -9, 37),
+    SPAIR( 19, 92),
+    SPAIR( 37,180),
     SPAIR( 60,312),
     0
 };
 
 const scorepair_t PhalanxBonus[RANK_NB] = {
     0,
-    SPAIR(  2,  5),
-    SPAIR(  9,  6),
-    SPAIR( 23, 29),
-    SPAIR( 43, 50),
-    SPAIR(162,221),
-    SPAIR(182,221),
+    SPAIR(  3,  4),
+    SPAIR( 12,  5),
+    SPAIR( 22, 28),
+    SPAIR( 44, 55),
+    SPAIR(162,223),
+    SPAIR(182,223),
     0
 };
 
 const scorepair_t DefenderBonus[RANK_NB] = {
     0,
-    SPAIR( 11, 19),
-    SPAIR( 10, 20),
-    SPAIR( 17, 28),
-    SPAIR( 50, 79),
-    SPAIR(158,107),
+    SPAIR( 13, 19),
+    SPAIR( 10, 18),
+    SPAIR( 19, 27),
+    SPAIR( 49, 79),
+    SPAIR(159,113),
     0,
     0
 };

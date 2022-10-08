@@ -55,6 +55,7 @@ typedef uint64_t bitboard_t;
 #define KINGSIDE_BITS 0xF0F0F0F0F0F0F0F0ull
 #define QUEENSIDE_BITS 0x0F0F0F0F0F0F0F0Full
 #define CENTER_FILES_BITS 0x3C3C3C3C3C3C3C3Cull
+#define CENTER_BITS 0x0000001818000000ull
 
 // Bitboards of all squares on the line between two squares.
 extern bitboard_t LineBits[SQUARE_NB][SQUARE_NB];
