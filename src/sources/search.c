@@ -43,6 +43,14 @@ void init_search_tables(void)
     }
 }
 
+void init_searchstack(searchstack_t *ss)
+{
+    memset(ss, 0, sizeof(searchstack_t) * 256);
+
+    for (int i = 0; i < 256; ++i)
+        (ss + i)->plies = i - 2;
+}
+
 uint64_t perft(board_t *board, unsigned int depth)
 {
     if (depth == 0) return (1);
@@ -185,15 +193,13 @@ void worker_search(worker_t *worker)
     // Clamp MultiPV to the maximal number of lines available
 
     const int multiPv = min(Options.multiPv, worker->rootCount);
+    searchstack_t sstack[256];
+
+    init_searchstack(sstack);
 
     for (int iterDepth = 0; iterDepth < SearchParams.depth; ++iterDepth)
     {
         bool hasSearchAborted;
-        searchstack_t sstack[256];
-
-        // Reset the search stack data
-
-        memset(sstack, 0, sizeof(sstack));
 
         for (worker->pvLine = 0; worker->pvLine < multiPv; ++worker->pvLine)
         {
@@ -394,7 +400,6 @@ score_t search(
             }
     }
 
-    (ss + 1)->plies = ss->plies + 1;
     (ss + 2)->killers[0] = (ss + 2)->killers[1] = NO_MOVE;
 
     if (inCheck)
@@ -752,8 +757,6 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
     }
 
     move_t ttMove = entry->bestmove;
-
-    (ss + 1)->plies = ss->plies + 1;
 
     movepick_init(&mp, true, board, worker, ttMove, ss);
 
