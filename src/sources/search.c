@@ -596,6 +596,10 @@ __main_loop:
 
                 R -= (currmove == mp.killer1 || currmove == mp.killer2 || currmove == mp.counter);
 
+                // Decrease if the move escapes a capture.
+
+                R -= !see_greater_than(board, reverse_move(currmove), 0);
+
                 // Increase/decrease based on history.
 
                 R -= histScore / 4000;
