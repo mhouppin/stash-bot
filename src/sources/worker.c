@@ -209,7 +209,7 @@ void wpool_start_search(
     {
         worker_t *curWorker = wpool->workerList[i];
 
-        curWorker->nodes = 0;
+        atomic_store_explicit(&curWorker->nodes, 0, memory_order_relaxed);
         curWorker->board = *rootBoard;
         curWorker->stack = curWorker->board.stack = dup_boardstack(rootBoard->stack);
         curWorker->board.worker = curWorker;
@@ -250,7 +250,8 @@ uint64_t wpool_get_total_nodes(worker_pool_t *wpool)
 {
     uint64_t totalNodes = 0;
 
-    for (size_t i = 0; i < wpool->size; ++i) totalNodes += wpool->workerList[i]->nodes;
+    for (size_t i = 0; i < wpool->size; ++i)
+        totalNodes += atomic_load_explicit(&wpool->workerList[i]->nodes, memory_order_relaxed);
 
     return (totalNodes);
 }
