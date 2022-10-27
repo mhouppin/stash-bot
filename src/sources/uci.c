@@ -28,7 +28,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define UCI_VERSION "v33.22"
+#define UCI_VERSION "v33.23"
 
 // clang-format off
 
@@ -340,7 +340,7 @@ void uci_go(const char *args)
         else if (strcmp(token, "nodes") == 0)
         {
             token = strtok(NULL, Delimiters);
-            if (token) SearchParams.nodes = (size_t)atoll(token);
+            if (token) SearchParams.nodes = (uint64_t)atoll(token);
         }
         else if (strcmp(token, "mate") == 0)
         {

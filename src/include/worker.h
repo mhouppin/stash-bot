@@ -24,6 +24,7 @@
 #include "pawns.h"
 #include "uci.h"
 #include <pthread.h>
+#include <stdatomic.h>
 #include <time.h>
 
 // Struct for search params.
@@ -36,7 +37,7 @@ typedef struct goparams_s
     clock_t binc;
     int movestogo;
     int depth;
-    size_t nodes;
+    uint64_t nodes;
     int mate;
     int infinite;
     int perft;
@@ -92,7 +93,10 @@ typedef struct worker_s
 
 INLINED worker_t *get_worker(const board_t *board) { return (board->worker); }
 
-INLINED score_t draw_score(const worker_t *worker) { return (worker->nodes & 2) - 1; }
+INLINED score_t draw_score(const worker_t *worker)
+{
+    return (atomic_load_explicit(&worker->nodes, memory_order_relaxed) & 2) - 1;
+}
 
 void worker_init(worker_t *worker, size_t idx);
 void worker_destroy(worker_t *worker);

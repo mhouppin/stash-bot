@@ -452,6 +452,8 @@ score_t search(
         ss->pieceHistory = NULL;
 
         do_null_move(board, &stack);
+        atomic_fetch_add_explicit(&get_worker(board)->nodes, 1, memory_order_relaxed);
+
         score_t score = -search(board, depth - R, -beta, -beta + 1, ss + 1, false);
         undo_null_move(board);
 
@@ -579,6 +581,7 @@ __main_loop:
         ss->pieceHistory = &worker->ctHistory[piece_on(board, from_sq(currmove))][to_sq(currmove)];
 
         do_move_gc(board, currmove, &stack, givesCheck);
+        atomic_fetch_add_explicit(&get_worker(board)->nodes, 1, memory_order_relaxed);
 
         // Can we apply LMR ?
 
@@ -808,6 +811,8 @@ score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, 
         if (pvNode) pv[0] = NO_MOVE;
 
         do_move_gc(board, currmove, &stack, givesCheck);
+        atomic_fetch_add_explicit(&get_worker(board)->nodes, 1, memory_order_relaxed);
+
         score_t score = -qsearch(board, -beta, -alpha, ss + 1, pvNode);
         undo_move(board, currmove);
 

@@ -21,7 +21,6 @@
 #include "tt.h"
 #include "types.h"
 #include "uci.h"
-#include "worker.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -336,8 +335,6 @@ const char *board_fen(const board_t *board)
 
 void do_move_gc(board_t *board, move_t move, boardstack_t *next, bool givesCheck)
 {
-    get_worker(board)->nodes += 1;
-
     hashkey_t key = board->stack->boardKey ^ ZobristBlackToMove;
 
     next->castlings = board->stack->castlings;
@@ -541,8 +538,6 @@ void undo_castling(board_t *board, color_t us, square_t kingFrom, square_t *king
 
 void do_null_move(board_t *board, boardstack_t *stack)
 {
-    get_worker(board)->nodes += 1;
-
     memcpy(stack, board->stack, sizeof(boardstack_t));
     stack->prev = board->stack;
     board->stack = stack;
