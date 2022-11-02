@@ -24,17 +24,17 @@
 // Enum for all pieces' midgame and endgame scores
 enum
 {
-    PAWN_MG_SCORE = 72,
-    KNIGHT_MG_SCORE = 349,
-    BISHOP_MG_SCORE = 366,
-    ROOK_MG_SCORE = 483,
-    QUEEN_MG_SCORE = 1048,
+    PAWN_MG_SCORE = 76,
+    KNIGHT_MG_SCORE = 351,
+    BISHOP_MG_SCORE = 369,
+    ROOK_MG_SCORE = 488,
+    QUEEN_MG_SCORE = 1044,
 
     PAWN_EG_SCORE = 163,
-    KNIGHT_EG_SCORE = 575,
-    BISHOP_EG_SCORE = 610,
-    ROOK_EG_SCORE = 956,
-    QUEEN_EG_SCORE = 1839
+    KNIGHT_EG_SCORE = 573,
+    BISHOP_EG_SCORE = 602,
+    ROOK_EG_SCORE = 953,
+    QUEEN_EG_SCORE = 1841
 };
 
 // Global for the piece values indexed by phase and piece

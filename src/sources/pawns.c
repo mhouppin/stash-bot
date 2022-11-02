@@ -25,37 +25,37 @@
 const scorepair_t BackwardPenalty  = SPAIR( -5, -7);
 const scorepair_t StragglerPenalty = SPAIR(-15,-22);
 const scorepair_t DoubledPenalty   = SPAIR(-16,-37);
-const scorepair_t IsolatedPenalty  = SPAIR( -8, -8);
+const scorepair_t IsolatedPenalty  = SPAIR( -9, -8);
 
 const scorepair_t PassedBonus[RANK_NB] = {
     0,
-    SPAIR(-11,-35),
+    SPAIR(-12,-35),
     SPAIR(-14,-18),
     SPAIR( -9, 37),
     SPAIR( 19, 92),
-    SPAIR( 37,180),
-    SPAIR( 60,312),
+    SPAIR( 37,181),
+    SPAIR( 61,312),
     0
 };
 
 const scorepair_t PhalanxBonus[RANK_NB] = {
     0,
-    SPAIR(  3,  4),
-    SPAIR( 12,  5),
-    SPAIR( 22, 28),
-    SPAIR( 44, 55),
-    SPAIR(162,223),
-    SPAIR(182,223),
+    SPAIR(  4,  4),
+    SPAIR( 12,  6),
+    SPAIR( 21, 28),
+    SPAIR( 43, 56),
+    SPAIR(162,224),
+    SPAIR(182,224),
     0
 };
 
 const scorepair_t DefenderBonus[RANK_NB] = {
     0,
-    SPAIR( 13, 19),
+    SPAIR( 13, 18),
     SPAIR( 10, 18),
-    SPAIR( 19, 27),
-    SPAIR( 49, 79),
-    SPAIR(159,113),
+    SPAIR( 19, 28),
+    SPAIR( 50, 79),
+    SPAIR(160,117),
     0,
     0
 };
