@@ -425,8 +425,6 @@ score_t search(
 
     if (rootNode && worker->pvLine) ttMove = worker->rootMoves[worker->pvLine].move;
 
-    if (inCheck) goto __main_loop;
-
     // Razoring.
 
     if (!pvNode && depth == 1 && ss->staticEval + 150 <= alpha)

@@ -1,3 +1,191 @@
+## v34.0 (2022-11-03)
+
+### Regression test
+
+- LTC:
+  ```
+  ELO   | 52.97 +- 2.89 (95%)
+  CONF  | 40.0+0.40s Threads=1 Hash=64MB
+  GAMES | N: 20000 W: 5175 L: 2149 D: 12676
+  ```
+
+## v33.0 (2022-05-12)
+
+### Regression test
+
+- LTC:
+  ```
+  ELO   | 51.85 +- 2.90 (95%)
+  CONF  | 40.0+0.40s Threads=1 Hash=64MB
+  GAMES | N: 20000 W: 5171 L: 2208 D: 12621
+  ```
+
+## v32.0 (2021-12-02)
+
+### Regression test
+
+- LTC:
+  ```
+  ELO   | 65.02 +- 4.42 (95%)
+  CONF  | 40.0+0.40s Threads=1 Hash=64MB
+  GAMES | N: 10000 W: 3059 L: 1209 D: 5732
+  ```
+
+### Fixed (2 changes)
+
+- Fixed 32-bit detection for printing 64-bit variables.
+- Fixed KPK table probing for KBPsK endgames when the Pawns are on the
+  Kingside.
+  ```
+  ELO   | 0.66 +- 4.47 (95%)
+  CONF  | 8.0+0.08s Threads=1 Hash=16MB
+  GAMES | N: 10000 W: 2170 L: 2151 D: 5679
+  ```
+
+### Performance (13 changes)
+
+- Reduced the margin for Reverse Futility Pruning when position is improving.
+  ```
+  ELO   | 2.92 +- 2.32 (95%)
+  SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+  LLR   | 2.96 (-2.94, 2.94) [0.00, 5.00]
+  GAMES | N: 37512 W: 8312 L: 7997 D: 21203
+
+  ELO   | 2.43 +- 1.93 (95%)
+  SPRT  | 40.0+0.40s Threads=1 Hash=64MB
+  LLR   | 2.95 (-2.94, 2.94) [0.00, 5.00]
+  GAMES | N: 43008 W: 7581 L: 7280 D: 28147
+  ```
+
+- Disabled singular extensions on positions with known win/loss.
+  ```
+  ELO   | 5.73 +- 4.85 (95%)
+  SPRT  | 40.0+0.40s Threads=1 Hash=64MB
+  LLR   | 2.99 (-2.94, 2.94) [-4.00, 1.00]
+  GAMES | N: 6608 W: 1164 L: 1055 D: 4389
+  ```
+
+- Decreased Delta Pruning margin in qsearch.
+  ```
+  ELO   | 3.09 +- 2.45 (95%)
+  SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+  LLR   | 2.99 (-2.94, 2.94) [0.00, 5.00]
+  GAMES | N: 33800 W: 7580 L: 7279 D: 18941
+
+  ELO   | 3.27 +- 2.58 (95%)
+  SPRT  | 40.0+0.40s Threads=1 Hash=64MB
+  LLR   | 3.03 (-2.94, 2.94) [0.00, 5.00]
+  GAMES | N: 23880 W: 4214 L: 3989 D: 15677
+  ```
+
+- Changed the way SEE pruning triggers in qsearch. Instead of recomputing SEE
+  for each attempt to prune a move, we directly use information from the move
+  ordering structure which already tells us if, at this stage, captures lose
+  material. It also avoids pruning TT moves when they have a bad SEE.
+  ```
+  ELO   | 4.40 +- 3.45 (95%)
+  SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+  LLR   | 2.95 (-2.94, 2.94) [0.00, 5.00]
+  GAMES | N: 16744 W: 3707 L: 3495 D: 9542
+  ```
+
+- Added more draw rules for endgames with Pawns on one side. Fixed eval for
+  King + Bishop + Pawns vs lone King, and King + Pawns vs lone King when the
+  endgame is clearly drawn.
+  ```
+  ELO   | 1.10 +- 3.07 (95%)
+  SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+  LLR   | 2.95 (-2.94, 2.94) [-4.00, 1.00]
+  GAMES | N: 21472 W: 4736 L: 4668 D: 12068
+  ```
+
+- Reduced history entry sizes from `int32_t` to `int16_t`, as the resolution
+  used is only 14 bits wide. Small speedup at search initialization.
+  ```
+  ELO   | 0.85 +- 2.88 (95%)
+  SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+  LLR   | 2.98 (-2.94, 2.94) [-4.00, 1.00]
+  GAMES | N: 24512 W: 5410 L: 5350 D: 13752
+  ```
+
+- Switched to Adam optimizer for tuning the eval. Retuned eval for testing,
+  using a dataset of 4.5M positions coming from selfplay games at 1+0.01 time
+  control.
+  ```
+  ELO   | 1.02 +- 3.15 (95%)
+  SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+  LLR   | 3.00 (-2.94, 2.94) [-4.00, 1.00]
+  GAMES | N: 22504 W: 5469 L: 5403 D: 11632
+  ```
+
+- Included King Proximity in the Passed Pawn evaluation. Also reduced batch
+  size used in tuning from 32768 to 2048.
+  ```
+  ELO   | 22.27 +- 9.86 (95%)
+  SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+  LLR   | 2.96 (-2.94, 2.94) [0.00, 5.00]
+  GAMES | N: 2296 W: 626 L: 479 D: 1191
+  ```
+
+- Removed the King square from the Mobility zone. Allowed King Safety code to
+  trigger with one attacker when the attacking side still has a Queen on the
+  board.
+  ```
+  ELO   | 10.86 +- 6.37 (95%)
+  SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+  LLR   | 2.97 (-2.94, 2.94) [0.00, 5.00]
+  GAMES | N: 5024 W: 1184 L: 1027 D: 2813
+  ```
+
+- Added capture histories for better move ordering.
+  ```
+  ELO   | 4.58 +- 3.52 (95%)
+  SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+  LLR   | 3.00 (-2.94, 2.94) [0.00, 5.00]
+  GAMES | N: 15712 W: 3404 L: 3197 D: 9111
+  ```
+
+- Limited history bonus uniformly at 2000 units. Also reduced the history
+  bonus quadratic coefficient from 16 to 14.
+  ```
+  ELO   | 5.45 +- 4.04 (95%)
+  SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+  LLR   | 2.96 (-2.94, 2.94) [0.00, 5.00]
+  GAMES | N: 11912 W: 2592 L: 2405 D: 6915
+  ```
+
+- Decreased Late Move Reductions of killer moves and countermoves by one ply.
+  ```
+  ELO   | 3.50 +- 2.78 (95%)
+  SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+  LLR   | 3.03 (-2.94, 2.94) [0.00, 5.00]
+  GAMES | N: 25296 W: 5479 L: 5224 D: 14593
+  ```
+
+- Made Late Move Pruning much more aggressive.
+  ```
+  ELO   | 24.76 +- 10.03 (95%)
+  SPRT  | 8.0+0.08s Threads=1 Hash=16MB
+  LLR   | 2.96 (-2.94, 2.94) [0.00, 5.00]
+  GAMES | N: 1968 W: 490 L: 350 D: 1128
+  ```
+
+### Changed (8 changes)
+
+- Simplified the square to bitboard conversion by removing the `SquareBits`
+  table.
+- Removed the validation loss from the tuning code, since the eval doesn't
+  overfit for datasets > 500k positions.
+- Fixed core usage in parallel loops during tuning, where one more thread would
+  be briefly used due to how workload size was computed.
+- Fixed gradient updating, now using a mutex to avoid concurrent writes to the
+  gradient array during tuning.
+- Fixed dataset generation, now simply filtering non-quiet positions, no
+  playouts applied from the engine's search.
+- Added FEN printing when a `'d'` command is sent.
+- Small naming changes in qsearch.
+- Made the Transposition Table reset multithreaded. Enforced memory zeroing to
+  avoid page faults slowing down the program on the first search of a game.
 
 ## v31.0 (2021-06-26)
 

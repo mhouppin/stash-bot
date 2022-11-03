@@ -478,6 +478,9 @@ scorepair_t evaluate_bishops(const board_t *board, evaluation_t *eval, color_t u
         TRACE_ADD(IDX_PIECE + BISHOP - PAWN, us, 1);
         TRACE_ADD(IDX_PSQT + 48 + (BISHOP - KNIGHT) * 32 + to_sq32(relative_sq(sq, us)), us, 1);
 
+        // Bonus/penalty based on the number of friendly Pawns which have the same color
+        // as the Bishop
+
         {
             bitboard_t sqMask = (sqbb & DARK_SQUARES) ? DARK_SQUARES : ~DARK_SQUARES;
 
