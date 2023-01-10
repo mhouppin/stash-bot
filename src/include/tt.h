@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2022 Morgan Houppin
+**    Copyright (C) 2019-2023 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 #include <string.h>
 
 // Struct for TT entry
-typedef struct tt_entry_s
+typedef struct _TT_Entry
 {
     hashkey_t key;
     score_t score;
@@ -32,7 +32,7 @@ typedef struct tt_entry_s
     uint8_t depth;
     uint8_t genbound;
     uint16_t bestmove;
-} tt_entry_t;
+} TT_Entry;
 
 enum
 {
@@ -40,30 +40,30 @@ enum
 };
 
 // Struct for TT entry cluster
-typedef struct cluster_s
+typedef struct _TT_Cluster
 {
-    tt_entry_t clEntry[ClusterSize];
-} cluster_t;
+    TT_Entry clEntry[ClusterSize];
+} TT_Cluster;
 
 // Struct for the transposition table
-typedef struct transposition_s
+typedef struct _TranspositionTable
 {
     size_t clusterCount;
-    cluster_t *table;
+    TT_Cluster *table;
     uint8_t generation;
-} transposition_t;
+} TranspositionTable;
 
 // Global transposition table
-extern transposition_t TT;
+extern TranspositionTable SearchTT;
 
 // Returns the entry cluster for the given hashkey.
-INLINED tt_entry_t *tt_entry_at(hashkey_t k)
+INLINED TT_Entry *tt_entry_at(hashkey_t k)
 {
-    return (TT.table[mul_hi64(k, TT.clusterCount)].clEntry);
+    return (SearchTT.table[mul_hi64(k, SearchTT.clusterCount)].clEntry);
 }
 
 // Updates the TT generation.
-INLINED void tt_clear(void) { TT.generation += 4; }
+INLINED void tt_clear(void) { SearchTT.generation += 4; }
 
 // Converts a score to a TT score.
 INLINED score_t score_to_tt(score_t s, int plies)
@@ -81,10 +81,10 @@ INLINED score_t score_from_tt(score_t s, int plies)
 void tt_bzero(size_t threadCount);
 
 // Probes the TT for the given hashkey.
-tt_entry_t *tt_probe(hashkey_t key, bool *found);
+TT_Entry *tt_probe(hashkey_t key, bool *found);
 
 // Saves the given entry in the TT.
-void tt_save(tt_entry_t *entry, hashkey_t k, score_t s, score_t e, int d, int b, move_t m);
+void tt_save(TT_Entry *entry, hashkey_t k, score_t s, score_t e, int d, int b, move_t m);
 
 // Returns the filling rate of the TT (per mil).
 int tt_hashfull(void);

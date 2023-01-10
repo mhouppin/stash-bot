@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2022 Morgan Houppin
+**    Copyright (C) 2019-2023 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@ INLINED clock_t chess_clock(void)
 }
 
 // Enum for the type of bestmove
-typedef enum
+typedef enum bestmove_type_e
 {
     NO_BM_TYPE = -1,
     OneLegalMove,
@@ -62,18 +62,18 @@ extern const double BestmoveTypeScale[BM_TYPE_NB];
 extern const double BestmoveStabilityScale[5];
 
 // Enum for the type of time management to use
-typedef enum tm_mode_e
+typedef enum timeman_mode_e
 {
     Tournament,
     Movetime,
     NoTimeman
-} tm_mode_t;
+} timeman_mode_t;
 
 // Struct for time management
-typedef struct timeman_s
+typedef struct _Timeman
 {
     clock_t start;
-    tm_mode_t mode;
+    timeman_mode_t mode;
     bool pondering;
 
     clock_t averageTime;
@@ -84,31 +84,31 @@ typedef struct timeman_s
     move_t prevBestmove;
     int stability;
     bestmove_type_t type;
-} timeman_t;
+} Timeman;
 
 // Global for time management
-extern timeman_t Timeman;
+extern Timeman SearchTimeman;
 
 // Initializes the time management based on "go" command parameters.
-void timeman_init(const board_t *board, timeman_t *tm, goparams_t *params, clock_t start);
+void timeman_init(const Board *board, Timeman *tm, SearchParams *params, clock_t start);
 
 // Updates the time management based on the current bestmove and score.
-void timeman_update(timeman_t *tm, const board_t *board, move_t bestmove, score_t score);
+void timeman_update(Timeman *tm, const Board *board, move_t bestmove, score_t score);
 
 // Checks time usage periodically.
 void check_time(void);
 
 // Checks if we can safely stop the search.
-INLINED bool timeman_can_stop_search(timeman_t *tm, clock_t cur)
+INLINED bool timeman_can_stop_search(Timeman *tm, clock_t cur)
 {
-    if (tm->pondering && WPool.ponder) return (false);
+    if (tm->pondering && SearchWorkerPool.ponder) return (false);
     return (tm->mode != NoTimeman && cur >= tm->start + tm->optimalTime);
 }
 
 // Checks if we must stop the search.
-INLINED bool timeman_must_stop_search(timeman_t *tm, clock_t cur)
+INLINED bool timeman_must_stop_search(Timeman *tm, clock_t cur)
 {
-    if (tm->pondering && WPool.ponder) return (false);
+    if (tm->pondering && SearchWorkerPool.ponder) return (false);
     return (tm->mode != NoTimeman && cur >= tm->start + tm->maximalTime);
 }
 

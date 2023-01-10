@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2022 Morgan Houppin
+**    Copyright (C) 2019-2023 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 #include "board.h"
 
 // Struct for pawn eval data
-typedef struct pawn_entry_s
+typedef struct _PawnEntry
 {
     hashkey_t key;
     bitboard_t attackSpan[COLOR_NB];
@@ -30,7 +30,7 @@ typedef struct pawn_entry_s
     bitboard_t attacks2[COLOR_NB];
     bitboard_t passed[COLOR_NB];
     scorepair_t value;
-} pawn_entry_t;
+} PawnEntry;
 
 enum
 {
@@ -38,6 +38,6 @@ enum
 };
 
 // Probes the pawn hash table for the given position.
-pawn_entry_t *pawn_probe(const board_t *board);
+PawnEntry *pawn_probe(const Board *board);
 
 #endif

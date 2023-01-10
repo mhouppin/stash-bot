@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2022 Morgan Houppin
+**    Copyright (C) 2019-2023 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -29,11 +29,11 @@
 
 // API for basic integer operations.
 
-INLINED int max(int a, int b) { return (a > b ? a : b); }
+INLINED int imax(int a, int b) { return (a > b ? a : b); }
 
-INLINED int min(int a, int b) { return (a < b ? a : b); }
+INLINED int imin(int a, int b) { return (a < b ? a : b); }
 
-INLINED int clamp(int value, int lower, int upper)
+INLINED int iclamp(int value, int lower, int upper)
 {
     return (value < lower ? lower : value > upper ? upper : value);
 }
@@ -170,7 +170,7 @@ INLINED rank_t relative_sq_rank(square_t square, color_t color)
 
 INLINED square_t to_sq32(square_t square)
 {
-    return (sq_rank(square) * 4 + min(sq_file(square), sq_file(square) ^ 7));
+    return (sq_rank(square) * 4 + imin(sq_file(square), sq_file(square) ^ 7));
 }
 
 INLINED bool is_valid_sq(square_t square) { return (square >= SQ_A1 && square <= SQ_H8); }

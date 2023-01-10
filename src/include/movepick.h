@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2022 Morgan Houppin
+**    Copyright (C) 2019-2023 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 #include "worker.h"
 
 // Enum for various stages of the move picker
-enum
+typedef enum mp_stage_e
 {
     PICK_TT,
     GEN_INSTABLE,
@@ -39,29 +39,29 @@ enum
     CHECK_PICK_TT,
     CHECK_GEN_ALL,
     CHECK_PICK_ALL
-};
+} mp_stage_t;
 
 // Struct for the move picker
-typedef struct movepick_s
+typedef struct _Movepicker
 {
-    movelist_t list;
-    extmove_t *cur, *badCaptures;
+    Movelist list;
+    ExtendedMove *cur, *badCaptures;
     bool inQsearch;
-    int stage;
+    mp_stage_t stage;
     move_t ttMove;
     move_t killer1;
     move_t killer2;
     move_t counter;
-    const board_t *board;
+    const Board *board;
     const worker_t *worker;
     piece_history_t *pieceHistory[2];
-} movepick_t;
+} Movepicker;
 
 // Initializes the move picker.
-void movepick_init(movepick_t *mp, bool inQsearch, const board_t *board, const worker_t *worker,
-    move_t ttMove, searchstack_t *ss);
+void movepicker_init(Movepicker *mp, bool inQsearch, const Board *board, const worker_t *worker,
+    move_t ttMove, Searchstack *ss);
 
-// Returns the next move in the move picker.
-move_t movepick_next_move(movepick_t *mp, bool skipQuiets);
+// Returns the next move in the move picker, with the option to skip quiet moves.
+move_t movepicker_next_move(Movepicker *mp, bool skipQuiets);
 
 #endif

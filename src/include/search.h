@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2022 Morgan Houppin
+**    Copyright (C) 2019-2023 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 #include "history.h"
 
 // Struct for holding search data
-typedef struct
+typedef struct _Searchstack
 {
     int plies;
     score_t staticEval;
@@ -32,7 +32,7 @@ typedef struct
     move_t currentMove;
     move_t *pv;
     piece_history_t *pieceHistory;
-} searchstack_t;
+} Searchstack;
 
 // Global for Late Move Reductions
 extern int Reductions[64][64];
@@ -49,18 +49,17 @@ enum
 void init_search_tables(void);
 
 // Updates the quiet history for the bestmove and all failed quiets.
-void update_quiet_history(const board_t *board, int depth, move_t bestmove, const move_t quiets[64],
-    int qcount, searchstack_t *ss);
+void update_quiet_history(const Board *board, int depth, move_t bestmove, const move_t quiets[64],
+    int qcount, Searchstack *ss);
 
 // Updates the capture history for the bestmove and all failed captures.
-void update_capture_history(const board_t *board, int depth, move_t bestmove,
-    const move_t captures[64], int ccount, searchstack_t *ss);
+void update_capture_history(const Board *board, int depth, move_t bestmove,
+    const move_t captures[64], int ccount, Searchstack *ss);
 
 // Quiescence search.
-score_t qsearch(board_t *board, score_t alpha, score_t beta, searchstack_t *ss, bool pvNode);
+score_t qsearch(Board *board, score_t alpha, score_t beta, Searchstack *ss, bool pvNode);
 
 // Standard search.
-score_t search(
-    board_t *board, int depth, score_t alpha, score_t beta, searchstack_t *ss, bool pvNode);
+score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack *ss, bool pvNode);
 
 #endif

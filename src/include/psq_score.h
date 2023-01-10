@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2022 Morgan Houppin
+**    Copyright (C) 2019-2023 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ extern const score_t PieceScores[PHASE_NB][PIECE_NB];
 // Global for the PSQT
 extern scorepair_t PsqScore[PIECE_NB][SQUARE_NB];
 
-// Initializes the PSQT
+// Initializes the PSQT.
 void psq_score_init(void);
 
 #endif // PSQ_SCORE_H

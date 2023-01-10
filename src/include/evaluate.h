@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2022 Morgan Houppin
+**    Copyright (C) 2019-2023 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -115,9 +115,9 @@ extern evaltrace_t Trace;
 #endif
 
 // Evaluates the position.
-score_t evaluate(const board_t *board);
+score_t evaluate(const Board *board);
 
 // Returns the scaled value of the endgame score.
-score_t scale_endgame(const board_t *board, const pawn_entry_t *pe, score_t eg);
+score_t scale_endgame(const Board *board, const PawnEntry *pe, score_t eg);
 
 #endif

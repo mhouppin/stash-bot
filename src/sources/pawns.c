@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2022 Morgan Houppin
+**    Copyright (C) 2019-2023 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -22,11 +22,13 @@
 
 // clang-format off
 
+// Miscellanous bonus for Pawn structures
 const scorepair_t BackwardPenalty  = SPAIR( -5, -7);
 const scorepair_t StragglerPenalty = SPAIR(-15,-22);
 const scorepair_t DoubledPenalty   = SPAIR(-16,-37);
 const scorepair_t IsolatedPenalty  = SPAIR( -9, -8);
 
+// Rank-based bonus for passed Pawns
 const scorepair_t PassedBonus[RANK_NB] = {
     0,
     SPAIR(-12,-35),
@@ -38,6 +40,7 @@ const scorepair_t PassedBonus[RANK_NB] = {
     0
 };
 
+// Rank-based bonus for phalanx structures
 const scorepair_t PhalanxBonus[RANK_NB] = {
     0,
     SPAIR(  4,  4),
@@ -49,6 +52,7 @@ const scorepair_t PhalanxBonus[RANK_NB] = {
     0
 };
 
+// Rank-based bonus for defenders
 const scorepair_t DefenderBonus[RANK_NB] = {
     0,
     SPAIR( 13, 18),
@@ -63,7 +67,7 @@ const scorepair_t DefenderBonus[RANK_NB] = {
 // clang-format on
 
 scorepair_t evaluate_passed(
-    pawn_entry_t *entry, color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
+    PawnEntry *entry, color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
 {
     scorepair_t ret = 0;
 
@@ -75,6 +79,9 @@ scorepair_t evaluate_passed(
         TRACE_ADD(IDX_PIECE + PAWN - PAWN, us, 1);
         TRACE_ADD(IDX_PSQT + relative_sq(sq, us) - SQ_A2, us, 1);
 
+        // Check if our Pawn has a free path to its queening square, or if every
+        // square attacked by an enemy Pawn is matched by a friendly Pawn
+        // attacking it too.
         if ((queening & theirPawns) == 0
             && (queening & entry->attacks[not_color(us)] & ~entry->attacks[us]) == 0
             && (queening & entry->attacks2[not_color(us)] & ~entry->attacks2[us]) == 0)
@@ -89,7 +96,7 @@ scorepair_t evaluate_passed(
 }
 
 scorepair_t evaluate_backward(
-    pawn_entry_t *entry, color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
+    PawnEntry *entry, color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
 {
     bitboard_t stopSquares = (us == WHITE) ? shift_up(ourPawns) : shift_down(ourPawns);
     bitboard_t ourAttackSpan = 0;
@@ -97,8 +104,7 @@ scorepair_t evaluate_backward(
 
     while (bb) ourAttackSpan |= pawn_attack_span_bb(us, bb_pop_first_sq(&bb));
 
-    // Save the pawn attack span to the entry.
-
+    // Save the pawn attack span to the entry for later use.
     entry->attackSpan[us] = ourAttackSpan;
 
     bitboard_t theirAttacks =
@@ -111,10 +117,12 @@ scorepair_t evaluate_backward(
 
     if (!backward) return (ret);
 
+    // Penalty for Pawns which cannot advance due to their stop square being
+    // attacked by enemy Pawns, with none of our Pawns able to defend it.
     ret += BackwardPenalty * popcount(backward);
     TRACE_ADD(IDX_BACKWARD, us, popcount(backward));
 
-    backward &= (us == WHITE) ? (RANK_2_BITS | RANK_3_BITS) : (RANK_6_BITS | RANK_7_BITS);
+    backward &= (us == WHITE) ? (RANK_2_BB | RANK_3_BB) : (RANK_6_BB | RANK_7_BB);
 
     if (!backward) return (ret);
 
@@ -126,6 +134,7 @@ scorepair_t evaluate_backward(
 
     if (!backward) return (ret);
 
+    // Additional penalty for exposed backward Pawns on the second or third rank.
     ret += StragglerPenalty * popcount(backward);
     TRACE_ADD(IDX_STRAGGLER, us, popcount(backward));
 
@@ -138,6 +147,7 @@ scorepair_t evaluate_connected(bitboard_t bb, color_t us)
 
     bitboard_t phalanx = bb & shift_left(bb);
 
+    // Bonus for Pawns sitting next to each other.
     while (phalanx)
     {
         square_t sq = bb_pop_first_sq(&phalanx);
@@ -148,6 +158,7 @@ scorepair_t evaluate_connected(bitboard_t bb, color_t us)
 
     bitboard_t defenders = bb & (us == WHITE ? bpawns_attacks_bb(bb) : wpawns_attacks_bb(bb));
 
+    // Bonus for Pawns supporting other Pawns.
     while (defenders)
     {
         square_t sq = bb_pop_first_sq(&defenders);
@@ -169,11 +180,14 @@ scorepair_t evaluate_doubled_isolated(bitboard_t bb, color_t us __attribute__((u
 
         if (b)
         {
+            // Penalty for Pawns on the same file.
             if (more_than_one(b))
             {
                 ret += DoubledPenalty;
                 TRACE_ADD(IDX_DOUBLED, us, 1);
             }
+
+            // Penalty for Pawns with no friendly Pawn on adjacent files.
             if (!(adjacent_files_bb(s) & bb))
             {
                 ret += IsolatedPenalty;
@@ -185,18 +199,20 @@ scorepair_t evaluate_doubled_isolated(bitboard_t bb, color_t us __attribute__((u
     return (ret);
 }
 
-pawn_entry_t *pawn_probe(const board_t *board)
+PawnEntry *pawn_probe(const Board *board)
 {
 #ifndef TUNE
-    pawn_entry_t *entry = get_worker(board)->pawnTable + (board->stack->pawnKey % PawnTableSize);
+    // Check if this pawn structure has already been evaluated.
+    PawnEntry *entry = get_worker(board)->pawnTable + (board->stack->pawnKey % PawnTableSize);
 
     if (entry->key == board->stack->pawnKey) return (entry);
 
 #else
-    static pawn_entry_t e;
-    pawn_entry_t *entry = &e;
+    static PawnEntry e;
+    PawnEntry *entry = &e;
 #endif
 
+    // Reset the entry contents.
     entry->key = board->stack->pawnKey;
     entry->value = 0;
     entry->attackSpan[WHITE] = entry->attackSpan[BLACK] = 0;
@@ -205,11 +221,13 @@ pawn_entry_t *pawn_probe(const board_t *board)
     const bitboard_t wpawns = piece_bb(board, WHITE, PAWN);
     const bitboard_t bpawns = piece_bb(board, BLACK, PAWN);
 
+    // Compute and save the Pawn direct attacks for later use.
     entry->attacks[WHITE] = wpawns_attacks_bb(wpawns);
     entry->attacks[BLACK] = bpawns_attacks_bb(bpawns);
     entry->attacks2[WHITE] = wpawns_2attacks_bb(wpawns);
     entry->attacks2[BLACK] = bpawns_2attacks_bb(bpawns);
 
+    // Evaluate the Pawn structure.
     entry->value += evaluate_backward(entry, WHITE, wpawns, bpawns);
     entry->value -= evaluate_backward(entry, BLACK, bpawns, wpawns);
     entry->value += evaluate_connected(wpawns, WHITE);
@@ -219,5 +237,7 @@ pawn_entry_t *pawn_probe(const board_t *board)
     entry->value += evaluate_doubled_isolated(wpawns, WHITE);
     entry->value -= evaluate_doubled_isolated(bpawns, BLACK);
 
+    // Return the entry pointer since the evaluation will make use of some of
+    // the fields (like the Pawn attack span).
     return (entry);
 }

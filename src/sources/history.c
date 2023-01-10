@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2022 Morgan Houppin
+**    Copyright (C) 2019-2023 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -20,8 +20,8 @@
 #include "search.h"
 #include "worker.h"
 
-void update_quiet_history(const board_t *board, int depth, move_t bestmove, const move_t quiets[64],
-    int qcount, searchstack_t *ss)
+void update_quiet_history(const Board *board, int depth, move_t bestmove, const move_t quiets[64],
+    int qcount, Searchstack *ss)
 {
     butterfly_history_t *bfHist = &get_worker(board)->bfHistory;
     square_t lastTo = SQ_A1;
@@ -35,7 +35,6 @@ void update_quiet_history(const board_t *board, int depth, move_t bestmove, cons
     to = to_sq(bestmove);
 
     // Apply history bonuses to the bestmove.
-
     if ((ss - 1)->pieceHistory != NULL)
     {
         lastTo = to_sq(previousMove);
@@ -49,7 +48,6 @@ void update_quiet_history(const board_t *board, int depth, move_t bestmove, cons
     add_bf_history(*bfHist, piece, bestmove, bonus);
 
     // Set the bestmove as a killer.
-
     if (ss->killers[0] != bestmove)
     {
         ss->killers[1] = ss->killers[0];
@@ -57,7 +55,6 @@ void update_quiet_history(const board_t *board, int depth, move_t bestmove, cons
     }
 
     // Apply history penalties to all previous failing quiet moves.
-
     for (int i = 0; i < qcount; ++i)
     {
         piece = piece_on(board, from_sq(quiets[i]));
@@ -71,7 +68,7 @@ void update_quiet_history(const board_t *board, int depth, move_t bestmove, cons
     }
 }
 
-void update_single_capture(capture_history_t *capHist, const board_t *board, move_t move, int bonus)
+void update_single_capture(capture_history_t *capHist, const Board *board, move_t move, int bonus)
 {
     square_t from = from_sq(move);
     piece_t movedPiece = piece_on(board, from);
@@ -86,14 +83,16 @@ void update_single_capture(capture_history_t *capHist, const board_t *board, mov
     add_cap_history(*capHist, movedPiece, to, captured, bonus);
 }
 
-void update_capture_history(const board_t *board, int depth, move_t bestmove,
-    const move_t captures[64], int ccount, searchstack_t *ss)
+void update_capture_history(const Board *board, int depth, move_t bestmove,
+    const move_t captures[64], int ccount, Searchstack *ss)
 {
     (void)ss;
     capture_history_t *capHist = &get_worker(board)->capHistory;
     int bonus = history_bonus(depth);
 
+    // Apply history bonuses to the bestmove.
     update_single_capture(capHist, board, bestmove, bonus);
 
+    // Apply history penalties to all previous failing capture moves.
     for (int i = 0; i < ccount; ++i) update_single_capture(capHist, board, captures[i], -bonus);
 }
