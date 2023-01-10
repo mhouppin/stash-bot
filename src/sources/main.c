@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2022 Morgan Houppin
+**    Copyright (C) 2019-2023 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -28,22 +28,23 @@
 #include <pthread.h>
 #include <stdio.h>
 
-board_t Board;
+Board UciBoard;
 pthread_attr_t WorkerSettings;
-goparams_t SearchParams;
-option_list_t OptionList;
-movelist_t SearchMoves;
+SearchParams UciSearchParams;
+OptionList UciOptionList;
+Movelist UciSearchMoves;
 
 uint64_t Seed = 1048592ul;
 
-ucioptions_t Options = {1, 16, 100, 1, false, false};
+OptionFields UciOptionFields = {1, 16, 100, 1, false, false, false};
 
-timeman_t Timeman;
+Timeman SearchTimeman;
 
 const char *Delimiters = " \r\t\n";
 
 int main(int argc, char **argv)
 {
+    // Initialize various parts of the engine.
     bitboard_init();
     psq_score_init();
     zobrist_init();
@@ -62,17 +63,18 @@ int main(int argc, char **argv)
 
 #else
 
+    // Initialize the search-related data along with the worker pool.
     tt_resize(16);
     init_search_tables();
     pthread_attr_init(&WorkerSettings);
     pthread_attr_setstacksize(&WorkerSettings, 4ul * 1024 * 1024);
-    wpool_init(&WPool, 1);
+    wpool_init(&SearchWorkerPool, 1);
 
-    // Wait for the engine thread to be ready
-
-    worker_wait_search_end(wpool_main_worker(&WPool));
+    // Wait for the engine thread to be ready, and then start parsing UCI
+    // commands.
+    worker_wait_search_end(wpool_main_worker(&SearchWorkerPool));
     uci_loop(argc, argv);
-    wpool_init(&WPool, 0);
+    wpool_init(&SearchWorkerPool, 0);
 
 #endif
 

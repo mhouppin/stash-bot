@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2022 Morgan Houppin
+**    Copyright (C) 2019-2023 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -233,8 +233,8 @@ void init_tuner_entries(tune_data_t *data, const char *filename)
         exit(EXIT_FAILURE);
     }
 
-    board_t board = {};
-    boardstack_t stack = {};
+    Board board = {};
+    Boardstack stack = {};
     char linebuf[1024];
 
     while (fgets(linebuf, sizeof(linebuf), f) != NULL)
@@ -274,14 +274,15 @@ void init_tuner_entries(tune_data_t *data, const char *filename)
     putchar('\n');
 }
 
-bool init_tuner_entry(tune_entry_t *entry, const board_t *board)
+bool init_tuner_entry(tune_entry_t *entry, const Board *board)
 {
     entry->staticEval = evaluate(board);
     if (Trace.scaleFactor == 0) return (false);
     if (board->sideToMove == BLACK) entry->staticEval = -entry->staticEval;
 
     entry->phase = Trace.phase;
-    entry->phaseFactors[MIDGAME] = (entry->phase - ENDGAME_COUNT) / (double)(MIDGAME_COUNT - ENDGAME_COUNT);
+    entry->phaseFactors[MIDGAME] =
+        (entry->phase - ENDGAME_COUNT) / (double)(MIDGAME_COUNT - ENDGAME_COUNT);
     entry->phaseFactors[ENDGAME] = 1 - entry->phaseFactors[MIDGAME];
 
     init_tuner_tuples(entry);
@@ -423,10 +424,10 @@ double adjusted_eval(
     // Remove the original safety evaluations from the normal evaluations.
 
     normal[MIDGAME] -=
-        max(0, midgame_score(entry->safety[WHITE])) * midgame_score(entry->safety[WHITE]) / 256
-        - max(0, midgame_score(entry->safety[BLACK])) * midgame_score(entry->safety[BLACK]) / 256;
-    normal[ENDGAME] -= max(0, endgame_score(entry->safety[WHITE])) / 16
-                       - max(0, endgame_score(entry->safety[BLACK])) / 16;
+        imax(0, midgame_score(entry->safety[WHITE])) * midgame_score(entry->safety[WHITE]) / 256
+        - imax(0, midgame_score(entry->safety[BLACK])) * midgame_score(entry->safety[BLACK]) / 256;
+    normal[ENDGAME] -= imax(0, endgame_score(entry->safety[WHITE])) / 16
+                       - imax(0, endgame_score(entry->safety[BLACK])) / 16;
 
     // Compute the new safety evaluations for each side.
 

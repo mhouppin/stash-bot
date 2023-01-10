@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2022 Morgan Houppin
+**    Copyright (C) 2019-2023 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 #include <stddef.h>
 #include <time.h>
 
+// Small trick to detect if the system is 64-bit or 32-bit.
 #if (SIZE_MAX == UINT64_MAX)
 #define FMT_INFO PRIu64
 #define KEY_INFO PRIx64
@@ -38,7 +39,7 @@ typedef uint32_t info_t;
 #define MAX_HASH 2048
 #endif
 
-typedef struct ucioptions_s
+typedef struct _OptionFields
 {
     long threads;
     long hash;
@@ -46,23 +47,27 @@ typedef struct ucioptions_s
     long multiPv;
     bool chess960;
     bool ponder;
-} ucioptions_t;
+    bool debug;
+} OptionFields;
 
 extern pthread_attr_t WorkerSettings;
-extern ucioptions_t Options;
+extern OptionFields UciOptionFields;
 extern const char *Delimiters;
 
-typedef struct cmdlink_s
+typedef struct _CommandMap
 {
     const char *commandName;
     void (*call)(const char *);
-} cmdlink_t;
+} CommandMap;
 
 char *get_next_token(char **str);
 
 const char *move_to_str(move_t move, bool isChess960);
 const char *score_to_str(score_t score);
-move_t str_to_move(const board_t *board, const char *str);
+move_t str_to_move(const Board *board, const char *str);
+
+// Displays the formatted content while in debug mode.
+int debug_printf(const char *fmt, ...);
 
 void uci_bench(const char *args);
 void uci_d(const char *args);

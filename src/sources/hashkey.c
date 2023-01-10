@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2022 Morgan Houppin
+**    Copyright (C) 2019-2023 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -30,12 +30,15 @@ void zobrist_init(void)
 {
     uint64_t seed = 0x7F6E5D4C3B2A1908ull;
 
+    // Initialize the Piece-Square Zobrist table.
     for (piece_t piece = WHITE_PAWN; piece <= BLACK_KING; ++piece)
         for (square_t square = SQ_A1; square <= SQ_H8; ++square)
             ZobristPsq[piece][square] = qrandom(&seed);
 
+    // Initialize the En-Passant Zobrist table.
     for (file_t file = FILE_A; file <= FILE_H; ++file) ZobristEnPassant[file] = qrandom(&seed);
 
+    // Initialize the Castling Zobrist table.
     for (int cr = 0; cr < CASTLING_NB; ++cr)
     {
         ZobristCastling[cr] = 0;
@@ -47,5 +50,6 @@ void zobrist_init(void)
         }
     }
 
+    // Initialize the Zobrist key for the side to move.
     ZobristBlackToMove = qrandom(&seed);
 }

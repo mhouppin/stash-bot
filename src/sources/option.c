@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2022 Morgan Houppin
+**    Copyright (C) 2019-2023 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -26,18 +26,18 @@ void option_allocation_failure(void)
     exit(EXIT_FAILURE);
 }
 
-void init_option_list(option_list_t *list)
+void init_option_list(OptionList *list)
 {
     list->options = NULL;
     list->size = 0;
     list->maxSize = 0;
 }
 
-void quit_option_list(option_list_t *list)
+void quit_option_list(OptionList *list)
 {
     for (size_t i = 0; i < list->size; ++i)
     {
-        option_t *cur = &list->options[i];
+        Option *cur = &list->options[i];
 
         free(cur->name);
 
@@ -48,6 +48,7 @@ void quit_option_list(option_list_t *list)
             case OptionScore:
             case OptionSpairMG:
             case OptionSpairEG:
+                // All these option types require default/min/max values.
                 free(cur->def);
                 free(cur->min);
                 free(cur->max);
@@ -74,17 +75,17 @@ void quit_option_list(option_list_t *list)
     list->maxSize = 0;
 }
 
-option_t *insert_option(option_list_t *list, const char *name)
+Option *insert_option(OptionList *list, const char *name)
 {
+    // Extend the option buffer if we're running out of empty slots.
     if (list->size == list->maxSize)
     {
         list->maxSize += (!list->maxSize) ? 16 : list->maxSize;
-        list->options = realloc(list->options, list->maxSize * sizeof(option_t));
+        list->options = realloc(list->options, list->maxSize * sizeof(Option));
         if (!list->options) option_allocation_failure();
     }
 
     // Do a binary search to find the index of our new option.
-
     size_t left = 0;
     size_t right = list->size;
     size_t i;
@@ -97,8 +98,10 @@ option_t *insert_option(option_list_t *list, const char *name)
         else
             left = i + 1;
     }
-    memmove(&list->options[left + 1], &list->options[left], sizeof(option_t) * (list->size - left));
-    memset(&list->options[left], 0, sizeof(option_t));
+
+    // Make the space to insert the new option.
+    memmove(&list->options[left + 1], &list->options[left], sizeof(Option) * (list->size - left));
+    memset(&list->options[left], 0, sizeof(Option));
 
     list->options[left].name = strdup(name);
 
@@ -106,13 +109,14 @@ option_t *insert_option(option_list_t *list, const char *name)
 
     list->size++;
 
+    // Return the option pointer to the caller.
     return (&list->options[left]);
 }
 
 void add_option_spin_int(
-    option_list_t *list, const char *name, long *data, long min, long max, void (*callback)(void *))
+    OptionList *list, const char *name, long *data, long min, long max, void (*callback)(void *))
 {
-    option_t *cur = insert_option(list, name);
+    Option *cur = insert_option(list, name);
 
     cur->type = OptionSpinInt;
     cur->data = data;
@@ -127,10 +131,10 @@ void add_option_spin_int(
     *(long *)cur->max = max;
 }
 
-void add_option_spin_flt(option_list_t *list, const char *name, double *data, double min,
-    double max, void (*callback)(void *))
+void add_option_spin_flt(OptionList *list, const char *name, double *data, double min, double max,
+    void (*callback)(void *))
 {
-    option_t *cur = insert_option(list, name);
+    Option *cur = insert_option(list, name);
 
     cur->type = OptionSpinFlt;
     cur->data = data;
@@ -145,10 +149,10 @@ void add_option_spin_flt(option_list_t *list, const char *name, double *data, do
     *(double *)cur->max = max;
 }
 
-void add_option_score(option_list_t *list, const char *name, score_t *data, score_t min,
-    score_t max, void (*callback)(void *))
+void add_option_score(OptionList *list, const char *name, score_t *data, score_t min, score_t max,
+    void (*callback)(void *))
 {
-    option_t *cur = insert_option(list, name);
+    Option *cur = insert_option(list, name);
 
     cur->type = OptionScore;
     cur->data = data;
@@ -163,17 +167,21 @@ void add_option_score(option_list_t *list, const char *name, score_t *data, scor
     *(score_t *)cur->max = max;
 }
 
-void add_option_scorepair(option_list_t *list, const char *name, scorepair_t *data, scorepair_t min,
+void add_option_scorepair(OptionList *list, const char *name, scorepair_t *data, scorepair_t min,
     scorepair_t max, void (*callback)(void *))
 {
+    // We register scorepair options as two separated options, one for the
+    // middlegame value with a "MG" suffix, and one for the endgame value with
+    // the "EG" suffix. Both operate on the same scorepair pointer internally.
     char *buffer = malloc(strlen(name) + 3);
 
     if (!buffer) option_allocation_failure();
 
+    // Start by initializing the middlegame option.
     strcpy(buffer, name);
     strcat(buffer, "MG");
 
-    option_t *cur = insert_option(list, buffer);
+    Option *cur = insert_option(list, buffer);
 
     cur->type = OptionSpairMG;
     cur->data = data;
@@ -187,6 +195,7 @@ void add_option_scorepair(option_list_t *list, const char *name, scorepair_t *da
     *(score_t *)cur->min = midgame_score(min);
     *(score_t *)cur->max = midgame_score(max);
 
+    // Then initialize the endgame option.
     buffer[strlen(buffer) - 2] = 'E';
 
     cur = insert_option(list, buffer);
@@ -205,9 +214,9 @@ void add_option_scorepair(option_list_t *list, const char *name, scorepair_t *da
     free(buffer);
 }
 
-void add_option_check(option_list_t *list, const char *name, bool *data, void (*callback)(void *))
+void add_option_check(OptionList *list, const char *name, bool *data, void (*callback)(void *))
 {
-    option_t *cur = insert_option(list, name);
+    Option *cur = insert_option(list, name);
 
     cur->type = OptionCheck;
     cur->data = data;
@@ -217,10 +226,10 @@ void add_option_check(option_list_t *list, const char *name, bool *data, void (*
     *(bool *)cur->def = *data;
 }
 
-void add_option_combo(option_list_t *list, const char *name, char **data,
-    const char *const *comboList, void (*callback)(void *))
+void add_option_combo(OptionList *list, const char *name, char **data, const char *const *comboList,
+    void (*callback)(void *))
 {
-    option_t *cur = insert_option(list, name);
+    Option *cur = insert_option(list, name);
 
     cur->type = OptionCombo;
     cur->data = data;
@@ -244,17 +253,17 @@ void add_option_combo(option_list_t *list, const char *name, char **data,
     cur->comboList[length] = NULL;
 }
 
-void add_option_button(option_list_t *list, const char *name, void (*callback)(void *))
+void add_option_button(OptionList *list, const char *name, void (*callback)(void *))
 {
-    option_t *cur = insert_option(list, name);
+    Option *cur = insert_option(list, name);
 
     cur->type = OptionButton;
     cur->callback = callback;
 }
 
-void add_option_string(option_list_t *list, const char *name, char **data, void (*callback)(void *))
+void add_option_string(OptionList *list, const char *name, char **data, void (*callback)(void *))
 {
-    option_t *cur = insert_option(list, name);
+    Option *cur = insert_option(list, name);
 
     cur->type = OptionString;
     cur->data = data;
@@ -264,12 +273,13 @@ void add_option_string(option_list_t *list, const char *name, char **data, void 
     if (!cur->def) option_allocation_failure();
 }
 
-void set_option(option_list_t *list, const char *name, const char *value)
+void set_option(OptionList *list, const char *name, const char *value)
 {
     size_t left = 0;
     size_t right = list->size;
     size_t i;
 
+    // Search the option by doing a binary search on the option's name.
     while (left < right)
     {
         i = (left + right) / 2;
@@ -282,11 +292,15 @@ void set_option(option_list_t *list, const char *name, const char *value)
             left = i + 1;
         else
         {
-            option_t *cur = &list->options[i];
+            Option *cur = &list->options[i];
             long l;
             double d;
             score_t s;
 
+            // Perform a check to see if the passed value can be assigned to the
+            // option. That means falling in the accepted range for integers and
+            // floats, being "true/false" for booleans, and being one of the
+            // accepted names for combo lists.
             switch (cur->type)
             {
                 case OptionSpinInt:
@@ -343,11 +357,11 @@ void set_option(option_list_t *list, const char *name, const char *value)
     }
 }
 
-void show_options(const option_list_t *list)
+void show_options(const OptionList *list)
 {
     for (size_t i = 0; i < list->size; ++i)
     {
-        const option_t *cur = &list->options[i];
+        const Option *cur = &list->options[i];
 
         switch (cur->type)
         {
@@ -356,10 +370,9 @@ void show_options(const option_list_t *list)
                     *(long *)cur->def, *(long *)cur->min, *(long *)cur->max);
                 break;
 
+            case OptionSpinFlt:
                 // Tricky case: spins can't be floats, so we show them as strings and
                 // handle them internally.
-
-            case OptionSpinFlt:
                 printf("option name %s type string default %lf\n", cur->name, *(double *)cur->def);
                 break;
 

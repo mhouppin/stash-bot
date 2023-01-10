@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2022 Morgan Houppin
+**    Copyright (C) 2019-2023 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -26,11 +26,9 @@
 void uci_bench(const char *args)
 {
     // If bench depth isn't given, use default depth of 13.
-
     if (!args || !atoi(args)) args = "13";
 
     // List of positions to search
-
     const char *positions[] = {
         "fen r3k2r/2pb1ppp/2pp1q2/p7/1nP1B3/1P2P3/P2N1PPP/R2QK2R w KQkq a6 0 14",
         "fen 4rrk1/2p1b1p1/p1p3q1/4p3/2P2n1p/1P1NR2P/PB3PP1/3R1QK1 b - - 2 24",
@@ -83,6 +81,7 @@ void uci_bench(const char *args)
         "fen 3br1k1/p1pn3p/1p3n2/5pNq/2P1p3/1PN3PP/P2Q1PB1/4R1K1 w - - 0 23",
         "fen 2r2b2/5p2/5k2/p1r1pP2/P2pB3/1P3P2/K1P3R1/7R w - - 23 93", NULL};
 
+    // Initialize the overall clock here.
     clock_t benchTime = chess_clock();
     uint64_t totalNodes = 0;
 
@@ -90,20 +89,26 @@ void uci_bench(const char *args)
     {
         char buf[4096];
 
+        // Prepare the 'go depth X' string.
         strcpy(buf, "depth ");
         strcat(buf, args);
+
+        // Reset the overall game state and launch a new search.
         uci_ucinewgame(NULL);
         uci_position(positions[i]);
         uci_go(buf);
-        worker_wait_search_end(wpool_main_worker(&WPool));
 
-        // Retrieve the node counter.
+        // Wait for search completion.
+        worker_wait_search_end(wpool_main_worker(&SearchWorkerPool));
 
-        totalNodes += wpool_get_total_nodes(&WPool);
+        // Retrieve the node counter from the worker pool structure.
+        totalNodes += wpool_get_total_nodes(&SearchWorkerPool);
     }
 
+    // Stop the clock.
     benchTime = chess_clock() - benchTime;
 
+    // Then display the overall benchmark information.
     printf("Benchmark report:\n");
     printf("TIME:  %" FMT_INFO " milliseconds\n", (info_t)benchTime);
     printf("NODES: %" FMT_INFO "\n", (info_t)totalNodes);

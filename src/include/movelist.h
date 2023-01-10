@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2022 Morgan Houppin
+**    Copyright (C) 2019-2023 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -24,73 +24,73 @@
 #include <stddef.h>
 
 // Structure for holding moves along with their score
-typedef struct extmove_s
+typedef struct _ExtendedMove
 {
     move_t move;
     score_t score;
-} extmove_t;
+} ExtendedMove;
 
 // Structure for holding a list of moves
-typedef struct movelist_s
+typedef struct _MoveList
 {
-    extmove_t moves[256];
-    extmove_t *last;
-} movelist_t;
+    ExtendedMove moves[256];
+    ExtendedMove *last;
+} Movelist;
 
 // Global list for the "go searchmoves" option
-extern movelist_t SearchMoves;
+extern Movelist UciSearchMoves;
 
 // Generates all legal moves for the given board and stores them in the given movelist.
-extmove_t *generate_all(extmove_t *movelist, const board_t *board);
+ExtendedMove *generate_all(ExtendedMove *movelist, const Board *board);
 
 // Generates all pseudo-legal moves for the given board (only for not in-check positions) and stores
 // them in the given movelist.
-extmove_t *generate_classic(extmove_t *movelist, const board_t *board);
+ExtendedMove *generate_classic(ExtendedMove *movelist, const Board *board);
 
 // Generates all pseudo-legal moves for the given board (only for in-check positions) and stores
 // them in the given movelist.
-extmove_t *generate_evasions(extmove_t *movelist, const board_t *board);
+ExtendedMove *generate_evasions(ExtendedMove *movelist, const Board *board);
 
 // Generates all pseudo-legal captures/queen promotions for the given board and stores them in the
 // given movelist.
-extmove_t *generate_captures(extmove_t *movelist, const board_t *board, bool inQsearch);
+ExtendedMove *generate_captures(ExtendedMove *movelist, const Board *board, bool inQsearch);
 
 // Generates all pseudo-legal non-captures/non-queen promotions for the given board and stores them
 // in the given movelist.
-extmove_t *generate_quiet(extmove_t *movelist, const board_t *board);
+ExtendedMove *generate_quiet(ExtendedMove *movelist, const Board *board);
 
 // Places the move with the highest score in the first position of the movelist.
-void place_top_move(extmove_t *begin, extmove_t *end);
+void place_top_move(ExtendedMove *begin, ExtendedMove *end);
 
 // Generates all legal moves for the given board.
-INLINED void list_all(movelist_t *movelist, const board_t *board)
+INLINED void list_all(Movelist *movelist, const Board *board)
 {
     movelist->last = generate_all(movelist->moves, board);
 }
 
 // Generates all pseudo-legal moves for the given board.
-INLINED void list_pseudo(movelist_t *movelist, const board_t *board)
+INLINED void list_pseudo(Movelist *movelist, const Board *board)
 {
     movelist->last = board->stack->checkers ? generate_evasions(movelist->moves, board)
                                             : generate_classic(movelist->moves, board);
 }
 
 // Returns the size of the movelist.
-INLINED size_t movelist_size(const movelist_t *movelist)
+INLINED size_t movelist_size(const Movelist *movelist)
 {
     return (movelist->last - movelist->moves);
 }
 
 // Returns the start of the movelist.
-INLINED const extmove_t *movelist_begin(const movelist_t *movelist) { return (movelist->moves); }
+INLINED const ExtendedMove *movelist_begin(const Movelist *movelist) { return (movelist->moves); }
 
 // Returns the end of the movelist.
-INLINED const extmove_t *movelist_end(const movelist_t *movelist) { return (movelist->last); }
+INLINED const ExtendedMove *movelist_end(const Movelist *movelist) { return (movelist->last); }
 
 // Checks if the movelist contains the given move.
-INLINED bool movelist_has_move(const movelist_t *movelist, move_t move)
+INLINED bool movelist_has_move(const Movelist *movelist, move_t move)
 {
-    for (const extmove_t *extmove = movelist_begin(movelist); extmove < movelist_end(movelist);
+    for (const ExtendedMove *extmove = movelist_begin(movelist); extmove < movelist_end(movelist);
          ++extmove)
         if (extmove->move == move) return (true);
 

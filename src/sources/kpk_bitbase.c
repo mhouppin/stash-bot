@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2022 Morgan Houppin
+**    Copyright (C) 2019-2023 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -68,32 +68,26 @@ void kpk_set(kpk_position_t *pos, unsigned int index)
     pos->pawnSquare = psq;
 
     // Overlapping/adjacent Kings ?
-
     if (SquareDistance[wksq][bksq] <= 1) pos->result = KPK_INVALID;
 
     // Overlapping King with Pawn ?
-
     else if (wksq == psq || bksq == psq)
         pos->result = KPK_INVALID;
 
     // Losing king in check while the winning side has the move ?
-
     else if (stm == WHITE && (PawnMoves[WHITE][psq] & square_bb(bksq)))
         pos->result = KPK_INVALID;
 
     // Can we promote without getting captured ?
-
     else if (stm == WHITE && sq_rank(psq) == RANK_7 && wksq != psq + NORTH
              && (SquareDistance[bksq][psq + NORTH] > 1 || SquareDistance[wksq][psq + NORTH] == 1))
         pos->result = KPK_WIN;
 
     // Is it stalemate ?
-
     else if (stm == BLACK && !(king_moves(bksq) & ~(king_moves(wksq) | PawnMoves[WHITE][psq])))
         pos->result = KPK_DRAW;
 
     // Can the losing side capture the Pawn ?
-
     else if (stm == BLACK && (king_moves(bksq) & ~king_moves(wksq) & square_bb(psq)))
         pos->result = KPK_DRAW;
 
@@ -120,7 +114,6 @@ void kpk_classify(kpk_position_t *pos, kpk_position_t *kpkTable)
     // Pawn pushes, where we need to check if the square above the pawn is empty).
 
     // Get all entries' results for King moves.
-
     while (b)
     {
         if (stm == WHITE)
@@ -130,16 +123,13 @@ void kpk_classify(kpk_position_t *pos, kpk_position_t *kpkTable)
     }
 
     // If the winning side has the move, also get all entries' results for Pawn moves.
-
     if (stm == WHITE)
     {
         // Single push
-
         if (sq_rank(psq) < RANK_7)
             result |= kpkTable[kpk_index(BLACK, bksq, wksq, psq + NORTH)].result;
 
         // Double push
-
         if (sq_rank(psq) == RANK_2 && psq + NORTH != wksq && psq + NORTH != bksq)
             result |= kpkTable[kpk_index(BLACK, bksq, wksq, psq + NORTH + NORTH)].result;
     }
@@ -162,9 +152,13 @@ void init_kpk_bitbase(void)
     unsigned int index;
     bool repeat;
 
+    // Fill the bitbase with zeroes, and then perform an early
+    // recognition of trivial wins/draws and illegal positions.
     memset(KPK_Bitbase, 0, sizeof(KPK_Bitbase));
     for (index = 0; index < KPK_SIZE; ++index) kpk_set(kpkTable + index, index);
 
+    // Backtrack all known wins/draws to the undecided positions, by trying to
+    // determine the result of a position from the child states' results.
     do {
         repeat = false;
         for (index = 0; index < KPK_SIZE; ++index)
@@ -175,13 +169,14 @@ void init_kpk_bitbase(void)
             }
     } while (repeat);
 
+    // Index the wins in the bitbase as set bits.
     for (index = 0; index < KPK_SIZE; ++index)
         if (kpkTable[index].result == KPK_WIN) KPK_Bitbase[index / 8] |= 1 << (index % 8);
 
     free(kpkTable);
 }
 
-score_t eval_kpk(const board_t *board, color_t winningSide)
+score_t eval_kpk(const Board *board, color_t winningSide)
 {
     square_t winningKing = get_king_square(board, winningSide);
     square_t winningPawn = bb_first_sq(piecetype_bb(board, PAWN));
@@ -192,6 +187,7 @@ score_t eval_kpk(const board_t *board, color_t winningSide)
     winningPawn = normalize_square(board, winningSide, winningPawn);
     losingKing = normalize_square(board, winningSide, losingKing);
 
+    // Probe the bitbase to evaluate the KPK position.
     score_t score = kpk_is_winning(us, losingKing, winningKing, winningPawn)
                         ? VICTORY + PAWN_EG_SCORE + sq_rank(winningPawn) * 3
                         : 0;

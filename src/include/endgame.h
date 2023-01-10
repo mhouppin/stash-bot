@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2022 Morgan Houppin
+**    Copyright (C) 2019-2023 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ enum
 };
 
 // Maps a square relative to the given color.
-INLINED square_t normalize_square(const board_t *board, color_t winning, square_t sq)
+INLINED square_t normalize_square(const Board *board, color_t winning, square_t sq)
 {
     if (sq_file(bb_first_sq(piece_bb(board, winning, PAWN))) >= FILE_E) sq ^= FILE_H;
 
@@ -59,18 +59,18 @@ INLINED score_t away_bonus(square_t sq1, square_t sq2)
 }
 
 // Typedef for specialized endgame functions
-typedef score_t (*endgame_func_t)(const board_t *, color_t);
+typedef score_t (*endgame_func_t)(const Board *, color_t);
 
 // Struct holding a specialized endgame
-typedef struct endgame_entry_s
+typedef struct _EndgameEntry
 {
     hashkey_t key;
     endgame_func_t func;
     color_t winningSide;
-} endgame_entry_t;
+} EndgameEntry;
 
 // Global table for hasing endgames
-extern endgame_entry_t EndgameTable[EGTB_SIZE];
+extern EndgameEntry EndgameTable[EGTB_SIZE];
 
 // Initializes the endgame table.
 void init_endgame_table(void);
@@ -82,19 +82,19 @@ void init_kpk_bitbase(void);
 bool kpk_is_winning(color_t stm, square_t bksq, square_t wksq, square_t psq);
 
 // A list of all specialized endgames.
-score_t eval_draw(const board_t *board, color_t winningSide);
-score_t eval_krkn(const board_t *board, color_t winningSide);
-score_t eval_krkp(const board_t *board, color_t winningSide);
-score_t eval_krkb(const board_t *board, color_t winningSide);
-score_t eval_kbnk(const board_t *board, color_t winningSide);
-score_t eval_kqkr(const board_t *board, color_t winningSide);
-score_t eval_kqkp(const board_t *board, color_t winningSide);
-score_t eval_kpk(const board_t *board, color_t winningSide);
-score_t eval_kpsk(const board_t *board, color_t winningSide);
-score_t eval_knnkp(const board_t *board, color_t winningSide);
-score_t eval_kbpsk(const board_t *board, color_t winningSide);
+score_t eval_draw(const Board *board, color_t winningSide);
+score_t eval_krkn(const Board *board, color_t winningSide);
+score_t eval_krkp(const Board *board, color_t winningSide);
+score_t eval_krkb(const Board *board, color_t winningSide);
+score_t eval_kbnk(const Board *board, color_t winningSide);
+score_t eval_kqkr(const Board *board, color_t winningSide);
+score_t eval_kqkp(const Board *board, color_t winningSide);
+score_t eval_kpk(const Board *board, color_t winningSide);
+score_t eval_kpsk(const Board *board, color_t winningSide);
+score_t eval_knnkp(const Board *board, color_t winningSide);
+score_t eval_kbpsk(const Board *board, color_t winningSide);
 
 // Probes the endgame table for the given board.
-const endgame_entry_t *endgame_probe(const board_t *board);
+const EndgameEntry *endgame_probe(const Board *board);
 
 #endif

@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2022 Morgan Houppin
+**    Copyright (C) 2019-2023 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@ const score_t PieceScores[PHASE_NB][PIECE_NB] = {
 
 #define S SPAIR
 
+// Square-based Pawn scoring for evaluation
 const scorepair_t PawnBonus[RANK_NB][FILE_NB] = {
     { },
     { S( -9, 20), S( -5, 20), S(-13, 14), S(  0,  2), S(  0, 13), S( 35, 21), S( 35, 12), S(  6,-15) },
@@ -46,6 +47,7 @@ const scorepair_t PawnBonus[RANK_NB][FILE_NB] = {
     { }
 };
 
+// Square-based piece scoring for evaluation, using a file symmetry
 const scorepair_t PieceBonus[PIECETYPE_NB][RANK_NB][FILE_NB / 2] = {
     { },
     { },
@@ -126,16 +128,20 @@ void psq_score_init(void)
         {
             scorepair_t psqEntry;
 
+            // Locate the square entry based on the piece type and square.
             if (piece == WHITE_PAWN)
                 psqEntry = pieceValue + PawnBonus[sq_rank(square)][sq_file(square)];
 
             else
             {
-                file_t queensideFile = min(sq_file(square), sq_file(square) ^ 7);
+                // Map squares for pieces on the queenside.
+                file_t queensideFile = imin(sq_file(square), sq_file(square) ^ 7);
 
                 psqEntry = pieceValue + PieceBonus[piece][sq_rank(square)][queensideFile];
             }
 
+            // Assign the score twice, once for White and once for Black (with
+            // the square mirrored horizontally).
             PsqScore[piece][square] = psqEntry;
             PsqScore[opposite_piece(piece)][opposite_sq(square)] = -psqEntry;
         }

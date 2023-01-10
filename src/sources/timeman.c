@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2022 Morgan Houppin
+**    Copyright (C) 2019-2023 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -23,7 +23,6 @@
 #include <math.h>
 
 // Scaling table based on the move type
-
 const double BestmoveTypeScale[BM_TYPE_NB] = {
     0.20, // One legal move
     0.45, // Promoting a piece
@@ -36,12 +35,11 @@ const double BestmoveTypeScale[BM_TYPE_NB] = {
 };
 
 // Scaling table based on the number of consecutive iterations the bestmove held
-
 const double BestmoveStabilityScale[5] = {2.50, 1.20, 0.90, 0.80, 0.75};
 
-void timeman_init(const board_t *board, timeman_t *tm, goparams_t *params, clock_t start)
+void timeman_init(const Board *board, Timeman *tm, SearchParams *params, clock_t start)
 {
-    clock_t overhead = Options.moveOverhead;
+    clock_t overhead = UciOptionFields.moveOverhead;
 
     tm->start = start;
     tm->pondering = false;
@@ -54,28 +52,27 @@ void timeman_init(const board_t *board, timeman_t *tm, goparams_t *params, clock
         clock_t time = (board->sideToMove == WHITE) ? params->wtime : params->btime;
         clock_t inc = (board->sideToMove == WHITE) ? params->winc : params->binc;
 
-        time = max(0, time - overhead);
+        time = imax(0, time - overhead);
 
         tm->averageTime = time / mtg + inc;
         tm->maximalTime = time / pow(mtg, 0.4) + inc;
 
         // Allow for more time usage when we're pondering, since we're not using
         // our clock as long as the opponent thinks.
-
         if (params->ponder)
         {
             tm->pondering = true;
             tm->averageTime += tm->averageTime / 4;
         }
 
-        tm->averageTime = min(tm->averageTime, time);
-        tm->maximalTime = min(tm->maximalTime, time);
+        tm->averageTime = imin(tm->averageTime, time);
+        tm->maximalTime = imin(tm->maximalTime, time);
         tm->optimalTime = tm->maximalTime;
     }
     else if (params->movetime)
     {
         tm->mode = Movetime;
-        tm->averageTime = tm->maximalTime = tm->optimalTime = max(1, params->movetime - overhead);
+        tm->averageTime = tm->maximalTime = tm->optimalTime = imax(1, params->movetime - overhead);
     }
     else
         tm->mode = NoTimeman;
@@ -91,28 +88,26 @@ double score_difference_scale(score_t s)
     const score_t X = 100;
     const double T = 2.0;
 
-    // Clamp score to the range [-100, 100], and convert it to a time scale [0.5, 2.0]
+    // Clamp score to the range [-100, 100], and convert it to a time scale in
+    // the range [0.5, 2.0].
     // Examples:
     // -100 -> 2.000x time
     //  -50 -> 1.414x time
     //    0 -> 1.000x time
     //  +50 -> 0.707x time
     // +100 -> 0.500x time
-
-    return (pow(T, clamp(s, -X, X) / (double)X));
+    return (pow(T, iclamp(s, -X, X) / (double)X));
 }
 
-void timeman_update(timeman_t *tm, const board_t *board, move_t bestmove, score_t score)
+void timeman_update(Timeman *tm, const Board *board, move_t bestmove, score_t score)
 {
-    // Only update timeman when we need one.
-
+    // Only update the timeman when we need one.
     if (tm->mode != Tournament) return;
 
     // Update bestmove + stability statistics.
-
     if (tm->prevBestmove != bestmove)
     {
-        movelist_t list;
+        Movelist list;
         bool isQuiet = !is_capture_or_promotion(board, bestmove);
         bool givesCheck = move_gives_check(board, bestmove);
 
@@ -120,7 +115,6 @@ void timeman_update(timeman_t *tm, const board_t *board, move_t bestmove, score_
         tm->stability = 0;
 
         // Do we only have one legal move ? Don't burn much time on these.
-
         list_all(&list, board);
         if (movelist_size(&list) == 1)
             tm->type = OneLegalMove;
@@ -147,47 +141,43 @@ void timeman_update(timeman_t *tm, const board_t *board, move_t bestmove, score_
             tm->type = WeirdQuiet;
     }
     else
-        tm->stability = min(tm->stability + 1, 4);
+        tm->stability = imin(tm->stability + 1, 4);
 
     // Scale the time usage based on the type of bestmove we have.
-
     double scale = BestmoveTypeScale[tm->type];
 
     // Scale the time usage based on how long this bestmove has held
     // through search iterations.
-
     scale *= BestmoveStabilityScale[tm->stability];
 
     // Scale the time usage based on how the score changed from the
     // previous iteration (the higher it goes, the quicker we stop searching).
-
     if (tm->prevScore != NO_SCORE) scale *= score_difference_scale(tm->prevScore - score);
 
     // Update score + optimal time usage.
-
     tm->prevScore = score;
-    tm->optimalTime = min(tm->maximalTime, tm->averageTime * scale);
+    tm->optimalTime = imin(tm->maximalTime, tm->averageTime * scale);
 }
 
 void check_time(void)
 {
-    if (--WPool.checks > 0) return;
+    if (--SearchWorkerPool.checks > 0) return;
 
-    // Reset check counter.
-
-    WPool.checks = 1000;
+    // Reset the verification counter.
+    SearchWorkerPool.checks = 1000;
 
     // If we are in infinite mode, or the stop has already been set,
     // we can safely return.
+    if (UciSearchParams.infinite || SearchWorkerPool.stop) return;
 
-    if (SearchParams.infinite || WPool.stop) return;
+    // Check if we went over the requested node count.
+    if (wpool_get_total_nodes(&SearchWorkerPool) >= UciSearchParams.nodes) goto __set_stop;
 
-    if (wpool_get_total_nodes(&WPool) >= SearchParams.nodes) goto __set_stop;
-
-    if (timeman_must_stop_search(&Timeman, chess_clock())) goto __set_stop;
+    // Check if we went over maximal time usage.
+    if (timeman_must_stop_search(&SearchTimeman, chess_clock())) goto __set_stop;
 
     return;
 
 __set_stop:
-    WPool.stop = true;
+    SearchWorkerPool.stop = true;
 }
