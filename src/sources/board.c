@@ -372,11 +372,15 @@ int board_from_fen(Board *board, const char *fen, bool isChess960, Boardstack *b
     fen += result;
     fen += strspn(fen, Delimiters);
 
-    // Delayed verification: if the UCI_Chess960 option isn't set while we receieve
-    // Chess960-styled castling rights, issue a warning in debug mode.
+    // Delayed verification: if the UCI_Chess960 option isn't set while we
+    // receive Chess960-styled castling rights, issue a warning in debug mode.
     if (!isChess960 && board->chess960)
         debug_printf(
             "info string Warning: FRC position emitted with the UCI_Chess960 flag unset\n");
+
+    // Force the Chess960 flag to be set for standard positions with
+    // UCI_Chess960 enabled.
+    board->chess960 = isChess960;
 
     // Parse the en-passant square section.
     result = board_parse_en_passant(board, fen);
