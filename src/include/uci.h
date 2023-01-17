@@ -48,6 +48,8 @@ typedef struct _OptionFields
     bool chess960;
     bool ponder;
     bool debug;
+    bool showWDL;
+    bool normalizeScore;
 } OptionFields;
 
 extern pthread_attr_t WorkerSettings;

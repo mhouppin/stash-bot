@@ -23,13 +23,14 @@
 #include "tt.h"
 #include "types.h"
 #include <ctype.h>
+#include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#define UCI_VERSION "v34.2"
+#define UCI_VERSION "v34.3"
 
 // clang-format off
 
@@ -138,14 +139,57 @@ move_t str_to_move(const Board *board, const char *str)
     return (NO_MOVE);
 }
 
+int winrate_model(score_t score, int ply)
+{
+    // clang-format off
+    static const double as[4] = {  -4.19608390,   27.38380265,   32.62081910,   98.27443919};
+    static const double bs[4] = {   0.36809906,   -1.71950139,    9.71771959,   61.99845003};
+    // clang-format on
+
+    double p = imin(ply, 240) / 64.0;
+    double a = ((as[0] * p + as[1]) * p + as[2]) * p + as[3];
+    double b = ((bs[0] * p + bs[1]) * p + bs[2]) * p + bs[3];
+
+    // Clamp the score value to avoid issues while computing the exponent.
+    double v = fmin(fmax(-4000.0, (double)score), 4000.0);
+
+    // Return the winrate in per mille units.
+    return (int)(0.5 + 1000.0 / (1.0 + exp((a - v) / b)));
+}
+
+const char *score_to_wdl(score_t score, int ply)
+{
+    static char buf[17];
+
+    if (!UciOptionFields.showWDL)
+        buf[0] = '\0';
+
+    else
+    {
+        int wdlWin = winrate_model(score, ply);
+        int wdlLose = winrate_model(-score, ply);
+        int wdlDraw = 1000 - wdlWin - wdlLose;
+
+        sprintf(buf, " wdl %d %d %d", wdlWin, wdlDraw, wdlLose);
+    }
+
+    return (buf);
+}
+
 const char *score_to_str(score_t score)
 {
+    static const score_t NormalizeScore = 154;
     static char buf[12];
 
     if (abs(score) >= MATE_FOUND)
         sprintf(buf, "mate %d", (score > 0 ? MATE - score + 1 : -MATE - score) / 2);
+
     else
+    {
+        if (UciOptionFields.normalizeScore) score = (int32_t)score * 100 / NormalizeScore;
+
         sprintf(buf, "cp %d", score);
+    }
 
     return (buf);
 }
@@ -158,8 +202,9 @@ void print_pv(
     bool searchedMove = (rootMove->score != -INF_SCORE);
     score_t rootScore = (searchedMove) ? rootMove->score : rootMove->prevScore;
 
-    printf("info depth %d seldepth %d multipv %d score %s%s", imax(depth + searchedMove, 1),
-        rootMove->seldepth, multiPv, score_to_str(rootScore), BoundStr[bound]);
+    printf("info depth %d seldepth %d multipv %d score %s%s%s", imax(depth + searchedMove, 1),
+        rootMove->seldepth, multiPv, score_to_str(rootScore), BoundStr[bound],
+        score_to_wdl(rootScore, board->ply));
     printf(" nodes %" FMT_INFO " nps %" FMT_INFO " hashfull %d time %" FMT_INFO " pv",
         (info_t)nodes, (info_t)nps, tt_hashfull(), (info_t)time);
 
@@ -511,6 +556,8 @@ void uci_loop(int argc, char **argv)
         &UciOptionList, "Move Overhead", &UciOptionFields.moveOverhead, 0, 30000, NULL);
     add_option_spin_int(&UciOptionList, "MultiPV", &UciOptionFields.multiPv, 1, 500, NULL);
     add_option_check(&UciOptionList, "UCI_Chess960", &UciOptionFields.chess960, NULL);
+    add_option_check(&UciOptionList, "UCI_ShowWDL", &UciOptionFields.showWDL, NULL);
+    add_option_check(&UciOptionList, "NormalizeScore", &UciOptionFields.normalizeScore, NULL);
     add_option_check(&UciOptionList, "Ponder", &UciOptionFields.ponder, NULL);
     add_option_button(&UciOptionList, "Clear Hash", &on_clear_hash);
 
