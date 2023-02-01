@@ -692,7 +692,7 @@ __main_loop:
                     // Update move histories.
                     if (isQuiet)
                         update_quiet_history(board, depth, bestmove, quiets, qcount, ss);
-                    else if (moveCount != 1)
+                    if (moveCount != 1)
                         update_capture_history(board, depth, bestmove, captures, ccount, ss);
                     break;
                 }
