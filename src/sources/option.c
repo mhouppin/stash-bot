@@ -17,8 +17,11 @@
 */
 
 #include "option.h"
+#include "uci.h"
+#include <errno.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 void option_allocation_failure(void)
 {
@@ -93,7 +96,7 @@ Option *insert_option(OptionList *list, const char *name)
     while (left < right)
     {
         i = (left + right) / 2;
-        if (strcmp(name, list->options[i].name) < 0)
+        if (strcasecmp(name, list->options[i].name) < 0)
             right = i;
         else
             left = i + 1;
@@ -273,6 +276,149 @@ void add_option_string(OptionList *list, const char *name, char **data, void (*c
     if (!cur->def) option_allocation_failure();
 }
 
+bool try_set_option_spin_int(Option *option, const char *value)
+{
+    char *endptr;
+    long ivalue = strtol(value, &endptr, 10);
+
+    if (endptr == value)
+    {
+        debug_printf("info error Failed to parse value '%s' for option '%s'\n", value, option->name);
+        return false;
+    }
+
+    if (ivalue < *(long *)option->min || ivalue > *(long *)option->max)
+    {
+        debug_printf("info error Value '%s' falls outside of the supported range for option '%s'\n", value, option->name);
+        return false;
+    }
+
+    *(long *)option->data = ivalue;
+    debug_printf("info string Setting option '%s' to %ld\n", option->name, ivalue);
+    return true;
+}
+
+bool try_set_option_spin_flt(Option *option, const char *value)
+{
+    char *endptr;
+    double fvalue = strtod(value, &endptr);
+
+    if (endptr == value)
+    {
+        debug_printf("info error Failed to parse value '%s' for option '%s'\n", value, option->name);
+        return false;
+    }
+
+    if (fvalue < *(double *)option->min || fvalue > *(double *)option->max)
+    {
+        debug_printf("info error Value '%s' falls outside of the supported range for option '%s'\n", value, option->name);
+        return false;
+    }
+
+    *(double *)option->data = fvalue;
+    debug_printf("info string Setting option '%s' to %lg\n", option->name, fvalue);
+    return true;
+}
+
+bool try_set_option_score(Option *option, const char *value)
+{
+    char *endptr;
+    long ivalue = strtol(value, &endptr, 10);
+
+    if (endptr == value)
+    {
+        debug_printf("info error Failed to parse value '%s' for option '%s'\n", value, option->name);
+        return false;
+    }
+
+    if (ivalue < (long)*(score_t *)option->min || ivalue > (long)*(score_t *)option->max)
+    {
+        debug_printf("info error Value '%s' falls outside of the supported range for option '%s'\n", value, option->name);
+        return false;
+    }
+
+    *(score_t *)option->data = (score_t)ivalue;
+    debug_printf("info string Setting option '%s' to %ld\n", option->name, ivalue);
+    return true;
+}
+
+bool try_set_option_scorepair(Option *option, const char *value)
+{
+    char *endptr;
+    long ivalue = strtol(value, &endptr, 10);
+
+    if (endptr == value)
+    {
+        debug_printf("info error Failed to parse value '%s' for option '%s'\n", value, option->name);
+        return false;
+    }
+
+    if (ivalue < (long)*(score_t *)option->min || ivalue > (long)*(score_t *)option->max)
+    {
+        debug_printf("info error Value '%s' falls outside of the supported range for option '%s'\n", value, option->name);
+        return false;
+    }
+
+    {
+        scorepair_t *spair = (scorepair_t *)option->data;
+
+        if (option->type == OptionSpairMG)
+            *spair = create_scorepair((score_t)ivalue, endgame_score(*spair));
+        else
+            *spair = create_scorepair(midgame_score(*spair), (score_t)ivalue);
+    }
+
+    debug_printf("info string Setting option '%s' to %ld\n", option->name, ivalue);
+    return true;
+}
+
+bool try_set_option_check(Option *option, const char *value)
+{
+    if (strcasecmp(value, "true") == 0)
+    {
+        *(bool *)option->data = true;
+        debug_printf("info string Setting option '%s' to true\n", option->name);
+    }
+    else if (strcasecmp(value, "false") == 0)
+    {
+        *(bool *)option->data = false;
+        debug_printf("info string Setting option '%s' to false\n", option->name);
+    }
+    else
+    {
+        debug_printf("info error Value '%s' for option '%s' is not a boolean\n", value, option->name);
+        return false;
+    }
+
+    return true;
+}
+
+bool try_set_option_string(Option *option, const char *value)
+{
+    char *vcopy = strdup(value);
+
+    if (vcopy == NULL)
+    {
+        debug_printf("info error Unable to set value '%s' for option '%s': %s\n", value, option->name, strerror(errno));
+        return false;
+    }
+
+    free(*(char **)option->data);
+    *(char **)option->data = vcopy;
+    debug_printf("info string Setting option '%s' to '%s'\n", option->name, value);
+    return true;
+}
+
+bool try_set_option_combo(Option *option, const char *value)
+{
+    for (size_t i = 0; option->comboList[i]; ++i)
+        if (strcasecmp(option->comboList[i], value) == 0)
+            return try_set_option_string(option, option->comboList[i]);
+
+    debug_printf("info error value '%s' is not in the list of supported values for option '%s'\n", value, option->name);
+    return false;
+}
+
 void set_option(OptionList *list, const char *name, const char *value)
 {
     size_t left = 0;
@@ -284,7 +430,7 @@ void set_option(OptionList *list, const char *name, const char *value)
     {
         i = (left + right) / 2;
 
-        int result = strcmp(name, list->options[i].name);
+        int result = strcasecmp(name, list->options[i].name);
 
         if (result < 0)
             right = i;
@@ -293,9 +439,7 @@ void set_option(OptionList *list, const char *name, const char *value)
         else
         {
             Option *cur = &list->options[i];
-            long l;
-            double d;
-            score_t s;
+            bool set_success;
 
             // Perform a check to see if the passed value can be assigned to the
             // option. That means falling in the accepted range for integers and
@@ -304,57 +448,53 @@ void set_option(OptionList *list, const char *name, const char *value)
             switch (cur->type)
             {
                 case OptionSpinInt:
-                    sscanf(value, "%ld", &l);
-                    if (l >= *(long *)cur->min && l <= *(long *)cur->max) *(long *)cur->data = l;
+                    set_success = try_set_option_spin_int(cur, value);
                     break;
 
                 case OptionSpinFlt:
-                    sscanf(value, "%lf", &d);
-                    if (d >= *(double *)cur->min && d <= *(double *)cur->max)
-                        *(double *)cur->data = d;
+                    set_success = try_set_option_spin_flt(cur, value);
                     break;
 
                 case OptionScore:
-                    sscanf(value, "%" SCNd16, &s);
-                    if (s >= *(score_t *)cur->min && s <= *(score_t *)cur->max)
-                        *(score_t *)cur->data = s;
+                    set_success = try_set_option_score(cur, value);
                     break;
 
                 case OptionSpairMG:
-                    sscanf(value, "%" SCNd16, &s);
-                    if (s >= *(score_t *)cur->min && s <= *(score_t *)cur->max)
-                        *(scorepair_t *)cur->data =
-                            create_scorepair(s, endgame_score(*(scorepair_t *)cur->data));
-                    break;
-
                 case OptionSpairEG:
-                    sscanf(value, "%" SCNd16, &s);
-                    if (s >= *(score_t *)cur->min && s <= *(score_t *)cur->max)
-                        *(scorepair_t *)cur->data =
-                            create_scorepair(midgame_score(*(scorepair_t *)cur->data), s);
+                    set_success = try_set_option_scorepair(cur, value);
                     break;
 
-                case OptionCheck: *(bool *)cur->data = !strcmp(value, "true"); break;
+                case OptionCheck:
+                    set_success = try_set_option_check(cur, value);
+                    break;
+
+                case OptionString:
+                    set_success = try_set_option_string(cur, value);
+                    break;
 
                 case OptionCombo:
-                case OptionString:
-                    free(*(char **)cur->data);
-                    *(char **)cur->data = strdup(value);
-                    if (!*(char **)cur->data)
-                    {
-                        perror("Unable to set option");
-                        exit(EXIT_FAILURE);
-                    }
+                    set_success = try_set_option_combo(cur, value);
                     break;
 
-                case OptionButton: break;
+                case OptionButton:
+                    debug_printf("info string Setting option '%s'\n", cur->name);
+                    set_success = true;
+                    break;
+
+                // This shouldn't be executed, keep it as a safeguard.
+                default:
+                    set_success = false;
+                    break;
             }
 
-            if (cur->callback) cur->callback(cur->data);
+            // Only call bound functions if the option setting was successful.
+            if (set_success && cur->callback) cur->callback(cur->data);
 
             return;
         }
     }
+
+    debug_printf("info error Unknown option '%s'\n", name);
 }
 
 void show_options(const OptionList *list)

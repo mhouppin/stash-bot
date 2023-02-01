@@ -75,6 +75,26 @@ void cyclic_init(void)
                     }
 }
 
+static bool board_invalid_material(const Board *board, color_t c)
+{
+    int pawns = board->pieceCount[create_piece(c, PAWN)];
+    int knights = board->pieceCount[create_piece(c, KNIGHT)];
+    int bishops = board->pieceCount[create_piece(c, BISHOP)];
+    int rooks = board->pieceCount[create_piece(c, ROOK)];
+    int queens = board->pieceCount[create_piece(c, QUEEN)];
+
+    // Compute the number of pieces that are guaranteed to be promoted Pawns.
+    int pknights = imax(0, knights - 2);
+    int pbishops = imax(0, bishops - 2);
+    int prooks = imax(0, rooks - 2);
+    int pqueens = imax(0, queens - 1);
+    int promoted = pknights + pbishops + prooks + pqueens;
+
+    pawns += promoted;
+
+    return (pawns > 8) || (knights + pawns - pknights > 10) || (bishops + pawns - pbishops > 10) || (rooks + pawns - prooks > 10) || (queens + pawns - pqueens > 9);
+}
+
 static int board_parse_fen_pieces(Board *board, const char *fen)
 {
     char *ptr;
@@ -158,11 +178,25 @@ static int board_parse_fen_pieces(Board *board, const char *fen)
     // Check if the Kings aren't next to each other.
     if (SquareDistance[get_king_square(board, WHITE)][get_king_square(board, BLACK)] == 1)
     {
-        debug_printf("info error Invalid FEN: kings cannot touch each other\n");
+        debug_printf("info error Invalid FEN: Kings touching each other\n");
         return -1;
     }
 
-    // TODO: add a full material check by side here
+    // Check that there are no pawns on the first and last ranks.
+    if (piecetype_bb(board, PAWN) & (RANK_1_BB | RANK_8_BB))
+    {
+        debug_printf("info error Invalid FEN: Pawns on first/last ranks\n");
+        return -1;
+    }
+
+    // Since we have no guarantees on correct behavior for the move generator
+    // with more pieces than there are normally in a game, check that the
+    // material configuration on the board can exist.
+    if (board_invalid_material(board, WHITE) || board_invalid_material(board, BLACK))
+    {
+        debug_printf("info error Invalid FEN: invalid material distribution on the board\n");
+        return -1;
+    }
 
     // Return the number of bytes parsed.
     return (int)nextSection;
@@ -364,6 +398,14 @@ int board_from_fen(Board *board, const char *fen, bool isChess960, Boardstack *b
     fen += result;
     fen += strspn(fen, Delimiters);
 
+    // Check that the King of the opposite side isn't in check.
+    if (attackers_to(board, get_king_square(board, not_color(board->sideToMove)))
+        & color_bb(board, board->sideToMove))
+    {
+        debug_printf("info error Invalid FEN: opposite King is in check\n");
+        return -1;
+    }
+
     // Parse the castling section.
     result = board_parse_castling(board, fen);
 
@@ -431,6 +473,15 @@ int board_from_fen(Board *board, const char *fen, bool isChess960, Boardstack *b
 
     // Initialize the stack data.
     set_boardstack(board, board->stack);
+
+    // Check that there are not more than 2 pieces giving check to the side to
+    // move, as it cannot happen in a normal chess game and may cause issues
+    // during move generation.
+    if (popcount(board->stack->checkers) > 2)
+    {
+        debug_printf("info error Invalid FEN: more than 2 pieces giving check to the King\n");
+        return -1;
+    }
 
     return 0;
 }
