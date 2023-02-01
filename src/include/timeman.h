@@ -75,6 +75,7 @@ typedef struct _Timeman
     clock_t start;
     timeman_mode_t mode;
     bool pondering;
+    int checkFrequency;
 
     clock_t averageTime;
     clock_t maximalTime;

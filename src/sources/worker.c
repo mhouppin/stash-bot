@@ -210,7 +210,7 @@ void wpool_new_search(WorkerPool *wpool)
     for (size_t i = 0; i < wpool->size; ++i) wpool->workerList[i]->verifPlies = 0;
 
     // Reset the periodical time checking counter as well.
-    wpool->checks = 1000;
+    wpool->checks = 1;
 }
 
 void wpool_reset(WorkerPool *wpool)
@@ -220,7 +220,7 @@ void wpool_reset(WorkerPool *wpool)
     for (size_t i = 0; i < wpool->size; ++i) worker_reset(wpool->workerList[i]);
 
     // Reset the periodical time checking counter as well.
-    wpool->checks = 1000;
+    wpool->checks = 1;
 }
 
 void wpool_start_search(WorkerPool *wpool, const Board *rootBoard, const SearchParams *searchParams)

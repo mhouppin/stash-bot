@@ -30,7 +30,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define UCI_VERSION "v34.4"
+#define UCI_VERSION "v34.5"
 
 // clang-format off
 
@@ -202,15 +202,38 @@ void print_pv(
     bool searchedMove = (rootMove->score != -INF_SCORE);
     score_t rootScore = (searchedMove) ? rootMove->score : rootMove->prevScore;
 
-    printf("info depth %d seldepth %d multipv %d score %s%s%s", imax(depth + searchedMove, 1),
-        rootMove->seldepth, multiPv, score_to_str(rootScore), BoundStr[bound],
-        score_to_wdl(rootScore, board->ply));
-    printf(" nodes %" FMT_INFO " nps %" FMT_INFO " hashfull %d time %" FMT_INFO " pv",
-        (info_t)nodes, (info_t)nps, tt_hashfull(), (info_t)time);
+    // At most 256 moves stored in (each taking 5 bytes) + 16 more bytes for
+    // potential promotions + 1 byte for the final nullbyte.
+    char pvBuffer[256*5+16+1] = {0};
 
-    for (size_t k = 0; rootMove->pv[k]; ++k)
-        printf(" %s", move_to_str(rootMove->pv[k], board->chess960));
-    putchar('\n');
+    // Fill the PV buffer.
+    for (size_t i = 0; rootMove->pv[i]; ++i)
+    {
+        strcat(pvBuffer, " ");
+        strcat(pvBuffer, move_to_str(rootMove->pv[i], board->chess960));
+    }
+
+    // clang-format off
+    printf("info"
+        " depth %d"
+        " seldepth %d"
+        " multipv %d"
+        " score %s%s%s"
+        " nodes %" FMT_INFO
+        " nps %" FMT_INFO
+        " hashfull %d"
+        " time %" FMT_INFO
+        " pv%s\n",
+        imax(depth + searchedMove, 1),
+        rootMove->seldepth,
+        multiPv,
+        score_to_str(rootScore), BoundStr[bound], score_to_wdl(rootScore, board->ply),
+        (info_t)nodes,
+        (info_t)nps,
+        tt_hashfull(),
+        (info_t)time,
+        pvBuffer);
+    // clang-format on
 }
 
 int debug_printf(const char *fmt, ...)
@@ -301,6 +324,7 @@ void uci_d(const char *args __attribute__((unused)))
 
 void uci_position(const char *args)
 {
+    const char *StartPosFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     static Boardstack **hiddenList = NULL;
     static size_t hiddenSize = 0;
 
@@ -321,7 +345,7 @@ void uci_position(const char *args)
 
     if (!strcmp(token, "startpos"))
     {
-        fen = strdup("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        fen = strdup(StartPosFEN);
         token = get_next_token(&ptr);
     }
     else if (!strcmp(token, "fen"))
@@ -344,20 +368,35 @@ void uci_position(const char *args)
     else
         return;
 
-    board_from_fen(&UciBoard, fen, UciOptionFields.chess960, *hiddenList);
+    int result = board_from_fen(&UciBoard, fen, UciOptionFields.chess960, *hiddenList);
+
+    if (result < 0)
+        board_from_fen(&UciBoard, StartPosFEN, UciOptionFields.chess960, *hiddenList);
+
     UciBoard.worker = wpool_main_worker(&SearchWorkerPool);
     free(fen);
-    token = get_next_token(&ptr);
 
-    move_t move;
-
-    while (token && (move = str_to_move(&UciBoard, token)) != NO_MOVE)
+    if (result >= 0)
     {
-        hiddenList = realloc(hiddenList, sizeof(Boardstack *) * ++hiddenSize);
-        hiddenList[hiddenSize - 1] = malloc(sizeof(Boardstack));
-
-        do_move(&UciBoard, move, hiddenList[hiddenSize - 1]);
         token = get_next_token(&ptr);
+
+        move_t move;
+        size_t i = 1;
+
+        while (token && (move = str_to_move(&UciBoard, token)) != NO_MOVE)
+        {
+            hiddenList = realloc(hiddenList, sizeof(Boardstack *) * ++hiddenSize);
+            hiddenList[hiddenSize - 1] = malloc(sizeof(Boardstack));
+
+            do_move(&UciBoard, move, hiddenList[hiddenSize - 1]);
+            token = get_next_token(&ptr);
+            ++i;
+        }
+
+        if (token)
+            debug_printf("info string Failed to parse move token #%lu ('%s')\n",
+                (unsigned long)i, token);
+        debug_printf("info string Final board state: %s\n", board_fen(&UciBoard));
     }
 
     free(copy);
@@ -528,21 +567,18 @@ int execute_uci_cmd(const char *command)
 void on_hash_set(void *data)
 {
     tt_resize((size_t) * (long *)data);
-    printf("info string set Hash to %lu MB\n", *(long *)data);
     fflush(stdout);
 }
 
 void on_clear_hash(void *nothing __attribute__((unused)))
 {
     tt_bzero((size_t)UciOptionFields.threads);
-    puts("info string cleared hash");
     fflush(stdout);
 }
 
 void on_thread_set(void *data)
 {
     wpool_init(&SearchWorkerPool, (unsigned long)*(long *)data);
-    printf("info string set Threads to %lu\n", *(long *)data);
     fflush(stdout);
 }
 

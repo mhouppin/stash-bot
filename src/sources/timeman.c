@@ -19,6 +19,7 @@
 #include "timeman.h"
 #include "movelist.h"
 #include "types.h"
+#include "uci.h"
 #include "worker.h"
 #include <math.h>
 
@@ -34,6 +35,16 @@ const double BestmoveTypeScale[BM_TYPE_NB] = {
     1.40, // Quiet losing material
 };
 
+INLINED clock_t timemin(clock_t left, clock_t right)
+{
+    return (left < right) ? left : right;
+}
+
+INLINED clock_t timemax(clock_t left, clock_t right)
+{
+    return (left > right) ? left : right;
+}
+
 // Scaling table based on the number of consecutive iterations the bestmove held
 const double BestmoveStabilityScale[5] = {2.50, 1.20, 0.90, 0.80, 0.75};
 
@@ -43,6 +54,10 @@ void timeman_init(const Board *board, Timeman *tm, SearchParams *params, clock_t
 
     tm->start = start;
     tm->pondering = false;
+    tm->checkFrequency = 1000;
+
+    if (params->nodes)
+        tm->checkFrequency = (int)fmin(1000.0, sqrt(params->nodes) + 0.5);
 
     if (params->wtime || params->btime)
     {
@@ -52,7 +67,8 @@ void timeman_init(const Board *board, Timeman *tm, SearchParams *params, clock_t
         clock_t time = (board->sideToMove == WHITE) ? params->wtime : params->btime;
         clock_t inc = (board->sideToMove == WHITE) ? params->winc : params->binc;
 
-        time = imax(0, time - overhead);
+        // Don't let time underflow here.
+        time -= timemin(time, overhead);
 
         tm->averageTime = time / mtg + inc;
         tm->maximalTime = time / pow(mtg, 0.4) + inc;
@@ -65,14 +81,20 @@ void timeman_init(const Board *board, Timeman *tm, SearchParams *params, clock_t
             tm->averageTime += tm->averageTime / 4;
         }
 
-        tm->averageTime = imin(tm->averageTime, time);
-        tm->maximalTime = imin(tm->maximalTime, time);
+        tm->averageTime = timemin(tm->averageTime, time);
+        tm->maximalTime = timemin(tm->maximalTime, time);
         tm->optimalTime = tm->maximalTime;
+
+        // Log the maximal time in debug mode.
+        debug_printf("info maximal_time %" FMT_INFO "\n", (info_t)tm->maximalTime);
     }
     else if (params->movetime)
     {
         tm->mode = Movetime;
-        tm->averageTime = tm->maximalTime = tm->optimalTime = imax(1, params->movetime - overhead);
+        tm->averageTime = tm->maximalTime = tm->optimalTime = (params->movetime <= overhead) ? 1 : (params->movetime - overhead);
+
+        // Log the maximal time in debug mode.
+        debug_printf("info maximal_time %" FMT_INFO "\n", (info_t)tm->maximalTime);
     }
     else
         tm->mode = NoTimeman;
@@ -156,7 +178,10 @@ void timeman_update(Timeman *tm, const Board *board, move_t bestmove, score_t sc
 
     // Update score + optimal time usage.
     tm->prevScore = score;
-    tm->optimalTime = imin(tm->maximalTime, tm->averageTime * scale);
+    tm->optimalTime = timemin(tm->maximalTime, tm->averageTime * scale);
+
+    // Log the optimal time in debug mode.
+    debug_printf("info optimal_time %" FMT_INFO "\n", (info_t)tm->optimalTime);
 }
 
 void check_time(void)
@@ -164,7 +189,7 @@ void check_time(void)
     if (--SearchWorkerPool.checks > 0) return;
 
     // Reset the verification counter.
-    SearchWorkerPool.checks = 1000;
+    SearchWorkerPool.checks = SearchTimeman.checkFrequency;
 
     // If we are in infinite mode, or the stop has already been set,
     // we can safely return.
