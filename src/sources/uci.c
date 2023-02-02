@@ -30,7 +30,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define UCI_VERSION "v34.5"
+#define UCI_VERSION "v34.6"
 
 // clang-format off
 
@@ -234,6 +234,7 @@ void print_pv(
         (info_t)time,
         pvBuffer);
     // clang-format on
+    fflush(stdout);
 }
 
 int debug_printf(const char *fmt, ...)
