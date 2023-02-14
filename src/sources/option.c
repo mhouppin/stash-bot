@@ -283,13 +283,15 @@ bool try_set_option_spin_int(Option *option, const char *value)
 
     if (endptr == value)
     {
-        debug_printf("info error Failed to parse value '%s' for option '%s'\n", value, option->name);
+        debug_printf(
+            "info error Failed to parse value '%s' for option '%s'\n", value, option->name);
         return false;
     }
 
     if (ivalue < *(long *)option->min || ivalue > *(long *)option->max)
     {
-        debug_printf("info error Value '%s' falls outside of the supported range for option '%s'\n", value, option->name);
+        debug_printf("info error Value '%s' falls outside of the supported range for option '%s'\n",
+            value, option->name);
         return false;
     }
 
@@ -305,13 +307,15 @@ bool try_set_option_spin_flt(Option *option, const char *value)
 
     if (endptr == value)
     {
-        debug_printf("info error Failed to parse value '%s' for option '%s'\n", value, option->name);
+        debug_printf(
+            "info error Failed to parse value '%s' for option '%s'\n", value, option->name);
         return false;
     }
 
     if (fvalue < *(double *)option->min || fvalue > *(double *)option->max)
     {
-        debug_printf("info error Value '%s' falls outside of the supported range for option '%s'\n", value, option->name);
+        debug_printf("info error Value '%s' falls outside of the supported range for option '%s'\n",
+            value, option->name);
         return false;
     }
 
@@ -327,13 +331,15 @@ bool try_set_option_score(Option *option, const char *value)
 
     if (endptr == value)
     {
-        debug_printf("info error Failed to parse value '%s' for option '%s'\n", value, option->name);
+        debug_printf(
+            "info error Failed to parse value '%s' for option '%s'\n", value, option->name);
         return false;
     }
 
     if (ivalue < (long)*(score_t *)option->min || ivalue > (long)*(score_t *)option->max)
     {
-        debug_printf("info error Value '%s' falls outside of the supported range for option '%s'\n", value, option->name);
+        debug_printf("info error Value '%s' falls outside of the supported range for option '%s'\n",
+            value, option->name);
         return false;
     }
 
@@ -349,13 +355,15 @@ bool try_set_option_scorepair(Option *option, const char *value)
 
     if (endptr == value)
     {
-        debug_printf("info error Failed to parse value '%s' for option '%s'\n", value, option->name);
+        debug_printf(
+            "info error Failed to parse value '%s' for option '%s'\n", value, option->name);
         return false;
     }
 
     if (ivalue < (long)*(score_t *)option->min || ivalue > (long)*(score_t *)option->max)
     {
-        debug_printf("info error Value '%s' falls outside of the supported range for option '%s'\n", value, option->name);
+        debug_printf("info error Value '%s' falls outside of the supported range for option '%s'\n",
+            value, option->name);
         return false;
     }
 
@@ -386,7 +394,8 @@ bool try_set_option_check(Option *option, const char *value)
     }
     else
     {
-        debug_printf("info error Value '%s' for option '%s' is not a boolean\n", value, option->name);
+        debug_printf(
+            "info error Value '%s' for option '%s' is not a boolean\n", value, option->name);
         return false;
     }
 
@@ -399,7 +408,8 @@ bool try_set_option_string(Option *option, const char *value)
 
     if (vcopy == NULL)
     {
-        debug_printf("info error Unable to set value '%s' for option '%s': %s\n", value, option->name, strerror(errno));
+        debug_printf("info error Unable to set value '%s' for option '%s': %s\n", value,
+            option->name, strerror(errno));
         return false;
     }
 
@@ -415,7 +425,8 @@ bool try_set_option_combo(Option *option, const char *value)
         if (strcasecmp(option->comboList[i], value) == 0)
             return try_set_option_string(option, option->comboList[i]);
 
-    debug_printf("info error value '%s' is not in the list of supported values for option '%s'\n", value, option->name);
+    debug_printf("info error value '%s' is not in the list of supported values for option '%s'\n",
+        value, option->name);
     return false;
 }
 
@@ -447,34 +458,20 @@ void set_option(OptionList *list, const char *name, const char *value)
             // accepted names for combo lists.
             switch (cur->type)
             {
-                case OptionSpinInt:
-                    set_success = try_set_option_spin_int(cur, value);
-                    break;
+                case OptionSpinInt: set_success = try_set_option_spin_int(cur, value); break;
 
-                case OptionSpinFlt:
-                    set_success = try_set_option_spin_flt(cur, value);
-                    break;
+                case OptionSpinFlt: set_success = try_set_option_spin_flt(cur, value); break;
 
-                case OptionScore:
-                    set_success = try_set_option_score(cur, value);
-                    break;
+                case OptionScore: set_success = try_set_option_score(cur, value); break;
 
                 case OptionSpairMG:
-                case OptionSpairEG:
-                    set_success = try_set_option_scorepair(cur, value);
-                    break;
+                case OptionSpairEG: set_success = try_set_option_scorepair(cur, value); break;
 
-                case OptionCheck:
-                    set_success = try_set_option_check(cur, value);
-                    break;
+                case OptionCheck: set_success = try_set_option_check(cur, value); break;
 
-                case OptionString:
-                    set_success = try_set_option_string(cur, value);
-                    break;
+                case OptionString: set_success = try_set_option_string(cur, value); break;
 
-                case OptionCombo:
-                    set_success = try_set_option_combo(cur, value);
-                    break;
+                case OptionCombo: set_success = try_set_option_combo(cur, value); break;
 
                 case OptionButton:
                     debug_printf("info string Setting option '%s'\n", cur->name);
@@ -482,9 +479,7 @@ void set_option(OptionList *list, const char *name, const char *value)
                     break;
 
                 // This shouldn't be executed, keep it as a safeguard.
-                default:
-                    set_success = false;
-                    break;
+                default: set_success = false; break;
             }
 
             // Only call bound functions if the option setting was successful.

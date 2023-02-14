@@ -92,7 +92,8 @@ static bool board_invalid_material(const Board *board, color_t c)
 
     pawns += promoted;
 
-    return (pawns > 8) || (knights + pawns - pknights > 10) || (bishops + pawns - pbishops > 10) || (rooks + pawns - prooks > 10) || (queens + pawns - pqueens > 9);
+    return (pawns > 8) || (knights + pawns - pknights > 10) || (bishops + pawns - pbishops > 10)
+           || (rooks + pawns - prooks > 10) || (queens + pawns - pqueens > 9);
 }
 
 static int board_parse_fen_pieces(Board *board, const char *fen)

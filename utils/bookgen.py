@@ -31,6 +31,7 @@ class Work:
         self.worker_count = worker_count
         self.waiting = 0
         self.analyzed_lines = 0
+        self.fen_list = {}
         self.lines_in_queue = 1
         self.lock = threading.Lock()
         self.lock2 = threading.Lock()
@@ -66,6 +67,15 @@ class Work:
         self.analyzed_lines += 1
         self.lock2.release()
 
+    def already_analyzed(self, board: chess.Board) -> bool:
+        self.lock.acquire()
+        fen = board.fen()
+        found = fen in self.fen_list
+        if not found:
+            self.fen_list[fen] = 0
+        self.lock.release()
+        return found
+
     def show(self, start: float) -> None:
         self.lock2.acquire()
         A = self.analyzed_lines
@@ -77,7 +87,7 @@ class Work:
 
 # Returns the MultiPV value to use for a given ply. Probably tweakable quite a bit.
 def get_multipv(ply: int) -> int:
-    return max(4, int(20.0 / ((ply + 1) ** 0.5)))
+    return max(4, int(20.0 / ((ply + 1) ** 0.4)))
 
 def generate_lines(analysis_queue: PriorityQueue, pgn_queue: Queue, work: Work, options, engine_path) -> None:
     engine = chess.engine.SimpleEngine.popen_uci(engine_path)
@@ -116,7 +126,11 @@ def generate_lines(analysis_queue: PriorityQueue, pgn_queue: Queue, work: Work, 
         for move in cur_line.pv:
             board.push(move)
 
-        info = engine.analyse(board, chess.engine.Limit(nodes=options.nodes), multipv=get_multipv(len(cur_line.pv)))
+        # Don't analyse the same position twice.
+        if work.already_analyzed(board):
+            continue
+
+        info = engine.analyse(board, chess.engine.Limit(nodes=options.nodes), multipv=get_multipv(len(cur_line.pv)), game=board.fen())
 
         # Save the bestmove score for adjusting line precision later
         base_score = info[0]["score"].relative.score(mate_score=40000)
@@ -162,7 +176,7 @@ def main() -> None:
     with open(args[1], 'w') as pgn_file:
         finished = False
         while not finished:
-            sleep(5.0)
+            sleep(1.0)
             while True:
                 try:
                     line = pgn_queue.get_nowait()
