@@ -58,7 +58,7 @@ typedef enum option_type_e
         char __buf[128];                                                                \
         for (int __i = start; __i < end; ++__i)                                         \
         {                                                                               \
-            sprintf(__buf, #x "_%02d", __i);                                            \
+            snprintf(__buf, 128, #x "_%02d", __i);                                      \
             add_option_scorepair(&UciOptionList, __buf, &x[__i], SPAIR(minval, minval), \
                 SPAIR(maxval, maxval), NULL);                                           \
         }                                                                               \

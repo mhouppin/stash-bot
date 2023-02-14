@@ -1,11 +1,13 @@
+#!/usr/bin/env python3
+
 import chess, chess.pgn, chess.engine
-import os, time, random, multiprocessing, queue
+import time, random, multiprocessing, queue, subprocess
 
 ## Configuration
-THREADS                 = 3
-INPUT_NAME              = "Stash.pgn"
-OUTPUT_NAME             = "Stash.book"
-FENS_PER_GAME           = 10
+THREADS = 3
+INPUT_NAME = "Stash.pgn"
+OUTPUT_NAME = "Stash.book"
+FENS_PER_GAME = 10
 
 VALUE = {
     "1-0": "1.0",
@@ -35,7 +37,7 @@ def splitPGN():
 
     # Output to SPLIT_OUT_N for each piece
     for ii, piece in enumerate(pieces):
-        with open("SPLIT_OUT_{0}.pgn".format(ii), "w") as fout:
+        with open("SPLIT_OUT_%d.pgn" % ii, "w") as fout:
             for game in piece:
                 for line in game:
                     fout.write(line)
@@ -45,7 +47,9 @@ def splitPGN():
 def parseGamesFromPGN():
 
     # Parse each game from the PGN
-    games = []; tokens = []; count = 0
+    games = []
+    tokens = []
+    count = 0
     with open(INPUT_NAME, "r") as pgn:
 
         while True:
@@ -69,18 +73,21 @@ def parseGamesFromPGN():
                 tokens = []
                 count = 0
                 if len(games) % 10000 == 0:
-                    print("Initial parsing: {0} games read".format(len(games)))
+                    print("Initial parsing: %d games read" % len(games))
 
-    print("Total games {0}\n".format(len(games)))
+    print("Total games %d\n" % len(games))
     return games
 
-def parseFENSFromPGNS(id, q):
+def parseFENSFromPGNS(idx, q):
 
-    accepted = rejected = parsed = 0; outputs = []
+    accepted = rejected = parsed = 0
     nextCheckpoint = time.perf_counter() + 1.0
 
+    # Output FENS to a thread specific file
+    fout = open("SPLIT_PARSE_%d.fen" % idx, "w")
+
     # Parse only games from our designated PGN split
-    with open("SPLIT_OUT_{0}.pgn".format(id), "r") as pgn:
+    with open("SPLIT_OUT_%d.pgn" % idx, "r") as pgn:
 
         # Parse all games from the PGN
         while True:
@@ -104,22 +111,20 @@ def parseFENSFromPGNS(id, q):
             # Fetch all FENs; discard if too few
             fens = game.accept(Visitor())
             if len(fens) < FENS_PER_GAME:
-                rejected += 1; continue
+                rejected += 1
+                continue
 
             # Sample FENS_PER_GAME times and save the positions
             for fen in random.sample(fens, FENS_PER_GAME):
-                outputs.append("{0} {1}\n".format(fen, VALUE[game.headers["Result"]]))
+                fout.write("%s %s\n" % (fen, VALUE[game.headers["Result"]]))
 
             # No criteria met to skip this game
             accepted += 1
 
-    # Output FENS to a thread specific file
-    with open("SPLIT_PARSE_{0}.fen".format(id), "w") as fout:
-        for fen in outputs:
-            fout.write(fen)
+    fout.close()
 
     # Final stat reporting
-    print ("Thread # {0:<2} Accepted {1} Rejected {2}".format(id, accepted, rejected))
+    print("Thread # %2d Accepted %d Rejected %d" % (idx, accepted, rejected))
 
 def buildTexelBook():
 
@@ -152,7 +157,7 @@ def buildTexelBook():
 
         if newCount != count:
             count = newCount
-            print("{} games processed".format(count))
+            print("%d games processed" % count)
 
         for p in processes[:]:
             if not p.is_alive():
@@ -160,12 +165,13 @@ def buildTexelBook():
                 processes.remove(p)
 
     # Build final FEN file from process outputs
-    os.system("rm {0}".format(OUTPUT_NAME))
-    os.system("touch {0}".format(OUTPUT_NAME))
-    for ii in range(THREADS):
-        os.system("cat SPLIT_PARSE_{0}.fen >> {1}".format(ii, OUTPUT_NAME))
-        os.system("rm SPLIT_OUT_{0}.pgn".format(ii))
-        os.system("rm SPLIT_PARSE_{0}.fen".format(ii))
+    split_pgn_list = ["SPLIT_OUT_%d.pgn" % i for i in range(THREADS)]
+    split_fen_list = ["SPLIT_PARSE_%d.fen" % i for i in range(THREADS)]
+
+    with open(OUTPUT_NAME, "w") as fout:
+        subprocess.run(["cat"] + split_fen_list, stdout=fout)
+
+    subprocess.run(["rm", "-vf"] + split_fen_list + split_pgn_list)
 
 if __name__ == "__main__":
     buildTexelBook()

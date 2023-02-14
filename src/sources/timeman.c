@@ -35,15 +35,11 @@ const double BestmoveTypeScale[BM_TYPE_NB] = {
     1.40, // Quiet losing material
 };
 
-INLINED clock_t timemin(clock_t left, clock_t right)
-{
-    return (left < right) ? left : right;
-}
+INLINED clock_t timemin(clock_t left, clock_t right) { return (left < right) ? left : right; }
 
-INLINED clock_t timemax(clock_t left, clock_t right)
-{
-    return (left > right) ? left : right;
-}
+// Unused for now, commented to avoid compilation issues with the function being
+// declared static. Uncomment if needed for time management code updates.
+// INLINED clock_t timemax(clock_t left, clock_t right) { return (left > right) ? left : right; }
 
 // Scaling table based on the number of consecutive iterations the bestmove held
 const double BestmoveStabilityScale[5] = {2.50, 1.20, 0.90, 0.80, 0.75};
@@ -56,8 +52,7 @@ void timeman_init(const Board *board, Timeman *tm, SearchParams *params, clock_t
     tm->pondering = false;
     tm->checkFrequency = 1000;
 
-    if (params->nodes)
-        tm->checkFrequency = (int)fmin(1000.0, sqrt(params->nodes) + 0.5);
+    if (params->nodes) tm->checkFrequency = (int)fmin(1000.0, sqrt(params->nodes) + 0.5);
 
     if (params->wtime || params->btime)
     {
@@ -91,7 +86,8 @@ void timeman_init(const Board *board, Timeman *tm, SearchParams *params, clock_t
     else if (params->movetime)
     {
         tm->mode = Movetime;
-        tm->averageTime = tm->maximalTime = tm->optimalTime = (params->movetime <= overhead) ? 1 : (params->movetime - overhead);
+        tm->averageTime = tm->maximalTime = tm->optimalTime =
+            (params->movetime <= overhead) ? 1 : (params->movetime - overhead);
 
         // Log the maximal time in debug mode.
         debug_printf("info maximal_time %" FMT_INFO "\n", (info_t)tm->maximalTime);

@@ -30,7 +30,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define UCI_VERSION "v34.6"
+#define UCI_VERSION "v34.7"
 
 // clang-format off
 
@@ -204,7 +204,7 @@ void print_pv(
 
     // At most 256 moves stored in (each taking 5 bytes) + 16 more bytes for
     // potential promotions + 1 byte for the final nullbyte.
-    char pvBuffer[256*5+16+1] = {0};
+    char pvBuffer[256 * 5 + 16 + 1] = {0};
 
     // Fill the PV buffer.
     for (size_t i = 0; rootMove->pv[i]; ++i)
@@ -371,8 +371,7 @@ void uci_position(const char *args)
 
     int result = board_from_fen(&UciBoard, fen, UciOptionFields.chess960, *hiddenList);
 
-    if (result < 0)
-        board_from_fen(&UciBoard, StartPosFEN, UciOptionFields.chess960, *hiddenList);
+    if (result < 0) board_from_fen(&UciBoard, StartPosFEN, UciOptionFields.chess960, *hiddenList);
 
     UciBoard.worker = wpool_main_worker(&SearchWorkerPool);
     free(fen);
@@ -395,8 +394,8 @@ void uci_position(const char *args)
         }
 
         if (token)
-            debug_printf("info string Failed to parse move token #%lu ('%s')\n",
-                (unsigned long)i, token);
+            debug_printf(
+                "info string Failed to parse move token #%lu ('%s')\n", (unsigned long)i, token);
         debug_printf("info string Final board state: %s\n", board_fen(&UciBoard));
     }
 

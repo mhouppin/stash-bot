@@ -4,13 +4,13 @@
 
 echo "--- TEST: Bench value matching"
 
-_BENCHMARK=$(echo "$1" | fgrep "Bench:" | sed "s/Bench: //g" | tr -d ',')
+_BENCHMARK=$(echo "$1" | grep -m 1 -F "Bench:" | grep -o '[1-9,]\+' | tr -d ',')
 if test -z "$_BENCHMARK"
 then
     echo "--- WARNING: Missing bench field, skipping bench test"
 else
     echo "Expected bench: $_BENCHMARK"
-    _OUTPUT=$(./stash bench | fgrep "NODES:" | sed "s/NODES: //g")
+    _OUTPUT=$(./stash bench | grep -m 1 -F "NODES:" | grep -o '[1-9]\+')
     echo "Our bench: $_OUTPUT"
     if test "$_BENCHMARK" != "$_OUTPUT"
     then
@@ -51,12 +51,12 @@ send "quit\n"
 expect eof
 EOF
 
-for i in `seq 1 20`
+for i in $(seq 1 20)
 do
     nodes=$((100*3**i/2**i))
     echo "--- TEST: reprosearch with $nodes nodes"
 
-    expect repeat.exp $nodes 2>&1 | grep -o "nodes [0-9]*" | sort | uniq -c | awk '{if ($1%2!=0) exit(1)}'
+    expect repeat.exp $nodes 2>&1 | grep -o 'nodes [0-9]\+' | sort | uniq -c | awk '{if ($1%2!=0) exit(1)}'
     if test $? != 0
     then
         echo "--- ERROR: failed reprosearch"
