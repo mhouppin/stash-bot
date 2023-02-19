@@ -52,6 +52,21 @@ void init_searchstack(Searchstack *ss)
     for (int i = 0; i < 256; ++i) (ss + i)->plies = i - 2;
 }
 
+score_t psqt_score(const Board *board)
+{
+    scorepair_t rawPsqtVal = board->psqScorePair;
+    score_t mg = midgame_score(rawPsqtVal);
+    score_t eg = endgame_score(rawPsqtVal);
+    int phase = 4 * popcount(piecetype_bb(board, QUEEN))
+              + 2 * popcount(piecetype_bb(board, ROOK))
+              + popcount(piecetypes_bb(board, KNIGHT, BISHOP));
+
+    phase = iclamp(phase, ENDGAME_COUNT, MIDGAME_COUNT);
+
+    return (mg * (phase - ENDGAME_COUNT) + eg * (MIDGAME_COUNT - phase))
+        / (MIDGAME_COUNT - ENDGAME_COUNT);
+}
+
 uint64_t perft(Board *board, unsigned int depth)
 {
     if (depth == 0) return (1);
@@ -402,6 +417,7 @@ score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack
     if (inCheck)
     {
         eval = ss->staticEval = NO_SCORE;
+        ss->positionalAdv = 0;
         improving = false;
         goto __main_loop;
     }
@@ -421,6 +437,8 @@ score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack
         // Save the eval in TT so that other workers won't have to recompute it.
         tt_save(entry, key, NO_SCORE, eval, 0, NO_BOUND, NO_MOVE);
     }
+
+    ss->positionalAdv = ss->staticEval - psqt_score(board);
 
     if (rootNode && worker->pvLine) ttMove = worker->rootMoves[worker->pvLine].move;
 
@@ -621,12 +639,16 @@ __main_loop:
                 // Increase/decrease the reduction based on the move's history.
                 R -= histScore / 4000;
 
+                // Increase/decrease the reduction based on the positional
+                // advantage.
+                R -= iclamp((0 + ss->positionalAdv) / 199, -2, 2);
+
                 // Clamp the reduction so that we don't extend the move or drop
                 // immediately into qsearch.
                 R = iclamp(R, 0, newDepth - 1);
             }
             else
-                R = 1;
+                R = iclamp((201 + ss->positionalAdv) / 201, 0, 3);
         }
         else
             R = 0;

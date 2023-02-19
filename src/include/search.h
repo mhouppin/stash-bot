@@ -27,6 +27,7 @@ typedef struct _Searchstack
 {
     int plies;
     score_t staticEval;
+    score_t positionalAdv;
     move_t killers[2];
     move_t excludedMove;
     move_t currentMove;
