@@ -40,8 +40,8 @@ void init_search_tables(void)
     for (int d = 1; d < 64; ++d)
         for (int m = 1; m < 64; ++m)
         {
-            Reductions[0][d][m] = +1.02 + log(d) * log(m) / 5.01;
-            Reductions[1][d][m] = -1.32 + log(d) * log(m) / 1.25;
+            Reductions[0][d][m] = +1.03 + log(d) * log(m) / 5.04;
+            Reductions[1][d][m] = -1.33 + log(d) * log(m) / 1.20;
         }
 
     // Compute the LMP movecount values based on depth.
