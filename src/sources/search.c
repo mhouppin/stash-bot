@@ -809,7 +809,8 @@ score_t qsearch(Board *board, score_t alpha, score_t beta, Searchstack *ss, bool
     if (pvNode) (ss + 1)->pv = pv;
 
     // Check if Futility Pruning is possible in the moves loop.
-    const bool canFutilityPrune = (!inCheck && popcount(board->piecetypeBB[ALL_PIECES]) > 6);
+    const bool canFutilityPrune =
+        (!inCheck && board->stack->material[board->sideToMove] > BISHOP_MG_SCORE);
     const score_t futilityBase = bestScore + 120;
 
     while ((currmove = movepicker_next_move(&mp, false)) != NO_MOVE)
