@@ -814,25 +814,29 @@ score_t qsearch(Board *board, score_t alpha, score_t beta, Searchstack *ss, bool
 
     while ((currmove = movepicker_next_move(&mp, false)) != NO_MOVE)
     {
-        // Only analyse good capture moves.
-        if (bestScore > -MATE_FOUND && mp.stage == PICK_BAD_INSTABLE) break;
-
         if (!move_is_legal(board, currmove)) continue;
 
         moveCount++;
 
         bool givesCheck = move_gives_check(board, currmove);
 
-        // Futility Pruning. If we already have non-mating score and our move
-        // doesn't give check, test if playing it has a chance to make the score
-        // go over alpha.
-        if (bestScore > -MATE_FOUND && canFutilityPrune && !givesCheck
-            && move_type(currmove) == NORMAL_MOVE)
+        // Only enable pruning once we have a non-mating score and if the move
+        // doesn't give check.
+        if (bestScore > -MATE_FOUND && !givesCheck)
         {
-            score_t delta = futilityBase + PieceScores[ENDGAME][piece_on(board, to_sq(currmove))];
+            // Futility Pruning. Test if playing the move has a chance to make the score
+            // go over alpha based on material gained.
+            if (canFutilityPrune && move_type(currmove) == NORMAL_MOVE)
+            {
+                score_t delta = futilityBase + PieceScores[ENDGAME][piece_on(board, to_sq(currmove))];
 
-            // Check if the move is unlikely to improve alpha.
-            if (delta < alpha) continue;
+                // Check if the move is unlikely to improve alpha.
+                if (delta < alpha) continue;
+            }
+
+            // Only analyse good capture moves.
+            if (mp.stage == PICK_BAD_INSTABLE || !see_greater_than(board, currmove, 0))
+                continue ;
         }
 
         // Save the piece history for the current move so that sub-nodes can use
