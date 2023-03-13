@@ -20,12 +20,6 @@
 #include "search.h"
 #include "worker.h"
 
-long HB_D = 11;
-long HB_Q = 17;
-long HB_L = 3;
-long HB_K = 1;
-long HB_B = 2116;
-
 void update_quiet_history(const Board *board, int depth, move_t bestmove, const move_t quiets[64],
     int qcount, Searchstack *ss)
 {

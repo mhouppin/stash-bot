@@ -22,12 +22,6 @@
 #include "types.h"
 #include <stdlib.h>
 
-extern long HB_D;
-extern long HB_Q;
-extern long HB_L;
-extern long HB_K;
-extern long HB_B;
-
 enum
 {
     HistoryMaxScore = 8192,
@@ -44,7 +38,7 @@ typedef move_t countermove_history_t[PIECE_NB][SQUARE_NB];
 // Returns the history bonus for the given depth.
 INLINED int history_bonus(int depth)
 {
-    return (depth <= HB_D ? HB_Q * depth * depth + HB_L * depth + HB_K : HB_B);
+    return (depth <= 11 ? 17 * depth * depth + 3 * depth + 1 : 2117);
 }
 
 // Updates the butterfly history table for the given piece and move.

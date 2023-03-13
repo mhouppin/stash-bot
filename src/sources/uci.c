@@ -597,60 +597,6 @@ void uci_loop(int argc, char **argv)
     add_option_check(&UciOptionList, "Ponder", &UciOptionFields.ponder, NULL);
     add_option_button(&UciOptionList, "Clear Hash", &on_clear_hash);
 
-    TUNE_LONG(LMR_B, -200, 200); // AMP 20
-    TUNE_LONG(LMR_K,   50, 500); // AMP 20
-
-    TUNE_LONG(LMP_IB, -300, 600); // AMP 30
-    TUNE_LONG(LMP_IK,   50, 600); // AMP 30
-    TUNE_LONG(LMP_IP,   40, 300); // AMP 20
-    TUNE_LONG(LMP_NB, -300, 600); // AMP 30
-    TUNE_LONG(LMP_NK,   50, 600); // AMP 30
-    TUNE_LONG(LMP_NP,   40, 300); // AMP 20
-
-    TUNE_LONG (AW_D,  4,  14); // AMP 2
-    TUNE_SCORE(AW_S,  5,  30); // AMP 4
-    TUNE_LONG (AW_W, 32, 256); // AMP 16
-
-    TUNE_SCORE(RZ_S, 50, 300); // AMP 20
-
-    TUNE_LONG (RFP_D,  4,  12); // AMP 2
-    TUNE_SCORE(RFP_K, 40, 160); // AMP 16
-    TUNE_SCORE(RFP_I, 40, 160); // AMP 16
-
-    TUNE_LONG (NMP_B, 512, 1536); // AMP 128
-    TUNE_LONG (NMP_K,  32,  128); // AMP 16
-    TUNE_SCORE(NMP_E,  64,  256); // AMP 20
-    TUNE_LONG (NMP_M,   0,    6); // AMP 2
-    TUNE_LONG (NMP_V,   5,   20); // AMP 3
-
-    TUNE_LONG(IIR_D, 2, 10); // AMP 2
-
-    TUNE_LONG(LMP_D, 3, 15); // AMP 2
-
-    TUNE_LONG (FP_D,   3,  15); // AMP 2
-    TUNE_SCORE(FP_B, 100, 400); // AMP 30
-    TUNE_SCORE(FP_K,  30, 150); // AMP 10
-
-    TUNE_LONG (SEEP_D,  4,  16); // AMP 2
-    TUNE_SCORE(SEEP_Q, 30, 120); // AMP 10
-    TUNE_SCORE(SEEP_K, 10,  50); // AMP 5
-
-    TUNE_LONG (SX_D,  3, 15); // AMP 2
-    TUNE_LONG (SX_T, -2,  6); // AMP 2
-    TUNE_SCORE(SX_K,  0, 16); // AMP 2
-    TUNE_LONG (SX_B, -4,  4); // AMP 2
-
-    TUNE_LONG(LMR_H, 2000, 8000); // AMP 500
-
-    TUNE_LONG (QFP_P,  3,  12); // AMP 2
-    TUNE_SCORE(QFP_B, 60, 240); // AMP 20
-
-    TUNE_LONG(HB_D,    5,   16); // AMP 2
-    TUNE_LONG(HB_Q,    8,   30); // AMP 4
-    TUNE_LONG(HB_L,  -64,   64); // AMP 6
-    TUNE_LONG(HB_K, -256,  256); // AMP 8
-    TUNE_LONG(HB_B, 1000, 4000); // AMP 200
-
     uci_position("startpos");
 
     if (argc > 1)
