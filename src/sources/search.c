@@ -28,20 +28,71 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// Global for Late Move Reductions
 int Reductions[64][64];
-int Pruning[2][7];
+
+// Global for Late Move Pruning
+int Pruning[2][16];
+
+long LMR_B = 50;
+long LMR_K = 225;
+
+long LMP_IB = 317;
+long LMP_IK = 366;
+long LMP_IP = 109;
+long LMP_NB = -125;
+long LMP_NK = 313;
+long LMP_NP = 65;
+
+long AW_D = 9;
+score_t AW_S = 15;
+long AW_W = 64;
+
+score_t RZ_S = 150;
+
+long RFP_D = 8;
+score_t RFP_K = 80;
+score_t RFP_I = 80;
+
+long NMP_B = 768;
+long NMP_K = 64;
+score_t NMP_E = 128;
+long NMP_M = 3;
+long NMP_V = 10;
+
+long IIR_D = 4;
+
+long LMP_D = 6;
+
+long FP_D = 6;
+score_t FP_B = 217;
+score_t FP_K = 71;
+
+long SEEP_D = 8;
+score_t SEEP_Q = 62;
+score_t SEEP_K = 24;
+
+long SX_D = 7;
+long SX_T = 2;
+score_t SX_K = 4;
+long SX_B = 0;
+
+long LMR_H = 4000;
+
+long QFP_P = 6;
+score_t QFP_B = 120;
 
 void init_search_tables(void)
 {
     // Compute the LMR base values based on depth and movecount.
     for (int d = 1; d < 64; ++d)
-        for (int m = 1; m < 64; ++m) Reductions[d][m] = -1.34 + log(d) * log(m) / 1.26;
+        for (int m = 1; m < 64; ++m) Reductions[d][m] = (LMR_B / 100.0) + log(d) * log(m) / (LMR_K / 100.0);
 
     // Compute the LMP movecount values based on depth.
-    for (int d = 1; d < 7; ++d)
+    for (int d = 1; d < 16; ++d)
     {
-        Pruning[1][d] = +3.17 + 3.66 * pow(d, 1.09);
-        Pruning[0][d] = -1.25 + 3.13 * pow(d, 0.65);
+        Pruning[1][d] = (LMP_IB / 100.0) + (LMP_IK * pow(d, LMP_IP / 100.0) / 100.0);
+        Pruning[0][d] = (LMP_NB / 100.0) + (LMP_NK * pow(d, LMP_NP / 100.0) / 100.0);
     }
 }
 
@@ -121,6 +172,7 @@ void main_worker_search(worker_t *worker)
         // node counter, time manager, workers' board and threads, and TT reset.
         tt_clear();
         wpool_new_search(&SearchWorkerPool);
+        init_search_tables();
         timeman_init(board, &SearchTimeman, &UciSearchParams, chess_clock());
 
         if (UciSearchParams.depth == 0) UciSearchParams.depth = MAX_PLIES;
@@ -212,7 +264,7 @@ void worker_search(worker_t *worker)
 
             // Don't set aspiration window bounds for low depths, as the scores are
             // very volatile.
-            if (iterDepth <= 9)
+            if (iterDepth <= AW_D)
             {
                 delta = 0;
                 alpha = -INF_SCORE;
@@ -220,7 +272,7 @@ void worker_search(worker_t *worker)
             }
             else
             {
-                delta = 15;
+                delta = AW_S;
                 alpha = imax(-INF_SCORE, pvScore - delta);
                 beta = imin(INF_SCORE, pvScore + delta);
             }
@@ -274,14 +326,14 @@ __retry:
                 depth = iterDepth;
                 beta = (alpha + beta) / 2;
                 alpha = imax(-INF_SCORE, (int)pvScore - delta);
-                delta += delta / 4;
+                delta += delta * AW_W / 256;
                 goto __retry;
             }
             else if (bound == LOWER_BOUND)
             {
                 depth -= (depth > iterDepth / 2);
                 beta = imin(INF_SCORE, (int)pvScore + delta);
-                delta += delta / 4;
+                delta += delta * AW_W / 256;
                 goto __retry;
             }
         }
@@ -426,7 +478,7 @@ score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack
 
     // Razoring. If our static eval isn't good, and depth is low, it is likely
     // that only a capture will save us at this stage. Drop into qsearch.
-    if (!pvNode && depth == 1 && ss->staticEval + 150 <= alpha)
+    if (!pvNode && depth == 1 && ss->staticEval + RZ_S <= alpha)
         return (qsearch(board, alpha, beta, ss, false));
 
     improving = ss->plies >= 2 && ss->staticEval > (ss - 2)->staticEval;
@@ -434,7 +486,7 @@ score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack
     // Futility Pruning. If our eval is quite good and depth is low, we just
     // assume that we won't fall far behind in the next plies, and we return the
     // eval.
-    if (!pvNode && depth <= 8 && eval - 80 * (depth - improving) >= beta && eval < VICTORY)
+    if (!pvNode && depth <= RFP_D && eval - RFP_K * depth + RFP_I * improving >= beta && eval < VICTORY)
         return (eval);
 
     // Null Move Pruning. If our eval currently beats beta, and we still have
@@ -447,7 +499,7 @@ score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack
         Boardstack stack;
 
         // Compute the depth reduction based on depth and eval difference with beta.
-        int R = 3 + imin((eval - beta) / 128, 3) + (depth / 4);
+        int R = (NMP_B + NMP_K * depth) / 256 + imin((eval - beta) / NMP_E, NMP_M);
 
         ss->currentMove = NULL_MOVE;
         ss->pieceHistory = NULL;
@@ -467,7 +519,7 @@ score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack
 
             // Do not trust win claims for the same reason as above, and do not
             // return early for high-depth searches.
-            if (worker->verifPlies || (depth <= 10 && abs(beta) < VICTORY)) return (score);
+            if (worker->verifPlies || (depth <= NMP_V && abs(beta) < VICTORY)) return (score);
 
             // Zugzwang checking. For high depth nodes, we perform a second
             // reduced search at the same depth, but this time with NMP disabled
@@ -483,7 +535,7 @@ score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack
     }
 
     // Reduce depth if the node is absent from TT.
-    if (!rootNode && !found && depth >= 4) --depth;
+    if (!rootNode && !found && depth >= IIR_D) --depth;
 
 __main_loop:
     movepicker_init(&mp, false, board, worker, ttMove, ss);
@@ -520,18 +572,18 @@ __main_loop:
         {
             // Late Move Pruning. For low-depth nodes, stop searching quiets
             // after a certain movecount has been reached.
-            if (depth <= 6 && moveCount > Pruning[improving][depth]) skipQuiets = true;
+            if (depth <= LMP_D && moveCount > Pruning[improving][depth]) skipQuiets = true;
 
             // Futility Pruning. For low-depth nodes, stop searching quiets if
             // the eval suggests that only captures will save the day.
-            if (depth <= 6 && !inCheck && isQuiet && eval + 217 + 71 * depth <= alpha)
+            if (depth <= FP_D && !inCheck && isQuiet && eval + FP_B + FP_K * depth <= alpha)
                 skipQuiets = true;
 
             // SEE Pruning. For low-depth nodes, don't search moves which seem
             // to lose too much material to be interesting.
-            if (depth <= 8
+            if (depth <= SEEP_D
                 && !see_greater_than(
-                    board, currmove, (isQuiet ? -62 * depth : -24 * depth * depth)))
+                    board, currmove, (isQuiet ? -SEEP_Q * depth : -SEEP_K * depth * depth)))
                 continue;
         }
 
@@ -560,11 +612,11 @@ __main_loop:
             // other moves which maintain the score close to the TT score. If
             // that's not the case, we consider the TT move to be singular, and
             // we extend non-LMR searches by one ply.
-            if (depth >= 7 && currmove == ttMove && !ss->excludedMove && (ttBound & LOWER_BOUND)
-                && abs(ttScore) < VICTORY && ttDepth >= depth - 2)
+            if (depth >= SX_D && currmove == ttMove && !ss->excludedMove && (ttBound & LOWER_BOUND)
+                && abs(ttScore) < VICTORY && ttDepth >= depth - SX_T)
             {
-                score_t singularBeta = ttScore - depth;
-                int singularDepth = depth / 2;
+                score_t singularBeta = (ttScore - depth * SX_K / 4);
+                int singularDepth = (depth + SX_B) / 2;
 
                 // Exclude the TT move from the singular search.
                 ss->excludedMove = ttMove;
@@ -603,11 +655,12 @@ __main_loop:
         // to produce cutoffs in standard searches.
         if (depth >= 3 && moveCount > 2 + 2 * rootNode)
         {
+            // Set the base depth reduction value based on depth and
+            // movecount.
+            R = Reductions[imin(depth, 63)][imin(moveCount, 63)];
+
             if (isQuiet)
             {
-                // Set the base depth reduction value based on depth and
-                // movecount.
-                R = Reductions[imin(depth, 63)][imin(moveCount, 63)];
 
                 // Increase the reduction for non-PV nodes.
                 R += !pvNode;
@@ -619,14 +672,12 @@ __main_loop:
                 R -= !see_greater_than(board, reverse_move(currmove), 0);
 
                 // Increase/decrease the reduction based on the move's history.
-                R -= histScore / 4000;
-
-                // Clamp the reduction so that we don't extend the move or drop
-                // immediately into qsearch.
-                R = iclamp(R, 0, newDepth - 1);
+                R -= histScore / LMR_H;
             }
-            else
-                R = 1;
+
+            // Clamp the reduction so that we don't extend the move or drop
+            // immediately into qsearch.
+            R = iclamp(R, 0, newDepth - 1);
         }
         else
             R = 0;
@@ -809,8 +860,8 @@ score_t qsearch(Board *board, score_t alpha, score_t beta, Searchstack *ss, bool
     if (pvNode) (ss + 1)->pv = pv;
 
     // Check if Futility Pruning is possible in the moves loop.
-    const bool canFutilityPrune = (!inCheck && popcount(board->piecetypeBB[ALL_PIECES]) > 6);
-    const score_t futilityBase = bestScore + 120;
+    const bool canFutilityPrune = (!inCheck && popcount(board->piecetypeBB[ALL_PIECES]) > QFP_P);
+    const score_t futilityBase = bestScore + QFP_B;
 
     while ((currmove = movepicker_next_move(&mp, false)) != NO_MOVE)
     {
