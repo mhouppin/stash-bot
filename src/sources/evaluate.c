@@ -124,7 +124,6 @@ const scorepair_t BishopPawnsSameColor[7] = {
 const scorepair_t RookOnSemiOpenFile = SPAIR( 10, 27);
 const scorepair_t RookOnOpenFile     = SPAIR( 32, 10);
 const scorepair_t RookOnBlockedFile  = SPAIR( -6,-13);
-const scorepair_t RookXrayQueen      = SPAIR(  9,  5);
 
 // Mobility eval terms
 const scorepair_t MobilityN[9] = {
@@ -500,7 +499,6 @@ scorepair_t evaluate_rooks(const Board *board, evaluation_t *eval, color_t us)
     const bitboard_t occupancy = occupancy_bb(board);
     const bitboard_t ourPawns = piece_bb(board, us, PAWN);
     const bitboard_t theirPawns = piece_bb(board, not_color(us), PAWN);
-    const bitboard_t theirQueens = piece_bb(board, not_color(us), QUEEN);
     bitboard_t bb = piece_bb(board, us, ROOK);
 
     while (bb)
@@ -534,13 +532,6 @@ scorepair_t evaluate_rooks(const Board *board, evaluation_t *eval, color_t us)
         {
             ret += RookOnBlockedFile;
             TRACE_ADD(IDX_ROOK_BLOCKED, us, 1);
-        }
-
-        // Give a bonus for a Rook on the same file as the opponent's Queen(s).
-        if (rookFile & theirQueens)
-        {
-            ret += RookXrayQueen;
-            TRACE_ADD(IDX_ROOK_XRAY_QUEEN, us, 1);
         }
 
         // Give a bonus for the Rook's mobility.

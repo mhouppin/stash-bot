@@ -169,7 +169,6 @@ void init_base_values(tp_vector_t base)
     INIT_BASE_SP(IDX_ROOK_SEMIOPEN, RookOnSemiOpenFile);
     INIT_BASE_SP(IDX_ROOK_OPEN, RookOnOpenFile);
     INIT_BASE_SP(IDX_ROOK_BLOCKED, RookOnBlockedFile);
-    INIT_BASE_SP(IDX_ROOK_XRAY_QUEEN, RookXrayQueen);
 
     INIT_BASE_SPA(IDX_MOBILITY_KNIGHT, MobilityN, 9);
     INIT_BASE_SPA(IDX_MOBILITY_BISHOP, MobilityB, 14);
@@ -611,7 +610,6 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
     PRINT_SP(IDX_ROOK_SEMIOPEN, RookOnSemiOpenFile);
     PRINT_SP(IDX_ROOK_OPEN, RookOnOpenFile);
     PRINT_SP(IDX_ROOK_BLOCKED, RookOnBlockedFile);
-    PRINT_SP(IDX_ROOK_XRAY_QUEEN, RookXrayQueen);
     putchar('\n');
 
     PRINT_SPA(IDX_MOBILITY_KNIGHT, MobilityN, 9, 4, 4, "SPAIR");
