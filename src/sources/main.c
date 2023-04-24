@@ -36,7 +36,7 @@ Movelist UciSearchMoves;
 
 uint64_t Seed = 1048592ul;
 
-OptionFields UciOptionFields = {1, 16, 100, 1, false, false, false, false, true};
+OptionFields UciOptionFields = {1, 16, 100, 1, 100, false, false, false, false, true};
 
 Timeman SearchTimeman;
 

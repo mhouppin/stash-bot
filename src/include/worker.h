@@ -83,6 +83,9 @@ typedef struct worker_s
     size_t rootCount;
     int pvLine;
 
+    uint64_t evalnoiseSeed;
+    double noiseScale;
+
     size_t idx;
     pthread_t thread;
     pthread_mutex_t mutex;

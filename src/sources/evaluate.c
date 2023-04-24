@@ -20,7 +20,10 @@
 #include "endgame.h"
 #include "movelist.h"
 #include "pawns.h"
+#include "random.h"
+#include "timeman.h"
 #include "types.h"
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -889,6 +892,16 @@ score_t evaluate(const Board *board)
         score += eg * (MIDGAME_COUNT - phase) / (MIDGAME_COUNT - ENDGAME_COUNT);
 
         TRACE_PHASE(phase);
+
+        // Random eval noise
+        if (SearchTimeman.mode == Tournament && UciOptionFields.skill != 100)
+        {
+            uint64_t v = qrandom(&get_worker(board)->evalnoiseSeed);
+            double vd = fmax((uint16_t)v, 1.0) / 65536.0;
+            double vp = get_worker(board)->noiseScale * log(vd / (1 - vd));
+
+            score += (int)round(vp);
+        }
     }
 
     // Return the score relative to the side to move.

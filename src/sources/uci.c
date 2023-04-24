@@ -605,6 +605,7 @@ void uci_loop(int argc, char **argv)
     add_option_spin_int(
         &UciOptionList, "Move Overhead", &UciOptionFields.moveOverhead, 0, 30000, NULL);
     add_option_spin_int(&UciOptionList, "MultiPV", &UciOptionFields.multiPv, 1, 500, NULL);
+    add_option_spin_int(&UciOptionList, "Skill", &UciOptionFields.skill, 1, 100, NULL);
     add_option_check(&UciOptionList, "UCI_Chess960", &UciOptionFields.chess960, NULL);
     add_option_check(&UciOptionList, "UCI_ShowWDL", &UciOptionFields.showWDL, NULL);
     add_option_check(&UciOptionList, "NormalizeScore", &UciOptionFields.normalizeScore, NULL);

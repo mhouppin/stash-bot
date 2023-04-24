@@ -45,6 +45,7 @@ typedef struct _OptionFields
     long hash;
     long moveOverhead;
     long multiPv;
+    long skill;
     bool chess960;
     bool ponder;
     bool debug;

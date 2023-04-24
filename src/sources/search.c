@@ -127,6 +127,26 @@ void main_worker_search(worker_t *worker)
 
         if (UciSearchParams.nodes == 0) --UciSearchParams.nodes;
 
+        if (SearchTimeman.mode == Tournament && UciOptionFields.skill != 100)
+        {
+            double skill = (UciOptionFields.skill + 6) / 7.0;
+
+            double depthLimit = skill <= 10.0 ? skill : 2.0 * skill - 10.0;
+            double nodesLimit = pow(2.0, skill + 5.0);
+            double noiseScale = PAWN_EG_SCORE * pow(0.8, skill - 1.0);
+
+            noiseScale *= 0.5 +
+                (4 * popcount(piece_bb(board, board->sideToMove, QUEEN))
+                + 2 * popcount(piece_bb(board, board->sideToMove, ROOK))
+                + popcount(pieces_bb(board, board->sideToMove, KNIGHT, BISHOP))
+                ) / 24.0;
+
+            UciSearchParams.depth = (depthLimit + 0.5);
+            UciSearchParams.nodes = (nodesLimit + 0.5);
+            worker->evalnoiseSeed = chess_clock();
+            worker->noiseScale = noiseScale;
+        }
+
         wpool_start_workers(&SearchWorkerPool);
         worker_search(worker);
     }
@@ -136,6 +156,10 @@ void main_worker_search(worker_t *worker)
     // or "ponderhit" in ponder mode.
     while (!SearchWorkerPool.stop && (SearchWorkerPool.ponder || UciSearchParams.infinite))
         ;
+
+    if (SearchTimeman.mode == Tournament && UciOptionFields.skill != 100)
+        while (!timeman_can_stop_search(&SearchTimeman, chess_clock()))
+            ;
 
     SearchWorkerPool.stop = true;
 
