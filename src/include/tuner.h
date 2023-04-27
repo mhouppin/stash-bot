@@ -24,8 +24,9 @@
 
 #ifdef TUNE
 
+#define LAMBDA 0.0
 #define THREADS 3
-#define ITERS 10000
+#define ITERS 1000
 #define LEARNING_RATE 0.001
 #define LR_DROP_ITERS 10000
 #define LR_DROP_VALUE 1.0
@@ -47,6 +48,7 @@ typedef struct tune_entry_s
     scorepair_t eval;
     scorepair_t safety[COLOR_NB];
     double gameResult;
+    score_t gameScore;
     double scaleFactor;
     double phaseFactors[PHASE_NB];
     tune_tuple_t *tuples;

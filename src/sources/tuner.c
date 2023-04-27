@@ -35,6 +35,14 @@ void start_tuning_session(const char *filename)
     init_tuner_entries(&data, filename);
     K = compute_optimal_k(&data);
 
+    for (size_t i = 0; i < data.size; ++i)
+    {
+        tune_entry_t *entry = data.entries + i;
+
+        entry->gameResult = entry->gameResult * (1.0 - LAMBDA)
+            + sigmoid(K, entry->gameScore) * LAMBDA;
+    }
+
     size_t batches = data.size / BATCH_SIZE;
 
     for (int iter = 0; iter < ITERS; ++iter)
@@ -256,19 +264,32 @@ void init_tuner_entries(tune_data_t *data, const char *filename)
         char *ptr = strrchr(linebuf, ' ');
 
         *ptr = '\0';
+
+        if (sscanf(ptr + 1, "%hd", &cur->gameScore) == 0)
+        {
+            fputs("Unable to read game score\n", stdout);
+            exit(EXIT_FAILURE);
+        }
+
+        ptr = strrchr(linebuf, ' ');
+
+        *ptr = '\0';
         if (sscanf(ptr + 1, "%lf", &cur->gameResult) == 0)
         {
             fputs("Unable to read game result\n", stdout);
             exit(EXIT_FAILURE);
         }
 
-        set_board(&board, linebuf, false, &stack);
-        if (init_tuner_entry(cur, &board)) data->size++;
-
-        if (data->size && data->size % 100000 == 0)
+        board_from_fen(&board, linebuf, false, &stack);
+        if (init_tuner_entry(cur, &board))
         {
-            printf("%u positions loaded\n", (unsigned int)data->size);
-            fflush(stdout);
+            data->size++;
+
+            if (data->size && data->size % 10000 == 0)
+            {
+                printf("%u positions loaded\n", (unsigned int)data->size);
+                fflush(stdout);
+            }
         }
     }
     putchar('\n');
@@ -358,7 +379,7 @@ double compute_optimal_k(const tune_data_t *data)
         step /= 10;
     }
     putchar('\n');
-    return (start);
+    return (bestK);
 }
 
 double static_eval_mse(const tune_data_t *data, double K)
@@ -369,7 +390,13 @@ double static_eval_mse(const tune_data_t *data, double K)
     {
 #pragma omp for schedule(static, data->size / THREADS) reduction(+ : total)
         for (size_t i = 0; i < data->size; ++i)
-            total += pow(data->entries[i].gameResult - sigmoid(K, data->entries[i].staticEval), 2);
+        {
+            const tune_entry_t *entry = data->entries + i;
+
+            double result = entry->gameResult * (1.0 - LAMBDA)
+                + sigmoid(K, entry->gameScore) * LAMBDA;
+            total += pow(result - sigmoid(K, entry->staticEval), 2);
+        }
     }
     return (total / data->size);
 }
