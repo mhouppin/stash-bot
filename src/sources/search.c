@@ -607,11 +607,11 @@ __main_loop:
             // movecount.
             R = Reductions[imin(depth, 63)][imin(moveCount, 63)];
 
+            // Decrease the reduction for PV nodes.
+            R -= pvNode;
+
             if (isQuiet)
             {
-                // Increase the reduction for non-PV nodes.
-                R += !pvNode;
-
                 // Decrease the reduction if the move is a killer or countermove.
                 R -= (currmove == mp.killer1 || currmove == mp.killer2 || currmove == mp.counter);
 
