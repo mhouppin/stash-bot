@@ -158,8 +158,12 @@ void main_worker_search(worker_t *worker)
         ;
 
     if (SearchTimeman.mode == Tournament && UciOptionFields.skill != 100)
+    {
+        struct timespec tp = { .tv_sec = 0, .tv_nsec = 1000000 };
+
         while (!timeman_can_stop_search(&SearchTimeman, chess_clock()))
-            ;
+            nanosleep(&tp, NULL);
+    }
 
     SearchWorkerPool.stop = true;
 
