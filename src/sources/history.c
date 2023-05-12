@@ -20,6 +20,19 @@
 #include "search.h"
 #include "worker.h"
 
+void update_cont_histories(Searchstack *ss, int depth, piece_t piece, square_t to, bool failHigh)
+{
+    int bonus = history_bonus(depth);
+
+    if (!failHigh)
+        bonus = -bonus;
+
+    if ((ss - 1)->pieceHistory != NULL)
+        add_pc_history(*(ss - 1)->pieceHistory, piece, to, bonus);
+    if ((ss - 2)->pieceHistory != NULL)
+        add_pc_history(*(ss - 2)->pieceHistory, piece, to, bonus);
+}
+
 void update_quiet_history(const Board *board, int depth, move_t bestmove, const move_t quiets[64],
     int qcount, Searchstack *ss)
 {
@@ -41,11 +54,10 @@ void update_quiet_history(const Board *board, int depth, move_t bestmove, const 
         lastPiece = piece_on(board, lastTo);
 
         get_worker(board)->cmHistory[lastPiece][lastTo] = bestmove;
-        add_pc_history(*(ss - 1)->pieceHistory, piece, to, bonus);
     }
-    if ((ss - 2)->pieceHistory != NULL) add_pc_history(*(ss - 2)->pieceHistory, piece, to, bonus);
 
     add_bf_history(*bfHist, piece, bestmove, bonus);
+    update_cont_histories(ss, depth, piece, to, true);
 
     // Set the bestmove as a killer.
     if (ss->killers[0] != bestmove)
@@ -59,12 +71,9 @@ void update_quiet_history(const Board *board, int depth, move_t bestmove, const 
     {
         piece = piece_on(board, from_sq(quiets[i]));
         to = to_sq(quiets[i]);
-        add_bf_history(*bfHist, piece, quiets[i], -bonus);
 
-        if ((ss - 1)->pieceHistory != NULL)
-            add_pc_history(*(ss - 1)->pieceHistory, piece, to, -bonus);
-        if ((ss - 2)->pieceHistory != NULL)
-            add_pc_history(*(ss - 2)->pieceHistory, piece, to, -bonus);
+        add_bf_history(*bfHist, piece, quiets[i], -bonus);
+        update_cont_histories(ss, depth, piece, to, false);
     }
 }
 

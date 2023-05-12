@@ -589,10 +589,12 @@ __main_loop:
                 extension = 1;
         }
 
+        piece_t movedPiece = piece_on(board, from_sq(currmove));
+
         // Save the piece history for the current move so that sub-nodes can use
         // it for ordering moves.
         ss->currentMove = currmove;
-        ss->pieceHistory = &worker->ctHistory[piece_on(board, from_sq(currmove))][to_sq(currmove)];
+        ss->pieceHistory = &worker->ctHistory[movedPiece][to_sq(currmove)];
 
         do_move_gc(board, currmove, &stack, givesCheck);
         atomic_fetch_add_explicit(&get_worker(board)->nodes, 1, memory_order_relaxed);
@@ -636,7 +638,13 @@ __main_loop:
         // If LMR is not possible, or our LMR failed, do a search with no
         // reductions.
         if ((R && score > alpha) || (!R && !(pvNode && moveCount == 1)))
+        {
             score = -search(board, newDepth + extension, -alpha - 1, -alpha, ss + 1, false);
+
+            // Update continuation histories for post-LMR searches.
+            if (R)
+                update_cont_histories(ss, depth, movedPiece, to_sq(currmove), score > alpha);
+        }
 
         // In PV nodes, perform an additional full-window search for the first
         // move, or when all our previous searches returned fail-highs.
