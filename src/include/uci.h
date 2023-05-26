@@ -71,6 +71,7 @@ move_t str_to_move(const Board *board, const char *str);
 // Displays the formatted content while in debug mode.
 int debug_printf(const char *fmt, ...);
 
+// The list of supported commands by the engine.
 void uci_bench(const char *args);
 void uci_d(const char *args);
 void uci_debug(const char *args);
