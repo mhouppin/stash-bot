@@ -39,8 +39,8 @@ void start_tuning_session(const char *filename)
     {
         tune_entry_t *entry = data.entries + i;
 
-        entry->gameResult = entry->gameResult * (1.0 - LAMBDA)
-            + sigmoid(K, entry->gameScore) * LAMBDA;
+        entry->gameResult =
+            entry->gameResult * (1.0 - LAMBDA) + sigmoid(K, entry->gameScore) * LAMBDA;
     }
 
     size_t batches = data.size / BATCH_SIZE;
@@ -393,8 +393,8 @@ double static_eval_mse(const tune_data_t *data, double K)
         {
             const tune_entry_t *entry = data->entries + i;
 
-            double result = entry->gameResult * (1.0 - LAMBDA)
-                + sigmoid(K, entry->gameScore) * LAMBDA;
+            double result =
+                entry->gameResult * (1.0 - LAMBDA) + sigmoid(K, entry->gameScore) * LAMBDA;
             total += pow(result - sigmoid(K, entry->staticEval), 2);
         }
     }

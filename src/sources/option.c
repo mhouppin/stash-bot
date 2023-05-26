@@ -23,6 +23,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// The function pointer table dispatcher for setting options.
+bool (*const TrySetOptionList[OPTION_TYPE_COUNT])(Option *, const char *) = {
+    &try_set_option_spin_int,
+    &try_set_option_spin_flt,
+    &try_set_option_score,
+    &try_set_option_scorepair,
+    &try_set_option_scorepair,
+    &try_set_option_check,
+    &try_set_option_string,
+    &try_set_option_combo,
+    &try_set_option_button,
+};
+
 void option_allocation_failure(void)
 {
     perror("Unable to allocate option table");
@@ -70,6 +83,9 @@ void quit_option_list(OptionList *list)
             case OptionCheck: free(cur->def); break;
 
             case OptionButton: break;
+
+            // Safeguard
+            default: break;
         }
     }
 
@@ -430,6 +446,13 @@ bool try_set_option_combo(Option *option, const char *value)
     return false;
 }
 
+bool try_set_option_button(Option *option, const char *value)
+{
+    (void)value;
+    debug_printf("info string Setting option '%s'\n", option->name);
+    return true;
+}
+
 void set_option(OptionList *list, const char *name, const char *value)
 {
     size_t left = 0;
@@ -450,37 +473,12 @@ void set_option(OptionList *list, const char *name, const char *value)
         else
         {
             Option *cur = &list->options[i];
-            bool set_success;
 
             // Perform a check to see if the passed value can be assigned to the
             // option. That means falling in the accepted range for integers and
             // floats, being "true/false" for booleans, and being one of the
             // accepted names for combo lists.
-            switch (cur->type)
-            {
-                case OptionSpinInt: set_success = try_set_option_spin_int(cur, value); break;
-
-                case OptionSpinFlt: set_success = try_set_option_spin_flt(cur, value); break;
-
-                case OptionScore: set_success = try_set_option_score(cur, value); break;
-
-                case OptionSpairMG:
-                case OptionSpairEG: set_success = try_set_option_scorepair(cur, value); break;
-
-                case OptionCheck: set_success = try_set_option_check(cur, value); break;
-
-                case OptionString: set_success = try_set_option_string(cur, value); break;
-
-                case OptionCombo: set_success = try_set_option_combo(cur, value); break;
-
-                case OptionButton:
-                    debug_printf("info string Setting option '%s'\n", cur->name);
-                    set_success = true;
-                    break;
-
-                // This shouldn't be executed, keep it as a safeguard.
-                default: set_success = false; break;
-            }
+            bool set_success = TrySetOptionList[cur->type](cur, value);
 
             // Only call bound functions if the option setting was successful.
             if (set_success && cur->callback) cur->callback(cur->data);
@@ -536,6 +534,9 @@ void show_options(const OptionList *list)
             case OptionString:
                 printf("option name %s type string default %s\n", cur->name, (char *)cur->def);
                 break;
+
+            // Safeguard
+            default: break;
         }
     }
     fflush(stdout);
