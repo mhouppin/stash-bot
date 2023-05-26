@@ -162,5 +162,4 @@ bool try_set_option_string(Option *option, const char *value);
 bool try_set_option_combo(Option *option, const char *value);
 bool try_set_option_button(Option *option, const char *value);
 
-
 #endif // OPTION_H

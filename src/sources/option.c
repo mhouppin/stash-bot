@@ -536,8 +536,7 @@ void show_options(const OptionList *list)
                 break;
 
             // Safeguard
-            default:
-                break;
+            default: break;
         }
     }
     fflush(stdout);
