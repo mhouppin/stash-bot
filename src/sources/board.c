@@ -998,7 +998,6 @@ bool game_is_drawn(const Board *board, int ply)
 
 bool game_has_cycle(const Board *board, int ply)
 {
-    uint16_t index;
     int maxPlies = imin(board->stack->rule50, board->stack->pliesFromNullMove);
 
     // If we have less than 3 plies without an irreversible move or a null move,
@@ -1016,7 +1015,7 @@ bool game_has_cycle(const Board *board, int ply)
         hashkey_t moveKey = originalKey ^ stackIt->boardKey;
 
         // Check if the move key corresponds to a reversible move.
-        index = cyclic_index_lo(moveKey);
+        uint16_t index = cyclic_index_lo(moveKey);
         if (CyclicKeys[index] != moveKey)
         {
             index = cyclic_index_hi(moveKey);
