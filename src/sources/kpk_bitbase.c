@@ -134,9 +134,9 @@ void kpk_classify(kpk_position_t *pos, kpk_position_t *kpkTable)
             result |= kpkTable[kpk_index(BLACK, bksq, wksq, psq + NORTH + NORTH)].result;
     }
 
-    pos->result = (result & goodResult    ? goodResult
-                   : result & KPK_UNKNOWN ? KPK_UNKNOWN
-                                          : badResult);
+    pos->result = ((result & goodResult)    ? goodResult
+                   : (result & KPK_UNKNOWN) ? KPK_UNKNOWN
+                                            : badResult);
 }
 
 void init_kpk_bitbase(void)

@@ -256,8 +256,8 @@ static int board_set_castling(Board *board, color_t color, square_t rookSquare)
     board->castlingMask[rookSquare] |= castling;
     board->castlingRookSquare[castling] = rookSquare;
 
-    const square_t kingAfter = relative_sq(castling & KINGSIDE_CASTLING ? SQ_G1 : SQ_C1, color);
-    const square_t rookAfter = relative_sq(castling & KINGSIDE_CASTLING ? SQ_F1 : SQ_D1, color);
+    const square_t kingAfter = relative_sq((castling & KINGSIDE_CASTLING) ? SQ_G1 : SQ_C1, color);
+    const square_t rookAfter = relative_sq((castling & KINGSIDE_CASTLING) ? SQ_F1 : SQ_D1, color);
 
     board->castlingPath[castling] =
         (between_bb(rookSquare, rookAfter) | between_bb(kingSquare, kingAfter)
