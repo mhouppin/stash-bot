@@ -45,8 +45,8 @@ void update_quiet_history(const Board *board, int depth, move_t bestmove, const 
     // Apply history bonuses to the bestmove.
     if ((ss - 1)->pieceHistory != NULL)
     {
-        square_t lastTo = to_sq(previousMove);
-        piece_t lastPiece = piece_on(board, lastTo);
+        const square_t lastTo = to_sq(previousMove);
+        const piece_t lastPiece = piece_on(board, lastTo);
 
         get_worker(board)->cmHistory[lastPiece][lastTo] = bestmove;
     }

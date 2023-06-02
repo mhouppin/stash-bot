@@ -161,8 +161,8 @@ void bitboard_init(void)
     for (square_t sq1 = SQ_A1; sq1 <= SQ_H8; ++sq1)
         for (square_t sq2 = SQ_A1; sq2 <= SQ_H8; ++sq2)
         {
-            int fileDistance = abs(sq_file(sq1) - sq_file(sq2));
-            int rankDistance = abs(sq_rank(sq1) - sq_rank(sq2));
+            const int fileDistance = abs(sq_file(sq1) - sq_file(sq2));
+            const int rankDistance = abs(sq_rank(sq1) - sq_rank(sq2));
 
             SquareDistance[sq1][sq2] = imax(fileDistance, rankDistance);
         }
@@ -170,7 +170,7 @@ void bitboard_init(void)
     // Initialize the Pawn pseudo-moves table.
     for (square_t square = SQ_A1; square <= SQ_H8; ++square)
     {
-        bitboard_t b = square_bb(square);
+        const bitboard_t b = square_bb(square);
 
         PawnMoves[WHITE][square] = (shift_up_left(b) | shift_up_right(b));
         PawnMoves[BLACK][square] = (shift_down_left(b) | shift_down_right(b));
@@ -181,7 +181,7 @@ void bitboard_init(void)
     {
         for (int i = 0; i < 8; ++i)
         {
-            square_t to = square + kingDirections[i];
+            const square_t to = square + kingDirections[i];
 
             if (is_valid_sq(to) && SquareDistance[square][to] <= 2)
                 PseudoMoves[KING][square] |= square_bb(to);
@@ -189,7 +189,7 @@ void bitboard_init(void)
 
         for (int i = 0; i < 8; ++i)
         {
-            square_t to = square + knightDirections[i];
+            const square_t to = square + knightDirections[i];
 
             if (is_valid_sq(to) && SquareDistance[square][to] <= 2)
                 PseudoMoves[KNIGHT][square] |= square_bb(to);

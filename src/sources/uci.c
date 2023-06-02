@@ -369,7 +369,7 @@ void uci_position(const char *args)
     else
         return;
 
-    int result = board_from_fen(&UciBoard, fen, UciOptionFields.chess960, *hiddenList);
+    const int result = board_from_fen(&UciBoard, fen, UciOptionFields.chess960, *hiddenList);
 
     if (result < 0) board_from_fen(&UciBoard, StartPosFEN, UciOptionFields.chess960, *hiddenList);
 
