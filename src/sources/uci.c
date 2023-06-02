@@ -60,6 +60,12 @@ const char *BoundStr[] = {
 
 // clang-format on
 
+void uci_reallocation_failure(void)
+{
+    perror("Unable to reallocate board stack");
+    exit(EXIT_FAILURE);
+}
+
 // Finds the next token in the given string, writes a nullbyte to its end,
 // and returns it (after incrementing the string pointer).
 // This is mainly used as a replacement to strtok_r(), which isn't available
@@ -385,7 +391,12 @@ void uci_position(const char *args)
 
         while (token && (move = str_to_move(&UciBoard, token)) != NO_MOVE)
         {
-            hiddenList = realloc(hiddenList, sizeof(Boardstack *) * ++hiddenSize);
+            Boardstack **tmp = realloc(hiddenList, sizeof(Boardstack *) * ++hiddenSize);
+
+            if (!tmp) uci_reallocation_failure();
+
+            hiddenList = tmp;
+
             hiddenList[hiddenSize - 1] = malloc(sizeof(Boardstack));
 
             do_move(&UciBoard, move, hiddenList[hiddenSize - 1]);
