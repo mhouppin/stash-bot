@@ -29,13 +29,13 @@
 
 // API for basic integer operations.
 
-INLINED int imax(int a, int b) { return (a > b ? a : b); }
+INLINED int imax(int a, int b) { return a > b ? a : b; }
 
-INLINED int imin(int a, int b) { return (a < b ? a : b); }
+INLINED int imin(int a, int b) { return a < b ? a : b; }
 
 INLINED int iclamp(int value, int lower, int upper)
 {
-    return (value < lower ? lower : value > upper ? upper : value);
+    return value < lower ? lower : value > upper ? upper : value;
 }
 
 // API for the color type.
@@ -49,7 +49,7 @@ enum
     COLOR_NB = 2
 };
 
-INLINED color_t not_color(color_t color) { return (color ^ BLACK); }
+INLINED color_t not_color(color_t color) { return color ^ BLACK; }
 
 // API for the piece type.
 
@@ -87,16 +87,16 @@ enum
     PIECETYPE_NB = 8
 };
 
-INLINED piecetype_t piece_type(piece_t piece) { return (piece & 7); }
+INLINED piecetype_t piece_type(piece_t piece) { return piece & 7; }
 
-INLINED color_t piece_color(piece_t piece) { return (piece >> 3); }
+INLINED color_t piece_color(piece_t piece) { return piece >> 3; }
 
 INLINED piece_t create_piece(color_t color, piecetype_t piecetype)
 {
-    return (piecetype + (color << 3));
+    return piecetype + (color << 3);
 }
 
-INLINED piece_t opposite_piece(piece_t piece) { return (piece ^ 8); }
+INLINED piece_t opposite_piece(piece_t piece) { return piece ^ 8; }
 
 // API for the file, rank, square and direction types.
 
@@ -151,31 +151,31 @@ enum
 
 extern int SquareDistance[SQUARE_NB][SQUARE_NB];
 
-INLINED file_t sq_file(square_t square) { return (square & 7); }
+INLINED file_t sq_file(square_t square) { return square & 7; }
 
-INLINED rank_t sq_rank(square_t square) { return (square >> 3); }
+INLINED rank_t sq_rank(square_t square) { return square >> 3; }
 
-INLINED square_t create_sq(file_t file, rank_t rank) { return (file + (rank << 3)); }
+INLINED square_t create_sq(file_t file, rank_t rank) { return file + (rank << 3); }
 
-INLINED square_t opposite_sq(square_t square) { return (square ^ SQ_A8); }
+INLINED square_t opposite_sq(square_t square) { return square ^ SQ_A8; }
 
-INLINED square_t relative_sq(square_t square, color_t color) { return (square ^ (SQ_A8 * color)); }
+INLINED square_t relative_sq(square_t square, color_t color) { return square ^ (SQ_A8 * color); }
 
-INLINED rank_t relative_rank(rank_t rank, color_t color) { return (rank ^ (RANK_8 * color)); }
+INLINED rank_t relative_rank(rank_t rank, color_t color) { return rank ^ (RANK_8 * color); }
 
 INLINED rank_t relative_sq_rank(square_t square, color_t color)
 {
-    return (relative_rank(sq_rank(square), color));
+    return relative_rank(sq_rank(square), color);
 }
 
 INLINED square_t to_sq32(square_t square)
 {
-    return (sq_rank(square) * 4 + imin(sq_file(square), sq_file(square) ^ 7));
+    return sq_rank(square) * 4 + imin(sq_file(square), sq_file(square) ^ 7);
 }
 
-INLINED bool is_valid_sq(square_t square) { return (square >= SQ_A1 && square <= SQ_H8); }
+INLINED bool is_valid_sq(square_t square) { return square >= SQ_A1 && square <= SQ_H8; }
 
-INLINED direction_t pawn_direction(color_t color) { return (color == WHITE ? NORTH : SOUTH); }
+INLINED direction_t pawn_direction(color_t color) { return color == WHITE ? NORTH : SOUTH; }
 
 // API for the castling rights.
 
@@ -195,7 +195,7 @@ enum
 
 INLINED int has_castling(color_t color, int castlings)
 {
-    return (castlings & (color == WHITE ? WHITE_CASTLING : BLACK_CASTLING));
+    return castlings & (color == WHITE ? WHITE_CASTLING : BLACK_CASTLING);
 }
 
 // API for the move type.
@@ -215,39 +215,39 @@ enum
     MOVETYPE_MASK = 3 << 14
 };
 
-INLINED square_t from_sq(move_t move) { return ((square_t)((move >> 6) & SQ_H8)); }
+INLINED square_t from_sq(move_t move) { return (square_t)((move >> 6) & SQ_H8); }
 
-INLINED square_t to_sq(move_t move) { return ((square_t)(move & SQ_H8)); }
+INLINED square_t to_sq(move_t move) { return (square_t)(move & SQ_H8); }
 
-INLINED int square_mask(move_t move) { return (move & 0xFFF); }
+INLINED int square_mask(move_t move) { return move & 0xFFF; }
 
-INLINED movetype_t move_type(move_t move) { return (move & MOVETYPE_MASK); }
+INLINED movetype_t move_type(move_t move) { return move & MOVETYPE_MASK; }
 
 INLINED piecetype_t promotion_type(move_t move)
 {
-    return ((piecetype_t)(((move >> 12) & 3) + KNIGHT));
+    return (piecetype_t)(((move >> 12) & 3) + KNIGHT);
 }
 
-INLINED move_t create_move(square_t from, square_t to) { return ((move_t)((from << 6) + to)); }
+INLINED move_t create_move(square_t from, square_t to) { return (move_t)((from << 6) + to); }
 
-INLINED move_t reverse_move(move_t move) { return (create_move(to_sq(move), from_sq(move))); }
+INLINED move_t reverse_move(move_t move) { return create_move(to_sq(move), from_sq(move)); }
 
 INLINED move_t create_promotion(square_t from, square_t to, piecetype_t piecetype)
 {
-    return ((move_t)(PROMOTION + ((piecetype - KNIGHT) << 12) + (from << 6) + to));
+    return (move_t)(PROMOTION + ((piecetype - KNIGHT) << 12) + (from << 6) + to);
 }
 
 INLINED move_t create_en_passant(square_t from, square_t to)
 {
-    return ((move_t)(EN_PASSANT + (from << 6) + to));
+    return (move_t)(EN_PASSANT + (from << 6) + to);
 }
 
 INLINED move_t create_castling(square_t from, square_t to)
 {
-    return ((move_t)(CASTLING + (from << 6) + to));
+    return (move_t)(CASTLING + (from << 6) + to);
 }
 
-INLINED bool is_valid_move(move_t move) { return (from_sq(move) != to_sq(move)); }
+INLINED bool is_valid_move(move_t move) { return from_sq(move) != to_sq(move); }
 
 // API for the score, scorepair and phase types.
 
@@ -282,27 +282,27 @@ enum
 
 INLINED score_t midgame_score(scorepair_t pair)
 {
-    return ((score_t)(uint16_t)(((uint32_t)pair + 32768) >> 16));
+    return (score_t)(uint16_t)(((uint32_t)pair + 32768) >> 16);
 }
 
-INLINED score_t endgame_score(scorepair_t pair) { return ((score_t)(uint16_t)(uint32_t)pair); }
+INLINED score_t endgame_score(scorepair_t pair) { return (score_t)(uint16_t)(uint32_t)pair; }
 
 #define SPAIR(mg, eg) ((scorepair_t)((uint32_t)(mg) << 16) + (eg))
 
 INLINED scorepair_t create_scorepair(score_t midgame, score_t endgame)
 {
-    return ((scorepair_t)((uint32_t)midgame << 16) + endgame);
+    return (scorepair_t)((uint32_t)midgame << 16) + endgame;
 }
 
-INLINED scorepair_t scorepair_multiply(scorepair_t s, int i) { return (s * i); }
+INLINED scorepair_t scorepair_multiply(scorepair_t s, int i) { return s * i; }
 
 INLINED scorepair_t scorepair_divide(scorepair_t s, int i)
 {
-    return (create_scorepair(midgame_score(s) / i, endgame_score(s) / i));
+    return create_scorepair(midgame_score(s) / i, endgame_score(s) / i);
 }
 
-INLINED score_t mate_in(int ply) { return (MATE - ply); }
+INLINED score_t mate_in(int ply) { return MATE - ply; }
 
-INLINED score_t mated_in(int ply) { return (ply - MATE); }
+INLINED score_t mated_in(int ply) { return ply - MATE; }
 
 #endif // TYPES_H

@@ -128,7 +128,7 @@ Option *insert_option(OptionList *list, const char *name)
     list->size++;
 
     // Return the option pointer to the caller.
-    return (&list->options[left]);
+    return &list->options[left];
 }
 
 void add_option_spin_int(

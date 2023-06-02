@@ -45,7 +45,7 @@ bitboard_t sliding_attack(const direction_t *directions, square_t square, bitboa
             if (occupied & square_bb(s)) break;
         }
 
-    return (attack);
+    return attack;
 }
 
 // Initializes magic bitboard tables necessary for bishop, rook and queen moves.

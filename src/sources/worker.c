@@ -9,9 +9,9 @@ WorkerPool SearchWorkerPool;
 INLINED int rtm_greater_than(RootMove *right, RootMove *left)
 {
     if (right->score != left->score)
-        return (right->score > left->score);
+        return right->score > left->score;
     else
-        return (right->prevScore > left->prevScore);
+        return right->prevScore > left->prevScore;
 }
 
 void sort_root_moves(RootMove *begin, RootMove *end)
@@ -38,12 +38,12 @@ RootMove *find_root_move(RootMove *begin, RootMove *end, move_t move)
 {
     while (begin < end)
     {
-        if (begin->move == move) return (begin);
+        if (begin->move == move) return begin;
 
         ++begin;
     }
 
-    return (NULL);
+    return NULL;
 }
 
 void worker_init(worker_t *worker, size_t idx)
@@ -148,7 +148,7 @@ void *worker_entry(void *ptr)
             main_worker_search(worker);
     }
 
-    return (NULL);
+    return NULL;
 }
 
 void wpool_init(WorkerPool *wpool, size_t threads)
@@ -286,5 +286,5 @@ uint64_t wpool_get_total_nodes(WorkerPool *wpool)
     for (size_t i = 0; i < wpool->size; ++i)
         totalNodes += atomic_load_explicit(&wpool->workerList[i]->nodes, memory_order_relaxed);
 
-    return (totalNodes);
+    return totalNodes;
 }

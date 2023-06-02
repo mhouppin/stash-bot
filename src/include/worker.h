@@ -91,7 +91,7 @@ typedef struct worker_s
     bool searching;
 } worker_t;
 
-INLINED worker_t *get_worker(const Board *board) { return (board->worker); }
+INLINED worker_t *get_worker(const Board *board) { return board->worker; }
 
 INLINED score_t draw_score(const worker_t *worker)
 {

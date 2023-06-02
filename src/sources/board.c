@@ -553,14 +553,14 @@ void set_check(Board *restrict board, Boardstack *restrict stack)
 
 Boardstack *dup_boardstack(const Boardstack *stack)
 {
-    if (!stack) return (NULL);
+    if (!stack) return NULL;
 
     Boardstack *const newStack = malloc(sizeof(Boardstack));
 
     // Recursively copy the list of sub-stacks.
     *newStack = *stack;
     newStack->prev = dup_boardstack(stack->prev);
-    return (newStack);
+    return newStack;
 }
 
 void free_boardstack(Boardstack *stack)
@@ -970,7 +970,7 @@ bitboard_t slider_blockers(
         }
     }
 
-    return (blockers);
+    return blockers;
 }
 
 bool game_is_drawn(const Board *board, int ply)
@@ -979,13 +979,13 @@ bool game_is_drawn(const Board *board, int ply)
     if (board->stack->rule50 > 99)
     {
         // If the side to move isn't in check, we can claim a draw.
-        if (!board->stack->checkers) return (true);
+        if (!board->stack->checkers) return true;
 
         Movelist movelist;
 
         // If we have at least one legal move, we can claim a draw.
         list_all(&movelist, board);
-        if (movelist_size(&movelist) != 0) return (true);
+        if (movelist_size(&movelist) != 0) return true;
     }
 
     // If we have a repetition that comes from the search state (and not from
@@ -993,7 +993,7 @@ bool game_is_drawn(const Board *board, int ply)
     // we check for 2-fold repetitions coming from solely the search root
     // position and later, and for 3-fold if there are older 2-fold repetitions
     // in the position history.
-    return (!!board->stack->repetition && board->stack->repetition < ply);
+    return !!board->stack->repetition && board->stack->repetition < ply;
 }
 
 bool game_has_cycle(const Board *board, int ply)
@@ -1002,7 +1002,7 @@ bool game_has_cycle(const Board *board, int ply)
 
     // If we have less than 3 plies without an irreversible move or a null move,
     // we are guaranteed to not find a cycle in the position.
-    if (maxPlies < 3) return (false);
+    if (maxPlies < 3) return false;
 
     const hashkey_t originalKey = board->stack->boardKey;
     const Boardstack *stackIt = board->stack->prev;
@@ -1030,7 +1030,7 @@ bool game_has_cycle(const Board *board, int ply)
         if (between_bb(from, to) & occupancy_bb(board)) continue;
 
         // If the cycle is contained in the search tree, return true.
-        if (ply > i) return (true);
+        if (ply > i) return true;
 
         // For nodes before the search tree or at the root, we check if the
         // move created a repetition earlier (in the same logic spirit that
@@ -1042,10 +1042,10 @@ bool game_has_cycle(const Board *board, int ply)
         // necessary for repetitions prior to root).
         if (piece_color(piece_on(board, empty_square(board, from) ? to : from))
             != board->sideToMove)
-            return (true);
+            return true;
     }
 
-    return (false);
+    return false;
 }
 
 bool move_gives_check(const Board *board, move_t move)
@@ -1057,19 +1057,18 @@ bool move_gives_check(const Board *board, move_t move)
     const color_t us = board->sideToMove, them = not_color(board->sideToMove);
 
     // Test if the move is a direct check to the King.
-    if (board->stack->checkSquares[piece_type(piece_on(board, from))] & square_bb(to))
-        return (true);
+    if (board->stack->checkSquares[piece_type(piece_on(board, from))] & square_bb(to)) return true;
 
     const square_t theirKing = get_king_square(board, them);
 
     // Test if the move is a discovered check.
     if ((board->stack->kingBlockers[them] & square_bb(from)) && !sq_aligned(from, to, theirKing))
-        return (true);
+        return true;
 
     // We need special handling for "non-standard moves".
     switch (move_type(move))
     {
-        case NORMAL_MOVE: return (false);
+        case NORMAL_MOVE: return false;
 
         // In the case of a promotion, test if the promoted piece gives a direct
         // check to the King from the arrival square.
@@ -1084,8 +1083,8 @@ bool move_gives_check(const Board *board, move_t move)
             occupied =
                 (occupancy_bb(board) ^ square_bb(from) ^ square_bb(captureSquare)) | square_bb(to);
 
-            return ((rook_moves_bb(theirKing, occupied) & pieces_bb(board, us, QUEEN, ROOK))
-                    | (bishop_moves_bb(theirKing, occupied) & pieces_bb(board, us, QUEEN, BISHOP)));
+            return (rook_moves_bb(theirKing, occupied) & pieces_bb(board, us, QUEEN, ROOK))
+                   | (bishop_moves_bb(theirKing, occupied) & pieces_bb(board, us, QUEEN, BISHOP));
 
         // In the case of a castling, test if the Rook gives a direct check from
         // its arrival square.
@@ -1095,13 +1094,13 @@ bool move_gives_check(const Board *board, move_t move)
             kingTo = relative_sq(rookFrom > kingFrom ? SQ_G1 : SQ_C1, us);
             rookTo = relative_sq(rookFrom > kingFrom ? SQ_F1 : SQ_D1, us);
 
-            return ((PseudoMoves[ROOK][rookTo] & square_bb(theirKing))
-                    && (rook_moves_bb(rookTo,
-                            (occupancy_bb(board) ^ square_bb(kingFrom) ^ square_bb(rookFrom))
-                                | square_bb(kingTo) | square_bb(rookTo))
-                        & square_bb(theirKing)));
+            return (PseudoMoves[ROOK][rookTo] & square_bb(theirKing))
+                   && (rook_moves_bb(
+                           rookTo, (occupancy_bb(board) ^ square_bb(kingFrom) ^ square_bb(rookFrom))
+                                       | square_bb(kingTo) | square_bb(rookTo))
+                       & square_bb(theirKing));
 
-        default: __builtin_unreachable(); return (false);
+        default: __builtin_unreachable(); return false;
     }
 }
 
@@ -1119,10 +1118,9 @@ bool move_is_legal(const Board *board, move_t move)
         const bitboard_t occupied =
             (occupancy_bb(board) ^ square_bb(from) ^ square_bb(captureSquare)) | square_bb(to);
 
-        return (
-            !(rook_moves_bb(kingSquare, occupied) & pieces_bb(board, not_color(us), QUEEN, ROOK))
-            && !(bishop_moves_bb(kingSquare, occupied)
-                 & pieces_bb(board, not_color(us), QUEEN, BISHOP)));
+        return !(rook_moves_bb(kingSquare, occupied) & pieces_bb(board, not_color(us), QUEEN, ROOK))
+               && !(bishop_moves_bb(kingSquare, occupied)
+                    & pieces_bb(board, not_color(us), QUEEN, BISHOP));
     }
 
     // Special handling for castlings.
@@ -1134,11 +1132,11 @@ bool move_is_legal(const Board *board, move_t move)
         direction_t side = (to > from ? WEST : EAST);
 
         for (square_t sq = to; sq != from; sq += side)
-            if (attackers_to(board, sq) & color_bb(board, not_color(us))) return (false);
+            if (attackers_to(board, sq) & color_bb(board, not_color(us))) return false;
 
-        return (!board->chess960
-                || !(rook_moves_bb(to, occupancy_bb(board) ^ square_bb(to_sq(move)))
-                     & pieces_bb(board, not_color(us), ROOK, QUEEN)));
+        return !board->chess960
+               || !(rook_moves_bb(to, occupancy_bb(board) ^ square_bb(to_sq(move)))
+                    & pieces_bb(board, not_color(us), ROOK, QUEEN));
     }
 
     // If the King is moving, check for any opponent's piece attack on the
@@ -1148,8 +1146,8 @@ bool move_is_legal(const Board *board, move_t move)
 
     // If the moving piece is pinned, check if the move generates a discovered
     // check.
-    return (!(board->stack->kingBlockers[us] & square_bb(from))
-            || sq_aligned(from, to, get_king_square(board, us)));
+    return !(board->stack->kingBlockers[us] & square_bb(from))
+           || sq_aligned(from, to, get_king_square(board, us));
 }
 
 bool move_is_pseudo_legal(const Board *board, move_t move)
@@ -1164,39 +1162,39 @@ bool move_is_pseudo_legal(const Board *board, move_t move)
         Movelist list;
 
         list_pseudo(&list, board);
-        return (movelist_has_move(&list, move));
+        return movelist_has_move(&list, move);
     }
 
     // The move is normal, so the promotion type bits cannot be set.
     // (Note that this check will likely never trigger, since recent CPU archs
     // guarantee atomic reads/writes to aligned memory.)
-    if (promotion_type(move) != KNIGHT) return (false);
+    if (promotion_type(move) != KNIGHT) return false;
 
     // Check if there is a piece that belongs to us on the 'from' square.
-    if (piece == NO_PIECE || piece_color(piece) != us) return (false);
+    if (piece == NO_PIECE || piece_color(piece) != us) return false;
 
     // Check if the arrival square doesn't contain one of our pieces.
     // (Note that even though castling is encoded as 'King takes Rook', it is
     // handled in the "uncommon case" scope above.)
-    if (color_bb(board, us) & square_bb(to)) return (false);
+    if (color_bb(board, us) & square_bb(to)) return false;
 
     if (piece_type(piece) == PAWN)
     {
         // The Pawn cannot arrive on a promotion square, since the move is not
         // flagged as a promotion.
-        if ((RANK_8_BB | RANK_1_BB) & square_bb(to)) return (false);
+        if ((RANK_8_BB | RANK_1_BB) & square_bb(to)) return false;
 
         // Check if the Pawn move is a valid capture, push, or double push.
         if (!(pawn_moves(from, us) & color_bb(board, not_color(us)) & square_bb(to))
             && !((from + pawn_direction(us) == to) && empty_square(board, to))
             && !((from + 2 * pawn_direction(us) == to) && relative_sq_rank(from, us) == RANK_2
                  && empty_square(board, to) && empty_square(board, to - pawn_direction(us))))
-            return (false);
+            return false;
     }
 
     // Check if the piece can reach the arrival square from its position.
     else if (!(piece_moves(piece_type(piece), from, occupancy_bb(board)) & square_bb(to)))
-        return (false);
+        return false;
 
     if (board->stack->checkers)
     {
@@ -1204,43 +1202,43 @@ bool move_is_pseudo_legal(const Board *board, move_t move)
         {
             // If the side to move is in double check, only a King move can be
             // legal.
-            if (more_than_one(board->stack->checkers)) return (false);
+            if (more_than_one(board->stack->checkers)) return false;
 
             // We must either capture the checking piece, or block the attack
             // if it's a slider piece.
             if (!((between_bb(bb_first_sq(board->stack->checkers), get_king_square(board, us))
                       | board->stack->checkers)
                     & square_bb(to)))
-                return (false);
+                return false;
         }
 
         // Check if the King is still under the fire of the opponent's pieces
         // after moving.
         else if (attackers_list(board, to, occupancy_bb(board) ^ square_bb(from))
                  & color_bb(board, not_color(us)))
-            return (false);
+            return false;
     }
 
-    return (true);
+    return true;
 }
 
 bool see_greater_than(const Board *board, move_t m, score_t threshold)
 {
     // "Non-standard" moves are tricky to evaluate, so perform a generic check
     // here.
-    if (move_type(m) != NORMAL_MOVE) return (threshold <= 0);
+    if (move_type(m) != NORMAL_MOVE) return threshold <= 0;
 
     const square_t from = from_sq(m), to = to_sq(m);
     score_t nextScore = PieceScores[MIDGAME][piece_on(board, to)] - threshold;
 
     // If we can't get enough material with the sole capture of the piece, stop.
-    if (nextScore < 0) return (false);
+    if (nextScore < 0) return false;
 
     nextScore = PieceScores[MIDGAME][piece_on(board, from)] - nextScore;
 
     // If our opponent cannot get enough material back by capturing our moved
     // piece, stop.
-    if (nextScore <= 0) return (true);
+    if (nextScore <= 0) return true;
 
     bitboard_t occupied = occupancy_bb(board) ^ square_bb(from) ^ square_bb(to);
     color_t sideToMove = piece_color(piece_on(board, from));
@@ -1309,5 +1307,5 @@ bool see_greater_than(const Board *board, move_t m, score_t threshold)
         else
             return ((attackers & ~color_bb(board, sideToMove)) ? result ^ 1 : result);
     }
-    return (result);
+    return result;
 }

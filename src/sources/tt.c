@@ -39,7 +39,7 @@ void *tt_bzero_thread(void *data)
     for (size_t i = threadData->start; i < threadData->end; ++i)
         for (size_t j = 0; j < ClusterSize; ++j) SearchTT.table[i].clEntry[j] = zeroEntry;
 
-    return (NULL);
+    return NULL;
 }
 
 void tt_bzero(size_t threadCount)
@@ -92,7 +92,7 @@ int tt_hashfull(void)
         for (int j = 0; j < ClusterSize; ++j)
             count += (SearchTT.table[i].clEntry[j].genbound & 0xFC) == SearchTT.generation;
 
-    return (count / ClusterSize);
+    return count / ClusterSize;
 }
 
 void tt_resize(size_t mbsize)
@@ -125,7 +125,7 @@ TT_Entry *tt_probe(hashkey_t key, bool *found)
             // Refresh the generation counter to prevent it from being cleared.
             entry[i].genbound = (uint8_t)(SearchTT.generation | (entry[i].genbound & 0x3));
             *found = (bool)entry[i].key;
-            return (entry + i);
+            return entry + i;
         }
 
     TT_Entry *replace = entry;
@@ -137,7 +137,7 @@ TT_Entry *tt_probe(hashkey_t key, bool *found)
             replace = entry + i;
 
     *found = false;
-    return (replace);
+    return replace;
 }
 
 void tt_save(TT_Entry *entry, hashkey_t k, score_t s, score_t e, int d, int b, move_t m)

@@ -114,7 +114,7 @@ double score_difference_scale(score_t s)
     //    0 -> 1.000x time
     //  +50 -> 0.707x time
     // +100 -> 0.500x time
-    return (pow(T, iclamp(s, -X, X) / (double)X));
+    return pow(T, iclamp(s, -X, X) / (double)X);
 }
 
 void timeman_update(Timeman *tm, const Board *board, move_t bestmove, score_t score)

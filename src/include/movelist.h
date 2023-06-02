@@ -92,9 +92,9 @@ INLINED bool movelist_has_move(const Movelist *movelist, move_t move)
 {
     for (const ExtendedMove *extmove = movelist_begin(movelist); extmove < movelist_end(movelist);
          ++extmove)
-        if (extmove->move == move) return (true);
+        if (extmove->move == move) return true;
 
-    return (false);
+    return false;
 }
 
 #endif // MOVELIST_H

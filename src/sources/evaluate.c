@@ -183,9 +183,9 @@ typedef struct evaluation_s
 bool is_kxk_endgame(const Board *board, color_t us)
 {
     // Weak side has pieces or Pawns, this is not a KXK endgame.
-    if (more_than_one(color_bb(board, not_color(us)))) return (false);
+    if (more_than_one(color_bb(board, not_color(us)))) return false;
 
-    return (board->stack->material[us] >= ROOK_MG_SCORE);
+    return board->stack->material[us] >= ROOK_MG_SCORE;
 }
 
 score_t eval_kxk(const Board *board, color_t us)
@@ -196,7 +196,7 @@ score_t eval_kxk(const Board *board, color_t us)
         Movelist list;
 
         list_all(&list, board);
-        if (movelist_size(&list) == 0) return (0);
+        if (movelist_size(&list) == 0) return 0;
     }
 
     square_t winningKsq = get_king_square(board, us);
@@ -224,7 +224,7 @@ score_t eval_kxk(const Board *board, color_t us)
         || ((bishops & DARK_SQUARES) && (bishops & ~DARK_SQUARES)) || (popcount(knights) >= 3))
         score += VICTORY;
 
-    return (board->sideToMove == us ? score : -score);
+    return board->sideToMove == us ? score : -score;
 }
 
 bool ocb_endgame(const Board *board)
@@ -232,16 +232,16 @@ bool ocb_endgame(const Board *board)
     // Check if there is exactly one White Bishop and one Black Bishop.
     bitboard_t wbishop = piece_bb(board, WHITE, BISHOP);
 
-    if (!wbishop || more_than_one(wbishop)) return (false);
+    if (!wbishop || more_than_one(wbishop)) return false;
 
     bitboard_t bbishop = piece_bb(board, BLACK, BISHOP);
 
-    if (!bbishop || more_than_one(bbishop)) return (false);
+    if (!bbishop || more_than_one(bbishop)) return false;
 
     // Then check that the Bishops are on opposite colored squares.
     bitboard_t dsqMask = (wbishop | bbishop) & DARK_SQUARES;
 
-    return (!!dsqMask && !more_than_one(dsqMask));
+    return !!dsqMask && !more_than_one(dsqMask);
 }
 
 score_t scale_endgame(const Board *board, const PawnEntry *pe, score_t eg)
@@ -288,7 +288,7 @@ score_t scale_endgame(const Board *board, const PawnEntry *pe, score_t eg)
     eg = (score_t)((int32_t)eg * factor / 128);
     TRACE_FACTOR(factor);
 
-    return (eg);
+    return eg;
 }
 
 void eval_init(const Board *board, evaluation_t *eval)
@@ -418,7 +418,7 @@ scorepair_t evaluate_knights(
             TRACE_ADD(IDX_KS_ATTACK, us, popcount(b & eval->kingZone[us]));
         }
     }
-    return (ret);
+    return ret;
 }
 
 scorepair_t evaluate_bishops(const Board *board, evaluation_t *eval, color_t us)
@@ -491,7 +491,7 @@ scorepair_t evaluate_bishops(const Board *board, evaluation_t *eval, color_t us)
             TRACE_ADD(IDX_KS_ATTACK, us, popcount(b & eval->kingZone[us]));
         }
     }
-    return (ret);
+    return ret;
 }
 
 scorepair_t evaluate_rooks(const Board *board, evaluation_t *eval, color_t us)
@@ -557,7 +557,7 @@ scorepair_t evaluate_rooks(const Board *board, evaluation_t *eval, color_t us)
             TRACE_ADD(IDX_KS_ATTACK, us, popcount(b & eval->kingZone[us]));
         }
     }
-    return (ret);
+    return ret;
 }
 
 scorepair_t evaluate_queens(const Board *board, evaluation_t *eval, color_t us)
@@ -599,7 +599,7 @@ scorepair_t evaluate_queens(const Board *board, evaluation_t *eval, color_t us)
             TRACE_ADD(IDX_KS_ATTACK, us, popcount(b & eval->kingZone[us]));
         }
     }
-    return (ret);
+    return ret;
 }
 
 scorepair_t evaluate_passed_pos(const Board *board, const PawnEntry *entry, color_t us)
@@ -625,7 +625,7 @@ scorepair_t evaluate_passed_pos(const Board *board, const PawnEntry *entry, colo
         TRACE_ADD(IDX_PP_THEIR_KING_PROX + theirDistance - 1, us, 1);
     }
 
-    return (ret);
+    return ret;
 }
 
 scorepair_t evaluate_threats(const Board *board, const evaluation_t *eval, color_t us)
@@ -693,7 +693,7 @@ scorepair_t evaluate_threats(const Board *board, const evaluation_t *eval, color
         TRACE_ADD(IDX_ROOK_ATK_QUEEN, us, popcount(attacks));
     }
 
-    return (ret);
+    return ret;
 }
 
 scorepair_t evaluate_safety_file(
@@ -728,7 +728,7 @@ scorepair_t evaluate_safety_file(
         TRACE_ADD(IDX_KS_SHELTER + fileIndex + distance, us, 1);
     }
 
-    return (ret);
+    return ret;
 }
 
 scorepair_t evaluate_safety(const Board *board, evaluation_t *eval, color_t us)
@@ -800,9 +800,9 @@ scorepair_t evaluate_safety(const Board *board, evaluation_t *eval, color_t us)
         // evaluation cannot be negative.
         score_t mg = midgame_score(bonus), eg = endgame_score(bonus);
 
-        return (create_scorepair(imax(mg, 0) * mg / 256, imax(eg, 0) / 16));
+        return create_scorepair(imax(mg, 0) * mg / 256, imax(eg, 0) / 16);
     }
-    return (0);
+    return 0;
 }
 
 score_t evaluate(const Board *board)
@@ -812,11 +812,11 @@ score_t evaluate(const Board *board)
     // Do we have a specialized endgame eval for the current configuration ?
     const EndgameEntry *entry = endgame_probe(board);
 
-    if (entry != NULL) return (entry->func(board, entry->winningSide));
+    if (entry != NULL) return entry->func(board, entry->winningSide);
 
     // Is there a KXK situation ? (lone King vs mating material)
-    if (is_kxk_endgame(board, WHITE)) return (eval_kxk(board, WHITE));
-    if (is_kxk_endgame(board, BLACK)) return (eval_kxk(board, BLACK));
+    if (is_kxk_endgame(board, WHITE)) return eval_kxk(board, WHITE);
+    if (is_kxk_endgame(board, BLACK)) return eval_kxk(board, BLACK);
 
     evaluation_t eval;
     scorepair_t tapered = board->psqScorePair;
@@ -892,5 +892,5 @@ score_t evaluate(const Board *board)
     }
 
     // Return the score relative to the side to move.
-    return (board->sideToMove == WHITE ? score : -score);
+    return board->sideToMove == WHITE ? score : -score;
 }

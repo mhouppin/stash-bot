@@ -92,7 +92,7 @@ scorepair_t evaluate_passed(
         }
     }
 
-    return (ret);
+    return ret;
 }
 
 scorepair_t evaluate_backward(
@@ -115,7 +115,7 @@ scorepair_t evaluate_backward(
 
     scorepair_t ret = 0;
 
-    if (!backward) return (ret);
+    if (!backward) return ret;
 
     // Penalty for Pawns which cannot advance due to their stop square being
     // attacked by enemy Pawns, with none of our Pawns able to defend it.
@@ -124,7 +124,7 @@ scorepair_t evaluate_backward(
 
     backward &= (us == WHITE) ? (RANK_2_BB | RANK_3_BB) : (RANK_6_BB | RANK_7_BB);
 
-    if (!backward) return (ret);
+    if (!backward) return ret;
 
     bitboard_t theirFiles = 0;
 
@@ -132,13 +132,13 @@ scorepair_t evaluate_backward(
 
     backward &= ~theirFiles;
 
-    if (!backward) return (ret);
+    if (!backward) return ret;
 
     // Additional penalty for exposed backward Pawns on the second or third rank.
     ret += StragglerPenalty * popcount(backward);
     TRACE_ADD(IDX_STRAGGLER, us, popcount(backward));
 
-    return (ret);
+    return ret;
 }
 
 scorepair_t evaluate_connected(bitboard_t bb, color_t us)
@@ -167,7 +167,7 @@ scorepair_t evaluate_connected(bitboard_t bb, color_t us)
         TRACE_ADD(IDX_DEFENDER + relative_sq_rank(sq, us) - RANK_2, us, 1);
     }
 
-    return (ret);
+    return ret;
 }
 
 scorepair_t evaluate_doubled_isolated(bitboard_t bb, color_t us __attribute__((unused)))
@@ -196,7 +196,7 @@ scorepair_t evaluate_doubled_isolated(bitboard_t bb, color_t us __attribute__((u
         }
     }
 
-    return (ret);
+    return ret;
 }
 
 PawnEntry *pawn_probe(const Board *board)
@@ -205,7 +205,7 @@ PawnEntry *pawn_probe(const Board *board)
     // Check if this pawn structure has already been evaluated.
     PawnEntry *entry = get_worker(board)->pawnTable + (board->stack->pawnKey % PawnTableSize);
 
-    if (entry->key == board->stack->pawnKey) return (entry);
+    if (entry->key == board->stack->pawnKey) return entry;
 
 #else
     static PawnEntry e;
@@ -239,5 +239,5 @@ PawnEntry *pawn_probe(const Board *board)
 
     // Return the entry pointer since the evaluation will make use of some of
     // the fields (like the Pawn attack span).
-    return (entry);
+    return entry;
 }
