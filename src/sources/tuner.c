@@ -298,7 +298,7 @@ void init_tuner_entries(tune_data_t *data, const char *filename)
 bool init_tuner_entry(tune_entry_t *entry, const Board *board)
 {
     entry->staticEval = evaluate(board);
-    if (Trace.scaleFactor == 0) return (false);
+    if (Trace.scaleFactor == 0) return false;
     if (board->sideToMove == BLACK) entry->staticEval = -entry->staticEval;
 
     entry->phase = Trace.phase;
@@ -313,15 +313,15 @@ bool init_tuner_entry(tune_entry_t *entry, const Board *board)
     entry->safety[BLACK] = Trace.safety[BLACK];
     entry->scaleFactor = Trace.scaleFactor / 128.0;
     entry->sideToMove = board->sideToMove;
-    return (true);
+    return true;
 }
 
-bool is_safety_term(int i) { return (i >= IDX_KS_KNIGHT); }
+bool is_safety_term(int i) { return i >= IDX_KS_KNIGHT; }
 
 bool is_active(int i)
 {
-    if (Trace.coeffs[i][WHITE] != Trace.coeffs[i][BLACK]) return (true);
-    return (is_safety_term(i) && (Trace.coeffs[i][WHITE] || Trace.coeffs[i][BLACK]));
+    if (Trace.coeffs[i][WHITE] != Trace.coeffs[i][BLACK]) return true;
+    return is_safety_term(i) && (Trace.coeffs[i][WHITE] || Trace.coeffs[i][BLACK]);
 }
 
 void init_tuner_tuples(tune_entry_t *entry)
@@ -379,7 +379,7 @@ double compute_optimal_k(const tune_data_t *data)
         step /= 10;
     }
     putchar('\n');
-    return (bestK);
+    return bestK;
 }
 
 double static_eval_mse(const tune_data_t *data, double K)
@@ -398,7 +398,7 @@ double static_eval_mse(const tune_data_t *data, double K)
             total += pow(result - sigmoid(K, entry->staticEval), 2);
         }
     }
-    return (total / data->size);
+    return total / data->size;
 }
 
 double adjusted_eval_mse(const tune_data_t *data, const tp_vector_t delta, double K)
@@ -411,7 +411,7 @@ double adjusted_eval_mse(const tune_data_t *data, const tp_vector_t delta, doubl
                           - sigmoid(K, adjusted_eval(data->entries + i, delta, safetyScores)),
             2);
 
-    return (result / data->size);
+    return result / data->size;
 }
 
 double adjusted_eval(
@@ -475,7 +475,7 @@ double adjusted_eval(
     mixed = midgame * entry->phaseFactors[MIDGAME]
             + endgame * entry->phaseFactors[ENDGAME] * entry->scaleFactor;
 
-    return (mixed);
+    return mixed;
 }
 
 void compute_gradient(
@@ -677,6 +677,6 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
     putchar('\n');
 }
 
-double sigmoid(double K, double E) { return (1.0 / (1.0 + exp(-E * K))); }
+double sigmoid(double K, double E) { return 1.0 / (1.0 + exp(-E * K)); }
 
 #endif

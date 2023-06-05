@@ -43,15 +43,15 @@ uint8_t KPK_Bitbase[KPK_SIZE / 8];
 
 INLINED unsigned int kpk_index(color_t stm, square_t bksq, square_t wksq, square_t psq)
 {
-    return ((unsigned int)wksq | ((unsigned int)bksq << 6) | ((unsigned int)stm << 12)
-            | ((unsigned int)sq_file(psq) << 13) | ((unsigned int)(RANK_7 - sq_rank(psq)) << 15));
+    return (unsigned int)wksq | ((unsigned int)bksq << 6) | ((unsigned int)stm << 12)
+           | ((unsigned int)sq_file(psq) << 13) | ((unsigned int)(RANK_7 - sq_rank(psq)) << 15);
 }
 
 bool kpk_is_winning(color_t stm, square_t bksq, square_t wksq, square_t psq)
 {
     unsigned int index = kpk_index(stm, bksq, wksq, psq);
 
-    return (KPK_Bitbase[index >> 3] & (1 << (index & 7)));
+    return KPK_Bitbase[index >> 3] & (1 << (index & 7));
 }
 
 void kpk_set(kpk_position_t *pos, unsigned int index)
@@ -134,9 +134,9 @@ void kpk_classify(kpk_position_t *pos, kpk_position_t *kpkTable)
             result |= kpkTable[kpk_index(BLACK, bksq, wksq, psq + NORTH + NORTH)].result;
     }
 
-    pos->result = (result & goodResult    ? goodResult
-                   : result & KPK_UNKNOWN ? KPK_UNKNOWN
-                                          : badResult);
+    pos->result = ((result & goodResult)    ? goodResult
+                   : (result & KPK_UNKNOWN) ? KPK_UNKNOWN
+                                            : badResult);
 }
 
 void init_kpk_bitbase(void)
@@ -192,5 +192,5 @@ score_t eval_kpk(const Board *board, color_t winningSide)
                         ? VICTORY + PAWN_EG_SCORE + sq_rank(winningPawn) * 3
                         : 0;
 
-    return (winningSide == board->sideToMove ? score : -score);
+    return winningSide == board->sideToMove ? score : -score;
 }

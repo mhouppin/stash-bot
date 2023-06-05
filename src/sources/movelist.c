@@ -26,7 +26,7 @@ INLINED ExtendedMove *create_promotions(ExtendedMove *movelist, square_t to, dir
     (movelist++)->move = create_promotion(to - direction, to, BISHOP);
     (movelist++)->move = create_promotion(to - direction, to, KNIGHT);
 
-    return (movelist);
+    return movelist;
 }
 
 INLINED ExtendedMove *create_underpromotions(
@@ -36,7 +36,7 @@ INLINED ExtendedMove *create_underpromotions(
     (movelist++)->move = create_promotion(to - direction, to, BISHOP);
     (movelist++)->move = create_promotion(to - direction, to, KNIGHT);
 
-    return (movelist);
+    return movelist;
 }
 
 void place_top_move(ExtendedMove *begin, ExtendedMove *end)
@@ -69,7 +69,7 @@ ExtendedMove *generate_piece_moves(
         while (b) (movelist++)->move = create_move(from, bb_pop_first_sq(&b));
     }
 
-    return (movelist);
+    return movelist;
 }
 
 ExtendedMove *generate_pawn_capture_moves(
@@ -140,7 +140,7 @@ ExtendedMove *generate_pawn_capture_moves(
                 bb_pop_first_sq(&captureEnPassant), board->stack->enPassantSquare);
     }
 
-    return (movelist);
+    return movelist;
 }
 
 ExtendedMove *generate_captures(ExtendedMove *movelist, const Board *board, bool inQsearch)
@@ -160,7 +160,7 @@ ExtendedMove *generate_captures(ExtendedMove *movelist, const Board *board, bool
     for (bitboard_t b = king_moves(kingSquare) & target; b;)
         (movelist++)->move = create_move(kingSquare, bb_pop_first_sq(&b));
 
-    return (movelist);
+    return movelist;
 }
 
 ExtendedMove *generate_quiet_pawn_moves(ExtendedMove *movelist, const Board *board, color_t us)
@@ -186,7 +186,7 @@ ExtendedMove *generate_quiet_pawn_moves(ExtendedMove *movelist, const Board *boa
         (movelist++)->move = create_move(to - pawnPush - pawnPush, to);
     }
 
-    return (movelist);
+    return movelist;
 }
 
 ExtendedMove *generate_quiet(ExtendedMove *movelist, const Board *board)
@@ -216,7 +216,7 @@ ExtendedMove *generate_quiet(ExtendedMove *movelist, const Board *board)
     if (!castling_blocked(board, queenside) && (board->stack->castlings & queenside))
         (movelist++)->move = create_castling(kingSquare, board->castlingRookSquare[queenside]);
 
-    return (movelist);
+    return movelist;
 }
 
 ExtendedMove *generate_classic_pawn_moves(ExtendedMove *movelist, const Board *board, color_t us)
@@ -285,7 +285,7 @@ ExtendedMove *generate_classic_pawn_moves(ExtendedMove *movelist, const Board *b
                 bb_pop_first_sq(&captureEnPassant), board->stack->enPassantSquare);
     }
 
-    return (movelist);
+    return movelist;
 }
 
 ExtendedMove *generate_classic(ExtendedMove *movelist, const Board *board)
@@ -317,7 +317,7 @@ ExtendedMove *generate_classic(ExtendedMove *movelist, const Board *board)
     if (!castling_blocked(board, queenside) && (board->stack->castlings & queenside))
         (movelist++)->move = create_castling(kingSquare, board->castlingRookSquare[queenside]);
 
-    return (movelist);
+    return movelist;
 }
 
 ExtendedMove *generate_pawn_evasion_moves(
@@ -384,8 +384,7 @@ ExtendedMove *generate_pawn_evasion_moves(
     // Generate en-passant captures removing the checking Pawn, or blocking the check.
     if (board->stack->enPassantSquare != SQ_NONE)
     {
-        if (!(blockSquares & square_bb(board->stack->enPassantSquare - pawnPush)))
-            return (movelist);
+        if (!(blockSquares & square_bb(board->stack->enPassantSquare - pawnPush))) return movelist;
 
         bitboard_t captureEnPassant =
             pawnsNotOnLastRank & pawn_moves(board->stack->enPassantSquare, not_color(us));
@@ -395,7 +394,7 @@ ExtendedMove *generate_pawn_evasion_moves(
                 bb_pop_first_sq(&captureEnPassant), board->stack->enPassantSquare);
     }
 
-    return (movelist);
+    return movelist;
 }
 
 ExtendedMove *generate_evasions(ExtendedMove *movelist, const Board *board)
@@ -418,7 +417,7 @@ ExtendedMove *generate_evasions(ExtendedMove *movelist, const Board *board)
     while (b) (movelist++)->move = create_move(kingSquare, bb_pop_first_sq(&b));
 
     // If in check in multiple times, we know only King moves can be legal.
-    if (more_than_one(board->stack->checkers)) return (movelist);
+    if (more_than_one(board->stack->checkers)) return movelist;
 
     square_t checkSquare = bb_first_sq(board->stack->checkers);
     bitboard_t target = between_bb(checkSquare, kingSquare) | square_bb(checkSquare);
@@ -431,7 +430,7 @@ ExtendedMove *generate_evasions(ExtendedMove *movelist, const Board *board)
     for (piecetype_t pt = KNIGHT; pt <= QUEEN; ++pt)
         movelist = generate_piece_moves(movelist, board, us, pt, target);
 
-    return (movelist);
+    return movelist;
 }
 
 ExtendedMove *generate_all(ExtendedMove *movelist, const Board *board)
@@ -458,5 +457,5 @@ ExtendedMove *generate_all(ExtendedMove *movelist, const Board *board)
             ++current;
     }
 
-    return (movelist);
+    return movelist;
 }

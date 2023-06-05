@@ -31,7 +31,7 @@ INLINED uint64_t qrandom(uint64_t *seed)
     x ^= x >> 27;
     *seed = x;
 
-    return (x * UINT64_C(0x2545F4914F6CDD1D));
+    return x * UINT64_C(0x2545F4914F6CDD1D);
 }
 
 #endif // RANDOM_H

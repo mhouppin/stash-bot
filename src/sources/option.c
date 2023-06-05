@@ -107,11 +107,10 @@ Option *insert_option(OptionList *list, const char *name)
     // Do a binary search to find the index of our new option.
     size_t left = 0;
     size_t right = list->size;
-    size_t i;
 
     while (left < right)
     {
-        i = (left + right) / 2;
+        size_t i = (left + right) / 2;
         if (strcasecmp(name, list->options[i].name) < 0)
             right = i;
         else
@@ -129,7 +128,7 @@ Option *insert_option(OptionList *list, const char *name)
     list->size++;
 
     // Return the option pointer to the caller.
-    return (&list->options[left]);
+    return &list->options[left];
 }
 
 void add_option_spin_int(
@@ -457,12 +456,11 @@ void set_option(OptionList *list, const char *name, const char *value)
 {
     size_t left = 0;
     size_t right = list->size;
-    size_t i;
 
     // Search the option by doing a binary search on the option's name.
     while (left < right)
     {
-        i = (left + right) / 2;
+        size_t i = (left + right) / 2;
 
         int result = strcasecmp(name, list->options[i].name);
 

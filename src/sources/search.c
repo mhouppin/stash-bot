@@ -54,7 +54,7 @@ void init_searchstack(Searchstack *ss)
 
 uint64_t perft(Board *board, unsigned int depth)
 {
-    if (depth == 0) return (1);
+    if (depth == 0) return 1;
 
     Movelist list;
     list_all(&list, board);
@@ -62,7 +62,7 @@ uint64_t perft(Board *board, unsigned int depth)
     // Bulk counting: the perft number at depth 1 equals the number of legal
     // moves. This is a large perft speedup from not having to do the
     // make/unmake move stuff.
-    if (depth == 1) return (movelist_size(&list));
+    if (depth == 1) return movelist_size(&list);
 
     uint64_t sum = 0;
     Boardstack stack;
@@ -74,7 +74,7 @@ uint64_t perft(Board *board, unsigned int depth)
         undo_move(board, extmove->move);
     }
 
-    return (sum);
+    return sum;
 }
 
 void update_pv(move_t *pv, move_t bestmove, move_t *subPv)
@@ -331,11 +331,11 @@ score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack
     if (!rootNode && board->stack->rule50 >= 3 && alpha < 0 && game_has_cycle(board, ss->plies))
     {
         alpha = draw_score(worker);
-        if (alpha >= beta) return (alpha);
+        if (alpha >= beta) return alpha;
     }
 
     // Drop into qsearch if the depth isn't strictly positive.
-    if (depth <= 0) return (qsearch(board, alpha, beta, ss, pvNode));
+    if (depth <= 0) return qsearch(board, alpha, beta, ss, pvNode);
 
     Movepicker mp;
     move_t pv[256];
@@ -349,11 +349,11 @@ score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack
 
     // Stop the search if the game is drawn or the timeman/UCI thread asks for a stop.
     if (!rootNode && (SearchWorkerPool.stop || game_is_drawn(board, ss->plies)))
-        return (draw_score(worker));
+        return draw_score(worker);
 
     // Stop the search after MAX_PLIES recursive search calls.
     if (ss->plies >= MAX_PLIES)
-        return (!board->stack->checkers ? evaluate(board) : draw_score(worker));
+        return !board->stack->checkers ? evaluate(board) : draw_score(worker);
 
     if (!rootNode)
     {
@@ -361,7 +361,7 @@ score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack
         alpha = imax(alpha, mated_in(ss->plies));
         beta = imin(beta, mate_in(ss->plies + 1));
 
-        if (alpha >= beta) return (alpha);
+        if (alpha >= beta) return alpha;
     }
 
     bool inCheck = !!board->stack->checkers;
@@ -392,7 +392,7 @@ score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack
                 if ((ttBound & LOWER_BOUND) && !is_capture_or_promotion(board, ttMove))
                     update_quiet_history(board, depth, ttMove, NULL, 0, ss);
 
-                return (ttScore);
+                return ttScore;
             }
     }
 
@@ -427,7 +427,7 @@ score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack
     // Razoring. If our static eval isn't good, and depth is low, it is likely
     // that only a capture will save us at this stage. Drop into qsearch.
     if (!pvNode && depth == 1 && ss->staticEval + 150 <= alpha)
-        return (qsearch(board, alpha, beta, ss, false));
+        return qsearch(board, alpha, beta, ss, false);
 
     improving = ss->plies >= 2 && ss->staticEval > (ss - 2)->staticEval;
 
@@ -435,7 +435,7 @@ score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack
     // assume that we won't fall far behind in the next plies, and we return the
     // eval.
     if (!pvNode && depth <= 8 && eval - 80 * (depth - improving) >= beta && eval < VICTORY)
-        return (eval);
+        return eval;
 
     // Null Move Pruning. If our eval currently beats beta, and we still have
     // non-Pawn material on the board, we try to see what happens if we skip our
@@ -467,7 +467,7 @@ score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack
 
             // Do not trust win claims for the same reason as above, and do not
             // return early for high-depth searches.
-            if (worker->verifPlies || (depth <= 10 && abs(beta) < VICTORY)) return (score);
+            if (worker->verifPlies || (depth <= 10 && abs(beta) < VICTORY)) return score;
 
             // Zugzwang checking. For high depth nodes, we perform a second
             // reduced search at the same depth, but this time with NMP disabled
@@ -478,7 +478,7 @@ score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack
             score_t zzscore = search(board, depth - R, beta - 1, beta, ss, false);
             worker->verifPlies = 0;
 
-            if (zzscore >= beta) return (score);
+            if (zzscore >= beta) return score;
         }
     }
 
@@ -581,7 +581,7 @@ __main_loop:
                 // search, assume that there are multiple moves that beat beta
                 // in the current node, and return a search score early.
                 else if (singularBeta >= beta)
-                    return (singularBeta);
+                    return singularBeta;
             }
             // Check Extensions. Extend non-LMR searches by one ply for moves
             // that give check.
@@ -657,7 +657,7 @@ __main_loop:
         undo_move(board, currmove);
 
         // Check for search abortion here.
-        if (SearchWorkerPool.stop) return (0);
+        if (SearchWorkerPool.stop) return 0;
 
         if (rootNode)
         {
@@ -728,7 +728,7 @@ __main_loop:
             entry, key, score_to_tt(bestScore, ss->plies), ss->staticEval, depth, bound, bestmove);
     }
 
-    return (bestScore);
+    return bestScore;
 }
 
 score_t qsearch(Board *board, score_t alpha, score_t beta, Searchstack *ss, bool pvNode)
@@ -745,17 +745,17 @@ score_t qsearch(Board *board, score_t alpha, score_t beta, Searchstack *ss, bool
     if (pvNode && worker->seldepth < ss->plies + 1) worker->seldepth = ss->plies + 1;
 
     // Stop the search if the game is drawn or the timeman/UCI thread asks for a stop.
-    if (SearchWorkerPool.stop || game_is_drawn(board, ss->plies)) return (draw_score(worker));
+    if (SearchWorkerPool.stop || game_is_drawn(board, ss->plies)) return draw_score(worker);
 
     // Stop the search after MAX_PLIES recursive search calls.
     if (ss->plies >= MAX_PLIES)
-        return (!board->stack->checkers ? evaluate(board) : draw_score(worker));
+        return !board->stack->checkers ? evaluate(board) : draw_score(worker);
 
     // Mate distance pruning.
     alpha = imax(alpha, mated_in(ss->plies));
     beta = imin(beta, mate_in(ss->plies + 1));
 
-    if (alpha >= beta) return (alpha);
+    if (alpha >= beta) return alpha;
 
     // Check for interesting TT values.
     score_t ttScore = NO_SCORE;
@@ -772,7 +772,7 @@ score_t qsearch(Board *board, score_t alpha, score_t beta, Searchstack *ss, bool
         if (!pvNode
             && (((ttBound & LOWER_BOUND) && ttScore >= beta)
                 || ((ttBound & UPPER_BOUND) && ttScore <= alpha)))
-            return (ttScore);
+            return ttScore;
     }
 
     bool inCheck = !!board->stack->checkers;
@@ -802,7 +802,7 @@ score_t qsearch(Board *board, score_t alpha, score_t beta, Searchstack *ss, bool
         // Stand Pat. If not playing a capture is better because of better quiet
         // moves, allow for a simple eval return.
         alpha = imax(alpha, bestScore);
-        if (alpha >= beta) return (alpha);
+        if (alpha >= beta) return alpha;
     }
 
     move_t ttMove = entry->bestmove;
@@ -858,7 +858,7 @@ score_t qsearch(Board *board, score_t alpha, score_t beta, Searchstack *ss, bool
         undo_move(board, currmove);
 
         // Check for search abortion here.
-        if (SearchWorkerPool.stop) return (0);
+        if (SearchWorkerPool.stop) return 0;
 
         // Check if our score improves the current best score.
         if (bestScore < score)
@@ -891,5 +891,5 @@ score_t qsearch(Board *board, score_t alpha, score_t beta, Searchstack *ss, bool
     tt_save(
         entry, board->stack->boardKey, score_to_tt(bestScore, ss->plies), eval, 0, bound, bestmove);
 
-    return (bestScore);
+    return bestScore;
 }

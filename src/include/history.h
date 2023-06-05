@@ -38,7 +38,7 @@ typedef move_t countermove_history_t[PIECE_NB][SQUARE_NB];
 // Returns the history bonus for the given depth.
 INLINED int history_bonus(int depth)
 {
-    return (depth <= 11 ? 17 * depth * depth + 3 * depth + 1 : 2116);
+    return depth <= 11 ? 17 * depth * depth + 3 * depth + 1 : 2116;
 }
 
 // Updates the butterfly history table for the given piece and move.
@@ -52,7 +52,7 @@ INLINED void add_bf_history(butterfly_history_t hist, piece_t piece, move_t move
 // Gets the butterfly history bonus for the given piece and move.
 INLINED score_t get_bf_history_score(const butterfly_history_t hist, piece_t piece, move_t move)
 {
-    return (hist[piece_color(piece)][square_mask(move)] / HistoryScale);
+    return hist[piece_color(piece)][square_mask(move)] / HistoryScale;
 }
 
 // Updates the piece history table for the given piece and destination square.
@@ -66,7 +66,7 @@ INLINED void add_pc_history(piece_history_t hist, piece_t pc, square_t to, int32
 // Gets the piece history bonus for the given piece and destination square.
 INLINED score_t get_pc_history_score(const piece_history_t hist, piece_t pc, square_t to)
 {
-    return (hist[pc][to] / HistoryScale);
+    return hist[pc][to] / HistoryScale;
 }
 
 // Updates the capture history table for the given piece, destination square and captured piece.
@@ -82,7 +82,7 @@ INLINED void add_cap_history(
 INLINED score_t get_cap_history_score(
     const capture_history_t hist, piece_t pc, square_t to, piece_t captured)
 {
-    return (hist[pc][to][piece_type(captured)] / HistoryScale);
+    return hist[pc][to][piece_type(captured)] / HistoryScale;
 }
 
 #endif // HISTORY_H

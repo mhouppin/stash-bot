@@ -28,7 +28,7 @@ EndgameEntry EndgameTable[EGTB_SIZE];
 score_t eval_draw(
     const Board *board __attribute__((unused)), color_t winningSide __attribute__((unused)))
 {
-    return (0);
+    return 0;
 }
 
 score_t eval_krkp(const Board *board, color_t winningSide)
@@ -66,7 +66,7 @@ score_t eval_krkp(const Board *board, color_t winningSide)
                   * (SquareDistance[winningKsq][pushSquare] - SquareDistance[losingKsq][pushSquare]
                       - SquareDistance[losingPawn][promoteSquare]);
 
-    return (board->sideToMove == winningSide ? score : -score);
+    return board->sideToMove == winningSide ? score : -score;
 }
 
 score_t eval_krkn(const Board *board, color_t winningSide)
@@ -75,14 +75,14 @@ score_t eval_krkn(const Board *board, color_t winningSide)
     square_t losingKnight = bb_first_sq(piecetype_bb(board, KNIGHT));
     score_t score = edge_bonus(losingKsq) + away_bonus(losingKsq, losingKnight);
 
-    return (board->sideToMove == winningSide ? score : -score);
+    return board->sideToMove == winningSide ? score : -score;
 }
 
 score_t eval_krkb(const Board *board, color_t winningSide)
 {
     score_t score = edge_bonus(get_king_square(board, not_color(winningSide)));
 
-    return (board->sideToMove == winningSide ? score : -score);
+    return board->sideToMove == winningSide ? score : -score;
 }
 
 score_t eval_kbnk(const Board *board, color_t winningSide)
@@ -98,7 +98,7 @@ score_t eval_kbnk(const Board *board, color_t winningSide)
 
     score += abs(sq_file(losingKsq) - sq_rank(losingKsq)) * 100;
 
-    return (board->sideToMove == winningSide ? score : -score);
+    return board->sideToMove == winningSide ? score : -score;
 }
 
 score_t eval_kqkr(const Board *board, color_t winningSide)
@@ -110,7 +110,7 @@ score_t eval_kqkr(const Board *board, color_t winningSide)
     score += edge_bonus(losingKsq);
     score += close_bonus(winningKsq, losingKsq);
 
-    return (board->sideToMove == winningSide ? score : -score);
+    return board->sideToMove == winningSide ? score : -score;
 }
 
 score_t eval_kqkp(const Board *board, color_t winningSide)
@@ -128,7 +128,7 @@ score_t eval_kqkp(const Board *board, color_t winningSide)
         || ((FILE_B_BB | FILE_D_BB | FILE_E_BB | FILE_G_BB) & square_bb(losingPawn)))
         score += QUEEN_EG_SCORE - PAWN_EG_SCORE;
 
-    return (board->sideToMove == winningSide ? score : -score);
+    return board->sideToMove == winningSide ? score : -score;
 }
 
 score_t eval_knnkp(const Board *board, color_t winningSide)
@@ -140,7 +140,7 @@ score_t eval_knnkp(const Board *board, color_t winningSide)
     score += edge_bonus(get_king_square(board, not_color(winningSide)));
     score -= 5 * relative_sq_rank(bb_first_sq(piecetype_bb(board, PAWN)), not_color(winningSide));
 
-    return (board->sideToMove == winningSide ? score : -score);
+    return board->sideToMove == winningSide ? score : -score;
 }
 
 score_t eval_kmpkn(const Board *board, color_t winningSide)
@@ -163,14 +163,14 @@ score_t eval_kmpkn(const Board *board, color_t winningSide)
     // Verifications are simple here: if either the defending King or Knight can
     // control efficiently the promotion path of the Pawn, the position is very
     // drawish.
-    if (queeningPath & square_bb(losingKsq)) return (score / 16);
+    if (queeningPath & square_bb(losingKsq)) return score / 16;
 
-    if (queeningPath & knight_moves(losingNsq)) return (score / 8);
+    if (queeningPath & knight_moves(losingNsq)) return score / 8;
 
     if ((passedSpan & square_bb(losingKsq)) && !(passedSpan & square_bb(winningKsq)) && tempo)
-        return (score / 4);
+        return score / 4;
 
-    return (score);
+    return score;
 }
 
 score_t eval_kmpkb(const Board *board, color_t winningSide)
@@ -193,14 +193,14 @@ score_t eval_kmpkb(const Board *board, color_t winningSide)
     // Verifications are simple here: if either the defending King or Bishop can
     // control efficiently the promotion path of the Pawn, the position is very
     // drawish.
-    if (queeningPath & square_bb(losingKsq)) return (score / 16);
+    if (queeningPath & square_bb(losingKsq)) return score / 16;
 
-    if (queeningPath & bishop_moves(board, losingBsq)) return (score / 8);
+    if (queeningPath & bishop_moves(board, losingBsq)) return score / 8;
 
     if ((passedSpan & square_bb(losingKsq)) && !(passedSpan & square_bb(winningKsq)) && tempo)
-        return (score / 4);
+        return score / 4;
 
-    return (score);
+    return score;
 }
 
 score_t eval_krpkr(const Board *board, color_t winningSide)
@@ -228,26 +228,26 @@ score_t eval_krpkr(const Board *board, color_t winningSide)
 
         if (rankLK == RANK_6 || rankLK == RANK_7)
         {
-            if (rankLR == RANK_5 && rankWK < RANK_5 && rankWP < RANK_5) return (score / 64);
-            if (rankLR == RANK_1 && rankWP == RANK_5) return (score / 64);
+            if (rankLR == RANK_5 && rankWK < RANK_5 && rankWP < RANK_5) return score / 64;
+            if (rankLR == RANK_1 && rankWP == RANK_5) return score / 64;
         }
         if (rankLK >= RANK_7)
         {
-            if (rankLR == RANK_6 && rankWK < RANK_6 && rankWP < RANK_6) return (score / 64);
-            if (rankLR <= RANK_2 && rankWP == RANK_6) return (score / 64);
+            if (rankLR == RANK_6 && rankWK < RANK_6 && rankWP < RANK_6) return score / 64;
+            if (rankLR <= RANK_2 && rankWP == RANK_6) return score / 64;
         }
 
         if (rankLK == RANK_8 && rankLR == RANK_8)
         {
             if (square_bb(winningPsq) & (FILE_A_BB | FILE_B_BB | FILE_G_BB | FILE_H_BB))
-                return (score / 16);
-            if (rankWK + tempo < RANK_6) return (score / 16);
+                return score / 16;
+            if (rankWK + tempo < RANK_6) return score / 16;
         }
 
-        return (score / 2);
+        return score / 2;
     }
 
-    return (score);
+    return score;
 }
 
 score_t eval_kbpsk(const Board *board, color_t winningSide)
@@ -269,12 +269,12 @@ score_t eval_kbpsk(const Board *board, color_t winningSide)
         int queeningDistance = SquareDistance[losingKsq][queeningSquare];
 
         // Check if the losing King is in control of the queening square.
-        if (queeningDistance < 2) return (0);
+        if (queeningDistance < 2) return 0;
 
-        return (score * (queeningDistance - 1) / queeningDistance);
+        return score * (queeningDistance - 1) / queeningDistance;
     }
 
-    return (board->sideToMove == WHITE ? score : -score);
+    return board->sideToMove == WHITE ? score : -score;
 }
 
 score_t eval_kpsk(const Board *board, color_t winningSide)
@@ -306,10 +306,10 @@ score_t eval_kpsk(const Board *board, color_t winningSide)
 
         // If a KPK situation with only the most advanced Pawn results in a
         // draw, then the position is likely a draw as well.
-        if (!kpk_is_winning(us, losingKsq, winningKsq, mostAdvancedPawn)) return (0);
+        if (!kpk_is_winning(us, losingKsq, winningKsq, mostAdvancedPawn)) return 0;
     }
 
-    return (board->sideToMove == WHITE ? score : -score);
+    return board->sideToMove == WHITE ? score : -score;
 }
 
 void add_colored_entry(color_t winningSide, char *wpieces, char *bpieces, endgame_func_t func)
@@ -413,5 +413,5 @@ const EndgameEntry *endgame_probe(const Board *board)
     EndgameEntry *entry = &EndgameTable[board->stack->materialKey & (EGTB_SIZE - 1)];
 
     // Return the entry if the keys match.
-    return (entry->key == board->stack->materialKey ? entry : NULL);
+    return entry->key == board->stack->materialKey ? entry : NULL;
 }

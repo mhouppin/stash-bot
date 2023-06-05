@@ -57,7 +57,7 @@ int main(int argc, char **argv)
     if (argc != 2)
     {
         printf("Usage: %s dataset_file\n", *argv);
-        return (0);
+        return 0;
     }
     start_tuning_session(argv[1]);
 
@@ -78,5 +78,5 @@ int main(int argc, char **argv)
 
 #endif
 
-    return (0);
+    return 0;
 }

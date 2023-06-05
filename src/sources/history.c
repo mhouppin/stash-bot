@@ -34,8 +34,6 @@ void update_quiet_history(const Board *board, int depth, move_t bestmove, const 
     int qcount, Searchstack *ss)
 {
     butterfly_history_t *bfHist = &get_worker(board)->bfHistory;
-    square_t lastTo = SQ_A1;
-    piece_t lastPiece = NO_PIECE;
     square_t to;
     piece_t piece;
     int bonus = history_bonus(depth);
@@ -47,8 +45,8 @@ void update_quiet_history(const Board *board, int depth, move_t bestmove, const 
     // Apply history bonuses to the bestmove.
     if ((ss - 1)->pieceHistory != NULL)
     {
-        lastTo = to_sq(previousMove);
-        lastPiece = piece_on(board, lastTo);
+        const square_t lastTo = to_sq(previousMove);
+        const piece_t lastPiece = piece_on(board, lastTo);
 
         get_worker(board)->cmHistory[lastPiece][lastTo] = bestmove;
     }

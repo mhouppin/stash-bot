@@ -30,7 +30,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define UCI_VERSION "v34.10"
+#define UCI_VERSION "v34.11"
 
 // clang-format off
 
@@ -60,6 +60,12 @@ const char *BoundStr[] = {
 
 // clang-format on
 
+void uci_reallocation_failure(void)
+{
+    perror("Unable to reallocate board stack");
+    exit(EXIT_FAILURE);
+}
+
 // Finds the next token in the given string, writes a nullbyte to its end,
 // and returns it (after incrementing the string pointer).
 // This is mainly used as a replacement to strtok_r(), which isn't available
@@ -68,17 +74,17 @@ char *get_next_token(char **str)
 {
     while (isspace(**str) && **str != '\0') ++(*str);
 
-    if (**str == '\0') return (NULL);
+    if (**str == '\0') return NULL;
 
     char *retval = *str;
 
     while (!isspace(**str) && **str != '\0') ++(*str);
 
-    if (**str == '\0') return (retval);
+    if (**str == '\0') return retval;
 
     **str = '\0';
     ++(*str);
-    return (retval);
+    return retval;
 }
 
 const char *move_to_str(move_t move, bool isChess960)
@@ -86,9 +92,9 @@ const char *move_to_str(move_t move, bool isChess960)
     static char buf[6];
 
     // Handle side-cases early.
-    if (move == NO_MOVE) return ("none");
+    if (move == NO_MOVE) return "none";
 
-    if (move == NULL_MOVE) return ("0000");
+    if (move == NULL_MOVE) return "0000";
 
     square_t from = from_sq(move), to = to_sq(move);
 
@@ -110,7 +116,7 @@ const char *move_to_str(move_t move, bool isChess960)
     else
         buf[4] = '\0';
 
-    return (buf);
+    return buf;
 }
 
 move_t str_to_move(const Board *board, const char *str)
@@ -131,12 +137,12 @@ move_t str_to_move(const Board *board, const char *str)
         if (!strcmp(trick, s))
         {
             free(trick);
-            return (m->move);
+            return m->move;
         }
     }
 
     free(trick);
-    return (NO_MOVE);
+    return NO_MOVE;
 }
 
 int winrate_model(score_t score, int ply)
@@ -173,7 +179,7 @@ const char *score_to_wdl(score_t score, int ply)
         sprintf(buf, " wdl %d %d %d", wdlWin, wdlDraw, wdlLose);
     }
 
-    return (buf);
+    return buf;
 }
 
 const char *score_to_str(score_t score)
@@ -191,7 +197,7 @@ const char *score_to_str(score_t score)
         sprintf(buf, "cp %d", score);
     }
 
-    return (buf);
+    return buf;
 }
 
 void print_pv(
@@ -240,7 +246,7 @@ void print_pv(
 int debug_printf(const char *fmt, ...)
 {
     // Only print in debug mode.
-    if (!UciOptionFields.debug) return (0);
+    if (!UciOptionFields.debug) return 0;
 
     va_list ap;
     va_start(ap, fmt);
@@ -249,7 +255,7 @@ int debug_printf(const char *fmt, ...)
 
     fflush(stdout);
     va_end(ap);
-    return (result);
+    return result;
 }
 
 void uci_isready(const char *args __attribute__((unused)))
@@ -369,7 +375,7 @@ void uci_position(const char *args)
     else
         return;
 
-    int result = board_from_fen(&UciBoard, fen, UciOptionFields.chess960, *hiddenList);
+    const int result = board_from_fen(&UciBoard, fen, UciOptionFields.chess960, *hiddenList);
 
     if (result < 0) board_from_fen(&UciBoard, StartPosFEN, UciOptionFields.chess960, *hiddenList);
 
@@ -385,7 +391,12 @@ void uci_position(const char *args)
 
         while (token && (move = str_to_move(&UciBoard, token)) != NO_MOVE)
         {
-            hiddenList = realloc(hiddenList, sizeof(Boardstack *) * ++hiddenSize);
+            Boardstack **tmp = realloc(hiddenList, sizeof(Boardstack *) * ++hiddenSize);
+
+            if (!tmp) uci_reallocation_failure();
+
+            hiddenList = tmp;
+
             hiddenList[hiddenSize - 1] = malloc(sizeof(Boardstack));
 
             do_move(&UciBoard, move, hiddenList[hiddenSize - 1]);
@@ -542,7 +553,7 @@ int execute_uci_cmd(const char *command)
     if (!cmd)
     {
         free(dup);
-        return (1);
+        return 1;
     }
 
     for (size_t i = 0; commands[i].commandName != NULL; ++i)
@@ -557,11 +568,11 @@ int execute_uci_cmd(const char *command)
     if (strcmp(cmd, "quit") == 0)
     {
         free(dup);
-        return (0);
+        return 0;
     }
 
     free(dup);
-    return (1);
+    return 1;
 }
 
 void on_hash_set(void *data)

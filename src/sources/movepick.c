@@ -149,7 +149,7 @@ __top:
         case CHECK_PICK_TT:
             // Pseudo-legality has already been verified, return the TT move.
             ++mp->stage;
-            return (mp->ttMove);
+            return mp->ttMove;
 
         case GEN_INSTABLE:
             // Generate and score all capture moves.
@@ -166,7 +166,7 @@ __top:
 
                 // Only select moves with a positive SEE for this stage.
                 if (mp->cur->move != mp->ttMove && see_greater_than(mp->board, mp->cur->move, 0))
-                    return ((mp->cur++)->move);
+                    return (mp->cur++)->move;
 
                 // Place bad captures further in the list so that we can use
                 // them later.
@@ -190,7 +190,7 @@ __top:
             // TT move.
             if (mp->killer1 && mp->killer1 != mp->ttMove
                 && move_is_pseudo_legal(mp->board, mp->killer1))
-                return (mp->killer1);
+                return mp->killer1;
             // Fallthrough
 
         case PICK_KILLER2:
@@ -199,7 +199,7 @@ __top:
             // TT move and first killer.
             if (mp->killer2 && mp->killer2 != mp->ttMove && mp->killer2 != mp->killer1
                 && move_is_pseudo_legal(mp->board, mp->killer2))
-                return (mp->killer2);
+                return mp->killer2;
             // Fallthrough
 
         case PICK_COUNTER:
@@ -208,7 +208,7 @@ __top:
             // TT move and the two killers.
             if (mp->counter && mp->counter != mp->ttMove && mp->counter != mp->killer1
                 && mp->counter != mp->killer2 && move_is_pseudo_legal(mp->board, mp->counter))
-                return (mp->counter);
+                return mp->counter;
             // Fallthrough
 
         case GEN_QUIET:
@@ -235,7 +235,7 @@ __top:
                     // the two killers and the countermove.
                     if (move != mp->ttMove && move != mp->killer1 && move != mp->killer2
                         && move != mp->counter)
-                        return (move);
+                        return move;
                 }
 
             ++mp->stage;
@@ -247,7 +247,7 @@ __top:
             // them at this point in the PICK_GOOD_INSTABLE phase.
             while (mp->cur < mp->badCaptures)
             {
-                if (mp->cur->move != mp->ttMove) return ((mp->cur++)->move);
+                if (mp->cur->move != mp->ttMove) return (mp->cur++)->move;
 
                 mp->cur++;
             }
@@ -267,7 +267,7 @@ __top:
             {
                 place_top_move(mp->cur, mp->list.last);
 
-                if (mp->cur->move != mp->ttMove) return ((mp->cur++)->move);
+                if (mp->cur->move != mp->ttMove) return (mp->cur++)->move;
 
                 mp->cur++;
             }
@@ -276,5 +276,5 @@ __top:
 
     // We went through all stages, so we can inform the search that there are no
     // moves left to pick.
-    return (NO_MOVE);
+    return NO_MOVE;
 }

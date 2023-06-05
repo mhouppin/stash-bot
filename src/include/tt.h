@@ -59,7 +59,7 @@ extern TranspositionTable SearchTT;
 // Returns the entry cluster for the given hashkey.
 INLINED TT_Entry *tt_entry_at(hashkey_t k)
 {
-    return (SearchTT.table[mul_hi64(k, SearchTT.clusterCount)].clEntry);
+    return SearchTT.table[mul_hi64(k, SearchTT.clusterCount)].clEntry;
 }
 
 // Updates the TT generation.
@@ -68,13 +68,13 @@ INLINED void tt_clear(void) { SearchTT.generation += 4; }
 // Converts a score to a TT score.
 INLINED score_t score_to_tt(score_t s, int plies)
 {
-    return (s >= MATE_FOUND ? s + plies : s <= -MATE_FOUND ? s - plies : s);
+    return s >= MATE_FOUND ? s + plies : s <= -MATE_FOUND ? s - plies : s;
 }
 
 // Converts a TT score to a score.
 INLINED score_t score_from_tt(score_t s, int plies)
 {
-    return (s >= MATE_FOUND ? s - plies : s <= -MATE_FOUND ? s + plies : s);
+    return s >= MATE_FOUND ? s - plies : s <= -MATE_FOUND ? s + plies : s;
 }
 
 // Resets the TT contents.

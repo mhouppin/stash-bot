@@ -35,7 +35,7 @@ INLINED uint64_t mul_hi64(uint64_t x, uint64_t n)
     uint64_t c2 = (xhi * nlo) + c1;
     uint64_t c3 = (xlo * nhi) + (uint32_t)c2;
 
-    return (xhi * nhi + (c2 >> 32) + (c3 >> 32));
+    return xhi * nhi + (c2 >> 32) + (c3 >> 32);
 }
 
 // Global table for Zobrist Piece-Square hashes

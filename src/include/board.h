@@ -137,81 +137,81 @@ Boardstack *dup_boardstack(const Boardstack *stack);
 void free_boardstack(Boardstack *stack);
 
 // Returns the piece on the given square.
-INLINED piece_t piece_on(const Board *board, square_t square) { return (board->table[square]); }
+INLINED piece_t piece_on(const Board *board, square_t square) { return board->table[square]; }
 
 // Checks if the given square is empty.
 INLINED bool empty_square(const Board *board, square_t square)
 {
-    return (piece_on(board, square) == NO_PIECE);
+    return piece_on(board, square) == NO_PIECE;
 }
 
 // Returns the piece performing the given move.
 INLINED piece_t moved_piece(const Board *board, move_t move)
 {
-    return (piece_on(board, from_sq(move)));
+    return piece_on(board, from_sq(move));
 }
 
 // Returns a bitboard of all pieces matching the given piece type.
 INLINED bitboard_t piecetype_bb(const Board *board, piecetype_t pt)
 {
-    return (board->piecetypeBB[pt]);
+    return board->piecetypeBB[pt];
 }
 
 // Returns a bitboard of all pieces matching the given piece types.
 INLINED bitboard_t piecetypes_bb(const Board *board, piecetype_t pt1, piecetype_t pt2)
 {
-    return (piecetype_bb(board, pt1) | piecetype_bb(board, pt2));
+    return piecetype_bb(board, pt1) | piecetype_bb(board, pt2);
 }
 
 // Returns a bitboard of all pieces matching the given color.
-INLINED bitboard_t color_bb(const Board *board, color_t color) { return (board->colorBB[color]); }
+INLINED bitboard_t color_bb(const Board *board, color_t color) { return board->colorBB[color]; }
 
 // Returns a bitboard of all pieces matching the given color and piece type.
 INLINED bitboard_t piece_bb(const Board *board, color_t color, piecetype_t pt)
 {
-    return (piecetype_bb(board, pt) & color_bb(board, color));
+    return piecetype_bb(board, pt) & color_bb(board, color);
 }
 
 // Returns a bitboard of all pieces matching the given color and piece types.
 INLINED bitboard_t pieces_bb(const Board *board, color_t color, piecetype_t pt1, piecetype_t pt2)
 {
-    return (piecetypes_bb(board, pt1, pt2) & color_bb(board, color));
+    return piecetypes_bb(board, pt1, pt2) & color_bb(board, color);
 }
 
 // Returns a bitboard of all pieces.
-INLINED bitboard_t occupancy_bb(const Board *board) { return (piecetype_bb(board, ALL_PIECES)); }
+INLINED bitboard_t occupancy_bb(const Board *board) { return piecetype_bb(board, ALL_PIECES); }
 
 // Returns the king square of the given color.
 INLINED bitboard_t get_king_square(const Board *board, color_t color)
 {
-    return (bb_first_sq(piece_bb(board, color, KING)));
+    return bb_first_sq(piece_bb(board, color, KING));
 }
 
 // Returns a bitboard of all pseudo-legal king moves for the given square.
-INLINED bitboard_t king_moves(square_t square) { return (PseudoMoves[KING][square]); }
+INLINED bitboard_t king_moves(square_t square) { return PseudoMoves[KING][square]; }
 
 // Returns a bitboard of all pseudo-legal knight moves for the given square.
-INLINED bitboard_t knight_moves(square_t square) { return (PseudoMoves[KNIGHT][square]); }
+INLINED bitboard_t knight_moves(square_t square) { return PseudoMoves[KNIGHT][square]; }
 
 // Returns a bitboard of all pseudo-legal pawn moves for the given square and color.
-INLINED bitboard_t pawn_moves(square_t square, color_t color) { return (PawnMoves[color][square]); }
+INLINED bitboard_t pawn_moves(square_t square, color_t color) { return PawnMoves[color][square]; }
 
 // Returns a bitboard of all pseudo-legal bishop moves for the given square.
 INLINED bitboard_t bishop_moves(const Board *board, square_t square)
 {
-    return (bishop_moves_bb(square, occupancy_bb(board)));
+    return bishop_moves_bb(square, occupancy_bb(board));
 }
 
 // Returns a bitboard of all pseudo-legal rook moves for the given square.
 INLINED bitboard_t rook_moves(const Board *board, square_t square)
 {
-    return (rook_moves_bb(square, occupancy_bb(board)));
+    return rook_moves_bb(square, occupancy_bb(board));
 }
 
 // Returns a bitboard of all pseudo-legal queen moves for the given square.
 INLINED bitboard_t queen_moves(const Board *board, square_t square)
 {
-    return (bishop_moves(board, square) | rook_moves(board, square));
+    return bishop_moves(board, square) | rook_moves(board, square);
 }
 
 // Returns a bitboard of all pseudo-legal piece moves for the given piece type, square and
@@ -220,33 +220,33 @@ INLINED bitboard_t piece_moves(piecetype_t piecetype, square_t square, bitboard_
 {
     switch (piecetype)
     {
-        case KNIGHT: return (knight_moves(square));
-        case BISHOP: return (bishop_moves_bb(square, occupied));
-        case ROOK: return (rook_moves_bb(square, occupied));
-        case QUEEN: return (bishop_moves_bb(square, occupied) | rook_moves_bb(square, occupied));
-        case KING: return (king_moves(square));
+        case KNIGHT: return knight_moves(square);
+        case BISHOP: return bishop_moves_bb(square, occupied);
+        case ROOK: return rook_moves_bb(square, occupied);
+        case QUEEN: return bishop_moves_bb(square, occupied) | rook_moves_bb(square, occupied);
+        case KING: return king_moves(square);
 
-        default: __builtin_unreachable(); return (0);
+        default: __builtin_unreachable(); return 0;
     }
 }
 
 // Returns a bitboard of all pieces attacking the given square.
 INLINED bitboard_t attackers_to(const Board *board, square_t square)
 {
-    return (attackers_list(board, square, occupancy_bb(board)));
+    return attackers_list(board, square, occupancy_bb(board));
 }
 
 // Checks if the given castling is blocked by pieces on the castling path.
 INLINED bool castling_blocked(const Board *board, int castling)
 {
-    return (occupancy_bb(board) & board->castlingPath[castling]);
+    return occupancy_bb(board) & board->castlingPath[castling];
 }
 
 // Checks if the given move is a capture or a promotion.
 INLINED bool is_capture_or_promotion(const Board *board, move_t move)
 {
-    return (move_type(move) == NORMAL_MOVE ? !empty_square(board, to_sq(move))
-                                           : move_type(move) != CASTLING);
+    return move_type(move) == NORMAL_MOVE ? !empty_square(board, to_sq(move))
+                                          : move_type(move) != CASTLING;
 }
 
 // Helper function for putting pieces on the board.

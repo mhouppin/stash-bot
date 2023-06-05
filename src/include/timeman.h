@@ -31,12 +31,12 @@ INLINED clock_t chess_clock(void)
     struct timeb tp;
 
     ftime(&tp);
-    return ((clock_t)tp.time * 1000 + tp.millitm);
+    return (clock_t)tp.time * 1000 + tp.millitm;
 #else
     struct timespec tp;
 
     clock_gettime(CLOCK_REALTIME, &tp);
-    return ((clock_t)tp.tv_sec * 1000 + tp.tv_nsec / 1000000);
+    return (clock_t)tp.tv_sec * 1000 + tp.tv_nsec / 1000000;
 #endif
 }
 
@@ -102,15 +102,15 @@ void check_time(void);
 // Checks if we can safely stop the search.
 INLINED bool timeman_can_stop_search(Timeman *tm, clock_t cur)
 {
-    if (tm->pondering && SearchWorkerPool.ponder) return (false);
-    return (tm->mode != NoTimeman && cur >= tm->start + tm->optimalTime);
+    if (tm->pondering && SearchWorkerPool.ponder) return false;
+    return tm->mode != NoTimeman && cur >= tm->start + tm->optimalTime;
 }
 
 // Checks if we must stop the search.
 INLINED bool timeman_must_stop_search(Timeman *tm, clock_t cur)
 {
-    if (tm->pondering && SearchWorkerPool.ponder) return (false);
-    return (tm->mode != NoTimeman && cur >= tm->start + tm->maximalTime);
+    if (tm->pondering && SearchWorkerPool.ponder) return false;
+    return tm->mode != NoTimeman && cur >= tm->start + tm->maximalTime;
 }
 
 #endif
