@@ -220,7 +220,7 @@ void worker_search(worker_t *worker)
             }
             else
             {
-                delta = 15;
+                delta = 15 + imax(0, (abs(worker->rootMoves[worker->pvLine].scoreDiff) - 12) / 3);
                 alpha = imax(-INF_SCORE, pvScore - delta);
                 beta = imin(INF_SCORE, pvScore + delta);
             }
@@ -289,6 +289,9 @@ __retry:
         // Reset root moves' score for the next search.
         for (RootMove *i = worker->rootMoves; i < worker->rootMoves + worker->rootCount; ++i)
         {
+            i->scoreDiff = (abs(i->score) < MATE_FOUND && abs(i->prevScore) < MATE_FOUND)
+                               ? (int)i->score - (int)i->prevScore
+                               : 0;
             i->prevScore = i->score;
             i->score = -INF_SCORE;
         }
