@@ -55,6 +55,7 @@ typedef struct _RootMove
     int seldepth;
     score_t prevScore;
     score_t score;
+    int scoreDiff;
     move_t pv[512];
 } RootMove;
 

@@ -260,6 +260,7 @@ void wpool_start_search(WorkerPool *wpool, const Board *rootBoard, const SearchP
             curRootMove->move = UciSearchMoves.moves[k].move;
             curRootMove->seldepth = 0;
             curRootMove->score = curRootMove->prevScore = -INF_SCORE;
+            curRootMove->scoreDiff = 0;
             curRootMove->pv[0] = curRootMove->pv[1] = NO_MOVE;
         }
     }
