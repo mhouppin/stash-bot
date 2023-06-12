@@ -563,7 +563,7 @@ __main_loop:
             if (depth >= 7 && currmove == ttMove && !ss->excludedMove && (ttBound & LOWER_BOUND)
                 && abs(ttScore) < VICTORY && ttDepth >= depth - 2)
             {
-                score_t singularBeta = ttScore - depth;
+                score_t singularBeta = ttScore - depth * 2;
                 int singularDepth = depth / 2;
 
                 // Exclude the TT move from the singular search.
