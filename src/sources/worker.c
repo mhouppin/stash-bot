@@ -229,9 +229,10 @@ void wpool_start_search(WorkerPool *wpool, const Board *rootBoard, const SearchP
     worker_wait_search_end(wpool_main_worker(wpool));
 
     // Reset the stop flag, and set the ponder flag if indicated by the "go"
-    // command.
+    // command. Set the side to move as well for the "confidence" parameter.
     wpool->stop = false;
     wpool->ponder = searchParams->ponder;
+    wpool->rootStm = rootBoard->sideToMove;
 
     for (size_t i = 0; i < wpool->size; ++i)
     {

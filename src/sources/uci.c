@@ -30,7 +30,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define UCI_VERSION "v34.10"
+#define UCI_VERSION "v34.11"
 
 // clang-format off
 
@@ -582,6 +582,15 @@ void on_thread_set(void *data)
     fflush(stdout);
 }
 
+void on_rating_adv_set(void *data)
+{
+    const int SCORE_MILLI_PER_ELO = 500;
+    const int MAX_SCORE_MILLI = 75000;
+
+    UciOptionFields.confidence =
+        iclamp(*(long *)data * SCORE_MILLI_PER_ELO, -MAX_SCORE_MILLI, MAX_SCORE_MILLI) / 1000;
+}
+
 void uci_loop(int argc, char **argv)
 {
     init_option_list(&UciOptionList);
@@ -591,6 +600,9 @@ void uci_loop(int argc, char **argv)
     add_option_spin_int(
         &UciOptionList, "Move Overhead", &UciOptionFields.moveOverhead, 0, 30000, NULL);
     add_option_spin_int(&UciOptionList, "MultiPV", &UciOptionFields.multiPv, 1, 500, NULL);
+    add_option_score(&UciOptionList, "Confidence", &UciOptionFields.confidence, -1000, 1000, NULL);
+    add_option_spin_int(&UciOptionList, "UCI_RatingAdv", &UciOptionFields.ratingAdv, -3000, 3000,
+        &on_rating_adv_set);
     add_option_check(&UciOptionList, "UCI_Chess960", &UciOptionFields.chess960, NULL);
     add_option_check(&UciOptionList, "UCI_ShowWDL", &UciOptionFields.showWDL, NULL);
     add_option_check(&UciOptionList, "NormalizeScore", &UciOptionFields.normalizeScore, NULL);

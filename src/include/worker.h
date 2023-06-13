@@ -111,6 +111,7 @@ typedef struct _WorkerPool
 {
     size_t size;
     int checks;
+    color_t rootStm;
 
     _Atomic bool ponder;
     _Atomic bool stop;

@@ -21,6 +21,7 @@
 #include "movelist.h"
 #include "pawns.h"
 #include "types.h"
+#include "worker.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -871,7 +872,10 @@ score_t evaluate(const Board *board)
 
     TRACE_EVAL(tapered);
 
-    mg = midgame_score(tapered);
+    // Add the "confidence" score to the middlegame value.
+    mg = midgame_score(tapered)
+         + (SearchWorkerPool.rootStm == board->sideToMove ? UciOptionFields.confidence
+                                                          : -UciOptionFields.confidence);
 
     // Scale the endgame score based on the remaining material and the Pawns.
     eg = scale_endgame(board, pe, endgame_score(tapered));
