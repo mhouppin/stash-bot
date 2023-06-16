@@ -29,9 +29,9 @@ typedef enum option_type_e
     OptionSpinInt,
     OptionSpinFlt,
     OptionCheck,
+    OptionString,
     OptionCombo,
     OptionButton,
-    OptionString,
     OptionScore,
     OptionSpairMG,
     OptionSpairEG,
@@ -155,11 +155,11 @@ void set_option(OptionList *list, const char *name, const char *value);
 // operation succeeded or not.
 bool try_set_option_spin_int(Option *option, const char *value);
 bool try_set_option_spin_flt(Option *option, const char *value);
-bool try_set_option_score(Option *option, const char *value);
-bool try_set_option_scorepair(Option *option, const char *value);
 bool try_set_option_check(Option *option, const char *value);
 bool try_set_option_string(Option *option, const char *value);
 bool try_set_option_combo(Option *option, const char *value);
 bool try_set_option_button(Option *option, const char *value);
+bool try_set_option_score(Option *option, const char *value);
+bool try_set_option_scorepair(Option *option, const char *value);
 
 #endif // OPTION_H

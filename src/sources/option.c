@@ -27,13 +27,13 @@
 bool (*const TrySetOptionList[OPTION_TYPE_COUNT])(Option *, const char *) = {
     &try_set_option_spin_int,
     &try_set_option_spin_flt,
-    &try_set_option_score,
-    &try_set_option_scorepair,
-    &try_set_option_scorepair,
     &try_set_option_check,
     &try_set_option_string,
     &try_set_option_combo,
     &try_set_option_button,
+    &try_set_option_score,
+    &try_set_option_scorepair,
+    &try_set_option_scorepair,
 };
 
 void option_allocation_failure(void)
