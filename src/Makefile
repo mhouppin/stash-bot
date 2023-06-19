@@ -62,7 +62,7 @@ endif
 ifeq ($(ARCH),x86-64-bmi2)
     CFLAGS += -DUSE_PREFETCH -DUSE_POPCNT -DUSE_PEXT
     ifneq ($(native),yes)
-        CFLAGS += -msse -msse3 -mpopcnt -msse4 -mbmi2
+        CFLAGS += -msse -msse3 -mpopcnt -msse4 -mbmi -mbmi2
     endif
 endif
 
