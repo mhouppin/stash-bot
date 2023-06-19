@@ -603,7 +603,7 @@ __main_loop:
         // we can't reduce their search depth), we start reducing moves after
         // a certain movecount has been reached, as we consider them less likely
         // to produce cutoffs in standard searches.
-        if (depth >= 3 && moveCount > 2 + 2 * rootNode)
+        if (depth >= 3 && moveCount > 2 + 2 * pvNode)
         {
             if (isQuiet)
             {
