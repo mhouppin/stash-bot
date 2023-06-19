@@ -28,7 +28,7 @@
 #include <pthread.h>
 #include <stdio.h>
 
-Board UciBoard;
+Board UciBoard = {.stack = NULL};
 pthread_attr_t WorkerSettings;
 SearchParams UciSearchParams;
 OptionList UciOptionList;

@@ -23,6 +23,7 @@
 #include "tt.h"
 #include "types.h"
 #include <ctype.h>
+#include <errno.h>
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -30,11 +31,11 @@
 #include <string.h>
 #include <unistd.h>
 
-#define UCI_VERSION "v34.13"
+#define UCI_VERSION "v34.14"
 
 // clang-format off
 
-const CommandMap commands[] =
+static const CommandMap UciCommands[] =
 {
     {"bench", &uci_bench},
     {"d", &uci_d},
@@ -51,19 +52,17 @@ const CommandMap commands[] =
     {NULL, NULL}
 };
 
-const char *BoundStr[] = {
-    "",
-    " upperbound",
-    " lowerbound",
-    ""
-};
-
 // clang-format on
 
-void uci_reallocation_failure(void)
+static int uci_perr(const char *str) { return write(STDERR_FILENO, str, strlen(str)); }
+
+__attribute__((noreturn)) static void uci_allocation_failure(const char *str)
 {
-    perror("Unable to reallocate board stack");
-    exit(EXIT_FAILURE);
+    // Since we're OOM, all printf() like calls will likely fail.
+    uci_perr("Unable to allocate ");
+    uci_perr(str);
+    uci_perr(": out of memory\n");
+    exit(ENOMEM);
 }
 
 // Finds the next token in the given string, writes a nullbyte to its end,
@@ -121,11 +120,6 @@ const char *move_to_str(move_t move, bool isChess960)
 
 move_t str_to_move(const Board *board, const char *str)
 {
-    char *trick = strdup(str);
-
-    // Fix typos with people writing "e7e8Q" instead of "e7e8q".
-    if (strlen(str) == 5) trick[4] = tolower(trick[4]);
-
     Movelist movelist;
 
     list_all(&movelist, board);
@@ -134,14 +128,10 @@ move_t str_to_move(const Board *board, const char *str)
     for (const ExtendedMove *m = movelist_begin(&movelist); m < movelist_end(&movelist); ++m)
     {
         const char *s = move_to_str(m->move, board->chess960);
-        if (!strcmp(trick, s))
-        {
-            free(trick);
-            return m->move;
-        }
+
+        if (!strcmp(str, s)) return m->move;
     }
 
-    free(trick);
     return NO_MOVE;
 }
 
@@ -203,6 +193,8 @@ const char *score_to_str(score_t score)
 void print_pv(
     const Board *board, RootMove *rootMove, int multiPv, int depth, clock_t time, int bound)
 {
+    static const char *BoundStr[] = {"", " upperbound", " lowerbound", ""};
+
     uint64_t nodes = wpool_get_total_nodes(&SearchWorkerPool);
     uint64_t nps = nodes / (time + !time) * 1000;
     bool searchedMove = (rootMove->score != -INF_SCORE);
@@ -210,7 +202,9 @@ void print_pv(
 
     // At most 256 moves stored in (each taking 5 bytes) + 16 more bytes for
     // potential promotions + 1 byte for the final nullbyte.
-    char pvBuffer[256 * 5 + 16 + 1] = {0};
+    char pvBuffer[256 * 5 + 16 + 1];
+
+    pvBuffer[0] = '\0';
 
     // Fill the PV buffer.
     for (size_t i = 0; rootMove->pv[i]; ++i)
@@ -296,6 +290,9 @@ void uci_ucinewgame(const char *args)
 void uci_debug(const char *args)
 {
     char *copy = strdup(args ? args : "");
+
+    if (copy == NULL) uci_allocation_failure("command copy");
+
     char *token = strtok(copy, Delimiters);
 
     UciOptionFields.debug = (strcmp(token, "on") == 0);
@@ -332,37 +329,38 @@ void uci_d(const char *args __attribute__((unused)))
 void uci_position(const char *args)
 {
     const char *StartPosFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    static Boardstack **hiddenList = NULL;
-    static size_t hiddenSize = 0;
 
-    if (hiddenSize > 0)
-    {
-        for (size_t i = 0; i < hiddenSize; ++i) free(hiddenList[i]);
-        free(hiddenList);
-    }
+    free_boardstack(UciBoard.stack);
 
-    hiddenList = malloc(sizeof(Boardstack *));
-    *hiddenList = malloc(sizeof(Boardstack));
-    hiddenSize = 1;
+    char *copy = strdup(args);
+
+    if (copy == NULL) uci_allocation_failure("command copy");
 
     char *fen;
-    char *copy = strdup(args);
     char *ptr = copy;
     char *token = get_next_token(&ptr);
 
     if (!strcmp(token, "startpos"))
     {
         fen = strdup(StartPosFEN);
+
+        if (fen == NULL) uci_allocation_failure("FEN string");
+
         token = get_next_token(&ptr);
     }
     else if (!strcmp(token, "fen"))
     {
         fen = strdup("");
+
+        if (fen == NULL) uci_allocation_failure("FEN string");
+
         token = get_next_token(&ptr);
 
         while (token && strcmp(token, "moves"))
         {
             char *tmp = malloc(strlen(fen) + strlen(token) + 2);
+
+            if (tmp == NULL) uci_allocation_failure("FEN string");
 
             strcpy(tmp, fen);
             strcat(tmp, " ");
@@ -375,9 +373,13 @@ void uci_position(const char *args)
     else
         return;
 
-    const int result = board_from_fen(&UciBoard, fen, UciOptionFields.chess960, *hiddenList);
+    Boardstack *firstStack = malloc(sizeof(Boardstack));
 
-    if (result < 0) board_from_fen(&UciBoard, StartPosFEN, UciOptionFields.chess960, *hiddenList);
+    if (firstStack == NULL) uci_allocation_failure("board stack");
+
+    const int result = board_from_fen(&UciBoard, fen, UciOptionFields.chess960, firstStack);
+
+    if (result < 0) board_from_fen(&UciBoard, StartPosFEN, UciOptionFields.chess960, firstStack);
 
     UciBoard.worker = wpool_main_worker(&SearchWorkerPool);
     free(fen);
@@ -391,15 +393,11 @@ void uci_position(const char *args)
 
         while (token && (move = str_to_move(&UciBoard, token)) != NO_MOVE)
         {
-            Boardstack **tmp = realloc(hiddenList, sizeof(Boardstack *) * ++hiddenSize);
+            Boardstack *nextStack = malloc(sizeof(Boardstack));
 
-            if (!tmp) uci_reallocation_failure();
+            if (nextStack == NULL) uci_allocation_failure("board stack");
 
-            hiddenList = tmp;
-
-            hiddenList[hiddenSize - 1] = malloc(sizeof(Boardstack));
-
-            do_move(&UciBoard, move, hiddenList[hiddenSize - 1]);
+            do_move(&UciBoard, move, nextStack);
             token = get_next_token(&ptr);
             ++i;
         }
@@ -421,6 +419,9 @@ void uci_go(const char *args)
     list_all(&UciSearchMoves, &UciBoard);
 
     char *copy = strdup(args ? args : "");
+
+    if (copy == NULL) uci_allocation_failure("command copy");
+
     char *token = strtok(copy, Delimiters);
 
     while (token)
@@ -507,6 +508,9 @@ void uci_setoption(const char *args)
     if (!args) return;
 
     char *copy = strdup(args);
+
+    if (copy == NULL) uci_allocation_failure("command copy");
+
     char *nameToken = strstr(copy, "name");
     char *valueToken = strstr(copy, "value");
 
@@ -548,31 +552,30 @@ void uci_setoption(const char *args)
 int execute_uci_cmd(const char *command)
 {
     char *dup = strdup(command);
+
+    if (dup == NULL) uci_allocation_failure("command string");
+
     char *cmd = strtok(dup, Delimiters);
 
-    if (!cmd)
+    if (cmd == NULL)
     {
         free(dup);
         return 1;
     }
 
-    for (size_t i = 0; commands[i].commandName != NULL; ++i)
+    for (size_t i = 0; UciCommands[i].commandName != NULL; ++i)
     {
-        if (strcmp(commands[i].commandName, cmd) == 0)
+        if (strcmp(UciCommands[i].commandName, cmd) == 0)
         {
-            commands[i].call(strtok(NULL, ""));
+            UciCommands[i].call(strtok(NULL, ""));
             break;
         }
     }
 
-    if (strcmp(cmd, "quit") == 0)
-    {
-        free(dup);
-        return 0;
-    }
+    int keepLooping = !!strcmp(cmd, "quit");
 
     free(dup);
-    return 1;
+    return keepLooping;
 }
 
 void on_hash_set(void *data)

@@ -39,7 +39,7 @@ bool (*const TrySetOptionList[OPTION_TYPE_COUNT])(Option *, const char *) = {
 void option_allocation_failure(void)
 {
     perror("Unable to allocate option table");
-    exit(EXIT_FAILURE);
+    exit(ENOMEM);
 }
 
 void init_option_list(OptionList *list)
@@ -101,7 +101,7 @@ Option *insert_option(OptionList *list, const char *name)
     {
         list->maxSize += (!list->maxSize) ? 16 : list->maxSize;
         list->options = realloc(list->options, list->maxSize * sizeof(Option));
-        if (!list->options) option_allocation_failure();
+        if (list->options == NULL) option_allocation_failure();
     }
 
     // Do a binary search to find the index of our new option.
@@ -123,7 +123,7 @@ Option *insert_option(OptionList *list, const char *name)
 
     list->options[left].name = strdup(name);
 
-    if (!list->options[left].name) option_allocation_failure();
+    if (list->options[left].name == NULL) option_allocation_failure();
 
     list->size++;
 
@@ -142,7 +142,7 @@ void add_option_spin_int(
     cur->def = malloc(sizeof(long));
     cur->min = malloc(sizeof(long));
     cur->max = malloc(sizeof(long));
-    if (!cur->def || !cur->min || !cur->max) option_allocation_failure();
+    if (cur->def == NULL || cur->min == NULL || cur->max == NULL) option_allocation_failure();
 
     *(long *)cur->def = *data;
     *(long *)cur->min = min;
@@ -160,7 +160,7 @@ void add_option_spin_flt(OptionList *list, const char *name, double *data, doubl
     cur->def = malloc(sizeof(double));
     cur->min = malloc(sizeof(double));
     cur->max = malloc(sizeof(double));
-    if (!cur->def || !cur->min || !cur->max) option_allocation_failure();
+    if (cur->def == NULL || cur->min == NULL || cur->max == NULL) option_allocation_failure();
 
     *(double *)cur->def = *data;
     *(double *)cur->min = min;
@@ -178,7 +178,7 @@ void add_option_score(OptionList *list, const char *name, score_t *data, score_t
     cur->def = malloc(sizeof(score_t));
     cur->min = malloc(sizeof(score_t));
     cur->max = malloc(sizeof(score_t));
-    if (!cur->def || !cur->min || !cur->max) option_allocation_failure();
+    if (cur->def == NULL || cur->min == NULL || cur->max == NULL) option_allocation_failure();
 
     *(score_t *)cur->def = *data;
     *(score_t *)cur->min = min;
@@ -193,7 +193,7 @@ void add_option_scorepair(OptionList *list, const char *name, scorepair_t *data,
     // the "EG" suffix. Both operate on the same scorepair pointer internally.
     char *buffer = malloc(strlen(name) + 3);
 
-    if (!buffer) option_allocation_failure();
+    if (buffer == NULL) option_allocation_failure();
 
     // Start by initializing the middlegame option.
     strcpy(buffer, name);
@@ -207,7 +207,7 @@ void add_option_scorepair(OptionList *list, const char *name, scorepair_t *data,
     cur->def = malloc(sizeof(score_t));
     cur->min = malloc(sizeof(score_t));
     cur->max = malloc(sizeof(score_t));
-    if (!cur->def || !cur->min || !cur->max) option_allocation_failure();
+    if (cur->def == NULL || cur->min == NULL || cur->max == NULL) option_allocation_failure();
 
     *(score_t *)cur->def = midgame_score(*data);
     *(score_t *)cur->min = midgame_score(min);
@@ -224,7 +224,7 @@ void add_option_scorepair(OptionList *list, const char *name, scorepair_t *data,
     cur->def = malloc(sizeof(score_t));
     cur->min = malloc(sizeof(score_t));
     cur->max = malloc(sizeof(score_t));
-    if (!cur->def || !cur->min || !cur->max) option_allocation_failure();
+    if (cur->def == NULL || cur->min == NULL || cur->max == NULL) option_allocation_failure();
 
     *(score_t *)cur->def = endgame_score(*data);
     *(score_t *)cur->min = endgame_score(min);
@@ -240,7 +240,7 @@ void add_option_check(OptionList *list, const char *name, bool *data, void (*cal
     cur->data = data;
     cur->callback = callback;
     cur->def = malloc(sizeof(bool));
-    if (!cur->def) option_allocation_failure();
+    if (cur->def == NULL) option_allocation_failure();
     *(bool *)cur->def = *data;
 }
 
@@ -254,19 +254,19 @@ void add_option_combo(OptionList *list, const char *name, char **data, const cha
     cur->callback = callback;
     cur->def = strdup(*data ? *data : "");
 
-    if (!cur->def) option_allocation_failure();
+    if (cur->def == NULL) option_allocation_failure();
 
     size_t length;
     for (length = 0; comboList[length]; ++length)
         ;
 
     cur->comboList = malloc(sizeof(char *) * (length + 1));
-    if (!cur->comboList) option_allocation_failure();
+    if (cur->comboList == NULL) option_allocation_failure();
 
     for (size_t i = 0; i < length; ++i)
     {
         cur->comboList[i] = strdup(comboList[i]);
-        if (!cur->comboList[i]) option_allocation_failure();
+        if (cur->comboList[i] == NULL) option_allocation_failure();
     }
     cur->comboList[length] = NULL;
 }
@@ -288,7 +288,7 @@ void add_option_string(OptionList *list, const char *name, char **data, void (*c
     cur->callback = callback;
     cur->def = strdup(*data ? *data : "");
 
-    if (!cur->def) option_allocation_failure();
+    if (cur->def == NULL) option_allocation_failure();
 }
 
 bool try_set_option_spin_int(Option *option, const char *value)
