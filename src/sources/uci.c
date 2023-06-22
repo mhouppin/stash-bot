@@ -31,7 +31,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define UCI_VERSION "v34.14"
+#define UCI_VERSION "v34.15"
 
 // clang-format off
 
@@ -330,8 +330,6 @@ void uci_position(const char *args)
 {
     const char *StartPosFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-    free_boardstack(UciBoard.stack);
-
     char *copy = strdup(args);
 
     if (copy == NULL) uci_allocation_failure("command copy");
@@ -371,7 +369,12 @@ void uci_position(const char *args)
         }
     }
     else
+    {
+        free(copy);
         return;
+    }
+
+    free_boardstack(UciBoard.stack);
 
     Boardstack *firstStack = malloc(sizeof(Boardstack));
 
