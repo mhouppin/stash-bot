@@ -28,14 +28,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int Reductions[64][64];
+// Global for Late Move Reductions
+int Reductions[2][64][64];
+
+// Global for Late Move Pruning
 int Pruning[2][7];
 
 void init_search_tables(void)
 {
     // Compute the LMR base values based on depth and movecount.
     for (int d = 1; d < 64; ++d)
-        for (int m = 1; m < 64; ++m) Reductions[d][m] = -1.34 + log(d) * log(m) / 1.26;
+        for (int m = 1; m < 64; ++m)
+        {
+            Reductions[0][d][m] = -1.43 + log(d) * log(m) / 1.46;
+            Reductions[1][d][m] = -1.32 + log(d) * log(m) / 1.14;
+        }
 
     // Compute the LMP movecount values based on depth.
     for (int d = 1; d < 7; ++d)
@@ -605,12 +612,12 @@ __main_loop:
         // to produce cutoffs in standard searches.
         if (depth >= 3 && moveCount > 2 + 2 * pvNode)
         {
+            // Set the base depth reduction value based on depth and
+            // movecount.
+            R = Reductions[isQuiet][imin(depth, 63)][imin(moveCount, 63)];
+
             if (isQuiet)
             {
-                // Set the base depth reduction value based on depth and
-                // movecount.
-                R = Reductions[imin(depth, 63)][imin(moveCount, 63)];
-
                 // Increase the reduction for non-PV nodes.
                 R += !pvNode;
 
@@ -622,13 +629,11 @@ __main_loop:
 
                 // Increase/decrease the reduction based on the move's history.
                 R -= histScore / 4000;
-
-                // Clamp the reduction so that we don't extend the move or drop
-                // immediately into qsearch.
-                R = iclamp(R, 0, newDepth - 1);
             }
-            else
-                R = 1;
+
+            // Clamp the reduction so that we don't extend the move or drop
+            // immediately into qsearch.
+            R = iclamp(R, 0, newDepth - 1);
         }
         else
             R = 0;
