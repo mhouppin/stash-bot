@@ -575,13 +575,15 @@ __main_loop:
 
                 // Our singular search failed to produce a cutoff, extend the TT
                 // move.
-                if (singularScore < singularBeta) {
-                    if (!pvNode && singularBeta - singularScore > 24 && ss->doubleExtensions <= 5) {
+                if (singularScore < singularBeta)
+                {
+                    if (!pvNode && singularBeta - singularScore > 24 && ss->doubleExtensions <= 5)
+                    {
                         extension = 2;
                         ss->doubleExtensions++;
-                    } else {
-                        extension = 1;
                     }
+                    else
+                        extension = 1;
                 }
 
                 // Multicut Pruning. If our singular search produced a cutoff,
