@@ -397,6 +397,7 @@ score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack
     }
 
     (ss + 2)->killers[0] = (ss + 2)->killers[1] = NO_MOVE;
+    ss->doubleExtensions = (ss - 1)->doubleExtensions;
 
     // Don't perform early pruning or compute the eval while in check.
     if (inCheck)
@@ -575,10 +576,12 @@ __main_loop:
                 // Our singular search failed to produce a cutoff, extend the TT
                 // move.
                 if (singularScore < singularBeta) {
-                    if (!pvNode && singularBeta - singularScore > 24)
+                    if (!pvNode && singularBeta - singularScore > 24 && ss->doubleExtensions <= 5) {
                         extension = 2;
-                    else
+                        ss->doubleExtensions++;
+                    } else {
                         extension = 1;
+                    }
                 }
 
                 // Multicut Pruning. If our singular search produced a cutoff,
