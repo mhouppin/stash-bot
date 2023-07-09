@@ -52,6 +52,19 @@ void init_searchstack(Searchstack *ss)
     for (int i = 0; i < 256; ++i) (ss + i)->plies = i - 2;
 }
 
+int get_history_score(const Board *board, const worker_t *worker, const Searchstack *ss, move_t move)
+{
+    const piece_t movedPiece = piece_on(board, from_sq(move));
+    int history = get_bf_history_score(worker->bfHistory, movedPiece, move);
+
+    if ((ss - 1)->pieceHistory != NULL)
+        history += get_pc_history_score(*(ss - 1)->pieceHistory, movedPiece, to_sq(move));
+    if ((ss - 2)->pieceHistory != NULL)
+        history += get_pc_history_score(*(ss - 2)->pieceHistory, movedPiece, to_sq(move));
+
+    return history;
+}
+
 uint64_t perft(Board *board, unsigned int depth)
 {
     if (depth == 0) return 1;
@@ -550,9 +563,7 @@ __main_loop:
         int extension = 0;
         int newDepth = depth - 1;
         bool givesCheck = move_gives_check(board, currmove);
-        int histScore = isQuiet ? get_bf_history_score(
-                            worker->bfHistory, piece_on(board, from_sq(currmove)), currmove)
-                                : 0;
+        int histScore = isQuiet ? get_history_score(board, worker, ss, currmove) : 0;
 
         if (!rootNode)
         {
@@ -631,7 +642,7 @@ __main_loop:
                 R -= !see_greater_than(board, reverse_move(currmove), 0);
 
                 // Increase/decrease the reduction based on the move's history.
-                R -= histScore / 4000;
+                R -= iclamp(histScore / 6000, -3, 3);
 
                 // Clamp the reduction so that we don't extend the move or drop
                 // immediately into qsearch.
