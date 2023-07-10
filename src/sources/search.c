@@ -622,11 +622,13 @@ __main_loop:
         do_move_gc(board, currmove, &stack, givesCheck);
         atomic_fetch_add_explicit(&get_worker(board)->nodes, 1, memory_order_relaxed);
 
+        const bool do_lmr = depth >= 3 && moveCount > 2 + 2 * pvNode;
+
         // Late Move Reductions. For nodes not too close to qsearch (since
         // we can't reduce their search depth), we start reducing moves after
         // a certain movecount has been reached, as we consider them less likely
         // to produce cutoffs in standard searches.
-        if (depth >= 3 && moveCount > 2 + 2 * pvNode)
+        if (do_lmr)
         {
             if (isQuiet)
             {
@@ -659,11 +661,11 @@ __main_loop:
         else
             R = 0;
 
-        if (R) score = -search(false, board, newDepth - R, -alpha - 1, -alpha, ss + 1, true);
+        if (do_lmr) score = -search(false, board, newDepth - R, -alpha - 1, -alpha, ss + 1, true);
 
         // If LMR is not possible, or our LMR failed, do a search with no
         // reductions.
-        if ((R && score > alpha) || (!R && !(pvNode && moveCount == 1)))
+        if ((R && score > alpha) || (!do_lmr && !(pvNode && moveCount == 1)))
         {
             score =
                 -search(false, board, newDepth + extension, -alpha - 1, -alpha, ss + 1, !cutNode);
