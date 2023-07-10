@@ -239,7 +239,7 @@ void worker_search(worker_t *worker)
             }
 
 __retry:
-            search(board, depth + 1, alpha, beta, &sstack[2], true);
+            search(true, board, depth + 1, alpha, beta, &sstack[2]);
 
             // Catch search aborting.
             hasSearchAborted = SearchWorkerPool.stop;
@@ -335,7 +335,7 @@ __retry:
     }
 }
 
-score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack *ss, bool pvNode)
+score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta, Searchstack *ss)
 {
     bool rootNode = (ss->plies == 0);
     worker_t *worker = get_worker(board);
@@ -348,7 +348,7 @@ score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack
     }
 
     // Drop into qsearch if the depth isn't strictly positive.
-    if (depth <= 0) return qsearch(board, alpha, beta, ss, pvNode);
+    if (depth <= 0) return qsearch(pvNode, board, alpha, beta, ss);
 
     Movepicker mp;
     move_t pv[256];
@@ -441,7 +441,7 @@ score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack
     // Razoring. If our static eval isn't good, and depth is low, it is likely
     // that only a capture will save us at this stage. Drop into qsearch.
     if (!pvNode && depth == 1 && ss->staticEval + 150 <= alpha)
-        return qsearch(board, alpha, beta, ss, false);
+        return qsearch(false, board, alpha, beta, ss);
 
     improving = ss->plies >= 2 && ss->staticEval > (ss - 2)->staticEval;
 
@@ -470,7 +470,7 @@ score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack
         atomic_fetch_add_explicit(&get_worker(board)->nodes, 1, memory_order_relaxed);
 
         // Perform the reduced search.
-        score_t score = -search(board, depth - R, -beta, -beta + 1, ss + 1, false);
+        score_t score = -search(false, board, depth - R, -beta, -beta + 1, ss + 1);
         undo_null_move(board);
 
         if (score >= beta)
@@ -489,7 +489,7 @@ score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack
             // not be in a zugzwang situation, and return the previous reduced
             // search score.
             worker->verifPlies = ss->plies + (depth - R) * 3 / 4;
-            score_t zzscore = search(board, depth - R, beta - 1, beta, ss, false);
+            score_t zzscore = search(false, board, depth - R, beta - 1, beta, ss);
             worker->verifPlies = 0;
 
             if (zzscore >= beta) return score;
@@ -581,7 +581,7 @@ __main_loop:
                 // Exclude the TT move from the singular search.
                 ss->excludedMove = ttMove;
                 score_t singularScore =
-                    search(board, singularDepth, singularBeta - 1, singularBeta, ss, false);
+                    search(false, board, singularDepth, singularBeta - 1, singularBeta, ss);
                 ss->excludedMove = NO_MOVE;
 
                 // Our singular search failed to produce a cutoff, extend the TT
@@ -654,13 +654,13 @@ __main_loop:
         else
             R = 0;
 
-        if (R) score = -search(board, newDepth - R, -alpha - 1, -alpha, ss + 1, false);
+        if (R) score = -search(false, board, newDepth - R, -alpha - 1, -alpha, ss + 1);
 
         // If LMR is not possible, or our LMR failed, do a search with no
         // reductions.
         if ((R && score > alpha) || (!R && !(pvNode && moveCount == 1)))
         {
-            score = -search(board, newDepth + extension, -alpha - 1, -alpha, ss + 1, false);
+            score = -search(false, board, newDepth + extension, -alpha - 1, -alpha, ss + 1);
 
             // Update continuation histories for post-LMR searches.
             if (R) update_cont_histories(ss, depth, movedPiece, to_sq(currmove), score > alpha);
@@ -672,7 +672,7 @@ __main_loop:
         {
             (ss + 1)->pv = pv;
             pv[0] = NO_MOVE;
-            score = -search(board, newDepth + extension, -beta, -alpha, ss + 1, true);
+            score = -search(true, board, newDepth + extension, -beta, -alpha, ss + 1);
         }
 
         undo_move(board, currmove);
@@ -752,7 +752,7 @@ __main_loop:
     return bestScore;
 }
 
-score_t qsearch(Board *board, score_t alpha, score_t beta, Searchstack *ss, bool pvNode)
+score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchstack *ss)
 {
     worker_t *worker = get_worker(board);
     const score_t oldAlpha = alpha;
@@ -875,7 +875,7 @@ score_t qsearch(Board *board, score_t alpha, score_t beta, Searchstack *ss, bool
         do_move_gc(board, currmove, &stack, givesCheck);
         atomic_fetch_add_explicit(&get_worker(board)->nodes, 1, memory_order_relaxed);
 
-        score_t score = -qsearch(board, -beta, -alpha, ss + 1, pvNode);
+        score_t score = -qsearch(pvNode, board, -beta, -alpha, ss + 1);
         undo_move(board, currmove);
 
         // Check for search abortion here.
