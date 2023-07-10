@@ -52,7 +52,8 @@ void init_searchstack(Searchstack *ss)
     for (int i = 0; i < 256; ++i) (ss + i)->plies = i - 2;
 }
 
-int get_history_score(const Board *board, const worker_t *worker, const Searchstack *ss, move_t move)
+int get_history_score(
+    const Board *board, const worker_t *worker, const Searchstack *ss, move_t move)
 {
     const piece_t movedPiece = piece_on(board, from_sq(move));
     int history = get_bf_history_score(worker->bfHistory, movedPiece, move);
@@ -335,7 +336,8 @@ __retry:
     }
 }
 
-score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta, Searchstack *ss, bool cutNode)
+score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta, Searchstack *ss,
+    bool cutNode)
 {
     bool rootNode = (ss->plies == 0);
     worker_t *worker = get_worker(board);
@@ -580,8 +582,8 @@ __main_loop:
 
                 // Exclude the TT move from the singular search.
                 ss->excludedMove = ttMove;
-                score_t singularScore =
-                    search(false, board, singularDepth, singularBeta - 1, singularBeta, ss, cutNode);
+                score_t singularScore = search(
+                    false, board, singularDepth, singularBeta - 1, singularBeta, ss, cutNode);
                 ss->excludedMove = NO_MOVE;
 
                 // Our singular search failed to produce a cutoff, extend the TT
@@ -663,7 +665,8 @@ __main_loop:
         // reductions.
         if ((R && score > alpha) || (!R && !(pvNode && moveCount == 1)))
         {
-            score = -search(false, board, newDepth + extension, -alpha - 1, -alpha, ss + 1, !cutNode);
+            score =
+                -search(false, board, newDepth + extension, -alpha - 1, -alpha, ss + 1, !cutNode);
 
             // Update continuation histories for post-LMR searches.
             if (R) update_cont_histories(ss, depth, movedPiece, to_sq(currmove), score > alpha);
