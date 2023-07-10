@@ -64,6 +64,6 @@ void update_capture_history(const Board *board, int depth, move_t bestmove,
 score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchstack *ss);
 
 // Standard search.
-score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta, Searchstack *ss);
+score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta, Searchstack *ss, bool cutNode);
 
 #endif

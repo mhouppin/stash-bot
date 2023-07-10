@@ -239,7 +239,7 @@ void worker_search(worker_t *worker)
             }
 
 __retry:
-            search(true, board, depth + 1, alpha, beta, &sstack[2]);
+            search(true, board, depth + 1, alpha, beta, &sstack[2], false);
 
             // Catch search aborting.
             hasSearchAborted = SearchWorkerPool.stop;
@@ -335,7 +335,7 @@ __retry:
     }
 }
 
-score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta, Searchstack *ss)
+score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta, Searchstack *ss, bool cutNode)
 {
     bool rootNode = (ss->plies == 0);
     worker_t *worker = get_worker(board);
@@ -470,7 +470,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
         atomic_fetch_add_explicit(&get_worker(board)->nodes, 1, memory_order_relaxed);
 
         // Perform the reduced search.
-        score_t score = -search(false, board, depth - R, -beta, -beta + 1, ss + 1);
+        score_t score = -search(false, board, depth - R, -beta, -beta + 1, ss + 1, !cutNode);
         undo_null_move(board);
 
         if (score >= beta)
@@ -489,7 +489,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
             // not be in a zugzwang situation, and return the previous reduced
             // search score.
             worker->verifPlies = ss->plies + (depth - R) * 3 / 4;
-            score_t zzscore = search(false, board, depth - R, beta - 1, beta, ss);
+            score_t zzscore = search(false, board, depth - R, beta - 1, beta, ss, false);
             worker->verifPlies = 0;
 
             if (zzscore >= beta) return score;
@@ -581,7 +581,7 @@ __main_loop:
                 // Exclude the TT move from the singular search.
                 ss->excludedMove = ttMove;
                 score_t singularScore =
-                    search(false, board, singularDepth, singularBeta - 1, singularBeta, ss);
+                    search(false, board, singularDepth, singularBeta - 1, singularBeta, ss, cutNode);
                 ss->excludedMove = NO_MOVE;
 
                 // Our singular search failed to produce a cutoff, extend the TT
@@ -654,13 +654,13 @@ __main_loop:
         else
             R = 0;
 
-        if (R) score = -search(false, board, newDepth - R, -alpha - 1, -alpha, ss + 1);
+        if (R) score = -search(false, board, newDepth - R, -alpha - 1, -alpha, ss + 1, true);
 
         // If LMR is not possible, or our LMR failed, do a search with no
         // reductions.
         if ((R && score > alpha) || (!R && !(pvNode && moveCount == 1)))
         {
-            score = -search(false, board, newDepth + extension, -alpha - 1, -alpha, ss + 1);
+            score = -search(false, board, newDepth + extension, -alpha - 1, -alpha, ss + 1, !cutNode);
 
             // Update continuation histories for post-LMR searches.
             if (R) update_cont_histories(ss, depth, movedPiece, to_sq(currmove), score > alpha);
@@ -672,7 +672,7 @@ __main_loop:
         {
             (ss + 1)->pv = pv;
             pv[0] = NO_MOVE;
-            score = -search(true, board, newDepth + extension, -beta, -alpha, ss + 1);
+            score = -search(true, board, newDepth + extension, -beta, -alpha, ss + 1, false);
         }
 
         undo_move(board, currmove);
