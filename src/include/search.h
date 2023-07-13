@@ -61,9 +61,9 @@ void update_capture_history(const Board *board, int depth, move_t bestmove,
     const move_t captures[64], int ccount, Searchstack *ss);
 
 // Quiescence search.
-score_t qsearch(Board *board, score_t alpha, score_t beta, Searchstack *ss, bool pvNode);
+score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchstack *ss);
 
 // Standard search.
-score_t search(Board *board, int depth, score_t alpha, score_t beta, Searchstack *ss, bool pvNode);
+score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta, Searchstack *ss, bool cutNode);
 
 #endif
