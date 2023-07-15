@@ -35,7 +35,7 @@ void init_search_tables(void)
 {
     // Compute the LMR base values based on depth and movecount.
     for (int d = 1; d < 64; ++d)
-        for (int m = 1; m < 64; ++m) Reductions[d][m] = -1.34 + log(d) * log(m) / 1.26;
+        for (int m = 1; m < 64; ++m) Reductions[d][m] = -0.84 + log(d) * log(m) / 1.46;
 
     // Compute the LMP movecount values based on depth.
     for (int d = 1; d < 7; ++d)
