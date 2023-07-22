@@ -52,18 +52,25 @@ void init_searchstack(Searchstack *ss)
     for (int i = 0; i < 256; ++i) (ss + i)->plies = i - 2;
 }
 
+int get_conthist_score(const Searchstack *ss, piece_t movedPiece, move_t move)
+{
+    int conthist = 0;
+
+    if ((ss - 1)->pieceHistory != NULL)
+        conthist += get_pc_history_score(*(ss - 1)->pieceHistory, movedPiece, to_sq(move));
+    if ((ss - 2)->pieceHistory != NULL)
+        conthist += get_pc_history_score(*(ss - 2)->pieceHistory, movedPiece, to_sq(move));
+
+    return conthist;
+}
+
 int get_history_score(
     const Board *board, const worker_t *worker, const Searchstack *ss, move_t move)
 {
     const piece_t movedPiece = piece_on(board, from_sq(move));
-    int history = get_bf_history_score(worker->bfHistory, movedPiece, move);
 
-    if ((ss - 1)->pieceHistory != NULL)
-        history += get_pc_history_score(*(ss - 1)->pieceHistory, movedPiece, to_sq(move));
-    if ((ss - 2)->pieceHistory != NULL)
-        history += get_pc_history_score(*(ss - 2)->pieceHistory, movedPiece, to_sq(move));
-
-    return history;
+    return get_bf_history_score(worker->bfHistory, movedPiece, move)
+           + get_conthist_score(ss, movedPiece, move);
 }
 
 uint64_t perft(Board *board, unsigned int depth)
@@ -542,6 +549,13 @@ __main_loop:
             // the eval suggests that only captures will save the day.
             if (depth <= 6 && !inCheck && isQuiet && eval + 217 + 71 * depth <= alpha)
                 skipQuiets = true;
+
+            // Continuation History Pruning. If the move seems to be a bad reply
+            // or continuation to previously played moves, prune it.
+            if (depth <= 5
+                && get_conthist_score(ss, piece_on(board, from_sq(currmove)), currmove)
+                       < -2000 * depth)
+                continue;
 
             // SEE Pruning. For low-depth nodes, don't search moves which seem
             // to lose too much material to be interesting.
