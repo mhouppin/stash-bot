@@ -663,12 +663,14 @@ __main_loop:
 
         if (do_lmr) score = -search(false, board, newDepth - R, -alpha - 1, -alpha, ss + 1, true);
 
+        newDepth += extension;
+
         // If LMR is not possible, or our LMR failed, do a search with no
         // reductions.
         if ((R && score > alpha) || (!do_lmr && !(pvNode && moveCount == 1)))
         {
             score =
-                -search(false, board, newDepth + extension, -alpha - 1, -alpha, ss + 1, !cutNode);
+                -search(false, board, newDepth, -alpha - 1, -alpha, ss + 1, !cutNode);
 
             // Update continuation histories for post-LMR searches.
             if (R) update_cont_histories(ss, depth, movedPiece, to_sq(currmove), score > alpha);
@@ -680,7 +682,7 @@ __main_loop:
         {
             (ss + 1)->pv = pv;
             pv[0] = NO_MOVE;
-            score = -search(true, board, newDepth + extension, -beta, -alpha, ss + 1, false);
+            score = -search(true, board, newDepth, -beta, -alpha, ss + 1, false);
         }
 
         undo_move(board, currmove);
