@@ -58,6 +58,7 @@ ExtendedMove *generate_piece_moves(
 {
     bitboard_t bb = piece_bb(board, us, pt);
     bitboard_t occupancy = occupancy_bb(board);
+    bitboard_t pinned = board->stack->kingBlockers[us];
 
     // Iterate through all pieces of the same type and color, and push the moves
     // for which the arrival square mask intersects the targeted bitboard.
@@ -65,6 +66,9 @@ ExtendedMove *generate_piece_moves(
     {
         square_t from = bb_pop_first_sq(&bb);
         bitboard_t b = piece_moves(pt, from, occupancy) & target;
+
+        if (square_bb(from) & pinned)
+            b &= LineBB[from][get_king_square(board, us)];
 
         while (b) (movelist++)->move = create_move(from, bb_pop_first_sq(&b));
     }
@@ -449,7 +453,8 @@ ExtendedMove *generate_all(ExtendedMove *movelist, const Board *board)
     // legality.
     while (current < movelist)
     {
-        if ((pinned || from_sq(current->move) == kingSquare
+        if (((pinned && piecetype_bb(board, PAWN) & square_bb(from_sq(current->move)))
+                || from_sq(current->move) == kingSquare
                 || move_type(current->move) == EN_PASSANT)
             && !move_is_legal(board, current->move))
             current->move = (--movelist)->move;
