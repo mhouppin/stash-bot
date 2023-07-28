@@ -287,9 +287,9 @@ static int board_parse_castling(Board *board, const char *fen)
         }
 
         square_t rookSquare;
-        const color_t side = islower(fen[i]) ? BLACK : WHITE;
+        const color_t side = islower((unsigned char)fen[i]) ? BLACK : WHITE;
         const piece_t rook = create_piece(side, ROOK);
-        const char castlingChar = toupper(fen[i]);
+        const char castlingChar = toupper((unsigned char)fen[i]);
 
         // Compute the rook square based on the parsed character.
         if (castlingChar == 'K')
@@ -340,7 +340,7 @@ static int board_parse_en_passant(Board *board, const char *fen)
     else if (nextSection <= 1)
         return nextSection;
 
-    const char fileChar = tolower(fen[0]);
+    const char fileChar = fen[0];
     const char rankChar = fen[1];
 
     // Check that the en-passant square is correctly formatted and valid for the side to move.

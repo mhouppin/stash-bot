@@ -31,7 +31,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define UCI_VERSION "v34.21"
+#define UCI_VERSION "v34.22"
 
 // clang-format off
 
@@ -71,13 +71,13 @@ __attribute__((noreturn)) static void uci_allocation_failure(const char *str)
 // on MinGW.
 char *get_next_token(char **str)
 {
-    while (isspace(**str) && **str != '\0') ++(*str);
+    while (isspace((unsigned char)**str) && **str != '\0') ++(*str);
 
     if (**str == '\0') return NULL;
 
     char *retval = *str;
 
-    while (!isspace(**str) && **str != '\0') ++(*str);
+    while (!isspace((unsigned char)**str) && **str != '\0') ++(*str);
 
     if (**str == '\0') return retval;
 
