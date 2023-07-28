@@ -21,9 +21,10 @@ SOURCES := $(wildcard sources/*.c)
 OBJECTS := $(SOURCES:%.c=%.o)
 DEPENDS := $(SOURCES:%.c=%.d)
 native = no
+optimise = yes
 
-CFLAGS += -Wall -Wextra -Wcast-qual -Wshadow -Werror -O3 -flto
-CPPFLAGS += -MMD -I include
+CFLAGS += -Wall -Wextra -Wcast-qual -Wshadow -Werror
+CPPFLAGS += $(ADDITIONAL_CFLAGS) -MMD -I include
 LDFLAGS += -lpthread -lm
 
 # If no arch is specified, we select a prefetch+popcnt build by default.
@@ -70,6 +71,11 @@ endif
 
 ifeq ($(native),yes)
     CFLAGS += -march=native
+endif
+
+# Optimise build with O3 and LTO if optimisation option is enabled
+ifeq ($(optimise),yes)
+    CFLAGS += -O3 -flto
 endif
 
 all: $(EXE)
