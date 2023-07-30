@@ -457,7 +457,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
     // non-Pawn material on the board, we try to see what happens if we skip our
     // turn. If the resulting reduced search still beats beta, we assume our
     // position is so good that we cannot get under beta at this point.
-    if (!pvNode && depth >= 3 && ss->plies >= worker->verifPlies && !ss->excludedMove
+    if (!pvNode && ss->plies >= worker->verifPlies && !ss->excludedMove
         && eval >= beta && eval >= ss->staticEval && board->stack->material[board->sideToMove])
     {
         Boardstack stack;
