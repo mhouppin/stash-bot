@@ -90,7 +90,7 @@ int tt_hashfull(void)
 
     for (int i = 0; i < 1000; ++i)
         for (int j = 0; j < ClusterSize; ++j)
-            count += (SearchTT.table[i].clEntry[j].genbound & 0xFC) == SearchTT.generation;
+            count += (SearchTT.table[i].clEntry[j].genbound & 0xF8) == SearchTT.generation;
 
     return count / ClusterSize;
 }
@@ -123,7 +123,7 @@ TT_Entry *tt_probe(hashkey_t key, bool *found)
         if (!entry[i].key || entry[i].key == key)
         {
             // Refresh the generation counter to prevent it from being cleared.
-            entry[i].genbound = (uint8_t)(SearchTT.generation | (entry[i].genbound & 0x3));
+            entry[i].genbound = (uint8_t)(SearchTT.generation | (entry[i].genbound & 0x7));
             *found = (bool)entry[i].key;
             return entry + i;
         }
@@ -132,15 +132,15 @@ TT_Entry *tt_probe(hashkey_t key, bool *found)
 
     // Find the slot with the minimal (depth + generation * 4) score.
     for (int i = 1; i < ClusterSize; ++i)
-        if (replace->depth - ((259 + SearchTT.generation - replace->genbound) & 0xFC)
-            > entry[i].depth - ((259 + SearchTT.generation - entry[i].genbound) & 0xFC))
+        if (replace->depth - ((263 + SearchTT.generation - replace->genbound) & 0xF8)
+            > entry[i].depth - ((263 + SearchTT.generation - entry[i].genbound) & 0xF8))
             replace = entry + i;
 
     *found = false;
     return replace;
 }
 
-void tt_save(TT_Entry *entry, hashkey_t k, score_t s, score_t e, int d, int b, move_t m)
+void tt_save(TT_Entry *entry, hashkey_t k, score_t s, score_t e, int d, int b, move_t m, bool pv)
 {
     if (m || k != entry->key) entry->bestmove = (uint16_t)m;
 
@@ -150,7 +150,7 @@ void tt_save(TT_Entry *entry, hashkey_t k, score_t s, score_t e, int d, int b, m
         entry->key = k;
         entry->score = s;
         entry->eval = e;
-        entry->genbound = SearchTT.generation | (uint8_t)b;
+        entry->genbound = SearchTT.generation | (uint8_t)b | (0x4u * pv);
         entry->depth = d;
     }
 }

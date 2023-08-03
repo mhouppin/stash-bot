@@ -435,7 +435,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
         eval = ss->staticEval = evaluate(board);
 
         // Save the eval in TT so that other workers won't have to recompute it.
-        tt_save(entry, key, NO_SCORE, eval, 0, NO_BOUND, NO_MOVE);
+        tt_save(entry, key, NO_SCORE, eval, 0, NO_BOUND, NO_MOVE, pvNode);
     }
 
     if (rootNode && worker->pvLine) ttMove = worker->rootMoves[worker->pvLine].move;
@@ -756,7 +756,7 @@ __main_loop:
                                            : UPPER_BOUND;
 
         tt_save(
-            entry, key, score_to_tt(bestScore, ss->plies), ss->staticEval, depth, bound, bestmove);
+            entry, key, score_to_tt(bestScore, ss->plies), ss->staticEval, depth, bound, bestmove, pvNode);
     }
 
     return bestScore;
@@ -920,7 +920,7 @@ score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchst
                                           : EXACT_BOUND;
 
     tt_save(
-        entry, board->stack->boardKey, score_to_tt(bestScore, ss->plies), eval, 0, bound, bestmove);
+        entry, board->stack->boardKey, score_to_tt(bestScore, ss->plies), eval, 0, bound, bestmove, pvNode);
 
     return bestScore;
 }

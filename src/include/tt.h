@@ -63,7 +63,7 @@ INLINED TT_Entry *tt_entry_at(hashkey_t k)
 }
 
 // Updates the TT generation.
-INLINED void tt_clear(void) { SearchTT.generation += 4; }
+INLINED void tt_clear(void) { SearchTT.generation += 8; }
 
 // Converts a score to a TT score.
 INLINED score_t score_to_tt(score_t s, int plies)
@@ -84,7 +84,7 @@ void tt_bzero(size_t threadCount);
 TT_Entry *tt_probe(hashkey_t key, bool *found);
 
 // Saves the given entry in the TT.
-void tt_save(TT_Entry *entry, hashkey_t k, score_t s, score_t e, int d, int b, move_t m);
+void tt_save(TT_Entry *entry, hashkey_t k, score_t s, score_t e, int d, int b, move_t m, bool pv);
 
 // Returns the filling rate of the TT (per mil).
 int tt_hashfull(void);
