@@ -833,7 +833,12 @@ score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchst
         // Stand Pat. If not playing a capture is better because of better quiet
         // moves, allow for a simple eval return.
         alpha = imax(alpha, bestScore);
-        if (alpha >= beta) return alpha;
+        if (alpha >= beta) 
+        {
+            // Save the eval in TT so that other workers won't have to recompute it.
+            if (!found) tt_save(entry, board->stack->boardKey, score_to_tt(bestScore, ss->plies), eval, 0, LOWER_BOUND, NO_MOVE);
+            return alpha;
+        }
     }
 
     move_t ttMove = entry->bestmove;
