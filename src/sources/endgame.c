@@ -261,6 +261,8 @@ score_t eval_kbpsk(const Board *board, color_t winningSide)
     bitboard_t winningPawns = piecetype_bb(board, PAWN);
     bitboard_t wrongFile = (square_bb(winningBsq) & DARK_SQUARES) ? FILE_A_BB : FILE_H_BB;
 
+    if (board->sideToMove == BLACK) score = -score;
+
     // Check for a wrong-colored bishop situation.
     if ((winningPawns & wrongFile) == winningPawns)
     {
@@ -274,7 +276,7 @@ score_t eval_kbpsk(const Board *board, color_t winningSide)
         return score * (queeningDistance - 1) / queeningDistance;
     }
 
-    return board->sideToMove == WHITE ? score : -score;
+    return score;
 }
 
 score_t eval_kpsk(const Board *board, color_t winningSide)
