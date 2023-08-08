@@ -311,7 +311,7 @@ bool init_tuner_entry(tune_entry_t *entry, const Board *board)
     entry->eval = Trace.eval;
     entry->safety[WHITE] = Trace.safety[WHITE];
     entry->safety[BLACK] = Trace.safety[BLACK];
-    entry->scaleFactor = Trace.scaleFactor / 128.0;
+    entry->scaleFactor = Trace.scaleFactor / 256.0;
     entry->sideToMove = board->sideToMove;
     return true;
 }
