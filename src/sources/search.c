@@ -226,7 +226,7 @@ void worker_search(worker_t *worker)
 
             // Don't set aspiration window bounds for low depths, as the scores are
             // very volatile.
-            if (iterDepth <= 9)
+            if (iterDepth <= 7)
             {
                 delta = 0;
                 alpha = -INF_SCORE;
@@ -234,7 +234,7 @@ void worker_search(worker_t *worker)
             }
             else
             {
-                delta = 15;
+                delta = 12 + pvScore * pvScore / 16384;
                 alpha = imax(-INF_SCORE, pvScore - delta);
                 beta = imin(INF_SCORE, pvScore + delta);
             }
