@@ -261,7 +261,7 @@ score_t scale_endgame(const Board *board, const PawnEntry *pe, score_t eg)
     if (!strongPawns && strongMat - weakMat <= BISHOP_MG_SCORE)
         factor = (strongMat <= BISHOP_MG_SCORE)
                      ? 0
-                     : imax((int32_t)(strongMat - weakMat) * 16 / BISHOP_MG_SCORE / 2, 0);
+                     : imax((int32_t)(strongMat - weakMat) * 8 / BISHOP_MG_SCORE, 0);
 
     // OCB endgames: scale based on the number of remaining pieces of the strong side,
     // or if there are no other remaining pieces, based on the number of passed pawns.
