@@ -35,9 +35,6 @@ typedef struct _Searchstack
     piece_history_t *pieceHistory;
 } Searchstack;
 
-// Global for Late Move Reductions
-extern int Reductions[64][64];
-
 // Global for Late Move Pruning
 extern int Pruning[2][7];
 

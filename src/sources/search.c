@@ -28,14 +28,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int Reductions[64][64];
+static int Reductions[256];
 int Pruning[2][7];
 
 void init_search_tables(void)
 {
-    // Compute the LMR base values based on depth and movecount.
-    for (int d = 1; d < 64; ++d)
-        for (int m = 1; m < 64; ++m) Reductions[d][m] = -0.84 + log(d) * log(m) / 1.46;
+    // Compute the LMR base values.
+    for (int i = 1; i < 256; ++i)
+        Reductions[i] = (int)(log(i) * 26.5);
 
     // Compute the LMP movecount values based on depth.
     for (int d = 1; d < 7; ++d)
@@ -43,6 +43,11 @@ void init_search_tables(void)
         Pruning[1][d] = +3.17 + 3.66 * pow(d, 1.09);
         Pruning[0][d] = -1.25 + 3.13 * pow(d, 0.65);
     }
+}
+
+int lmr_base_value(int depth, int movecount)
+{
+    return (-860 + Reductions[depth] * Reductions[movecount]) / 1024;
 }
 
 void init_searchstack(Searchstack *ss)
@@ -634,7 +639,7 @@ __main_loop:
             {
                 // Set the base depth reduction value based on depth and
                 // movecount.
-                R = Reductions[imin(depth, 63)][imin(moveCount, 63)];
+                R = lmr_base_value(depth, moveCount);
 
                 // Increase the reduction for non-PV nodes.
                 R += !pvNode;
