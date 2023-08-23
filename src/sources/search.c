@@ -28,14 +28,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static int Reductions[256];
+static double Reductions[256];
 int Pruning[2][7];
 
 void init_search_tables(void)
 {
     // Compute the LMR base values.
     for (int i = 1; i < 256; ++i)
-        Reductions[i] = (int)(log(i) * 26.5);
+        Reductions[i] = log(i) * 26.48;
 
     // Compute the LMP movecount values based on depth.
     for (int d = 1; d < 7; ++d)
@@ -47,7 +47,7 @@ void init_search_tables(void)
 
 int lmr_base_value(int depth, int movecount)
 {
-    return (-860 + Reductions[depth] * Reductions[movecount]) / 1024;
+    return (int)(-860 + Reductions[depth] * Reductions[movecount]) / 1024;
 }
 
 void init_searchstack(Searchstack *ss)
