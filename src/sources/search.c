@@ -34,8 +34,7 @@ int Pruning[2][7];
 void init_search_tables(void)
 {
     // Compute the LMR base values.
-    for (int i = 1; i < 256; ++i)
-        Reductions[i] = log(i) * 26.48;
+    for (int i = 1; i < 256; ++i) Reductions[i] = log(i) * 26.48;
 
     // Compute the LMP movecount values based on depth.
     for (int d = 1; d < 7; ++d)
@@ -57,8 +56,7 @@ void init_searchstack(Searchstack *ss)
     for (int i = 0; i < 256; ++i) (ss + i)->plies = i - 2;
 }
 
-int get_history_score(
-    const Board *board, const worker_t *worker, const Searchstack *ss, move_t move)
+int get_history_score(const Board *board, const Worker *worker, const Searchstack *ss, move_t move)
 {
     const piece_t movedPiece = piece_on(board, from_sq(move));
     int history = get_bf_history_score(worker->bfHistory, movedPiece, move);
@@ -107,7 +105,7 @@ void update_pv(move_t *pv, move_t bestmove, move_t *subPv)
     pv[i + 1] = NO_MOVE;
 }
 
-void main_worker_search(worker_t *worker)
+void main_worker_search(Worker *worker)
 {
     Board *board = &worker->board;
 
@@ -205,7 +203,7 @@ void main_worker_search(worker_t *worker)
     free_boardstack(worker->stack);
 }
 
-void worker_search(worker_t *worker)
+void worker_search(Worker *worker)
 {
     Board *board = &worker->board;
 
@@ -318,8 +316,8 @@ __retry:
         // so we can safely return our bestmove.
         if (!worker->idx)
         {
-            timeman_update(
-                &SearchTimeman, board, worker->rootMoves->move, worker->rootMoves->prevScore);
+            timeman_update(&SearchTimeman, board, worker->rootMoves->move, worker->rootMoves->pv[1],
+                worker->rootMoves->prevScore);
             if (timeman_can_stop_search(&SearchTimeman, chess_clock())) break;
         }
 
@@ -345,7 +343,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
     bool cutNode)
 {
     bool rootNode = (ss->plies == 0);
-    worker_t *worker = get_worker(board);
+    Worker *worker = get_worker(board);
 
     // Perform an early check for repetition detections.
     if (!rootNode && board->stack->rule50 >= 3 && alpha < 0 && game_has_cycle(board, ss->plies))
@@ -768,7 +766,7 @@ __main_loop:
 
 score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchstack *ss)
 {
-    worker_t *worker = get_worker(board);
+    Worker *worker = get_worker(board);
     const score_t oldAlpha = alpha;
     Movepicker mp;
     move_t pv[256];

@@ -46,7 +46,7 @@ RootMove *find_root_move(RootMove *begin, RootMove *end, move_t move)
     return NULL;
 }
 
-void worker_init(worker_t *worker, size_t idx)
+void worker_init(Worker *worker, size_t idx)
 {
     worker->idx = idx;
     worker->stack = NULL;
@@ -73,7 +73,7 @@ void worker_init(worker_t *worker, size_t idx)
     }
 }
 
-void worker_destroy(worker_t *worker)
+void worker_destroy(Worker *worker)
 {
     // Notify the worker to quit its idling loop.
     worker->exit = true;
@@ -92,7 +92,7 @@ void worker_destroy(worker_t *worker)
     pthread_cond_destroy(&worker->condVar);
 }
 
-void worker_reset(worker_t *worker)
+void worker_reset(Worker *worker)
 {
     // Reset all history-related tables, plus the NMP disabling variable.
     memset(worker->bfHistory, 0, sizeof(butterfly_history_t));
@@ -102,7 +102,7 @@ void worker_reset(worker_t *worker)
     worker->verifPlies = 0;
 }
 
-void worker_start_search(worker_t *worker)
+void worker_start_search(Worker *worker)
 {
     // Notify the worker to start searching.
     pthread_mutex_lock(&worker->mutex);
@@ -111,7 +111,7 @@ void worker_start_search(worker_t *worker)
     pthread_mutex_unlock(&worker->mutex);
 }
 
-void worker_wait_search_end(worker_t *worker)
+void worker_wait_search_end(Worker *worker)
 {
     // Wait for the worker to finish its search.
     pthread_mutex_lock(&worker->mutex);
@@ -121,7 +121,7 @@ void worker_wait_search_end(worker_t *worker)
 
 void *worker_entry(void *ptr)
 {
-    worker_t *worker = ptr;
+    Worker *worker = ptr;
 
     while (true)
     {
@@ -163,7 +163,7 @@ void wpool_init(WorkerPool *wpool, size_t threads)
         {
             --wpool->size;
 
-            worker_t *curWorker = wpool->workerList[wpool->size];
+            Worker *curWorker = wpool->workerList[wpool->size];
 
             worker_destroy(curWorker);
             free(curWorker);
@@ -177,7 +177,7 @@ void wpool_init(WorkerPool *wpool, size_t threads)
     // function with threads=0.
     if (threads)
     {
-        wpool->workerList = malloc(sizeof(worker_t *) * threads);
+        wpool->workerList = malloc(sizeof(Worker *) * threads);
 
         if (wpool->workerList == NULL)
         {
@@ -188,7 +188,7 @@ void wpool_init(WorkerPool *wpool, size_t threads)
         while (wpool->size < threads)
         {
             // Perform an independent allocation for each worker data block.
-            wpool->workerList[wpool->size] = malloc(sizeof(worker_t));
+            wpool->workerList[wpool->size] = malloc(sizeof(Worker));
 
             if (wpool->workerList[wpool->size] == NULL)
             {
@@ -235,7 +235,7 @@ void wpool_start_search(WorkerPool *wpool, const Board *rootBoard, const SearchP
 
     for (size_t i = 0; i < wpool->size; ++i)
     {
-        worker_t *curWorker = wpool->workerList[i];
+        Worker *curWorker = wpool->workerList[i];
 
         // Reset the node counter for each worker, and configure the position to
         // search.

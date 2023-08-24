@@ -42,7 +42,7 @@ INLINED clock_t timemin(clock_t left, clock_t right) { return (left < right) ? l
 // INLINED clock_t timemax(clock_t left, clock_t right) { return (left > right) ? left : right; }
 
 // Scaling table based on the number of consecutive iterations the bestmove held
-const double BestmoveStabilityScale[5] = {2.50, 1.20, 0.90, 0.80, 0.75};
+const double BestmoveStabilityScale[5] = {2.50, 1.10, 0.80, 0.70, 0.65};
 
 void timeman_init(const Board *board, Timeman *tm, SearchParams *params, clock_t start)
 {
@@ -96,7 +96,7 @@ void timeman_init(const Board *board, Timeman *tm, SearchParams *params, clock_t
         tm->mode = NoTimeman;
 
     tm->prevScore = NO_SCORE;
-    tm->prevBestmove = NO_MOVE;
+    tm->prevBestmove = tm->prevCountermove = NO_MOVE;
     tm->stability = 0;
     tm->type = NO_BM_TYPE;
 }
@@ -117,7 +117,8 @@ double score_difference_scale(score_t s)
     return pow(T, iclamp(s, -X, X) / (double)X);
 }
 
-void timeman_update(Timeman *tm, const Board *board, move_t bestmove, score_t score)
+void timeman_update(
+    Timeman *tm, const Board *board, move_t bestmove, move_t countermove, score_t score)
 {
     // Only update the timeman when we need one.
     if (tm->mode != Tournament) return;
@@ -163,6 +164,11 @@ void timeman_update(Timeman *tm, const Board *board, move_t bestmove, score_t sc
 
     // Scale the time usage based on the type of bestmove we have.
     double scale = BestmoveTypeScale[tm->type];
+
+    // If the bestmove held, but the opponent's answer changed, increase time usage.
+    if (tm->stability > 0 && tm->prevCountermove != countermove) scale *= 1.25;
+
+    tm->prevCountermove = countermove;
 
     // Scale the time usage based on how long this bestmove has held
     // through search iterations.

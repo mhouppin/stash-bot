@@ -65,7 +65,7 @@ void print_pv(
 
 // Struct for worker thread data.
 
-typedef struct worker_s
+typedef struct _Worker
 {
     Board board;
     Boardstack *stack;
@@ -89,22 +89,22 @@ typedef struct worker_s
     pthread_cond_t condVar;
     bool exit;
     bool searching;
-} worker_t;
+} Worker;
 
-INLINED worker_t *get_worker(const Board *board) { return board->worker; }
+INLINED Worker *get_worker(const Board *board) { return board->worker; }
 
-INLINED score_t draw_score(const worker_t *worker)
+INLINED score_t draw_score(const Worker *worker)
 {
     return (atomic_load_explicit(&worker->nodes, memory_order_relaxed) & 2) - 1;
 }
 
-void worker_init(worker_t *worker, size_t idx);
-void worker_destroy(worker_t *worker);
-void worker_search(worker_t *worker);
-void main_worker_search(worker_t *worker);
-void worker_reset(worker_t *worker);
-void worker_start_search(worker_t *worker);
-void worker_wait_search_end(worker_t *worker);
+void worker_init(Worker *worker, size_t idx);
+void worker_destroy(Worker *worker);
+void worker_search(Worker *worker);
+void main_worker_search(Worker *worker);
+void worker_reset(Worker *worker);
+void worker_start_search(Worker *worker);
+void worker_wait_search_end(Worker *worker);
 void *worker_entry(void *worker);
 
 typedef struct _WorkerPool
@@ -115,12 +115,12 @@ typedef struct _WorkerPool
     _Atomic bool ponder;
     _Atomic bool stop;
 
-    worker_t **workerList;
+    Worker **workerList;
 } WorkerPool;
 
 extern WorkerPool SearchWorkerPool;
 
-INLINED worker_t *wpool_main_worker(WorkerPool *wpool) { return wpool->workerList[0]; }
+INLINED Worker *wpool_main_worker(WorkerPool *wpool) { return wpool->workerList[0]; }
 
 void wpool_init(WorkerPool *wpool, size_t threads);
 void wpool_new_search(WorkerPool *wpool);

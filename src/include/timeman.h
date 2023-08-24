@@ -83,6 +83,7 @@ typedef struct _Timeman
 
     score_t prevScore;
     move_t prevBestmove;
+    move_t prevCountermove;
     int stability;
     bestmove_type_t type;
 } Timeman;
@@ -94,7 +95,8 @@ extern Timeman SearchTimeman;
 void timeman_init(const Board *board, Timeman *tm, SearchParams *params, clock_t start);
 
 // Updates the time management based on the current bestmove and score.
-void timeman_update(Timeman *tm, const Board *board, move_t bestmove, score_t score);
+void timeman_update(
+    Timeman *tm, const Board *board, move_t bestmove, move_t countermove, score_t score);
 
 // Checks time usage periodically.
 void check_time(void);
