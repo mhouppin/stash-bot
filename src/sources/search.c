@@ -35,7 +35,7 @@ void init_search_tables(void)
 {
     // Compute the LMR base values.
     for (int i = 1; i < 256; ++i)
-        Reductions[i] = (int)(log(i) * 19.55 + 4.85);
+        Reductions[i] = (int)(log(i) * 24.25 + 4.70);
 
     // Compute the LMP movecount values based on depth.
     for (int d = 1; d < 7; ++d)
@@ -47,7 +47,7 @@ void init_search_tables(void)
 
 int lmr_base_value(int depth, int movecount, bool improving)
 {
-    return (-391 + Reductions[depth] * Reductions[movecount] + !improving * 642) / 1024;
+    return (-945 + Reductions[depth] * Reductions[movecount] + !improving * 616) / 1024;
 }
 
 void init_searchstack(Searchstack *ss)
