@@ -223,6 +223,7 @@ void worker_search(worker_t *worker)
             // Reset the seldepth value after each depth increment, and for each
             // PV line.
             worker->seldepth = 0;
+            worker->rootDepth = iterDepth + 1;
 
             score_t alpha, beta, delta;
             int depth = iterDepth;
@@ -571,7 +572,7 @@ __main_loop:
         bool givesCheck = move_gives_check(board, currmove);
         int histScore = isQuiet ? get_history_score(board, worker, ss, currmove) : 0;
 
-        if (!rootNode)
+        if (!rootNode && ss->plies < worker->rootDepth * 2)
         {
             // Singular Extensions. For high-depth nodes, if the TT entry
             // suggests that the TT move is really good, we check if there are
