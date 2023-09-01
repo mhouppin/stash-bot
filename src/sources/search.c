@@ -34,8 +34,7 @@ int Pruning[2][7];
 void init_search_tables(void)
 {
     // Compute the LMR base values.
-    for (int i = 1; i < 256; ++i)
-        Reductions[i] = (int)(log(i) * 22.70 + 8.70);
+    for (int i = 1; i < 256; ++i) Reductions[i] = (int)(log(i) * 22.70 + 8.70);
 
     // Compute the LMP movecount values based on depth.
     for (int d = 1; d < 7; ++d)
