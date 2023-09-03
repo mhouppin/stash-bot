@@ -581,7 +581,7 @@ __main_loop:
             // we extend non-LMR searches by one or two lies, depending on the 
             // margin that the singular search failed low.
             if (depth >= 7 && currmove == ttMove && !ss->excludedMove && (ttBound & LOWER_BOUND)
-                && abs(ttScore) < VICTORY && ttDepth >= depth - 2)
+                && abs(ttScore) < VICTORY && ttDepth >= depth - 3)
             {
                 score_t singularBeta = ttScore - 3 * depth / 4;
                 int singularDepth = depth / 2;
@@ -596,7 +596,7 @@ __main_loop:
                 // move.
                 if (singularScore < singularBeta)
                 {
-                    if (!pvNode && singularBeta - singularScore > 20 && ss->doubleExtensions <= 11)
+                    if (!pvNode && singularBeta - singularScore > 20 && ss->doubleExtensions <= 7)
                     {
                         extension = 2;
                         ss->doubleExtensions++;
