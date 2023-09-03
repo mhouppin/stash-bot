@@ -572,7 +572,7 @@ __main_loop:
         bool givesCheck = move_gives_check(board, currmove);
         int histScore = isQuiet ? get_history_score(board, worker, ss, currmove) : 0;
 
-        if (!rootNode && ss->plies + 2 * ss->doubleExtensions < 3 * worker->rootDepth)
+        if (!rootNode && ss->plies < 2 * worker->rootDepth && 2 * ss->doubleExtensions < worker->rootDepth)
         {
             // Singular Extensions. For high-depth nodes, if the TT entry
             // suggests that the TT move is really good, we check if there are
