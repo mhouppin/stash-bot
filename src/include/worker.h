@@ -76,6 +76,7 @@ typedef struct worker_s
     PawnEntry *pawnTable;
 
     int seldepth;
+    int rootDepth;
     int verifPlies;
     _Atomic uint64_t nodes;
 

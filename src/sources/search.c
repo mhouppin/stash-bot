@@ -223,6 +223,7 @@ void worker_search(worker_t *worker)
             // Reset the seldepth value after each depth increment, and for each
             // PV line.
             worker->seldepth = 0;
+            worker->rootDepth = iterDepth + 1;
 
             score_t alpha, beta, delta;
             int depth = iterDepth;
@@ -571,15 +572,16 @@ __main_loop:
         bool givesCheck = move_gives_check(board, currmove);
         int histScore = isQuiet ? get_history_score(board, worker, ss, currmove) : 0;
 
-        if (!rootNode)
+        if (!rootNode && ss->plies < 2 * worker->rootDepth && 2 * ss->doubleExtensions < worker->rootDepth)
         {
             // Singular Extensions. For high-depth nodes, if the TT entry
             // suggests that the TT move is really good, we check if there are
             // other moves which maintain the score close to the TT score. If
             // that's not the case, we consider the TT move to be singular, and
-            // we extend non-LMR searches by one ply.
+            // we extend non-LMR searches by one or two lies, depending on the 
+            // margin that the singular search failed low.
             if (depth >= 7 && currmove == ttMove && !ss->excludedMove && (ttBound & LOWER_BOUND)
-                && abs(ttScore) < VICTORY && ttDepth >= depth - 2)
+                && abs(ttScore) < VICTORY && ttDepth >= depth - 3)
             {
                 score_t singularBeta = ttScore - 3 * depth / 4;
                 int singularDepth = depth / 2;
@@ -594,7 +596,7 @@ __main_loop:
                 // move.
                 if (singularScore < singularBeta)
                 {
-                    if (!pvNode && singularBeta - singularScore > 24 && ss->doubleExtensions <= 5)
+                    if (!pvNode && singularBeta - singularScore > 20 && ss->doubleExtensions <= 7)
                     {
                         extension = 2;
                         ss->doubleExtensions++;
