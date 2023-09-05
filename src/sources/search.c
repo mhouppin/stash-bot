@@ -572,13 +572,14 @@ __main_loop:
         bool givesCheck = move_gives_check(board, currmove);
         int histScore = isQuiet ? get_history_score(board, worker, ss, currmove) : 0;
 
-        if (!rootNode && ss->plies < 2 * worker->rootDepth && 2 * ss->doubleExtensions < worker->rootDepth)
+        if (!rootNode && ss->plies < 2 * worker->rootDepth
+            && 2 * ss->doubleExtensions < worker->rootDepth)
         {
             // Singular Extensions. For high-depth nodes, if the TT entry
             // suggests that the TT move is really good, we check if there are
             // other moves which maintain the score close to the TT score. If
             // that's not the case, we consider the TT move to be singular, and
-            // we extend non-LMR searches by one or two lies, depending on the 
+            // we extend non-LMR searches by one or two lies, depending on the
             // margin that the singular search failed low.
             if (depth >= 7 && currmove == ttMove && !ss->excludedMove && (ttBound & LOWER_BOUND)
                 && abs(ttScore) < VICTORY && ttDepth >= depth - 3)
@@ -628,7 +629,7 @@ __main_loop:
         do_move_gc(board, currmove, &stack, givesCheck);
         atomic_fetch_add_explicit(&get_worker(board)->nodes, 1, memory_order_relaxed);
 
-        const bool do_lmr = depth >= 3 && moveCount > 1 + 3 * pvNode;
+        const bool do_lmr = depth >= 3 && moveCount > 1 + 3 * pvNode && (!pvNode || isQuiet);
 
         // Late Move Reductions. For nodes not too close to qsearch (since
         // we can't reduce their search depth), we start reducing moves after
