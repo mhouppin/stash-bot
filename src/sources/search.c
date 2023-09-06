@@ -641,13 +641,13 @@ __main_loop:
             // movecount.
             R = lmr_base_value(depth, moveCount, improving);
 
+            // Increase the reduction for cutNodes.
+            R += cutNode;
+
             if (isQuiet)
             {
                 // Increase the reduction for non-PV nodes.
                 R += !pvNode;
-
-                // Increase the reduction for cutNodes.
-                R += cutNode;
 
                 // Decrease the reduction if the move is a killer or countermove.
                 R -= (currmove == mp.killer1 || currmove == mp.killer2 || currmove == mp.counter);
