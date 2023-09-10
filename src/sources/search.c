@@ -883,6 +883,9 @@ score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchst
 
             // Check if the move is unlikely to improve alpha.
             if (delta < alpha) continue;
+
+            // If static eval is far below alpha, only search moves that win material.
+            if (futilityBase < alpha && !see_greater_than(board, currmove, 1)) continue;
         }
 
         // Save the piece history for the current move so that sub-nodes can use
