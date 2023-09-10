@@ -539,13 +539,15 @@ __main_loop:
 
         if (!rootNode && bestScore > -MATE_FOUND)
         {
+            int lmrDepth = imax(1, depth - lmr_base_value(depth, moveCount, improving));
+
             // Late Move Pruning. For low-depth nodes, stop searching quiets
             // after a certain movecount has been reached.
             if (depth <= 6 && moveCount > Pruning[improving][depth]) skipQuiets = true;
 
             // Futility Pruning. For low-depth nodes, stop searching quiets if
             // the eval suggests that only captures will save the day.
-            if (depth <= 6 && !inCheck && isQuiet && eval + 217 + 71 * depth <= alpha)
+            if (depth <= 6 && !inCheck && isQuiet && eval + 217 + 71 * lmrDepth <= alpha)
                 skipQuiets = true;
 
             // SEE Pruning. For low-depth nodes, don't search moves which seem
