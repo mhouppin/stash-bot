@@ -18,7 +18,7 @@
 
 #include "movepick.h"
 
-void movepicker_init(Movepicker *mp, bool inQsearch, const Board *board, const worker_t *worker,
+void movepicker_init(Movepicker *mp, bool inQsearch, const Board *board, const Worker *worker,
     move_t ttMove, Searchstack *ss)
 {
     mp->inQsearch = inQsearch;

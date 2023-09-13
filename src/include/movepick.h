@@ -53,12 +53,12 @@ typedef struct _Movepicker
     move_t killer2;
     move_t counter;
     const Board *board;
-    const worker_t *worker;
+    const Worker *worker;
     piece_history_t *pieceHistory[2];
 } Movepicker;
 
 // Initializes the move picker.
-void movepicker_init(Movepicker *mp, bool inQsearch, const Board *board, const worker_t *worker,
+void movepicker_init(Movepicker *mp, bool inQsearch, const Board *board, const Worker *worker,
     move_t ttMove, Searchstack *ss);
 
 // Returns the next move in the move picker, with the option to skip quiet moves.

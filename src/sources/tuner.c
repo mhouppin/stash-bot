@@ -316,7 +316,7 @@ bool init_tuner_entry(tune_entry_t *entry, const Board *board)
     return true;
 }
 
-bool is_safety_term(int i) { return i >= IDX_KS_KNIGHT; }
+bool is_safety_term(int i) { return i > IDX_KING_SAFETY; }
 
 bool is_active(int i)
 {
