@@ -25,16 +25,16 @@
 enum
 {
     PAWN_MG_SCORE = 106,
-    KNIGHT_MG_SCORE = 353,
-    BISHOP_MG_SCORE = 373,
-    ROOK_MG_SCORE = 509,
-    QUEEN_MG_SCORE = 1065,
+    KNIGHT_MG_SCORE = 356,
+    BISHOP_MG_SCORE = 377,
+    ROOK_MG_SCORE = 516,
+    QUEEN_MG_SCORE = 1096,
 
-    PAWN_EG_SCORE = 169,
-    KNIGHT_EG_SCORE = 601,
-    BISHOP_EG_SCORE = 645,
-    ROOK_EG_SCORE = 1023,
-    QUEEN_EG_SCORE = 1944
+    PAWN_EG_SCORE = 189,
+    KNIGHT_EG_SCORE = 627,
+    BISHOP_EG_SCORE = 673,
+    ROOK_EG_SCORE = 1078,
+    QUEEN_EG_SCORE = 2031
 };
 
 // Global for the piece values indexed by phase and piece

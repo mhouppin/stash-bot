@@ -386,9 +386,9 @@ double static_eval_mse(const tune_data_t *data, double K)
 {
     double total = 0;
 
-#pragma omp parallel shared(total)
+    // #pragma omp parallel shared(total)
     {
-#pragma omp for schedule(static, data->size / THREADS) reduction(+ : total)
+        // #pragma omp for schedule(static, data->size / THREADS) reduction(+ : total)
         for (size_t i = 0; i < data->size; ++i)
         {
             const tune_entry_t *entry = data->entries + i;
@@ -481,17 +481,17 @@ double adjusted_eval(
 void compute_gradient(
     const tune_data_t *data, tp_vector_t gradient, const tp_vector_t delta, double K, int batchIdx)
 {
-    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+    // pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-#pragma omp parallel shared(gradient, mutex)
+    // #pragma omp parallel shared(gradient, mutex)
     {
         tp_vector_t local = {};
 
-#pragma omp for schedule(static, (BATCH_SIZE - 1) / THREADS + 1)
+        // #pragma omp for schedule(static, (BATCH_SIZE - 1) / THREADS + 1)
         for (int i = 0; i < BATCH_SIZE; ++i)
             update_gradient(data->entries + (size_t)batchIdx * BATCH_SIZE + i, local, delta, K);
 
-        pthread_mutex_lock(&mutex);
+        // pthread_mutex_lock(&mutex);
 
         for (int i = 0; i < IDX_COUNT; ++i)
         {
@@ -499,7 +499,7 @@ void compute_gradient(
             gradient[i][ENDGAME] += local[i][ENDGAME];
         }
 
-        pthread_mutex_unlock(&mutex);
+        // pthread_mutex_unlock(&mutex);
     }
 }
 
