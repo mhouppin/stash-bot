@@ -196,6 +196,8 @@ void init_base_values(tp_vector_t base)
     INIT_BASE_SP(IDX_MINOR_ATK_QUEEN, MinorAttacksQueen);
     INIT_BASE_SP(IDX_ROOK_ATK_QUEEN, RookAttacksQueen);
 
+    INIT_BASE_SPA(IDX_IMBALANCE, Imbalance, 25);
+
     extern const scorepair_t PassedBonus[RANK_NB], PhalanxBonus[RANK_NB], DefenderBonus[RANK_NB];
 
     for (rank_t r = RANK_2; r <= RANK_7; ++r)
@@ -674,6 +676,9 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
     PRINT_SP(IDX_MINOR_ATK_ROOK, MinorAttacksRook);
     PRINT_SP(IDX_MINOR_ATK_QUEEN, MinorAttacksQueen);
     PRINT_SP(IDX_ROOK_ATK_QUEEN, RookAttacksQueen);
+    putchar('\n');
+
+    PRINT_SPA(IDX_IMBALANCE, Imbalance, 25, 4, 5, "SPAIR");
     putchar('\n');
 }
 
