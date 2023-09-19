@@ -28,6 +28,7 @@ void update_cont_histories(Searchstack *ss, int depth, piece_t piece, square_t t
 
     if ((ss - 1)->pieceHistory != NULL) add_pc_history(*(ss - 1)->pieceHistory, piece, to, bonus);
     if ((ss - 2)->pieceHistory != NULL) add_pc_history(*(ss - 2)->pieceHistory, piece, to, bonus);
+    if ((ss - 4)->pieceHistory != NULL) add_pc_history(*(ss - 4)->pieceHistory, piece, to, bonus);
 }
 
 void update_quiet_history(const Board *board, int depth, move_t bestmove, const move_t quiets[64],
