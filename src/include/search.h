@@ -40,7 +40,7 @@ extern int Pruning[2][7];
 
 enum
 {
-    MAX_PLIES = 240
+    MAX_PLIES = 238
 };
 
 // Initializes the search tables.

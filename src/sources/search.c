@@ -53,7 +53,7 @@ void init_searchstack(Searchstack *ss)
 {
     memset(ss, 0, sizeof(Searchstack) * 256);
 
-    for (int i = 0; i < 256; ++i) (ss + i)->plies = i - 2;
+    for (int i = 0; i < 256; ++i) (ss + i)->plies = i - 4;
 }
 
 int get_history_score(
@@ -64,8 +64,12 @@ int get_history_score(
 
     if ((ss - 1)->pieceHistory != NULL)
         history += get_pc_history_score(*(ss - 1)->pieceHistory, movedPiece, to_sq(move));
+
     if ((ss - 2)->pieceHistory != NULL)
         history += get_pc_history_score(*(ss - 2)->pieceHistory, movedPiece, to_sq(move));
+
+    if ((ss - 4)->pieceHistory != NULL)
+        history += get_pc_history_score(*(ss - 4)->pieceHistory, movedPiece, to_sq(move));
 
     return history;
 }
@@ -245,7 +249,7 @@ void worker_search(worker_t *worker)
             }
 
 __retry:
-            search(true, board, depth + 1, alpha, beta, &sstack[2], false);
+            search(true, board, depth + 1, alpha, beta, &sstack[4], false);
 
             // Catch search aborting.
             hasSearchAborted = SearchWorkerPool.stop;
