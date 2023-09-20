@@ -48,6 +48,7 @@ void movepicker_init(Movepicker *mp, bool inQsearch, const Board *board, const w
 
     mp->pieceHistory[0] = (ss - 1)->pieceHistory;
     mp->pieceHistory[1] = (ss - 2)->pieceHistory;
+    mp->pieceHistory[2] = (ss - 4)->pieceHistory;
     mp->board = board;
     mp->worker = worker;
 }
@@ -97,11 +98,13 @@ static void score_quiet(Movepicker *mp, ExtendedMove *begin, ExtendedMove *end)
         // Start by using the butterfly history for ranking quiet moves.
         begin->score = get_bf_history_score(mp->worker->bfHistory, moved, begin->move) / 2;
 
-        // Try using the countermove and followup histories if they exist.
+        // Try using the continuation histories if they exist.
         if (mp->pieceHistory[0] != NULL)
             begin->score += get_pc_history_score(*mp->pieceHistory[0], moved, to);
         if (mp->pieceHistory[1] != NULL)
             begin->score += get_pc_history_score(*mp->pieceHistory[1], moved, to);
+        if (mp->pieceHistory[2] != NULL)
+            begin->score += get_pc_history_score(*mp->pieceHistory[2], moved, to);
 
         ++begin;
     }
