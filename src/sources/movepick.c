@@ -32,8 +32,8 @@ void movepicker_init(Movepicker *mp, bool inQsearch, const Board *board, const w
                         && move_is_pseudo_legal(board, ttMove));
 
     mp->ttMove = ttMove;
-    mp->killer1 = ss->killers[0];
-    mp->killer2 = ss->killers[1];
+    mp->killer1 = ss->killers[0] ?: (ss - 2)->killers[0];
+    mp->killer2 = ss->killers[1] ?: (ss - 2)->killers[!ss->killers[0]];
 
     // Load the countermove if the search stack from the last turn allows us to
     // do so.
