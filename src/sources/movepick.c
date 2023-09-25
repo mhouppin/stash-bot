@@ -104,7 +104,7 @@ static void score_quiet(Movepicker *mp, ExtendedMove *begin, ExtendedMove *end)
         if (mp->pieceHistory[1] != NULL)
             begin->score += get_pc_history_score(*mp->pieceHistory[1], moved, to);
         if (mp->pieceHistory[2] != NULL)
-            begin->score += get_pc_history_score(*mp->pieceHistory[2], moved, to);
+            begin->score += get_pc_history_score(*mp->pieceHistory[2], moved, to) / 2;
 
         ++begin;
     }
