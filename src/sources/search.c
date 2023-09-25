@@ -641,12 +641,12 @@ __main_loop:
         // to produce cutoffs in standard searches.
         if (do_lmr)
         {
+            // Set the base depth reduction value based on depth and
+            // movecount.
+            R = lmr_base_value(depth, moveCount, improving);
+
             if (isQuiet)
             {
-                // Set the base depth reduction value based on depth and
-                // movecount.
-                R = lmr_base_value(depth, moveCount, improving);
-
                 // Increase the reduction for non-PV nodes.
                 R += !pvNode;
 
@@ -661,13 +661,13 @@ __main_loop:
 
                 // Increase/decrease the reduction based on the move's history.
                 R -= iclamp(histScore / 6000, -3, 3);
-
-                // Clamp the reduction so that we don't extend the move or drop
-                // immediately into qsearch.
-                R = iclamp(R, 0, newDepth - 1);
             }
             else
-                R = 1;
+                R /= 2;
+
+            // Clamp the reduction so that we don't extend the move or drop
+            // immediately into qsearch.
+            R = iclamp(R, 0, newDepth - 1);
         }
         else
             R = 0;
