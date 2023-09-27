@@ -35,14 +35,6 @@ void start_tuning_session(const char *filename)
     init_tuner_entries(&data, filename);
     K = compute_optimal_k(&data);
 
-    for (size_t i = 0; i < data.size; ++i)
-    {
-        tune_entry_t *entry = data.entries + i;
-
-        entry->gameResult =
-            entry->gameResult * (1.0 - LAMBDA) + sigmoid(K, entry->gameScore) * LAMBDA;
-    }
-
     size_t batches = data.size / BATCH_SIZE;
 
     for (int iter = 0; iter < ITERS; ++iter)
@@ -264,16 +256,6 @@ void init_tuner_entries(tune_data_t *data, const char *filename)
         char *ptr = strrchr(linebuf, ' ');
 
         *ptr = '\0';
-
-        if (sscanf(ptr + 1, "%hd", &cur->gameScore) == 0)
-        {
-            fputs("Unable to read game score\n", stdout);
-            exit(EXIT_FAILURE);
-        }
-
-        ptr = strrchr(linebuf, ' ');
-
-        *ptr = '\0';
         if (sscanf(ptr + 1, "%lf", &cur->gameResult) == 0)
         {
             fputs("Unable to read game result\n", stdout);
@@ -386,16 +368,13 @@ double static_eval_mse(const tune_data_t *data, double K)
 {
     double total = 0;
 
-#pragma omp parallel shared(total)
+//#pragma omp parallel shared(total)
     {
-#pragma omp for schedule(static, data->size / THREADS) reduction(+ : total)
+//#pragma omp for schedule(static, data->size / THREADS) reduction(+ : total)
         for (size_t i = 0; i < data->size; ++i)
         {
             const tune_entry_t *entry = data->entries + i;
-
-            double result =
-                entry->gameResult * (1.0 - LAMBDA) + sigmoid(K, entry->gameScore) * LAMBDA;
-            total += pow(result - sigmoid(K, entry->staticEval), 2);
+            total += pow(entry->gameResult - sigmoid(K, entry->staticEval), 2);
         }
     }
     return total / data->size;
@@ -481,17 +460,17 @@ double adjusted_eval(
 void compute_gradient(
     const tune_data_t *data, tp_vector_t gradient, const tp_vector_t delta, double K, int batchIdx)
 {
-    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+//    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-#pragma omp parallel shared(gradient, mutex)
+//#pragma omp parallel shared(gradient, mutex)
     {
         tp_vector_t local = {};
 
-#pragma omp for schedule(static, (BATCH_SIZE - 1) / THREADS + 1)
+//#pragma omp for schedule(static, (BATCH_SIZE - 1) / THREADS + 1)
         for (int i = 0; i < BATCH_SIZE; ++i)
             update_gradient(data->entries + (size_t)batchIdx * BATCH_SIZE + i, local, delta, K);
 
-        pthread_mutex_lock(&mutex);
+//        pthread_mutex_lock(&mutex);
 
         for (int i = 0; i < IDX_COUNT; ++i)
         {
@@ -499,7 +478,7 @@ void compute_gradient(
             gradient[i][ENDGAME] += local[i][ENDGAME];
         }
 
-        pthread_mutex_unlock(&mutex);
+//        pthread_mutex_unlock(&mutex);
     }
 }
 
