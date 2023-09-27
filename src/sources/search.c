@@ -29,19 +29,11 @@
 #include <stdlib.h>
 
 static int Reductions[256];
-int Pruning[2][7];
 
 void init_search_tables(void)
 {
     // Compute the LMR base values.
     for (int i = 1; i < 256; ++i) Reductions[i] = (int)(log(i) * 22.70 + 8.70);
-
-    // Compute the LMP movecount values based on depth.
-    for (int d = 1; d < 7; ++d)
-    {
-        Pruning[1][d] = +3.17 + 3.66 * pow(d, 1.09);
-        Pruning[0][d] = -1.25 + 3.13 * pow(d, 0.65);
-    }
 }
 
 int lmr_base_value(int depth, int movecount, bool improving)
@@ -545,7 +537,7 @@ __main_loop:
         {
             // Late Move Pruning. For low-depth nodes, stop searching quiets
             // after a certain movecount has been reached.
-            if (depth <= 6 && moveCount > Pruning[improving][depth]) skipQuiets = true;
+            if (depth <= 6 && moveCount > 3 + depth * depth / (1 + !improving)) skipQuiets = true;
 
             // Futility Pruning. For low-depth nodes, stop searching quiets if
             // the eval suggests that only captures will save the day.
