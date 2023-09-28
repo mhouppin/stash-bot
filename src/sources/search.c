@@ -31,6 +31,13 @@
 static int Reductions[256];
 int Pruning[2][7];
 
+double LMP_NB = -1.25;
+double LMP_NK = 3.13;
+double LMP_NP = 0.65;
+double LMP_IB = 3.17;
+double LMP_IK = 3.66;
+double LMP_IP = 1.09;
+
 void init_search_tables(void)
 {
     // Compute the LMR base values.
@@ -39,8 +46,8 @@ void init_search_tables(void)
     // Compute the LMP movecount values based on depth.
     for (int d = 1; d < 7; ++d)
     {
-        Pruning[1][d] = +3.17 + 3.66 * pow(d, 1.09);
-        Pruning[0][d] = -1.25 + 3.13 * pow(d, 0.65);
+        Pruning[1][d] = LMP_IB + LMP_IK * pow(d, LMP_IP);
+        Pruning[0][d] = LMP_NB + LMP_NK * pow(d, LMP_NP);
     }
 }
 
@@ -143,6 +150,7 @@ void main_worker_search(worker_t *worker)
         // node counter, time manager, workers' board and threads, and TT reset.
         tt_clear();
         wpool_new_search(&SearchWorkerPool);
+        init_search_tables();
         timeman_init(board, &SearchTimeman, &UciSearchParams, chess_clock());
 
         if (UciSearchParams.depth == 0) UciSearchParams.depth = MAX_PLIES;
