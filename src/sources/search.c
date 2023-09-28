@@ -472,7 +472,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
         Boardstack stack;
 
         // Compute the depth reduction based on depth and eval difference with beta.
-        int R = 3 + imin((eval - beta) / 128, 3) + (depth / 4);
+        int R = 3 + imin((eval - beta) / 128, 3) + (depth / 3);
 
         ss->currentMove = NULL_MOVE;
         ss->pieceHistory = NULL;
