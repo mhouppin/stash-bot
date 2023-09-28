@@ -39,8 +39,8 @@ void init_search_tables(void)
     // Compute the LMP movecount values based on depth.
     for (int d = 1; d < 7; ++d)
     {
-        Pruning[1][d] = +3.17 + 3.66 * pow(d, 1.09);
-        Pruning[0][d] = -1.25 + 3.13 * pow(d, 0.65);
+        Pruning[1][d] = +3.13 + 3.56 * pow(d, 1.10);
+        Pruning[0][d] = -1.35 + 3.09 * pow(d, 0.65);
     }
 }
 
