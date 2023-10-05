@@ -31,18 +31,6 @@
 static int Reductions[256];
 int Pruning[2][16];
 
-double LMP_IB = 3.17;
-double LMP_IK = 3.66;
-double LMP_IP = 1.09;
-double LMP_NB = -1.25;
-double LMP_NK = 3.13;
-double LMP_NP = 0.65;
-long LMP_D = 6;
-
-long CHP_D = 3;
-long CHP_K = -4000;
-long CHP_B = 0;
-
 void init_search_tables(void)
 {
     // Compute the LMR base values.
@@ -51,8 +39,8 @@ void init_search_tables(void)
     // Compute the LMP movecount values based on depth.
     for (int d = 1; d < 16; ++d)
     {
-        Pruning[1][d] = LMP_IB + LMP_IK * pow(d, LMP_IP);
-        Pruning[0][d] = LMP_NB + LMP_NK * pow(d, LMP_NP);
+        Pruning[1][d] = +3.19 + 3.66 * pow(d, 1.07);
+        Pruning[0][d] = -1.33 + 3.09 * pow(d, 0.65);
     }
 }
 
@@ -165,7 +153,6 @@ void main_worker_search(worker_t *worker)
         // node counter, time manager, workers' board and threads, and TT reset.
         tt_clear();
         wpool_new_search(&SearchWorkerPool);
-        init_search_tables();
         timeman_init(board, &SearchTimeman, &UciSearchParams, chess_clock());
 
         if (UciSearchParams.depth == 0) UciSearchParams.depth = MAX_PLIES;
@@ -568,7 +555,7 @@ __main_loop:
         {
             // Late Move Pruning. For low-depth nodes, stop searching quiets
             // after a certain movecount has been reached.
-            if (depth <= LMP_D && moveCount > Pruning[improving][depth]) skipQuiets = true;
+            if (depth <= 6 && moveCount > Pruning[improving][depth]) skipQuiets = true;
 
             // Futility Pruning. For low-depth nodes, stop searching quiets if
             // the eval suggests that only captures will save the day.
@@ -577,7 +564,7 @@ __main_loop:
 
             // Continuation History Pruning. For low-depth nodes, prune quiet moves if
             // they seem to be bad continuations to the previous moves.
-            if (depth <= CHP_D && get_conthist_score(board, ss, currmove) < CHP_K * (depth - 1) + CHP_B)
+            if (depth <= 3 && get_conthist_score(board, ss, currmove) < -4030 * (depth - 1) + 24)
                 continue;
 
             // SEE Pruning. For low-depth nodes, don't search moves which seem
