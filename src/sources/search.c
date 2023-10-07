@@ -29,7 +29,7 @@
 #include <stdlib.h>
 
 static int Reductions[256];
-int Pruning[2][7];
+int Pruning[2][16];
 
 void init_search_tables(void)
 {
@@ -37,10 +37,10 @@ void init_search_tables(void)
     for (int i = 1; i < 256; ++i) Reductions[i] = (int)(log(i) * 22.70 + 8.70);
 
     // Compute the LMP movecount values based on depth.
-    for (int d = 1; d < 7; ++d)
+    for (int d = 1; d < 16; ++d)
     {
-        Pruning[1][d] = +3.17 + 3.66 * pow(d, 1.09);
-        Pruning[0][d] = -1.25 + 3.13 * pow(d, 0.65);
+        Pruning[1][d] = +3.19 + 3.66 * pow(d, 1.07);
+        Pruning[0][d] = -1.33 + 3.09 * pow(d, 0.65);
     }
 }
 
@@ -56,22 +56,32 @@ void init_searchstack(Searchstack *ss)
     for (int i = 0; i < 256; ++i) (ss + i)->plies = i - 4;
 }
 
+int get_conthist_score(
+    const Board *board, const Searchstack *ss, move_t move)
+{
+    const piece_t movedPiece = piece_on(board, from_sq(move));
+    const square_t to = to_sq(move);
+    int history = 0;
+
+    if ((ss - 1)->pieceHistory != NULL)
+        history += get_pc_history_score(*(ss - 1)->pieceHistory, movedPiece, to);
+
+    if ((ss - 2)->pieceHistory != NULL)
+        history += get_pc_history_score(*(ss - 2)->pieceHistory, movedPiece, to);
+
+    if ((ss - 4)->pieceHistory != NULL)
+        history += get_pc_history_score(*(ss - 4)->pieceHistory, movedPiece, to);
+
+    return history;
+}
+
 int get_history_score(
     const Board *board, const worker_t *worker, const Searchstack *ss, move_t move)
 {
     const piece_t movedPiece = piece_on(board, from_sq(move));
-    int history = get_bf_history_score(worker->bfHistory, movedPiece, move);
 
-    if ((ss - 1)->pieceHistory != NULL)
-        history += get_pc_history_score(*(ss - 1)->pieceHistory, movedPiece, to_sq(move));
-
-    if ((ss - 2)->pieceHistory != NULL)
-        history += get_pc_history_score(*(ss - 2)->pieceHistory, movedPiece, to_sq(move));
-
-    if ((ss - 4)->pieceHistory != NULL)
-        history += get_pc_history_score(*(ss - 4)->pieceHistory, movedPiece, to_sq(move));
-
-    return history;
+    return get_bf_history_score(worker->bfHistory, movedPiece, move)
+        + get_conthist_score(board, ss, move);
 }
 
 uint64_t perft(Board *board, unsigned int depth)
@@ -551,6 +561,11 @@ __main_loop:
             // the eval suggests that only captures will save the day.
             if (depth <= 6 && !inCheck && isQuiet && eval + 217 + 71 * depth <= alpha)
                 skipQuiets = true;
+
+            // Continuation History Pruning. For low-depth nodes, prune quiet moves if
+            // they seem to be bad continuations to the previous moves.
+            if (depth <= 3 && get_conthist_score(board, ss, currmove) < -4030 * (depth - 1) + 24)
+                continue;
 
             // SEE Pruning. For low-depth nodes, don't search moves which seem
             // to lose too much material to be interesting.
