@@ -656,33 +656,31 @@ __main_loop:
         // to produce cutoffs in standard searches.
         if (do_lmr)
         {
-            if (isQuiet)
-            {
-                // Set the base depth reduction value based on depth and
-                // movecount.
-                R = lmr_base_value(depth, moveCount, improving);
+            // Set the base depth reduction value based on depth and
+            // movecount.
+            R = lmr_base_value(depth, moveCount, improving);
 
-                // Increase the reduction for non-PV nodes.
-                R += !pvNode;
+            if (!isQuiet)
+                R /= (mp.stage <= PICK_GOOD_INSTABLE) ? 4 : 2;
 
-                // Increase the reduction for cutNodes.
-                R += cutNode;
+            // Increase the reduction for non-PV nodes.
+            R += !pvNode;
 
-                // Decrease the reduction if the move is a killer or countermove.
-                R -= (currmove == mp.killer1 || currmove == mp.killer2 || currmove == mp.counter);
+            // Increase the reduction for cutNodes.
+            R += cutNode;
 
-                // Decrease the reduction if the move escapes a capture.
-                R -= !see_greater_than(board, reverse_move(currmove), 0);
+            // Decrease the reduction if the move is a killer or countermove.
+            R -= (currmove == mp.killer1 || currmove == mp.killer2 || currmove == mp.counter);
 
-                // Increase/decrease the reduction based on the move's history.
-                R -= iclamp(histScore / 6000, -3, 3);
+            // Decrease the reduction if the move escapes a capture.
+            R -= !see_greater_than(board, reverse_move(currmove), 0);
 
-                // Clamp the reduction so that we don't extend the move or drop
-                // immediately into qsearch.
-                R = iclamp(R, 0, newDepth - 1);
-            }
-            else
-                R = 1;
+            // Increase/decrease the reduction based on the move's history.
+            R -= iclamp(histScore / 6000, -3, 3);
+
+            // Clamp the reduction so that we don't extend the move or drop
+            // immediately into qsearch.
+            R = iclamp(R, 0, newDepth - 1);
         }
         else
             R = 0;
