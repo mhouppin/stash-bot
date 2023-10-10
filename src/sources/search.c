@@ -519,7 +519,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
 
     // Probcut. If we have a good enough capture (or queen promotion) and a reduced search returns a
     // value much above beta, we can (almost) safely prune the previous move.
-    probCutBeta = beta + 256;
+    probCutBeta = beta + 128;
     if (depth >= 4 && abs(beta) < VICTORY
         && !(found && ttDepth >= depth - 3 && ttScore < probCutBeta))
     {
