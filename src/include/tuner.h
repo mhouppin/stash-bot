@@ -24,7 +24,7 @@
 
 #ifdef TUNE
 
-#define LAMBDA 0.2
+#define LAMBDA 0.3
 #define THREADS 3
 #define ITERS 10000
 #define LEARNING_RATE 0.001

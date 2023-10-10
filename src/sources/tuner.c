@@ -28,7 +28,7 @@ void start_tuning_session(const char *filename)
 {
 #ifdef TUNE
     tp_vector_t delta = {}, base = {}, momentumGrad = {}, velocityGrad = {};
-    double K, lr = LEARNING_RATE;
+    double K, lr = LEARNING_RATE, prev_loss;
     tune_data_t data = {};
 
     init_base_values(base);
@@ -42,6 +42,8 @@ void start_tuning_session(const char *filename)
         entry->gameResult =
             entry->gameResult * (1.0 - LAMBDA) + sigmoid(K, entry->gameScore) * LAMBDA;
     }
+
+    prev_loss = adjusted_eval_mse(&data, delta, K);
 
     size_t batches = data.size / BATCH_SIZE;
 
@@ -75,13 +77,18 @@ void start_tuning_session(const char *filename)
         }
 
         double loss = adjusted_eval_mse(&data, delta, K);
-        printf("Iteration [%d], Loss [%.7f]\n", iter, loss);
+        printf("Iteration [%d], Loss [%.7lf], Progress [%.6lg]\n", iter, loss, prev_loss - loss);
 
         if (iter % LR_DROP_ITERS == LR_DROP_ITERS - 1) lr /= LR_DROP_VALUE;
 
         if (iter % 50 == 49 || iter == ITERS - 1) print_parameters(base, delta);
 
         fflush(stdout);
+
+        if (prev_loss - loss < 1e-8)
+            break ;
+
+        prev_loss = loss;
     }
 
     for (size_t i = 0; i < data.size; ++i) free(data.entries[i].tuples);
