@@ -62,6 +62,6 @@ void movepicker_init(Movepicker *mp, bool inQsearch, const Board *board, const w
     move_t ttMove, Searchstack *ss);
 
 // Returns the next move in the move picker, with the option to skip quiet moves.
-move_t movepicker_next_move(Movepicker *mp, bool skipQuiets);
+move_t movepicker_next_move(Movepicker *mp, bool skipQuiets, int see_threshold);
 
 #endif

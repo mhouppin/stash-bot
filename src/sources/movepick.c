@@ -139,7 +139,7 @@ static void score_evasions(Movepicker *mp, ExtendedMove *begin, ExtendedMove *en
     }
 }
 
-move_t movepicker_next_move(Movepicker *mp, bool skipQuiets)
+move_t movepicker_next_move(Movepicker *mp, bool skipQuiets, int see_threshold)
 {
 __top:
 
@@ -165,7 +165,7 @@ __top:
                 place_top_move(mp->cur, mp->list.last);
 
                 // Only select moves with a positive SEE for this stage.
-                if (mp->cur->move != mp->ttMove && see_greater_than(mp->board, mp->cur->move, 0))
+                if (mp->cur->move != mp->ttMove && see_greater_than(mp->board, mp->cur->move, see_threshold))
                     return (mp->cur++)->move;
 
                 // Place bad captures further in the list so that we can use

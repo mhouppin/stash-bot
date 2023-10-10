@@ -56,8 +56,7 @@ void init_searchstack(Searchstack *ss)
     for (int i = 0; i < 256; ++i) (ss + i)->plies = i - 4;
 }
 
-int get_conthist_score(
-    const Board *board, const Searchstack *ss, move_t move)
+int get_conthist_score(const Board *board, const Searchstack *ss, move_t move)
 {
     const piece_t movedPiece = piece_on(board, from_sq(move));
     const square_t to = to_sq(move);
@@ -81,7 +80,7 @@ int get_history_score(
     const piece_t movedPiece = piece_on(board, from_sq(move));
 
     return get_bf_history_score(worker->bfHistory, movedPiece, move)
-        + get_conthist_score(board, ss, move);
+           + get_conthist_score(board, ss, move);
 }
 
 uint64_t perft(Board *board, unsigned int depth)
@@ -410,6 +409,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
     hashkey_t key = board->stack->boardKey ^ ((hashkey_t)ss->excludedMove << 16);
     TT_Entry *entry = tt_probe(key, &found);
     score_t eval;
+    score_t probCutBeta;
 
     if (found)
     {
@@ -517,6 +517,49 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
         }
     }
 
+    // Probcut. If we have a good enough capture (or queen promotion) and a reduced search returns a
+    // value much above beta, we can (almost) safely prune the previous move.
+    probCutBeta = beta + 256;
+    if (depth >= 4 && abs(beta) < VICTORY
+        && !(found && ttDepth >= depth - 3 && ttScore < probCutBeta))
+    {
+        movepicker_init(&mp, true, board, worker,
+            ttMove && see_greater_than(board, ttMove, probCutBeta - ss->staticEval) ? ttMove
+                                                                                    : NO_MOVE,
+            ss);
+        move_t currmove;
+        while (
+            (currmove = movepicker_next_move(&mp, false, probCutBeta - ss->staticEval)) != NO_MOVE)
+        {
+            if (mp.stage == PICK_BAD_INSTABLE) break;
+
+            if (!move_is_legal(board, currmove) || currmove == ss->excludedMove) continue;
+
+            ss->currentMove = currmove;
+            ss->pieceHistory =
+                &worker->ctHistory[piece_on(board, from_sq(currmove))][to_sq(currmove)];
+
+            Boardstack stack;
+            bool givesCheck = move_gives_check(board, currmove);
+            do_move_gc(board, currmove, &stack, givesCheck);
+
+            score_t probCutScore = -qsearch(false, board, -probCutBeta, -probCutBeta + 1, ss + 1);
+
+            if (probCutScore >= probCutBeta)
+                probCutScore = -search(
+                    false, board, depth - 4, -probCutBeta, -probCutBeta + 1, ss + 1, !cutNode);
+
+            undo_move(board, currmove);
+
+            if (probCutScore >= probCutBeta)
+            {
+                tt_save(entry, key, score_to_tt(probCutScore, ss->plies), ss->staticEval, depth - 3,
+                    LOWER_BOUND, currmove);
+                return probCutScore;
+            }
+        }
+    }
+
     // Reduce depth if the node is absent from TT.
     if (!rootNode && !found && depth >= 4) --depth;
 
@@ -532,7 +575,7 @@ __main_loop:
     int ccount = 0;
     bool skipQuiets = false;
 
-    while ((currmove = movepicker_next_move(&mp, skipQuiets)) != NO_MOVE)
+    while ((currmove = movepicker_next_move(&mp, skipQuiets, 0)) != NO_MOVE)
     {
         if (rootNode)
         {
@@ -882,7 +925,7 @@ score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchst
     const bool canFutilityPrune = (!inCheck && popcount(board->piecetypeBB[ALL_PIECES]) > 6);
     const score_t futilityBase = bestScore + 120;
 
-    while ((currmove = movepicker_next_move(&mp, false)) != NO_MOVE)
+    while ((currmove = movepicker_next_move(&mp, false, 0)) != NO_MOVE)
     {
         // Only analyse good capture moves.
         if (bestScore > -MATE_FOUND && mp.stage == PICK_BAD_INSTABLE) break;
