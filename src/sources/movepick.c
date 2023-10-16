@@ -18,7 +18,7 @@
 
 #include "movepick.h"
 
-void movepicker_init(Movepicker *mp, bool inQsearch, const Board *board, const worker_t *worker,
+void movepicker_init(Movepicker *mp, bool inQsearch, const Board *board, const Worker *worker,
     move_t ttMove, Searchstack *ss)
 {
     mp->inQsearch = inQsearch;
@@ -165,7 +165,8 @@ __top:
                 place_top_move(mp->cur, mp->list.last);
 
                 // Only select moves with a positive SEE for this stage.
-                if (mp->cur->move != mp->ttMove && see_greater_than(mp->board, mp->cur->move, see_threshold))
+                if (mp->cur->move != mp->ttMove
+                    && see_greater_than(mp->board, mp->cur->move, see_threshold))
                     return (mp->cur++)->move;
 
                 // Place bad captures further in the list so that we can use

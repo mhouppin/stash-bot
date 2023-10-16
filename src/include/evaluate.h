@@ -68,6 +68,10 @@ typedef enum tune_idx_e
     IDX_MINOR_ATK_ROOK,
     IDX_MINOR_ATK_QUEEN,
     IDX_ROOK_ATK_QUEEN,
+
+    // All King Safety terms should go under this enum value. This is done to
+    // facilitate gradient calculations in the internal tuner.
+    IDX_KING_SAFETY,
     IDX_KS_KNIGHT,
     IDX_KS_BISHOP,
     IDX_KS_ROOK,

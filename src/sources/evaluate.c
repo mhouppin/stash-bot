@@ -71,32 +71,26 @@ const scorepair_t SafeQueenCheck  = SPAIR(  45,  23);
 const scorepair_t QueenlessAttack = SPAIR( -92,  -1);
 const scorepair_t SafetyOffset    = SPAIR(  34,  24);
 
+// Storm/Shelter indexes:
+// 0-7 - Side
+// 9-15 - Front
+// 16-23 - Center
 const scorepair_t KingStorm[24] = {
-    // Side
-    SPAIR(  -6,  -0), SPAIR(  -6,  -0), SPAIR(  21,   2), SPAIR(   2,   2),
+    SPAIR(  -6,   0), SPAIR(  -6,   0), SPAIR(  21,   2), SPAIR(   2,   2),
     SPAIR( -20,   6), SPAIR( -23,   3), SPAIR( -45,   4), SPAIR( -16,   2),
-
-    // Front
-    SPAIR(   0,   0), SPAIR(  -3,  -1), SPAIR(  32,   7), SPAIR(   6,  -0),
-    SPAIR(  -2,   1), SPAIR(  -3,   8), SPAIR(   7,  11), SPAIR(  16,  -0),
-
-    // Center
-    SPAIR(   5,  -0), SPAIR(  -1,  -0), SPAIR(  34,   3), SPAIR(  27,  -1),
+    SPAIR(   0,   0), SPAIR(  -3,  -1), SPAIR(  32,   7), SPAIR(   6,   0),
+    SPAIR(  -2,   1), SPAIR(  -3,   8), SPAIR(   7,  11), SPAIR(  16,   0),
+    SPAIR(   5,   0), SPAIR(  -1,   0), SPAIR(  34,   3), SPAIR(  27,  -1),
     SPAIR(  -1,   2), SPAIR(  -8,   8), SPAIR(  -7,  19), SPAIR(   5,  -4)
 };
 
 const scorepair_t KingShelter[24] = {
-    // Side
     SPAIR( -31,   4), SPAIR( -29,  23), SPAIR( -29,  -2), SPAIR( -20,   3),
-    SPAIR(   9,  -0), SPAIR(   6,  -0), SPAIR(   4,  -0), SPAIR(  -3, -12),
-
-    // Front
+    SPAIR(   9,   0), SPAIR(   6,   0), SPAIR(   4,   0), SPAIR(  -3, -12),
     SPAIR(   0,   0), SPAIR(  -4,   6), SPAIR(  -4,  18), SPAIR(   9,   8),
-    SPAIR(  12,   2), SPAIR(  17,  -0), SPAIR(   4,   0), SPAIR(  22, -10),
-
-    // Center
+    SPAIR(  12,   2), SPAIR(  17,   0), SPAIR(   4,   0), SPAIR(  22, -10),
     SPAIR( -32,  -4), SPAIR(   3, -15), SPAIR(  11,  12), SPAIR(  13,  20),
-    SPAIR(  19,   5), SPAIR(  20,   0), SPAIR(   4,  -0), SPAIR(  20,   7)
+    SPAIR(  19,   5), SPAIR(  20,   0), SPAIR(   4,   0), SPAIR(  20,   7)
 };
 
 // Knight eval terms
@@ -116,7 +110,7 @@ const scorepair_t BishopShielded     = SPAIR(  7, 11);
 const scorepair_t BishopLongDiagonal = SPAIR( 13, 28);
 
 const scorepair_t BishopPawnsSameColor[7] = {
-    SPAIR(  15,  25), SPAIR(  14,  16), SPAIR(  10,   7), SPAIR(   6,  -0),
+    SPAIR(  15,  25), SPAIR(  14,  16), SPAIR(  10,   7), SPAIR(   6,   0),
     SPAIR(  -1,  -9), SPAIR(  -7, -15), SPAIR( -13, -20)
 };
 
@@ -150,7 +144,7 @@ const scorepair_t MobilityR[15] = {
 const scorepair_t MobilityQ[28] = {
     SPAIR( -78,-167), SPAIR(  18, 154), SPAIR(  -3, 166), SPAIR(  -8, 145),
     SPAIR(  -3,  94), SPAIR(  -6, 118), SPAIR(  -5, 144), SPAIR(  -4, 166),
-    SPAIR(  -0, 181), SPAIR(   3, 195), SPAIR(   7, 203), SPAIR(  10, 207),
+    SPAIR(   0, 181), SPAIR(   3, 195), SPAIR(   7, 203), SPAIR(  10, 207),
     SPAIR(  12, 211), SPAIR(  14, 213), SPAIR(  16, 216), SPAIR(  15, 220),
     SPAIR(  16, 220), SPAIR(  17, 217), SPAIR(  22, 209), SPAIR(  29, 200),
     SPAIR(  34, 195), SPAIR(  31, 187), SPAIR(  24, 182), SPAIR(  20, 172),

@@ -74,8 +74,7 @@ int get_conthist_score(const Board *board, const Searchstack *ss, move_t move)
     return history;
 }
 
-int get_history_score(
-    const Board *board, const worker_t *worker, const Searchstack *ss, move_t move)
+int get_history_score(const Board *board, const Worker *worker, const Searchstack *ss, move_t move)
 {
     const piece_t movedPiece = piece_on(board, from_sq(move));
 
@@ -119,7 +118,7 @@ void update_pv(move_t *pv, move_t bestmove, move_t *subPv)
     pv[i + 1] = NO_MOVE;
 }
 
-void main_worker_search(worker_t *worker)
+void main_worker_search(Worker *worker)
 {
     Board *board = &worker->board;
 
@@ -217,7 +216,7 @@ void main_worker_search(worker_t *worker)
     free_boardstack(worker->stack);
 }
 
-void worker_search(worker_t *worker)
+void worker_search(Worker *worker)
 {
     Board *board = &worker->board;
 
@@ -358,7 +357,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
     bool cutNode)
 {
     bool rootNode = (ss->plies == 0);
-    worker_t *worker = get_worker(board);
+    Worker *worker = get_worker(board);
 
     // Perform an early check for repetition detections.
     if (!rootNode && board->stack->rule50 >= 3 && alpha < 0 && game_has_cycle(board, ss->plies))
@@ -832,7 +831,7 @@ __main_loop:
 
 score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchstack *ss)
 {
-    worker_t *worker = get_worker(board);
+    Worker *worker = get_worker(board);
     const score_t oldAlpha = alpha;
     Movepicker mp;
     move_t pv[256];
