@@ -533,19 +533,17 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
 {
     printf("\n Parameters:\n");
 
-#define PRINT_SP(idx, val)                                          \
-    do {                                                            \
-        printf("const scorepair_t %s = SPAIR(%.lf, %.lf);\n", #val, \
-            base[idx][MIDGAME] + delta[idx][MIDGAME],               \
-            base[idx][ENDGAME] + delta[idx][ENDGAME]);              \
+#define PRINT_SP(idx, val)                                                                       \
+    do {                                                                                         \
+        printf("const scorepair_t %s = SPAIR(%.lf, %.lf);\n", #val,                              \
+            base[idx][MIDGAME] + delta[idx][MIDGAME], base[idx][ENDGAME] + delta[idx][ENDGAME]); \
     } while (0)
 
-#define PRINT_SP_NICE(idx, val, pad, nameAlign)                   \
-    do {                                                          \
-        printf("const scorepair_t %-*s = SPAIR(%*.lf,%*.lf);\n", \
-            nameAlign, #val,                                      \
-            pad, base[idx][MIDGAME] + delta[idx][MIDGAME],        \
-            pad, base[idx][ENDGAME] + delta[idx][ENDGAME]);       \
+#define PRINT_SP_NICE(idx, val, pad, nameAlign)                                        \
+    do {                                                                               \
+        printf("const scorepair_t %-*s = SPAIR(%*.lf,%*.lf);\n", nameAlign, #val, pad, \
+            base[idx][MIDGAME] + delta[idx][MIDGAME], pad,                             \
+            base[idx][ENDGAME] + delta[idx][ENDGAME]);                                 \
     } while (0)
 
 #define PRINT_SPA(idx, val, size, pad, lineSplit, prefix)              \
@@ -561,41 +559,37 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
         puts("};");                                                    \
     } while (0)
 
-#define PRINT_SPA_PARTIAL(idx, val, size, start, end, pad, prefix) \
-    do { \
-        printf("const scorepair_t %s[%d] = {\n    ", #val, size); \
-        for (int i = 0; i < size; ++i) { \
-            if (i >= start && i < end) \
-                printf(prefix "(%*.lf,%*.lf)%s", pad,                      \
+#define PRINT_SPA_PARTIAL(idx, val, size, start, end, pad, prefix)                         \
+    do {                                                                                   \
+        printf("const scorepair_t %s[%d] = {\n    ", #val, size);                          \
+        for (int i = 0; i < size; ++i)                                                     \
+        {                                                                                  \
+            if (i >= start && i < end)                                                     \
+                printf(prefix "(%*.lf,%*.lf)%s", pad,                                      \
                     base[idx + i - start][MIDGAME] + delta[idx + i - start][MIDGAME], pad, \
                     base[idx + i - start][ENDGAME] + delta[idx + i - start][ENDGAME],      \
-                    (i == size - 1)                    ? "\n"              \
-                                                       : ",\n    ");       \
-            else \
-                printf("0%s", (i == size - 1) ? "\n" : ",\n    "); \
-        } \
-        puts("};");                                                    \
+                    (i == size - 1) ? "\n" : ",\n    ");                                   \
+            else                                                                           \
+                printf("0%s", (i == size - 1) ? "\n" : ",\n    ");                         \
+        }                                                                                  \
+        puts("};");                                                                        \
     } while (0)
 
     // psq_score.h start
     printf("| psq_score.h |\n\n");
 
-    static const char *pieceNames[5] = {
-        "PAWN", "KNIGHT", "BISHOP", "ROOK", "QUEEN"
-    };
+    static const char *pieceNames[5] = {"PAWN", "KNIGHT", "BISHOP", "ROOK", "QUEEN"};
 
     printf("// Enum for all pieces' midgame and endgame scores\nenum\n{\n");
 
     for (int phase = MIDGAME; phase <= ENDGAME; ++phase)
         for (piece_t piece = PAWN; piece <= QUEEN; ++piece)
         {
-            printf("    %s_%s_SCORE = %.lf,\n",
-                pieceNames[piece - PAWN],
+            printf("    %s_%s_SCORE = %.lf,\n", pieceNames[piece - PAWN],
                 phase == MIDGAME ? "MG" : "EG",
                 base[IDX_PIECE + piece - PAWN][phase] + delta[IDX_PIECE + piece - PAWN][phase]);
 
-            if (phase == MIDGAME && piece == QUEEN)
-                putchar('\n');
+            if (phase == MIDGAME && piece == QUEEN) putchar('\n');
         }
 
     printf("};\n\n");

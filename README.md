@@ -2,7 +2,7 @@
 ## Stash
 
 Stash is a UCI-compliant chess engine developed from scratch. Preferably used
-with a GUI like Arena, CuteChess, Fritz, etc.
+with a GUI like Nibbler, CuteChess, Arena, etc.
 
 ## Files
 
@@ -39,6 +39,14 @@ Stash supports for now all these UCI options:
     Assumes a time delay of x milliseconds due to network and GUI overheads.
     Increase it if the engine often loses games on time. The default value
     of 100 ms should be sufficient for all chess GUIs.
+
+  * #### NormalizeScore
+    Normalizes the search score so that a 100 centipawns advantage corresponds
+    to a win rate of ~50% at move 32. Enabled by default.
+
+  * #### UCI\_ShowWDL
+    Displays the expected probabilities of win/draw/loss per mill, alongside
+    the search score. Only enable it if your GUI supports it.
 
 ## Frequently Asked Questions
 

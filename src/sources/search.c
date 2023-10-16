@@ -74,8 +74,7 @@ int get_conthist_score(const Board *board, const Searchstack *ss, move_t move)
     return history;
 }
 
-int get_history_score(
-    const Board *board, const Worker *worker, const Searchstack *ss, move_t move)
+int get_history_score(const Board *board, const Worker *worker, const Searchstack *ss, move_t move)
 {
     const piece_t movedPiece = piece_on(board, from_sq(move));
 
