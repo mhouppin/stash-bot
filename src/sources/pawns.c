@@ -29,7 +29,7 @@ const scorepair_t DoubledPenalty   = SPAIR(-18,-40);
 const scorepair_t IsolatedPenalty  = SPAIR( -9, -8);
 
 // Rank-based bonus for passed Pawns
-const scorepair_t PassedBonus[RANK_NB] = {
+const scorepair_t PassedBonus[8] = {
     0,
     SPAIR(-16,-39),
     SPAIR(-19,-22),
@@ -41,7 +41,7 @@ const scorepair_t PassedBonus[RANK_NB] = {
 };
 
 // Rank-based bonus for phalanx structures
-const scorepair_t PhalanxBonus[RANK_NB] = {
+const scorepair_t PhalanxBonus[8] = {
     0,
     SPAIR(  5,  4),
     SPAIR( 13,  6),
@@ -53,7 +53,7 @@ const scorepair_t PhalanxBonus[RANK_NB] = {
 };
 
 // Rank-based bonus for defenders
-const scorepair_t DefenderBonus[RANK_NB] = {
+const scorepair_t DefenderBonus[8] = {
     0,
     SPAIR( 15, 19),
     SPAIR( 12, 19),

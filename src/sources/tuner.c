@@ -111,9 +111,6 @@ void init_base_values(tp_vector_t base)
         }                                                   \
     } while (0)
 
-    extern const scorepair_t PawnBonus[RANK_NB][FILE_NB];
-    extern const scorepair_t PieceBonus[PIECETYPE_NB][RANK_NB][FILE_NB / 2];
-
     base[IDX_PIECE + 0][MIDGAME] = PAWN_MG_SCORE;
     base[IDX_PIECE + 0][ENDGAME] = PAWN_EG_SCORE;
     base[IDX_PIECE + 1][MIDGAME] = KNIGHT_MG_SCORE;
@@ -125,25 +122,12 @@ void init_base_values(tp_vector_t base)
     base[IDX_PIECE + 4][MIDGAME] = QUEEN_MG_SCORE;
     base[IDX_PIECE + 4][ENDGAME] = QUEEN_EG_SCORE;
 
-    for (square_t sq = SQ_A2; sq <= SQ_H7; ++sq)
-    {
-        scorepair_t sp = PawnBonus[sq_rank(sq)][sq_file(sq)];
-
-        base[IDX_PSQT + sq - SQ_A2][MIDGAME] = midgame_score(sp);
-        base[IDX_PSQT + sq - SQ_A2][ENDGAME] = endgame_score(sp);
-    }
-
-    for (piecetype_t pt = KNIGHT; pt <= KING; ++pt)
-        for (file_t file = FILE_A; file <= FILE_D; ++file)
-            for (rank_t rank = RANK_1; rank <= RANK_8; ++rank)
-            {
-                scorepair_t sp = PieceBonus[pt][rank][file];
-
-                base[IDX_PSQT + 48 + 32 * (pt - KNIGHT) + rank * 4 + file][MIDGAME] =
-                    midgame_score(sp);
-                base[IDX_PSQT + 48 + 32 * (pt - KNIGHT) + rank * 4 + file][ENDGAME] =
-                    endgame_score(sp);
-            }
+    INIT_BASE_SPA(IDX_PSQT, PawnSQT, 48);
+    INIT_BASE_SPA(IDX_PSQT + 48, KnightSQT, 32);
+    INIT_BASE_SPA(IDX_PSQT + 80, BishopSQT, 32);
+    INIT_BASE_SPA(IDX_PSQT + 112, RookSQT, 32);
+    INIT_BASE_SPA(IDX_PSQT + 144, QueenSQT, 32);
+    INIT_BASE_SPA(IDX_PSQT + 176, KingSQT, 32);
 
     INIT_BASE_SP(IDX_CASTLING, CastlingBonus);
     INIT_BASE_SP(IDX_INITIATIVE, Initiative);
@@ -424,7 +408,6 @@ double adjusted_eval(
     double normal[PHASE_NB], safety[PHASE_NB];
 
     // Save any modifications for MG or EG for each evaluation type.
-
     for (int i = 0; i < entry->tupleCount; ++i)
     {
         int index = entry->tuples[i].index;
@@ -437,19 +420,16 @@ double adjusted_eval(
     }
 
     // Grab the original non-safety evaluations and add the modified parameters.
-
     normal[MIDGAME] = (double)midgame_score(entry->eval) + mg[0][WHITE] - mg[0][BLACK];
     normal[ENDGAME] = (double)endgame_score(entry->eval) + eg[0][WHITE] - eg[0][BLACK];
 
     // Grab the original safety evaluations and add the modified parameters.
-
     wsafety[MIDGAME] = (double)midgame_score(entry->safety[WHITE]) + mg[1][WHITE];
     wsafety[ENDGAME] = (double)endgame_score(entry->safety[WHITE]) + eg[1][WHITE];
     bsafety[MIDGAME] = (double)midgame_score(entry->safety[BLACK]) + mg[1][BLACK];
     bsafety[ENDGAME] = (double)endgame_score(entry->safety[BLACK]) + eg[1][BLACK];
 
     // Remove the original safety evaluations from the normal evaluations.
-
     normal[MIDGAME] -=
         imax(0, midgame_score(entry->safety[WHITE])) * midgame_score(entry->safety[WHITE]) / 256
         - imax(0, midgame_score(entry->safety[BLACK])) * midgame_score(entry->safety[BLACK]) / 256;
@@ -457,13 +437,11 @@ double adjusted_eval(
                        - imax(0, endgame_score(entry->safety[BLACK])) / 16;
 
     // Compute the new safety evaluations for each side.
-
     safety[MIDGAME] = fmax(0, wsafety[MIDGAME]) * wsafety[MIDGAME] / 256.0
                       - fmax(0, bsafety[MIDGAME]) * bsafety[MIDGAME] / 256.0;
     safety[ENDGAME] = fmax(0, wsafety[ENDGAME]) / 16.0 - fmax(0, bsafety[ENDGAME]) / 16.0;
 
     // Save the safety scores for computing gradients later.
-
     safetyScores[WHITE][MIDGAME] = wsafety[MIDGAME];
     safetyScores[WHITE][ENDGAME] = wsafety[ENDGAME];
     safetyScores[BLACK][MIDGAME] = bsafety[MIDGAME];
@@ -555,15 +533,24 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
 {
     printf("\n Parameters:\n");
 
-#define PRINT_SP(idx, val)                                                                       \
-    do {                                                                                         \
-        printf("scorepair_t %s = SPAIR(%.lf, %.lf);\n", #val,                                    \
-            base[idx][MIDGAME] + delta[idx][MIDGAME], base[idx][ENDGAME] + delta[idx][ENDGAME]); \
+#define PRINT_SP(idx, val)                                          \
+    do {                                                            \
+        printf("const scorepair_t %s = SPAIR(%.lf, %.lf);\n", #val, \
+            base[idx][MIDGAME] + delta[idx][MIDGAME],               \
+            base[idx][ENDGAME] + delta[idx][ENDGAME]);              \
+    } while (0)
+
+#define PRINT_SP_NICE(idx, val, pad, nameAlign)                   \
+    do {                                                          \
+        printf("const scorepair_t %-*s = SPAIR(%*.lf,%*.lf);\n", \
+            nameAlign, #val,                                      \
+            pad, base[idx][MIDGAME] + delta[idx][MIDGAME],        \
+            pad, base[idx][ENDGAME] + delta[idx][ENDGAME]);       \
     } while (0)
 
 #define PRINT_SPA(idx, val, size, pad, lineSplit, prefix)              \
     do {                                                               \
-        printf("scorepair_t %s[%d] = {\n    ", #val, size);            \
+        printf("const scorepair_t %s[%d] = {\n    ", #val, size);      \
         for (int i = 0; i < size; ++i)                                 \
             printf(prefix "(%*.lf,%*.lf)%s", pad,                      \
                 base[idx + i][MIDGAME] + delta[idx + i][MIDGAME], pad, \
@@ -574,18 +561,54 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
         puts("};");                                                    \
     } while (0)
 
-    PRINT_SP(IDX_PIECE + 0, PawnValue);
-    PRINT_SP(IDX_PIECE + 1, KnightValue);
-    PRINT_SP(IDX_PIECE + 2, BishopValue);
-    PRINT_SP(IDX_PIECE + 3, RookValue);
-    PRINT_SP(IDX_PIECE + 4, QueenValue);
+#define PRINT_SPA_PARTIAL(idx, val, size, start, end, pad, prefix) \
+    do { \
+        printf("const scorepair_t %s[%d] = {\n    ", #val, size); \
+        for (int i = 0; i < size; ++i) { \
+            if (i >= start && i < end) \
+                printf(prefix "(%*.lf,%*.lf)%s", pad,                      \
+                    base[idx + i - start][MIDGAME] + delta[idx + i - start][MIDGAME], pad, \
+                    base[idx + i - start][ENDGAME] + delta[idx + i - start][ENDGAME],      \
+                    (i == size - 1)                    ? "\n"              \
+                                                       : ",\n    ");       \
+            else \
+                printf("0%s", (i == size - 1) ? "\n" : ",\n    "); \
+        } \
+        puts("};");                                                    \
+    } while (0)
 
-    putchar('\n');
+    // psq_score.h start
+    printf("| psq_score.h |\n\n");
 
+    static const char *pieceNames[5] = {
+        "PAWN", "KNIGHT", "BISHOP", "ROOK", "QUEEN"
+    };
+
+    printf("// Enum for all pieces' midgame and endgame scores\nenum\n{\n");
+
+    for (int phase = MIDGAME; phase <= ENDGAME; ++phase)
+        for (piece_t piece = PAWN; piece <= QUEEN; ++piece)
+        {
+            printf("    %s_%s_SCORE = %.lf,\n",
+                pieceNames[piece - PAWN],
+                phase == MIDGAME ? "MG" : "EG",
+                base[IDX_PIECE + piece - PAWN][phase] + delta[IDX_PIECE + piece - PAWN][phase]);
+
+            if (phase == MIDGAME && piece == QUEEN)
+                putchar('\n');
+        }
+
+    printf("};\n\n");
+
+    // psq_score.h end
+    // psq_score.c start
+    printf("| psq_score.c |\n\n");
+
+    printf("// Square-based Pawn scoring for evaluation\n");
     PRINT_SPA(IDX_PSQT, PawnSQT, 48, 3, 8, "S");
-
     putchar('\n');
 
+    printf("// Square-based piece scoring for evaluation, using a file symmetry\n");
     PRINT_SPA(IDX_PSQT + 48 + 32 * 0, KnightSQT, 32, 4, 4, "S");
     putchar('\n');
     PRINT_SPA(IDX_PSQT + 48 + 32 * 1, BishopSQT, 32, 4, 4, "S");
@@ -595,52 +618,69 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
     PRINT_SPA(IDX_PSQT + 48 + 32 * 3, QueenSQT, 32, 4, 4, "S");
     putchar('\n');
     PRINT_SPA(IDX_PSQT + 48 + 32 * 4, KingSQT, 32, 4, 4, "S");
-    putchar('\n');
+    printf("\n\n");
 
+    // psq_score.c end
+    // evaluate.c start
+    printf("| evaluate.c |\n\n");
+
+    printf("// Special eval terms\n");
     PRINT_SP(IDX_CASTLING, CastlingBonus);
     PRINT_SP(IDX_INITIATIVE, Initiative);
     putchar('\n');
 
-    PRINT_SP(IDX_KS_KNIGHT, KnightWeight);
-    PRINT_SP(IDX_KS_BISHOP, BishopWeight);
-    PRINT_SP(IDX_KS_ROOK, RookWeight);
-    PRINT_SP(IDX_KS_QUEEN, QueenWeight);
-    PRINT_SP(IDX_KS_ATTACK, AttackWeight);
-    PRINT_SP(IDX_KS_WEAK_Z, WeakKingZone);
-    PRINT_SP(IDX_KS_CHECK_N, SafeKnightCheck);
-    PRINT_SP(IDX_KS_CHECK_B, SafeBishopCheck);
-    PRINT_SP(IDX_KS_CHECK_R, SafeRookCheck);
-    PRINT_SP(IDX_KS_CHECK_Q, SafeQueenCheck);
-    PRINT_SP(IDX_KS_QUEENLESS, QueenlessAttack);
+    printf("// Passed Pawn eval terms\n");
+    PRINT_SPA_PARTIAL(IDX_PP_OUR_KING_PROX, PP_OurKingProximity, 8, 1, 8, 4, "SPAIR");
     putchar('\n');
+    PRINT_SPA_PARTIAL(IDX_PP_THEIR_KING_PROX, PP_TheirKingProximity, 8, 1, 8, 4, "SPAIR");
+    putchar('\n');
+
+    printf("// King Safety eval terms\n");
+    PRINT_SP_NICE(IDX_KS_KNIGHT, KnightWeight, 4, 15);
+    PRINT_SP_NICE(IDX_KS_BISHOP, BishopWeight, 4, 15);
+    PRINT_SP_NICE(IDX_KS_ROOK, RookWeight, 4, 15);
+    PRINT_SP_NICE(IDX_KS_QUEEN, QueenWeight, 4, 15);
+    PRINT_SP_NICE(IDX_KS_ATTACK, AttackWeight, 4, 15);
+    PRINT_SP_NICE(IDX_KS_WEAK_Z, WeakKingZone, 4, 15);
+    PRINT_SP_NICE(IDX_KS_CHECK_N, SafeKnightCheck, 4, 15);
+    PRINT_SP_NICE(IDX_KS_CHECK_B, SafeBishopCheck, 4, 15);
+    PRINT_SP_NICE(IDX_KS_CHECK_R, SafeRookCheck, 4, 15);
+    PRINT_SP_NICE(IDX_KS_CHECK_Q, SafeQueenCheck, 4, 15);
+    PRINT_SP_NICE(IDX_KS_QUEENLESS, QueenlessAttack, 4, 15);
+    PRINT_SP_NICE(IDX_KS_OFFSET, SafetyOffset, 4, 15);
+    putchar('\n');
+    printf("// Storm/Shelter indexes:\n");
+    printf("// 0-7 - Side\n// 9-15 - Front\n// 16-23 - Center\n");
     PRINT_SPA(IDX_KS_STORM, KingStorm, 24, 4, 4, "SPAIR");
     putchar('\n');
     PRINT_SPA(IDX_KS_SHELTER, KingShelter, 24, 4, 4, "SPAIR");
     putchar('\n');
-    PRINT_SP(IDX_KS_OFFSET, SafetyOffset);
-    putchar('\n');
 
+    printf("// Knight eval terms\n");
+    PRINT_SP_NICE(IDX_KNIGHT_SHIELDED, KnightShielded, 3, 19);
+    PRINT_SP_NICE(IDX_KNIGHT_OUTPOST, KnightOutpost, 3, 19);
+    PRINT_SP_NICE(IDX_KNIGHT_CENTER_OUTPOST, KnightCenterOutpost, 3, 19);
+    PRINT_SP_NICE(IDX_KNIGHT_SOLID_OUTPOST, KnightSolidOutpost, 3, 19);
+    putchar('\n');
     PRINT_SPA(IDX_KNIGHT_CLOSED_POS, ClosedPosKnight, 5, 4, 4, "SPAIR");
     putchar('\n');
-    PRINT_SP(IDX_KNIGHT_SHIELDED, KnightShielded);
-    PRINT_SP(IDX_KNIGHT_OUTPOST, KnightOutpost);
-    PRINT_SP(IDX_KNIGHT_CENTER_OUTPOST, KnightCenterOutpost);
-    PRINT_SP(IDX_KNIGHT_SOLID_OUTPOST, KnightSolidOutpost);
-    putchar('\n');
 
+    printf("// Bishop eval terms\n");
+    PRINT_SP_NICE(IDX_BISHOP_PAIR, BishopPairBonus, 3, 18);
+    PRINT_SP_NICE(IDX_BISHOP_SHIELDED, BishopShielded, 3, 18);
+    PRINT_SP_NICE(IDX_BISHOP_LONG_DIAG, BishopLongDiagonal, 3, 18);
+    putchar('\n');
     PRINT_SPA(IDX_BISHOP_PAWNS_COLOR, BishopPawnsSameColor, 7, 4, 4, "SPAIR");
     putchar('\n');
-    PRINT_SP(IDX_BISHOP_PAIR, BishopPairBonus);
-    PRINT_SP(IDX_BISHOP_SHIELDED, BishopShielded);
-    PRINT_SP(IDX_BISHOP_LONG_DIAG, BishopLongDiagonal);
+
+    printf("// Rook eval terms\n");
+    PRINT_SP_NICE(IDX_ROOK_SEMIOPEN, RookOnSemiOpenFile, 3, 18);
+    PRINT_SP_NICE(IDX_ROOK_OPEN, RookOnOpenFile, 3, 18);
+    PRINT_SP_NICE(IDX_ROOK_BLOCKED, RookOnBlockedFile, 3, 18);
+    PRINT_SP_NICE(IDX_ROOK_XRAY_QUEEN, RookXrayQueen, 3, 18);
     putchar('\n');
 
-    PRINT_SP(IDX_ROOK_SEMIOPEN, RookOnSemiOpenFile);
-    PRINT_SP(IDX_ROOK_OPEN, RookOnOpenFile);
-    PRINT_SP(IDX_ROOK_BLOCKED, RookOnBlockedFile);
-    PRINT_SP(IDX_ROOK_XRAY_QUEEN, RookXrayQueen);
-    putchar('\n');
-
+    printf("// Mobility eval terms\n");
     PRINT_SPA(IDX_MOBILITY_KNIGHT, MobilityN, 9, 4, 4, "SPAIR");
     putchar('\n');
     PRINT_SPA(IDX_MOBILITY_BISHOP, MobilityB, 14, 4, 4, "SPAIR");
@@ -650,30 +690,34 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
     PRINT_SPA(IDX_MOBILITY_QUEEN, MobilityQ, 28, 4, 4, "SPAIR");
     putchar('\n');
 
-    PRINT_SP(IDX_BACKWARD, BackwardPenalty);
-    PRINT_SP(IDX_STRAGGLER, StragglerPenalty);
-    PRINT_SP(IDX_DOUBLED, DoubledPenalty);
-    PRINT_SP(IDX_ISOLATED, IsolatedPenalty);
+    printf("// Threat eval terms\n");
+    PRINT_SP_NICE(IDX_PAWN_ATK_MINOR, PawnAttacksMinor, 3, 17);
+    PRINT_SP_NICE(IDX_PAWN_ATK_ROOK, PawnAttacksRook, 3, 17);
+    PRINT_SP_NICE(IDX_PAWN_ATK_QUEEN, PawnAttacksQueen, 3, 17);
+    PRINT_SP_NICE(IDX_MINOR_ATK_ROOK, MinorAttacksRook, 3, 17);
+    PRINT_SP_NICE(IDX_MINOR_ATK_QUEEN, MinorAttacksQueen, 3, 17);
+    PRINT_SP_NICE(IDX_ROOK_ATK_QUEEN, RookAttacksQueen, 3, 17);
     putchar('\n');
 
-    PRINT_SPA(IDX_PASSER, PassedBonus, 6, 3, 1, "SPAIR");
-    putchar('\n');
-    PRINT_SPA(IDX_PHALANX, PhalanxBonus, 6, 3, 1, "SPAIR");
-    putchar('\n');
-    PRINT_SPA(IDX_DEFENDER, DefenderBonus, 5, 3, 1, "SPAIR");
+    // evaluate.c end
+    // pawns.c start
+    printf("| pawns.c |\n\n");
+
+    printf("// Miscellanous bonus for Pawn structures\n");
+    PRINT_SP_NICE(IDX_BACKWARD, BackwardPenalty, 3, 16);
+    PRINT_SP_NICE(IDX_STRAGGLER, StragglerPenalty, 3, 16);
+    PRINT_SP_NICE(IDX_DOUBLED, DoubledPenalty, 3, 16);
+    PRINT_SP_NICE(IDX_ISOLATED, IsolatedPenalty, 3, 16);
     putchar('\n');
 
-    PRINT_SPA(IDX_PP_OUR_KING_PROX, PP_OurKingProximity, 7, 4, 1, "SPAIR");
+    printf("// Rank-based bonus for passed Pawns\n");
+    PRINT_SPA_PARTIAL(IDX_PASSER, PassedBonus, 8, 1, 7, 3, "SPAIR");
     putchar('\n');
-    PRINT_SPA(IDX_PP_THEIR_KING_PROX, PP_TheirKingProximity, 7, 4, 1, "SPAIR");
+    printf("// Rank-based bonus for phalanx structures\n");
+    PRINT_SPA_PARTIAL(IDX_PHALANX, PhalanxBonus, 8, 1, 7, 3, "SPAIR");
     putchar('\n');
-
-    PRINT_SP(IDX_PAWN_ATK_MINOR, PawnAttacksMinor);
-    PRINT_SP(IDX_PAWN_ATK_ROOK, PawnAttacksRook);
-    PRINT_SP(IDX_PAWN_ATK_QUEEN, PawnAttacksQueen);
-    PRINT_SP(IDX_MINOR_ATK_ROOK, MinorAttacksRook);
-    PRINT_SP(IDX_MINOR_ATK_QUEEN, MinorAttacksQueen);
-    PRINT_SP(IDX_ROOK_ATK_QUEEN, RookAttacksQueen);
+    printf("// Rank-based bonus for defenders\n");
+    PRINT_SPA_PARTIAL(IDX_DEFENDER, DefenderBonus, 8, 1, 6, 3, "SPAIR");
     putchar('\n');
 }
 
