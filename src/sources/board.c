@@ -241,7 +241,7 @@ static int board_set_castling(Board *board, color_t color, square_t rookSquare)
     if (relative_sq_rank(kingSquare, color) != RANK_1)
     {
         debug_printf(
-            "info string Invalid FEN: castling rights given with the king not on back-rank\n");
+            "info error Invalid FEN: castling rights given with the king not on back-rank\n");
         return -1;
     }
 
