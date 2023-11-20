@@ -546,6 +546,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
             Boardstack stack;
             bool givesCheck = move_gives_check(board, currmove);
             do_move_gc(board, currmove, &stack, givesCheck);
+            atomic_fetch_add_explicit(&get_worker(board)->nodes, 1, memory_order_relaxed);
 
             score_t probCutScore = -qsearch(false, board, -probCutBeta, -probCutBeta + 1, ss + 1);
 
