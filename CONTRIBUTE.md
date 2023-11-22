@@ -16,8 +16,7 @@ documenting some parts of the code used for tuning the search and evaluation.
 
   Given that the main OpenBench instance tends to saturate easily if a few LTC
   tests are currently running, it is generally good practice to run speculative
-  LTCs that didn't go through a green STC at a reduced throughput of 300, or 500
-  if a STC test failed yellow/red but only by a slight margin.
+  LTCs that didn't go through a green STC at a reduced throughput (250-500).
 
 ## QOL and speedup patches
 
