@@ -741,7 +741,8 @@ __main_loop:
             score = -search(false, board, newDepth, -alpha - 1, -alpha, ss + 1, !cutNode);
 
             // Update continuation histories for post-LMR searches.
-            if (R) update_cont_histories(ss, depth, movedPiece, to_sq(currmove), score > alpha);
+            if (R && isQuiet)
+                update_cont_histories(ss, depth, movedPiece, to_sq(currmove), score > alpha);
         }
 
         // In PV nodes, perform an additional full-window search for the first
