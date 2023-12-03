@@ -614,6 +614,14 @@ void uci_loop(int argc, char **argv)
     add_option_check(&UciOptionList, "Ponder", &UciOptionFields.ponder, NULL);
     add_option_button(&UciOptionList, "Clear Hash", &on_clear_hash);
 
+    extern score_t SEE_SCORES[PIECETYPE_NB];
+
+    add_option_score(&UciOptionList, "PawnSEE", &SEE_SCORES[PAWN], 0, 2000, NULL);
+    add_option_score(&UciOptionList, "KnightSEE", &SEE_SCORES[KNIGHT], 0, 2000, NULL);
+    add_option_score(&UciOptionList, "BishopSEE", &SEE_SCORES[BISHOP], 0, 2000, NULL);
+    add_option_score(&UciOptionList, "RookSEE", &SEE_SCORES[ROOK], 0, 2000, NULL);
+    add_option_score(&UciOptionList, "QueenSEE", &SEE_SCORES[QUEEN], 0, 2000, NULL);
+
     uci_position("startpos");
 
     if (argc > 1)

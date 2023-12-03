@@ -1222,6 +1222,10 @@ bool move_is_pseudo_legal(const Board *board, move_t move)
     return true;
 }
 
+score_t SEE_SCORES[PIECETYPE_NB] = {
+    0, PAWN_MG_SCORE, KNIGHT_MG_SCORE, BISHOP_MG_SCORE, ROOK_MG_SCORE, QUEEN_MG_SCORE, 0, 0
+};
+
 bool see_greater_than(const Board *board, move_t m, score_t threshold)
 {
     // "Non-standard" moves are tricky to evaluate, so perform a generic check
@@ -1229,12 +1233,12 @@ bool see_greater_than(const Board *board, move_t m, score_t threshold)
     if (move_type(m) != NORMAL_MOVE) return threshold <= 0;
 
     const square_t from = from_sq(m), to = to_sq(m);
-    score_t nextScore = PieceScores[MIDGAME][piece_on(board, to)] - threshold;
+    score_t nextScore = SEE_SCORES[piece_type(piece_on(board, to))] - threshold;
 
     // If we can't get enough material with the sole capture of the piece, stop.
     if (nextScore < 0) return false;
 
-    nextScore = PieceScores[MIDGAME][piece_on(board, from)] - nextScore;
+    nextScore = SEE_SCORES[piece_type(piece_on(board, from))] - nextScore;
 
     // If our opponent cannot get enough material back by capturing our moved
     // piece, stop.
@@ -1271,34 +1275,34 @@ bool see_greater_than(const Board *board, move_t m, score_t threshold)
         // target square.
         if ((b = stmAttackers & piecetype_bb(board, PAWN)))
         {
-            if ((nextScore = PAWN_MG_SCORE - nextScore) < result) break;
+            if ((nextScore = SEE_SCORES[PAWN] - nextScore) < result) break;
 
             occupied ^= square_bb(bb_first_sq(b));
             attackers |= bishop_moves_bb(to, occupied) & piecetypes_bb(board, BISHOP, QUEEN);
         }
         else if ((b = stmAttackers & piecetype_bb(board, KNIGHT)))
         {
-            if ((nextScore = KNIGHT_MG_SCORE - nextScore) < result) break;
+            if ((nextScore = SEE_SCORES[KNIGHT] - nextScore) < result) break;
 
             occupied ^= square_bb(bb_first_sq(b));
         }
         else if ((b = stmAttackers & piecetype_bb(board, BISHOP)))
         {
-            if ((nextScore = BISHOP_MG_SCORE - nextScore) < result) break;
+            if ((nextScore = SEE_SCORES[BISHOP] - nextScore) < result) break;
 
             occupied ^= square_bb(bb_first_sq(b));
             attackers |= bishop_moves_bb(to, occupied) & piecetypes_bb(board, BISHOP, QUEEN);
         }
         else if ((b = stmAttackers & piecetype_bb(board, ROOK)))
         {
-            if ((nextScore = ROOK_MG_SCORE - nextScore) < result) break;
+            if ((nextScore = SEE_SCORES[ROOK] - nextScore) < result) break;
 
             occupied ^= square_bb(bb_first_sq(b));
             attackers |= rook_moves_bb(to, occupied) & piecetypes_bb(board, ROOK, QUEEN);
         }
         else if ((b = stmAttackers & piecetype_bb(board, QUEEN)))
         {
-            if ((nextScore = QUEEN_MG_SCORE - nextScore) < result) break;
+            if ((nextScore = SEE_SCORES[QUEEN] - nextScore) < result) break;
 
             occupied ^= square_bb(bb_first_sq(b));
             attackers |= bishop_moves_bb(to, occupied) & piecetypes_bb(board, BISHOP, QUEEN);
