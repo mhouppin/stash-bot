@@ -21,7 +21,7 @@
 
 #include "types.h"
 
-// Enum for all pieces' midgame and endgame scores
+// Enum for all pieces' midgame, endgame and SEE scores
 enum
 {
     PAWN_MG_SCORE = 106,
@@ -34,7 +34,13 @@ enum
     KNIGHT_EG_SCORE = 601,
     BISHOP_EG_SCORE = 645,
     ROOK_EG_SCORE = 1023,
-    QUEEN_EG_SCORE = 1944
+    QUEEN_EG_SCORE = 1944,
+
+    PAWN_SEE_SCORE = 104,
+    KNIGHT_SEE_SCORE = 338,
+    BISHOP_SEE_SCORE = 379,
+    ROOK_SEE_SCORE = 547,
+    QUEEN_SEE_SCORE = 1075
 };
 
 // Global for the piece values indexed by phase and piece
