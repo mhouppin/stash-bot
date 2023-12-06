@@ -230,8 +230,8 @@ void wpool_start_search(WorkerPool *wpool, const Board *rootBoard, const SearchP
 
     // Reset the stop flag, and set the ponder flag if indicated by the "go"
     // command.
-    wpool->stop = false;
-    wpool->ponder = searchParams->ponder;
+    atomic_store_explicit(&wpool->stop, false, memory_order_relaxed);
+    atomic_store_explicit(&wpool->ponder, searchParams->ponder, memory_order_relaxed);
 
     for (size_t i = 0; i < wpool->size; ++i)
     {

@@ -102,14 +102,14 @@ void check_time(void);
 // Checks if we can safely stop the search.
 INLINED bool timeman_can_stop_search(Timeman *tm, clock_t cur)
 {
-    if (tm->pondering && SearchWorkerPool.ponder) return false;
+    if (tm->pondering && wpool_is_pondering(&SearchWorkerPool)) return false;
     return tm->mode != NoTimeman && cur >= tm->start + tm->optimalTime;
 }
 
 // Checks if we must stop the search.
 INLINED bool timeman_must_stop_search(Timeman *tm, clock_t cur)
 {
-    if (tm->pondering && SearchWorkerPool.ponder) return false;
+    if (tm->pondering && wpool_is_pondering(&SearchWorkerPool)) return false;
     return tm->mode != NoTimeman && cur >= tm->start + tm->maximalTime;
 }
 

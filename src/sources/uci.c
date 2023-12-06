@@ -31,7 +31,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define UCI_VERSION "v35.4"
+#define UCI_VERSION "v35.5"
 
 // clang-format off
 
@@ -258,11 +258,11 @@ void uci_isready(const char *args __attribute__((unused)))
     fflush(stdout);
 }
 
-void uci_quit(const char *args __attribute__((unused))) { SearchWorkerPool.stop = true; }
+void uci_quit(const char *args __attribute__((unused))) { wpool_stop(&SearchWorkerPool); }
 
-void uci_stop(const char *args __attribute__((unused))) { SearchWorkerPool.stop = true; }
+void uci_stop(const char *args __attribute__((unused))) { wpool_stop(&SearchWorkerPool); }
 
-void uci_ponderhit(const char *args __attribute__((unused))) { SearchWorkerPool.ponder = false; }
+void uci_ponderhit(const char *args __attribute__((unused))) { wpool_ponderhit(&SearchWorkerPool); }
 
 void uci_uci(const char *args __attribute__((unused)))
 {

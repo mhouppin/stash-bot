@@ -141,7 +141,7 @@ static void score_evasions(Movepicker *mp, ExtendedMove *begin, ExtendedMove *en
 
 move_t movepicker_next_move(Movepicker *mp, bool skipQuiets, int see_threshold)
 {
-__top:
+top:
 
     switch (mp->stage)
     {
@@ -180,7 +180,7 @@ __top:
             {
                 mp->cur = mp->list.moves;
                 mp->stage = PICK_BAD_INSTABLE;
-                goto __top;
+                goto top;
             }
             ++mp->stage;
             // Fallthrough

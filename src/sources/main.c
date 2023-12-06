@@ -74,7 +74,11 @@ int main(int argc, char **argv)
     // commands.
     worker_wait_search_end(wpool_main_worker(&SearchWorkerPool));
     uci_loop(argc, argv);
+
+    // Destroy all allocated memory.
     wpool_init(&SearchWorkerPool, 0);
+    tt_resize(0);
+    free_boardstack(UciBoard.stack);
 
 #endif
 

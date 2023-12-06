@@ -41,35 +41,36 @@ typedef struct _MoveList
 extern Movelist UciSearchMoves;
 
 // Generates all legal moves for the given board and stores them in the given movelist.
-ExtendedMove *generate_all(ExtendedMove *movelist, const Board *board);
+ExtendedMove *generate_all(ExtendedMove *restrict movelist, const Board *restrict board);
 
 // Generates all pseudo-legal moves for the given board (only for not in-check positions) and stores
 // them in the given movelist.
-ExtendedMove *generate_classic(ExtendedMove *movelist, const Board *board);
+ExtendedMove *generate_classic(ExtendedMove *restrict movelist, const Board *restrict board);
 
 // Generates all pseudo-legal moves for the given board (only for in-check positions) and stores
 // them in the given movelist.
-ExtendedMove *generate_evasions(ExtendedMove *movelist, const Board *board);
+ExtendedMove *generate_evasions(ExtendedMove *restrict movelist, const Board *restrict board);
 
 // Generates all pseudo-legal captures/queen promotions for the given board and stores them in the
 // given movelist.
-ExtendedMove *generate_captures(ExtendedMove *movelist, const Board *board, bool inQsearch);
+ExtendedMove *generate_captures(
+    ExtendedMove *restrict movelist, const Board *restrict board, bool inQsearch);
 
 // Generates all pseudo-legal non-captures/non-queen promotions for the given board and stores them
 // in the given movelist.
-ExtendedMove *generate_quiet(ExtendedMove *movelist, const Board *board);
+ExtendedMove *generate_quiet(ExtendedMove *restrict movelist, const Board *restrict board);
 
 // Places the move with the highest score in the first position of the movelist.
 void place_top_move(ExtendedMove *begin, ExtendedMove *end);
 
 // Generates all legal moves for the given board.
-INLINED void list_all(Movelist *movelist, const Board *board)
+INLINED void list_all(Movelist *restrict movelist, const Board *restrict board)
 {
     movelist->last = generate_all(movelist->moves, board);
 }
 
 // Generates all pseudo-legal moves for the given board.
-INLINED void list_pseudo(Movelist *movelist, const Board *board)
+INLINED void list_pseudo(Movelist *restrict movelist, const Board *restrict board)
 {
     movelist->last = board->stack->checkers ? generate_evasions(movelist->moves, board)
                                             : generate_classic(movelist->moves, board);

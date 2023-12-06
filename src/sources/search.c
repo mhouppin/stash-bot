@@ -169,10 +169,11 @@ void main_worker_search(Worker *worker)
     // UCI protocol specifies that we shouldn't send the bestmove command
     // before the GUI sends us the "stop" in infinite mode
     // or "ponderhit" in ponder mode.
-    while (!SearchWorkerPool.stop && (SearchWorkerPool.ponder || UciSearchParams.infinite))
+    while (!wpool_is_stopped(&SearchWorkerPool)
+           && (wpool_is_pondering(&SearchWorkerPool) || UciSearchParams.infinite))
         ;
 
-    SearchWorkerPool.stop = true;
+    wpool_stop(&SearchWorkerPool);
 
     if (worker->rootCount == 0)
     {
@@ -261,11 +262,11 @@ void worker_search(Worker *worker)
                 beta = imin(INF_SCORE, pvScore + delta);
             }
 
-__retry:
+retry_search:
             search(true, board, depth + 1, alpha, beta, &sstack[4], false);
 
             // Catch search aborting.
-            hasSearchAborted = SearchWorkerPool.stop;
+            hasSearchAborted = wpool_is_stopped(&SearchWorkerPool);
 
             sort_root_moves(
                 worker->rootMoves + worker->pvLine, worker->rootMoves + worker->rootCount);
@@ -311,14 +312,14 @@ __retry:
                 beta = (alpha + beta) / 2;
                 alpha = imax(-INF_SCORE, (int)pvScore - delta);
                 delta += delta / 4;
-                goto __retry;
+                goto retry_search;
             }
             else if (bound == LOWER_BOUND)
             {
                 depth -= (depth > iterDepth / 2);
                 beta = imin(INF_SCORE, (int)pvScore + delta);
                 delta += delta / 4;
-                goto __retry;
+                goto retry_search;
             }
         }
 
@@ -385,7 +386,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
     if (pvNode && worker->seldepth < ss->plies + 1) worker->seldepth = ss->plies + 1;
 
     // Stop the search if the game is drawn or the timeman/UCI thread asks for a stop.
-    if (!rootNode && (SearchWorkerPool.stop || game_is_drawn(board, ss->plies)))
+    if (!rootNode && (wpool_is_stopped(&SearchWorkerPool) || game_is_drawn(board, ss->plies)))
         return draw_score(worker);
 
     // Stop the search after MAX_PLIES recursive search calls.
@@ -413,7 +414,6 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
     hashkey_t key = board->stack->boardKey ^ ((hashkey_t)ss->excludedMove << 16);
     TT_Entry *entry = tt_probe(key, &found);
     score_t eval;
-    score_t probCutBeta;
 
     if (found)
     {
@@ -442,7 +442,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
     {
         eval = ss->staticEval = NO_SCORE;
         improving = false;
-        goto __main_loop;
+        goto main_loop;
     }
     // Use the TT stored information for getting an eval.
     else if (found)
@@ -521,19 +521,21 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
         }
     }
 
-    // Probcut. If we have a good enough capture (or promotion) and a reduced search returns a
-    // value much above beta, we can (almost) safely prune the previous move.
-    probCutBeta = beta + 128;
+    // Probcut. If we have a good enough capture (or promotion) and a reduced
+    // search returns a value much above beta, we can (almost) safely prune the
+    // previous move.
+    const score_t probCutBeta = beta + 128;
+
     if (!rootNode && depth >= 4 && abs(beta) < VICTORY
         && !(found && ttDepth >= depth - 3 && ttScore < probCutBeta))
     {
-        movepicker_init(&mp, true, board, worker,
-            ttMove && see_greater_than(board, ttMove, probCutBeta - ss->staticEval) ? ttMove
-                                                                                    : NO_MOVE,
-            ss);
+        const score_t probCutSEE = probCutBeta - ss->staticEval;
         move_t currmove;
-        while (
-            (currmove = movepicker_next_move(&mp, false, probCutBeta - ss->staticEval)) != NO_MOVE)
+
+        movepicker_init(&mp, true, board, worker,
+            ttMove && see_greater_than(board, ttMove, probCutSEE) ? ttMove : NO_MOVE, ss);
+
+        while ((currmove = movepicker_next_move(&mp, false, probCutSEE)) != NO_MOVE)
         {
             if (mp.stage == PICK_BAD_INSTABLE) break;
 
@@ -568,7 +570,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
     // Reduce depth if the node is absent from TT.
     if (!rootNode && !found && depth >= 4) --depth;
 
-__main_loop:
+main_loop:
     movepicker_init(&mp, false, board, worker, ttMove, ss);
 
     move_t currmove;
@@ -756,7 +758,7 @@ __main_loop:
         undo_move(board, currmove);
 
         // Check for search abortion here.
-        if (SearchWorkerPool.stop) return 0;
+        if (wpool_is_stopped(&SearchWorkerPool)) return 0;
 
         if (rootNode)
         {
@@ -844,7 +846,8 @@ score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchst
     if (pvNode && worker->seldepth < ss->plies + 1) worker->seldepth = ss->plies + 1;
 
     // Stop the search if the game is drawn or the timeman/UCI thread asks for a stop.
-    if (SearchWorkerPool.stop || game_is_drawn(board, ss->plies)) return draw_score(worker);
+    if (wpool_is_stopped(&SearchWorkerPool) || game_is_drawn(board, ss->plies))
+        return draw_score(worker);
 
     // Stop the search after MAX_PLIES recursive search calls.
     if (ss->plies >= MAX_PLIES)
@@ -967,7 +970,7 @@ score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchst
         undo_move(board, currmove);
 
         // Check for search abortion here.
-        if (SearchWorkerPool.stop) return 0;
+        if (wpool_is_stopped(&SearchWorkerPool)) return 0;
 
         // Check if our score improves the current best score.
         if (bestScore < score)

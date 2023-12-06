@@ -53,8 +53,8 @@ void place_top_move(ExtendedMove *begin, ExtendedMove *end)
     *begin = tmp;
 }
 
-ExtendedMove *generate_piece_moves(
-    ExtendedMove *movelist, const Board *board, color_t us, piecetype_t pt, bitboard_t target)
+ExtendedMove *generate_piece_moves(ExtendedMove *restrict movelist, const Board *restrict board,
+    color_t us, piecetype_t pt, bitboard_t target)
 {
     bitboard_t bb = piece_bb(board, us, pt);
     bitboard_t occupancy = occupancy_bb(board);
@@ -72,8 +72,8 @@ ExtendedMove *generate_piece_moves(
     return movelist;
 }
 
-ExtendedMove *generate_pawn_capture_moves(
-    ExtendedMove *movelist, const Board *board, color_t us, bitboard_t theirPieces, bool inQsearch)
+ExtendedMove *generate_pawn_capture_moves(ExtendedMove *restrict movelist,
+    const Board *restrict board, color_t us, bitboard_t theirPieces, bool inQsearch)
 {
     int pawnPush = pawn_direction(us);
     bitboard_t pawnsOnLastRank = piece_bb(board, us, PAWN) & (us == WHITE ? RANK_7_BB : RANK_2_BB);
@@ -143,7 +143,8 @@ ExtendedMove *generate_pawn_capture_moves(
     return movelist;
 }
 
-ExtendedMove *generate_captures(ExtendedMove *movelist, const Board *board, bool inQsearch)
+ExtendedMove *generate_captures(
+    ExtendedMove *restrict movelist, const Board *restrict board, bool inQsearch)
 {
     color_t us = board->sideToMove;
     bitboard_t target = color_bb(board, not_color(us));
@@ -163,7 +164,8 @@ ExtendedMove *generate_captures(ExtendedMove *movelist, const Board *board, bool
     return movelist;
 }
 
-ExtendedMove *generate_quiet_pawn_moves(ExtendedMove *movelist, const Board *board, color_t us)
+ExtendedMove *generate_quiet_pawn_moves(
+    ExtendedMove *restrict movelist, const Board *restrict board, color_t us)
 {
     int pawnPush = pawn_direction(us);
     bitboard_t pawnsNotOnLastRank =
@@ -189,7 +191,7 @@ ExtendedMove *generate_quiet_pawn_moves(ExtendedMove *movelist, const Board *boa
     return movelist;
 }
 
-ExtendedMove *generate_quiet(ExtendedMove *movelist, const Board *board)
+ExtendedMove *generate_quiet(ExtendedMove *restrict movelist, const Board *restrict board)
 {
     color_t us = board->sideToMove;
     bitboard_t target = ~occupancy_bb(board);
@@ -219,7 +221,8 @@ ExtendedMove *generate_quiet(ExtendedMove *movelist, const Board *board)
     return movelist;
 }
 
-ExtendedMove *generate_classic_pawn_moves(ExtendedMove *movelist, const Board *board, color_t us)
+ExtendedMove *generate_classic_pawn_moves(
+    ExtendedMove *restrict movelist, const Board *restrict board, color_t us)
 {
     int pawnPush = pawn_direction(us);
     bitboard_t pawnsOnLastRank = piece_bb(board, us, PAWN) & (us == WHITE ? RANK_7_BB : RANK_2_BB);
@@ -288,7 +291,7 @@ ExtendedMove *generate_classic_pawn_moves(ExtendedMove *movelist, const Board *b
     return movelist;
 }
 
-ExtendedMove *generate_classic(ExtendedMove *movelist, const Board *board)
+ExtendedMove *generate_classic(ExtendedMove *restrict movelist, const Board *restrict board)
 {
     color_t us = board->sideToMove;
     bitboard_t target = ~color_bb(board, us);
@@ -320,8 +323,8 @@ ExtendedMove *generate_classic(ExtendedMove *movelist, const Board *board)
     return movelist;
 }
 
-ExtendedMove *generate_pawn_evasion_moves(
-    ExtendedMove *movelist, const Board *board, bitboard_t blockSquares, color_t us)
+ExtendedMove *generate_pawn_evasion_moves(ExtendedMove *restrict movelist,
+    const Board *restrict board, bitboard_t blockSquares, color_t us)
 {
     int pawnPush = pawn_direction(us);
     bitboard_t pawnsOnLastRank = piece_bb(board, us, PAWN) & (us == WHITE ? RANK_7_BB : RANK_2_BB);
@@ -397,7 +400,7 @@ ExtendedMove *generate_pawn_evasion_moves(
     return movelist;
 }
 
-ExtendedMove *generate_evasions(ExtendedMove *movelist, const Board *board)
+ExtendedMove *generate_evasions(ExtendedMove *restrict movelist, const Board *restrict board)
 {
     color_t us = board->sideToMove;
     square_t kingSquare = get_king_square(board, us);
@@ -433,7 +436,7 @@ ExtendedMove *generate_evasions(ExtendedMove *movelist, const Board *board)
     return movelist;
 }
 
-ExtendedMove *generate_all(ExtendedMove *movelist, const Board *board)
+ExtendedMove *generate_all(ExtendedMove *restrict movelist, const Board *restrict board)
 {
     color_t us = board->sideToMove;
     bitboard_t pinned = board->stack->kingBlockers[us] & color_bb(board, us);

@@ -35,10 +35,10 @@ void update_quiet_history(const Board *board, int depth, move_t bestmove, const 
     int qcount, Searchstack *ss)
 {
     butterfly_history_t *bfHist = &get_worker(board)->bfHistory;
+    const int bonus = history_bonus(depth);
+    const move_t previousMove = (ss - 1)->currentMove;
     square_t to;
     piece_t piece;
-    int bonus = history_bonus(depth);
-    move_t previousMove = (ss - 1)->currentMove;
 
     piece = piece_on(board, from_sq(bestmove));
     to = to_sq(bestmove);
@@ -75,9 +75,8 @@ void update_quiet_history(const Board *board, int depth, move_t bestmove, const 
 
 void update_single_capture(capture_history_t *capHist, const Board *board, move_t move, int bonus)
 {
-    square_t from = from_sq(move);
-    piece_t movedPiece = piece_on(board, from);
-    square_t to = to_sq(move);
+    const piece_t movedPiece = piece_on(board, from_sq(move));
+    const square_t to = to_sq(move);
     piecetype_t captured = piece_type(piece_on(board, to));
 
     if (move_type(move) == PROMOTION)
@@ -93,7 +92,7 @@ void update_capture_history(const Board *board, int depth, move_t bestmove,
 {
     (void)ss;
     capture_history_t *capHist = &get_worker(board)->capHistory;
-    int bonus = history_bonus(depth);
+    const int bonus = history_bonus(depth);
 
     // Apply history bonuses to the bestmove.
     if (is_capture_or_promotion(board, bestmove))

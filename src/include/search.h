@@ -35,11 +35,6 @@ typedef struct _Searchstack
     piece_history_t *pieceHistory;
 } Searchstack;
 
-enum
-{
-    MAX_PLIES = 238
-};
-
 // Initializes the search tables.
 void init_search_tables(void);
 

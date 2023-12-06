@@ -48,7 +48,7 @@ extern hashkey_t ZobristEnPassant[FILE_NB];
 extern hashkey_t ZobristCastling[CASTLING_NB];
 
 // Global value for Zobrist STM hash
-extern hashkey_t ZobristBlackToMove;
+extern hashkey_t ZobristSideToMove;
 
 void zobrist_init(void);
 

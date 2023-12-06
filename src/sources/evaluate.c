@@ -215,7 +215,7 @@ score_t eval_kxk(const Board *board, color_t us)
     bitboard_t bishops = piecetype_bb(board, BISHOP);
 
     if (piecetype_bb(board, QUEEN) || piecetype_bb(board, ROOK) || (knights && bishops)
-        || ((bishops & DARK_SQUARES) && (bishops & ~DARK_SQUARES)) || (popcount(knights) >= 3))
+        || ((bishops & DSQ_BB) && (bishops & LSQ_BB)) || (popcount(knights) >= 3))
         score += VICTORY;
 
     return board->sideToMove == us ? score : -score;
@@ -233,7 +233,7 @@ bool ocb_endgame(const Board *board)
     if (!bbishop || more_than_one(bbishop)) return false;
 
     // Then check that the Bishops are on opposite colored squares.
-    bitboard_t dsqMask = (wbishop | bbishop) & DARK_SQUARES;
+    bitboard_t dsqMask = (wbishop | bbishop) & DSQ_BB;
 
     return !!dsqMask && !more_than_one(dsqMask);
 }
@@ -441,7 +441,7 @@ scorepair_t evaluate_bishops(const Board *board, evaluation_t *eval, color_t us)
         // Give a bonus/penalty based on the number of friendly Pawns which are
         // on same color squares as the Bishop.
         {
-            bitboard_t sqMask = (sqbb & DARK_SQUARES) ? DARK_SQUARES : ~DARK_SQUARES;
+            bitboard_t sqMask = (sqbb & DSQ_BB) ? DSQ_BB : LSQ_BB;
 
             ret += BishopPawnsSameColor[imin(popcount(sqMask & ourPawns), 6)];
             TRACE_ADD(IDX_BISHOP_PAWNS_COLOR + imin(popcount(sqMask & ourPawns), 6), us, 1);

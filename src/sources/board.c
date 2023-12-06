@@ -35,6 +35,34 @@ INLINED uint16_t cyclic_index_lo(hashkey_t key) { return key & 0x1FFFu; }
 
 INLINED uint16_t cyclic_index_hi(hashkey_t key) { return (key >> 13) & 0x1FFFu; }
 
+static void cyclic_init_move(piece_t piece, square_t from, square_t to)
+{
+    move_t move = create_move(from, to);
+    hashkey_t key = ZobristPsq[piece][from] ^ ZobristPsq[piece][to] ^ ZobristSideToMove;
+    uint16_t index = cyclic_index_lo(key);
+
+    // Swap the current move/key pair with the table contents until we find an
+    // empty slot.
+    while (true)
+    {
+        hashkey_t tmpKey = CyclicKeys[index];
+        CyclicKeys[index] = key;
+        key = tmpKey;
+
+        move_t tmpMove = CyclicMoves[index];
+        CyclicMoves[index] = move;
+        move = tmpMove;
+
+        if (move == NO_MOVE) break;
+
+        // Trick: change the section of the key for indexing by xor-ing the
+        // index value with the low and high key indexes:
+        // - if index == hi, index ^ lo ^ hi == lo
+        // - if index == lo, index ^ lo ^ hi == hi
+        index ^= cyclic_index_lo(key) ^ cyclic_index_hi(key);
+    }
+}
+
 void cyclic_init(void)
 {
     // Map all reversible move Zobrist keys to their corresponding move.
@@ -43,36 +71,7 @@ void cyclic_init(void)
             for (square_t from = SQ_A1; from <= SQ_H8; ++from)
                 for (square_t to = from + 1; to <= SQ_H8; ++to)
                     if (piece_moves(pt, from, 0) & square_bb(to))
-                    {
-                        move_t move = create_move(from, to);
-                        const piece_t piece = create_piece(c, pt);
-                        hashkey_t key =
-                            ZobristPsq[piece][from] ^ ZobristPsq[piece][to] ^ ZobristBlackToMove;
-
-                        uint16_t index = cyclic_index_lo(key);
-
-                        // Swap the current move/key pair with the table content
-                        // until we find an empty slot.
-                        while (true)
-                        {
-                            hashkey_t tmpKey = CyclicKeys[index];
-                            CyclicKeys[index] = key;
-                            key = tmpKey;
-
-                            move_t tmpMove = CyclicMoves[index];
-                            CyclicMoves[index] = move;
-                            move = tmpMove;
-
-                            if (move == NO_MOVE) break;
-
-                            // Trick: change the section of the key for indexing
-                            // by xor-ing the index value with the low and high
-                            // key indexes:
-                            // - if index == hi, index ^ lo ^ hi == lo
-                            // - if index == lo, index ^ lo ^ hi == hi
-                            index ^= cyclic_index_lo(key) ^ cyclic_index_hi(key);
-                        }
-                    }
+                        cyclic_init_move(create_piece(c, pt), from, to);
 }
 
 static bool board_invalid_material(const Board *board, color_t c)
@@ -516,7 +515,7 @@ void set_boardstack(Board *board, Boardstack *stack)
     if (stack->enPassantSquare != SQ_NONE)
         stack->boardKey ^= ZobristEnPassant[sq_file(stack->enPassantSquare)];
 
-    if (board->sideToMove == BLACK) stack->boardKey ^= ZobristBlackToMove;
+    if (board->sideToMove == BLACK) stack->boardKey ^= ZobristSideToMove;
 
     // Compute the material key used for indexing specialized endgames.
     for (color_t c = WHITE; c <= BLACK; ++c)
@@ -644,7 +643,7 @@ const char *board_fen(const Board *board)
 
 void do_move_gc(Board *restrict board, move_t move, Boardstack *restrict next, bool givesCheck)
 {
-    hashkey_t key = board->stack->boardKey ^ ZobristBlackToMove;
+    hashkey_t key = board->stack->boardKey ^ ZobristSideToMove;
 
     // Copy the state variables that will need to be updated incrementally.
     // Don't copy things like the checking squares, since they need to be
@@ -910,7 +909,7 @@ void do_null_move(Board *restrict board, Boardstack *restrict stack)
         stack->enPassantSquare = SQ_NONE;
     }
 
-    stack->boardKey ^= ZobristBlackToMove;
+    stack->boardKey ^= ZobristSideToMove;
 
     // Prefetch the TT entry as early as possible.
     prefetch(tt_entry_at(stack->boardKey));
@@ -1016,6 +1015,7 @@ bool game_has_cycle(const Board *board, int ply)
 
         // Check if the move key corresponds to a reversible move.
         uint16_t index = cyclic_index_lo(moveKey);
+
         if (CyclicKeys[index] != moveKey)
         {
             index = cyclic_index_hi(moveKey);
