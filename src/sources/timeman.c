@@ -189,16 +189,10 @@ void check_time(void)
 
     // If we are in infinite mode, or the stop has already been set,
     // we can safely return.
-    if (UciSearchParams.infinite || SearchWorkerPool.stop) return;
+    if (UciSearchParams.infinite || wpool_is_stopped(&SearchWorkerPool)) return;
 
-    // Check if we went over the requested node count.
-    if (wpool_get_total_nodes(&SearchWorkerPool) >= UciSearchParams.nodes) goto __set_stop;
-
-    // Check if we went over maximal time usage.
-    if (timeman_must_stop_search(&SearchTimeman, chess_clock())) goto __set_stop;
-
-    return;
-
-__set_stop:
-    SearchWorkerPool.stop = true;
+    // Check if we went over the requested node count or the maximal time usage.
+    if (wpool_get_total_nodes(&SearchWorkerPool) >= UciSearchParams.nodes
+        || timeman_must_stop_search(&SearchTimeman, chess_clock()))
+        wpool_stop(&SearchWorkerPool);
 }

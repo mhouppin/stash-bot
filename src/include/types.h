@@ -257,10 +257,15 @@ typedef int16_t phase_t;
 
 enum
 {
+    MAX_PLIES = 238
+};
+
+enum
+{
     DRAW = 0,
     VICTORY = 10000,
-    MATE_FOUND = 31760,
     MATE = 32000,
+    MATE_FOUND = MATE - MAX_PLIES,
     INF_SCORE = 32001,
     NO_SCORE = 32002
 };

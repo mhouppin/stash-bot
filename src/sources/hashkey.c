@@ -24,7 +24,7 @@
 hashkey_t ZobristPsq[PIECE_NB][SQUARE_NB];
 hashkey_t ZobristEnPassant[FILE_NB];
 hashkey_t ZobristCastling[CASTLING_NB];
-hashkey_t ZobristBlackToMove;
+hashkey_t ZobristSideToMove;
 
 void zobrist_init(void)
 {
@@ -51,5 +51,5 @@ void zobrist_init(void)
     }
 
     // Initialize the Zobrist key for the side to move.
-    ZobristBlackToMove = qrandom(&seed);
+    ZobristSideToMove = qrandom(&seed);
 }

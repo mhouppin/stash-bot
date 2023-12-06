@@ -94,7 +94,7 @@ score_t eval_kbnk(const Board *board, color_t winningSide)
     score += 70 - 10 * SquareDistance[losingKsq][winningKsq];
 
     // Don't push the King to the wrong corner.
-    if (piecetype_bb(board, BISHOP) & DARK_SQUARES) losingKsq ^= SQ_A8;
+    if (piecetype_bb(board, BISHOP) & DSQ_BB) losingKsq ^= SQ_A8;
 
     score += abs(sq_file(losingKsq) - sq_rank(losingKsq)) * 100;
 
@@ -259,14 +259,14 @@ score_t eval_kbpsk(const Board *board, color_t winningSide)
     square_t winningBsq = relative_sq(bb_first_sq(piecetype_bb(board, BISHOP)), winningSide);
     square_t losingKsq = relative_sq(get_king_square(board, losingSide), winningSide);
     bitboard_t winningPawns = piecetype_bb(board, PAWN);
-    bitboard_t wrongFile = (square_bb(winningBsq) & DARK_SQUARES) ? FILE_A_BB : FILE_H_BB;
+    bitboard_t wrongFile = (square_bb(winningBsq) & DSQ_BB) ? FILE_A_BB : FILE_H_BB;
 
     if (board->sideToMove == BLACK) score = -score;
 
     // Check for a wrong-colored bishop situation.
     if ((winningPawns & wrongFile) == winningPawns)
     {
-        bitboard_t queeningSquare = (square_bb(winningBsq) & DARK_SQUARES) ? SQ_A8 : SQ_H8;
+        bitboard_t queeningSquare = (square_bb(winningBsq) & DSQ_BB) ? SQ_A8 : SQ_H8;
 
         int queeningDistance = SquareDistance[losingKsq][queeningSquare];
 

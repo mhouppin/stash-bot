@@ -113,8 +113,8 @@ typedef struct _WorkerPool
     size_t size;
     int checks;
 
-    _Atomic bool ponder;
-    _Atomic bool stop;
+    atomic_bool ponder;
+    atomic_bool stop;
 
     Worker **workerList;
 } WorkerPool;
@@ -122,6 +122,26 @@ typedef struct _WorkerPool
 extern WorkerPool SearchWorkerPool;
 
 INLINED Worker *wpool_main_worker(WorkerPool *wpool) { return wpool->workerList[0]; }
+
+INLINED void wpool_ponderhit(WorkerPool *wpool)
+{
+    atomic_store_explicit(&wpool->ponder, false, memory_order_relaxed);
+}
+
+INLINED bool wpool_is_pondering(const WorkerPool *wpool)
+{
+    return atomic_load_explicit(&wpool->ponder, memory_order_relaxed);
+}
+
+INLINED void wpool_stop(WorkerPool *wpool)
+{
+    atomic_store_explicit(&wpool->stop, true, memory_order_relaxed);
+}
+
+INLINED bool wpool_is_stopped(const WorkerPool *wpool)
+{
+    return atomic_load_explicit(&wpool->stop, memory_order_relaxed);
+}
 
 void wpool_init(WorkerPool *wpool, size_t threads);
 void wpool_new_search(WorkerPool *wpool);

@@ -29,33 +29,34 @@
 
 typedef uint64_t bitboard_t;
 
-// Defines for file bitboard masks.
-#define FILE_A_BB 0x0101010101010101ull
-#define FILE_B_BB 0x0202020202020202ull
-#define FILE_C_BB 0x0404040404040404ull
-#define FILE_D_BB 0x0808080808080808ull
-#define FILE_E_BB 0x1010101010101010ull
-#define FILE_F_BB 0x2020202020202020ull
-#define FILE_G_BB 0x4040404040404040ull
-#define FILE_H_BB 0x8080808080808080ull
+// Constants for file bitboard masks.
+static const bitboard_t FILE_A_BB = 0x0101010101010101ul;
+static const bitboard_t FILE_B_BB = 0x0202020202020202ul;
+static const bitboard_t FILE_C_BB = 0x0404040404040404ul;
+static const bitboard_t FILE_D_BB = 0x0808080808080808ul;
+static const bitboard_t FILE_E_BB = 0x1010101010101010ul;
+static const bitboard_t FILE_F_BB = 0x2020202020202020ul;
+static const bitboard_t FILE_G_BB = 0x4040404040404040ul;
+static const bitboard_t FILE_H_BB = 0x8080808080808080ul;
 
-// Defines for rank bitboard masks.
-#define RANK_1_BB 0x00000000000000FFull
-#define RANK_2_BB 0x000000000000FF00ull
-#define RANK_3_BB 0x0000000000FF0000ull
-#define RANK_4_BB 0x00000000FF000000ull
-#define RANK_5_BB 0x000000FF00000000ull
-#define RANK_6_BB 0x0000FF0000000000ull
-#define RANK_7_BB 0x00FF000000000000ull
-#define RANK_8_BB 0xFF00000000000000ull
+// Constants for rank bitboard masks.
+static const bitboard_t RANK_1_BB = 0x00000000000000FFul;
+static const bitboard_t RANK_2_BB = 0x000000000000FF00ul;
+static const bitboard_t RANK_3_BB = 0x0000000000FF0000ul;
+static const bitboard_t RANK_4_BB = 0x00000000FF000000ul;
+static const bitboard_t RANK_5_BB = 0x000000FF00000000ul;
+static const bitboard_t RANK_6_BB = 0x0000FF0000000000ul;
+static const bitboard_t RANK_7_BB = 0x00FF000000000000ul;
+static const bitboard_t RANK_8_BB = 0xFF00000000000000ul;
 
-// Defines for miscellaneous bitboard masks.
-#define FULL_BB 0xFFFFFFFFFFFFFFFFull
-#define DARK_SQUARES 0xAA55AA55AA55AA55ull
-#define KINGSIDE_BB 0xF0F0F0F0F0F0F0F0ull
-#define QUEENSIDE_BB 0x0F0F0F0F0F0F0F0Full
-#define CENTER_FILES_BB 0x3C3C3C3C3C3C3C3Cull
-#define CENTER_BB 0x0000001818000000ull
+// Constants for miscellaneous bitboard masks.
+static const bitboard_t ALL_BB = 0xFFFFFFFFFFFFFFFFul;
+static const bitboard_t DSQ_BB = 0xAA55AA55AA55AA55ul;
+static const bitboard_t LSQ_BB = ~DSQ_BB;
+static const bitboard_t KINGSIDE_BB = 0xF0F0F0F0F0F0F0F0ul;
+static const bitboard_t QUEENSIDE_BB = 0x0F0F0F0F0F0F0F0Ful;
+static const bitboard_t CENTER_FILES_BB = 0x3C3C3C3C3C3C3C3Cul;
+static const bitboard_t CENTER_BB = 0x0000001818000000ul;
 
 // Bitboards of all squares on the line between two squares.
 extern bitboard_t LineBB[SQUARE_NB][SQUARE_NB];
@@ -147,8 +148,7 @@ INLINED bitboard_t sq_rank_bb(square_t square) { return rank_bb(sq_rank(square))
 // Returns the bitboard of all squares between two squares (both squares excluded).
 INLINED bitboard_t between_bb(square_t sq1, square_t sq2)
 {
-    return LineBB[sq1][sq2]
-           & ((FULL_BB << (sq1 + (sq1 < sq2))) ^ (FULL_BB << (sq2 + !(sq1 < sq2))));
+    return LineBB[sq1][sq2] & ((ALL_BB << (sq1 + (sq1 < sq2))) ^ (ALL_BB << (sq2 + !(sq1 < sq2))));
 }
 
 // Checks if all three squares share the same file, rank or diagonal.
