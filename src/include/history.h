@@ -35,10 +35,15 @@ typedef int16_t capture_history_t[PIECE_NB][SQUARE_NB][PIECETYPE_NB];
 typedef piece_history_t continuation_history_t[PIECE_NB][SQUARE_NB];
 typedef move_t countermove_history_t[PIECE_NB][SQUARE_NB];
 
+extern long HistoryQuadratic;
+extern long HistoryLinear;
+extern long HistoryBase;
+extern long HistoryMax;
+
 // Returns the history bonus for the given depth.
 INLINED int history_bonus(int depth)
 {
-    return depth <= 11 ? 17 * depth * depth + 3 * depth + 1 : 2116;
+    return depth <= 11 ? HistoryQuadratic * depth * depth + HistoryLinear * depth + HistoryBase : HistoryMax;
 }
 
 // Updates the butterfly history table for the given piece and move.

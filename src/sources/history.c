@@ -20,6 +20,11 @@
 #include "search.h"
 #include "worker.h"
 
+long HistoryQuadratic = 17;
+long HistoryLinear = 3;
+long HistoryBase = 1;
+long HistoryMax = 2116;
+
 void update_cont_histories(Searchstack *ss, int depth, piece_t piece, square_t to, bool failHigh)
 {
     int bonus = history_bonus(depth);

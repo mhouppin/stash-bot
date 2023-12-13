@@ -614,6 +614,76 @@ void uci_loop(int argc, char **argv)
     add_option_check(&UciOptionList, "Ponder", &UciOptionFields.ponder, NULL);
     add_option_button(&UciOptionList, "Clear Hash", &on_clear_hash);
 
+    TUNE_DOUBLE(LmrNoisyBase, 0.0, 10.0);
+    TUNE_DOUBLE(LmrNoisyFactor, 0.0, 20.0);
+    TUNE_DOUBLE(LmrQuietBase, 0.0, 20.0);
+    TUNE_DOUBLE(LmrQuietFactor, 0.0, 40.0);
+
+    TUNE_DOUBLE(LmpGoodBase, 0.0, 6.0);
+    TUNE_DOUBLE(LmpGoodFactor, 0.0, 6.0);
+    TUNE_DOUBLE(LmpGoodExponent, 0.0, 3.0);
+    TUNE_DOUBLE(LmpBadBase, -4.0, 2.0);
+    TUNE_DOUBLE(LmpBadFactor, 0.0, 6.0);
+    TUNE_DOUBLE(LmpBadExponent, 0.0, 3.0);
+
+    TUNE_LONG(LmrBase, -1536, 1536);
+    TUNE_LONG(LmrImproving, 0, 1024);
+
+    TUNE_SCORE(AspirationBase, 6, 24);
+    TUNE_SCORE(AspirationDiv, 16, 256);
+    TUNE_LONG(AspirationWidening, 32, 256);
+
+    TUNE_SCORE(RazoringThreshold, 75, 300);
+
+    TUNE_LONG(RfpDepth, 4, 12);
+    TUNE_SCORE(RfpFactor, 40, 160);
+    TUNE_SCORE(RfpImproving, 40, 160);
+
+    TUNE_LONG(NmpBase, 384, 1152);
+    TUNE_LONG(NmpFactor, 32, 128);
+    TUNE_SCORE(NmpEvalDiv, 64, 256);
+    TUNE_LONG(NmpEvalDepth, 1, 5);
+    TUNE_LONG(NmpVerifDepth, 5, 15);
+
+    TUNE_SCORE(ProbCutThreshold, 64, 256);
+    TUNE_LONG(ProbCutDepth, 2, 6);
+    TUNE_LONG(ProbCutEntryDepth, 1, 5);
+    TUNE_LONG(ProbCutReduction, 2, 6);
+
+    TUNE_LONG(IirDepth, 2, 6);
+
+    TUNE_LONG(LmpDepth, 3, 9);
+
+    TUNE_LONG(FutPruneDepth, 3, 9);
+    TUNE_SCORE(FutPruneBase, 109, 434);
+    TUNE_SCORE(FutPruneFactor, 36, 142);
+
+    TUNE_LONG(ChpDepth, 1, 5);
+    TUNE_LONG(ChpBase, -2000, 2000);
+    TUNE_LONG(ChpFactor, 2000, 8000);
+
+    TUNE_LONG(SeePruneDepth, 4, 12);
+    TUNE_SCORE(SeePruneQuiet, 31, 124);
+    TUNE_SCORE(SeePruneNoisy, 12, 48);
+
+    TUNE_LONG(SingularDepth, 3, 11);
+    TUNE_LONG(SingularEntryDepth, 1, 5);
+    TUNE_LONG(SingularBetaFactor, 6, 24);
+    TUNE_LONG(SingularBase, -4, 4);
+    TUNE_SCORE(SingularScoreDiff, 10, 40);
+    TUNE_LONG(SingularMaxExtend2, 4, 14);
+
+    TUNE_LONG(LmrHistDiv, 3000, 12000);
+    TUNE_LONG(LmrHistMax, 1, 5);
+
+    TUNE_LONG(QfpMinPieces, 4, 14);
+    TUNE_SCORE(QfpBase, 60, 240);
+
+    TUNE_LONG(HistoryQuadratic, 0, 32);
+    TUNE_LONG(HistoryLinear, 0, 128);
+    TUNE_LONG(HistoryBase, 0, 128);
+    TUNE_LONG(HistoryMax, 0, 4000);
+
     uci_position("startpos");
 
     if (argc > 1)
