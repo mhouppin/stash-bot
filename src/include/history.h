@@ -36,10 +36,7 @@ typedef piece_history_t continuation_history_t[PIECE_NB][SQUARE_NB];
 typedef move_t countermove_history_t[PIECE_NB][SQUARE_NB];
 
 // Returns the history bonus for the given depth.
-INLINED int history_bonus(int depth)
-{
-    return depth <= 11 ? 17 * depth * depth + 3 * depth + 1 : 2116;
-}
+INLINED int history_bonus(int depth) { return depth <= 11 ? 24 * depth * depth + depth : 2563; }
 
 // Updates the butterfly history table for the given piece and move.
 INLINED void add_bf_history(butterfly_history_t hist, piece_t piece, move_t move, int32_t bonus)
