@@ -269,13 +269,14 @@ void init_tuner_entries(tune_data_t *data, const char *filename)
         {
             data->size++;
 
-            if (data->size && data->size % 10000 == 0)
+            if (data->size && data->size % 100000 == 0)
             {
                 printf("%u positions loaded\n", (unsigned int)data->size);
                 fflush(stdout);
             }
         }
     }
+    printf("%u total positions\n", (unsigned int)data->size);
     putchar('\n');
 }
 
@@ -459,26 +460,8 @@ double adjusted_eval(
 void compute_gradient(
     const tune_data_t *data, tp_vector_t gradient, const tp_vector_t delta, double K, int batchIdx)
 {
-    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-
-#pragma omp parallel shared(gradient, mutex)
-    {
-        tp_vector_t local = {};
-
-#pragma omp for schedule(static, (BATCH_SIZE - 1) / THREADS + 1)
-        for (int i = 0; i < BATCH_SIZE; ++i)
-            update_gradient(data->entries + (size_t)batchIdx * BATCH_SIZE + i, local, delta, K);
-
-        pthread_mutex_lock(&mutex);
-
-        for (int i = 0; i < IDX_COUNT; ++i)
-        {
-            gradient[i][MIDGAME] += local[i][MIDGAME];
-            gradient[i][ENDGAME] += local[i][ENDGAME];
-        }
-
-        pthread_mutex_unlock(&mutex);
-    }
+    for (int i = 0; i < BATCH_SIZE; ++i)
+        update_gradient(data->entries + (size_t)batchIdx * BATCH_SIZE + i, gradient, delta, K);
 }
 
 void update_gradient(

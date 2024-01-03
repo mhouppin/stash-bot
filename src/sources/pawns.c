@@ -24,42 +24,42 @@
 
 // Miscellanous bonus for Pawn structures
 const scorepair_t BackwardPenalty  = SPAIR( -6, -7);
-const scorepair_t StragglerPenalty = SPAIR(-17,-22);
-const scorepair_t DoubledPenalty   = SPAIR(-18,-40);
-const scorepair_t IsolatedPenalty  = SPAIR( -9, -8);
+const scorepair_t StragglerPenalty = SPAIR(-17,-23);
+const scorepair_t DoubledPenalty   = SPAIR(-21,-45);
+const scorepair_t IsolatedPenalty  = SPAIR( -8,-10);
 
 // Rank-based bonus for passed Pawns
 const scorepair_t PassedBonus[8] = {
     0,
-    SPAIR(-16,-39),
-    SPAIR(-19,-22),
-    SPAIR(-13, 36),
-    SPAIR( 19, 94),
-    SPAIR( 41,184),
-    SPAIR( 70,321),
+    SPAIR(-19,-45),
+    SPAIR(-17,-24),
+    SPAIR(-15, 37),
+    SPAIR( 17, 98),
+    SPAIR( 42,192),
+    SPAIR( 74,326),
     0
 };
 
 // Rank-based bonus for phalanx structures
 const scorepair_t PhalanxBonus[8] = {
     0,
-    SPAIR(  5,  4),
-    SPAIR( 13,  6),
-    SPAIR( 25, 29),
-    SPAIR( 48, 57),
-    SPAIR(163,225),
-    SPAIR(183,228),
+    SPAIR(  4,  5),
+    SPAIR( 14,  8),
+    SPAIR( 24, 31),
+    SPAIR( 39, 56),
+    SPAIR(164,228),
+    SPAIR(183,230),
     0
 };
 
 // Rank-based bonus for defenders
 const scorepair_t DefenderBonus[8] = {
     0,
-    SPAIR( 15, 19),
-    SPAIR( 12, 19),
-    SPAIR( 22, 29),
-    SPAIR( 56, 80),
-    SPAIR(162,124),
+    SPAIR( 15, 20),
+    SPAIR( 12, 22),
+    SPAIR( 20, 32),
+    SPAIR( 47, 82),
+    SPAIR(163,123),
     0,
     0
 };
