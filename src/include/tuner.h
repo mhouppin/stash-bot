@@ -24,24 +24,23 @@
 
 #ifdef TUNE
 
-#define LAMBDA 0.2
-#define THREADS 3
+#define LAMBDA 0.0
+#define THREADS 6
 #define ITERS 10000
 #define LEARNING_RATE 0.001
 #define LR_DROP_ITERS 10000
 #define LR_DROP_VALUE 1.0
 #define BATCH_SIZE 2048
 
-typedef struct tune_tuple_s
+typedef struct _TuneTuple
 {
     uint16_t index;
     int8_t wcoeff;
     int8_t bcoeff;
-} tune_tuple_t;
+} TuneTuple;
 
-typedef struct tune_entry_s
+typedef struct _TuneEntry
 {
-    int tupleCount;
     score_t staticEval;
     int phase;
     color_t sideToMove;
@@ -51,41 +50,36 @@ typedef struct tune_entry_s
     score_t gameScore;
     double scaleFactor;
     double phaseFactors[PHASE_NB];
-    tune_tuple_t *tuples;
-} tune_entry_t;
+    TuneTuple *tuples;
+    size_t tupleCount;
+} TuneEntry;
 
-typedef struct tune_data_s
+typedef struct _TuneDataset
 {
-    tune_entry_t *entries;
+    TuneEntry *entries;
     size_t size;
     size_t maxSize;
-} tune_data_t;
+} TuneDataset;
 
-typedef int tp_array_t[IDX_COUNT];
-typedef double tp_vector_t[IDX_COUNT][2];
+typedef struct _TpVector
+{
+    double v[IDX_COUNT][2];
+} TpVector;
+
+typedef struct _AdamOptimizer
+{
+    TpVector gradient;
+    TpVector momentum;
+    TpVector velocity;
+} AdamOptimizer;
+
+typedef struct _TpSplitEval
+{
+    double v[2][PHASE_NB];
+} TpSplitEval;
 
 #endif
 
 void start_tuning_session(const char *filename);
-
-#ifdef TUNE
-
-void init_base_values(tp_vector_t base);
-void init_tuner_entries(tune_data_t *data, const char *filename);
-bool init_tuner_entry(tune_entry_t *entry, const Board *board);
-void init_tuner_tuples(tune_entry_t *entry);
-double compute_optimal_k(const tune_data_t *data);
-void compute_gradient(
-    const tune_data_t *data, tp_vector_t gradient, const tp_vector_t delta, double K, int batchIdx);
-void update_gradient(
-    const tune_entry_t *entry, tp_vector_t gradient, const tp_vector_t delta, double K);
-double adjusted_eval(
-    const tune_entry_t *entry, const tp_vector_t delta, double safetyScores[COLOR_NB][PHASE_NB]);
-double static_eval_mse(const tune_data_t *data, double K);
-double adjusted_eval_mse(const tune_data_t *data, const tp_vector_t delta, double K);
-double sigmoid(double K, double E);
-void print_parameters(const tp_vector_t base, const tp_vector_t delta);
-
-#endif
 
 #endif

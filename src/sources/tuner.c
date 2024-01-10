@@ -24,103 +24,49 @@
 #include <stdlib.h>
 #include <string.h>
 
-void start_tuning_session(const char *filename)
-{
 #ifdef TUNE
-    tp_vector_t delta = {}, base = {}, momentumGrad = {}, velocityGrad = {};
-    double K, lr = LEARNING_RATE;
-    tune_data_t data = {};
 
-    init_base_values(base);
-    init_tuner_entries(&data, filename);
-    K = compute_optimal_k(&data);
-
-    for (size_t i = 0; i < data.size; ++i)
-    {
-        tune_entry_t *entry = data.entries + i;
-
-        entry->gameResult =
-            entry->gameResult * (1.0 - LAMBDA) + sigmoid(K, entry->gameScore) * LAMBDA;
-    }
-
-    size_t batches = data.size / BATCH_SIZE;
-
-    for (int iter = 0; iter < ITERS; ++iter)
-    {
-        for (int batchIdx = 0; (size_t)batchIdx < batches; ++batchIdx)
-        {
-            tp_vector_t gradient = {};
-            compute_gradient(&data, gradient, delta, K, batchIdx);
-
-            const double scale = (K * 2.0 / BATCH_SIZE);
-
-            for (int i = 0; i < IDX_COUNT; ++i)
-            {
-                double mgGrad = gradient[i][MIDGAME] * scale;
-                double egGrad = gradient[i][ENDGAME] * scale;
-
-                momentumGrad[i][MIDGAME] = momentumGrad[i][MIDGAME] * 0.9 + mgGrad * 0.1;
-                momentumGrad[i][ENDGAME] = momentumGrad[i][ENDGAME] * 0.9 + egGrad * 0.1;
-
-                velocityGrad[i][MIDGAME] =
-                    velocityGrad[i][MIDGAME] * 0.999 + pow(mgGrad, 2.0) * 0.001;
-                velocityGrad[i][ENDGAME] =
-                    velocityGrad[i][ENDGAME] * 0.999 + pow(egGrad, 2.0) * 0.001;
-
-                delta[i][MIDGAME] +=
-                    momentumGrad[i][MIDGAME] * lr / sqrt(1e-8 + velocityGrad[i][MIDGAME]);
-                delta[i][ENDGAME] +=
-                    momentumGrad[i][ENDGAME] * lr / sqrt(1e-8 + velocityGrad[i][ENDGAME]);
-            }
-        }
-
-        double loss = adjusted_eval_mse(&data, delta, K);
-        printf("Iteration [%d], Loss [%.7f]\n", iter, loss);
-
-        if (iter % LR_DROP_ITERS == LR_DROP_ITERS - 1) lr /= LR_DROP_VALUE;
-
-        if (iter % 50 == 49 || iter == ITERS - 1) print_parameters(base, delta);
-
-        fflush(stdout);
-    }
-
-    for (size_t i = 0; i < data.size; ++i) free(data.entries[i].tuples);
-    free(data.entries);
-#else
-    (void)filename;
-#endif
+static void reset_tp_vector(TpVector *vec)
+{
+    for (size_t i = 0; i < IDX_COUNT; ++i) vec->v[i][0] = vec->v[i][1] = 0.0;
 }
 
-#ifdef TUNE
-void init_base_values(tp_vector_t base)
+static void adam_init(AdamOptimizer *adam)
 {
-#define INIT_BASE_SP(idx, val)                   \
-    do {                                         \
-        extern const scorepair_t val;            \
-        base[idx][MIDGAME] = midgame_score(val); \
-        base[idx][ENDGAME] = endgame_score(val); \
+    reset_tp_vector(&adam->gradient);
+    reset_tp_vector(&adam->momentum);
+    reset_tp_vector(&adam->velocity);
+}
+
+static void init_base_values(TpVector *base)
+{
+#define INIT_BASE_SP(idx, val)                      \
+    do {                                            \
+        extern const scorepair_t val;               \
+        base->v[idx][MIDGAME] = midgame_score(val); \
+        base->v[idx][ENDGAME] = endgame_score(val); \
     } while (0)
 
-#define INIT_BASE_SPA(idx, val, size)                       \
-    do {                                                    \
-        extern const scorepair_t val[size];                 \
-        for (int i = 0; i < size; ++i)                      \
-        {                                                   \
-            base[idx + i][MIDGAME] = midgame_score(val[i]); \
-            base[idx + i][ENDGAME] = endgame_score(val[i]); \
-        }                                                   \
+#define INIT_BASE_SPA(idx, val, size)                          \
+    do {                                                       \
+        extern const scorepair_t val[size];                    \
+        for (int i = 0; i < size; ++i)                         \
+        {                                                      \
+            base->v[idx + i][MIDGAME] = midgame_score(val[i]); \
+            base->v[idx + i][ENDGAME] = endgame_score(val[i]); \
+        }                                                      \
     } while (0)
 
-    base[IDX_PIECE + 0][MIDGAME] = PAWN_MG_SCORE;
-    base[IDX_PIECE + 0][ENDGAME] = PAWN_EG_SCORE;
-    base[IDX_PIECE + 1][MIDGAME] = KNIGHT_MG_SCORE;
-    base[IDX_PIECE + 1][ENDGAME] = KNIGHT_EG_SCORE;
-    base[IDX_PIECE + 2][MIDGAME] = BISHOP_MG_SCORE;
-    base[IDX_PIECE + 2][ENDGAME] = BISHOP_EG_SCORE;
-    base[IDX_PIECE + 3][MIDGAME] = ROOK_MG_SCORE;
-    base[IDX_PIECE + 3][ENDGAME] = ROOK_EG_SCORE;
-    base[IDX_PIECE + 4][MIDGAME] = QUEEN_MG_SCORE;
-    base[IDX_PIECE + 4][ENDGAME] = QUEEN_EG_SCORE;
+    base->v[IDX_PIECE + 0][MIDGAME] = PAWN_MG_SCORE;
+    base->v[IDX_PIECE + 0][ENDGAME] = PAWN_EG_SCORE;
+    base->v[IDX_PIECE + 1][MIDGAME] = KNIGHT_MG_SCORE;
+    base->v[IDX_PIECE + 1][ENDGAME] = KNIGHT_EG_SCORE;
+    base->v[IDX_PIECE + 2][MIDGAME] = BISHOP_MG_SCORE;
+    base->v[IDX_PIECE + 2][ENDGAME] = BISHOP_EG_SCORE;
+    base->v[IDX_PIECE + 3][MIDGAME] = ROOK_MG_SCORE;
+    base->v[IDX_PIECE + 3][ENDGAME] = ROOK_EG_SCORE;
+    base->v[IDX_PIECE + 4][MIDGAME] = QUEEN_MG_SCORE;
+    base->v[IDX_PIECE + 4][ENDGAME] = QUEEN_EG_SCORE;
 
     INIT_BASE_SPA(IDX_PSQT, PawnSQT, 48);
     INIT_BASE_SPA(IDX_PSQT + 48, KnightSQT, 32);
@@ -184,18 +130,17 @@ void init_base_values(tp_vector_t base)
 
     for (rank_t r = RANK_2; r <= RANK_7; ++r)
     {
-        base[IDX_PASSER + r - RANK_2][MIDGAME] = midgame_score(PassedBonus[r]);
-        base[IDX_PASSER + r - RANK_2][ENDGAME] = endgame_score(PassedBonus[r]);
+        base->v[IDX_PASSER + r - RANK_2][MIDGAME] = midgame_score(PassedBonus[r]);
+        base->v[IDX_PASSER + r - RANK_2][ENDGAME] = endgame_score(PassedBonus[r]);
 
-        base[IDX_PHALANX + r - RANK_2][MIDGAME] = midgame_score(PhalanxBonus[r]);
-        base[IDX_PHALANX + r - RANK_2][ENDGAME] = endgame_score(PhalanxBonus[r]);
+        base->v[IDX_PHALANX + r - RANK_2][MIDGAME] = midgame_score(PhalanxBonus[r]);
+        base->v[IDX_PHALANX + r - RANK_2][ENDGAME] = endgame_score(PhalanxBonus[r]);
 
-        // No pawns can be defenders on the 7th rank
-
+        // No pawns can be defenders on the 7th rank.
         if (r != RANK_7)
         {
-            base[IDX_DEFENDER + r - RANK_2][MIDGAME] = midgame_score(DefenderBonus[r]);
-            base[IDX_DEFENDER + r - RANK_2][ENDGAME] = endgame_score(DefenderBonus[r]);
+            base->v[IDX_DEFENDER + r - RANK_2][MIDGAME] = midgame_score(DefenderBonus[r]);
+            base->v[IDX_DEFENDER + r - RANK_2][ENDGAME] = endgame_score(DefenderBonus[r]);
         }
     }
 
@@ -203,83 +148,48 @@ void init_base_values(tp_vector_t base)
 
     for (int distance = 1; distance <= 7; ++distance)
     {
-        base[IDX_PP_OUR_KING_PROX + distance - 1][MIDGAME] =
+        base->v[IDX_PP_OUR_KING_PROX + distance - 1][MIDGAME] =
             midgame_score(PP_OurKingProximity[distance]);
-        base[IDX_PP_OUR_KING_PROX + distance - 1][ENDGAME] =
+        base->v[IDX_PP_OUR_KING_PROX + distance - 1][ENDGAME] =
             endgame_score(PP_OurKingProximity[distance]);
 
-        base[IDX_PP_THEIR_KING_PROX + distance - 1][MIDGAME] =
+        base->v[IDX_PP_THEIR_KING_PROX + distance - 1][MIDGAME] =
             midgame_score(PP_TheirKingProximity[distance]);
-        base[IDX_PP_THEIR_KING_PROX + distance - 1][ENDGAME] =
+        base->v[IDX_PP_THEIR_KING_PROX + distance - 1][ENDGAME] =
             endgame_score(PP_TheirKingProximity[distance]);
     }
 }
 
-void init_tuner_entries(tune_data_t *data, const char *filename)
-{
-    FILE *f = fopen(filename, "r");
+bool is_safety_term(int i) { return i > IDX_KING_SAFETY; }
 
-    if (f == NULL)
+bool is_active(int i)
+{
+    if (Trace.coeffs[i][WHITE] != Trace.coeffs[i][BLACK]) return true;
+    return is_safety_term(i) && (Trace.coeffs[i][WHITE] || Trace.coeffs[i][BLACK]);
+}
+
+void init_tuner_tuples(TuneEntry *entry)
+{
+    int length = 0;
+    int tidx = 0;
+
+    for (int i = 0; i < IDX_COUNT; ++i) length += is_active(i);
+
+    entry->tupleCount = length;
+    entry->tuples = malloc(sizeof(TuneTuple) * length);
+
+    if (entry->tuples == NULL)
     {
-        perror("Unable to open dataset");
+        perror("Unable to allocate entry tuples");
         exit(EXIT_FAILURE);
     }
 
-    Board board = {};
-    Boardstack stack = {};
-    char linebuf[1024];
-
-    while (fgets(linebuf, sizeof(linebuf), f) != NULL)
-    {
-        if (data->maxSize == data->size)
-        {
-            data->maxSize += !data->maxSize ? 16 : data->maxSize / 2;
-            data->entries = realloc(data->entries, sizeof(tune_entry_t) * data->maxSize);
-
-            if (data->entries == NULL)
-            {
-                perror("Unable to allocate dataset entries");
-                exit(EXIT_FAILURE);
-            }
-        }
-
-        tune_entry_t *cur = &data->entries[data->size];
-
-        char *ptr = strrchr(linebuf, ' ');
-
-        *ptr = '\0';
-
-        if (sscanf(ptr + 1, "%hd", &cur->gameScore) == 0)
-        {
-            fputs("Unable to read game score\n", stdout);
-            exit(EXIT_FAILURE);
-        }
-
-        ptr = strrchr(linebuf, ' ');
-
-        *ptr = '\0';
-        if (sscanf(ptr + 1, "%lf", &cur->gameResult) == 0)
-        {
-            fputs("Unable to read game result\n", stdout);
-            exit(EXIT_FAILURE);
-        }
-
-        board_from_fen(&board, linebuf, false, &stack);
-        if (init_tuner_entry(cur, &board))
-        {
-            data->size++;
-
-            if (data->size && data->size % 10000 == 0)
-            {
-                printf("%u positions loaded\n", (unsigned int)data->size);
-                fflush(stdout);
-            }
-        }
-    }
-    putchar('\n');
+    for (int i = 0; i < IDX_COUNT; ++i)
+        if (is_active(i))
+            entry->tuples[tidx++] = (TuneTuple){i, Trace.coeffs[i][WHITE], Trace.coeffs[i][BLACK]};
 }
 
-bool init_tuner_entry(tune_entry_t *entry, const Board *board)
+bool init_tuner_entry(TuneEntry *entry, const Board *board)
 {
     entry->staticEval = evaluate(board);
     if (Trace.scaleFactor == 0) return false;
@@ -300,37 +210,98 @@ bool init_tuner_entry(tune_entry_t *entry, const Board *board)
     return true;
 }
 
-bool is_safety_term(int i) { return i > IDX_KING_SAFETY; }
-
-bool is_active(int i)
+void init_tuner_entries(TuneDataset *data, const char *filename)
 {
-    if (Trace.coeffs[i][WHITE] != Trace.coeffs[i][BLACK]) return true;
-    return is_safety_term(i) && (Trace.coeffs[i][WHITE] || Trace.coeffs[i][BLACK]);
-}
+    FILE *f = fopen(filename, "r");
 
-void init_tuner_tuples(tune_entry_t *entry)
-{
-    int length = 0;
-    int tidx = 0;
-
-    for (int i = 0; i < IDX_COUNT; ++i) length += is_active(i);
-
-    entry->tupleCount = length;
-    entry->tuples = malloc(sizeof(tune_tuple_t) * length);
-
-    if (entry->tuples == NULL)
+    if (f == NULL)
     {
-        perror("Unable to allocate entry tuples");
+        perror("Unable to open dataset");
         exit(EXIT_FAILURE);
     }
 
-    for (int i = 0; i < IDX_COUNT; ++i)
-        if (is_active(i))
-            entry->tuples[tidx++] =
-                (tune_tuple_t){i, Trace.coeffs[i][WHITE], Trace.coeffs[i][BLACK]};
+    Board board = {};
+    Boardstack stack = {};
+    char linebuf[1024];
+
+    while (fgets(linebuf, sizeof(linebuf), f) != NULL)
+    {
+        if (data->maxSize == data->size)
+        {
+            data->maxSize += !data->maxSize ? 16 : data->maxSize / 2;
+            data->entries = realloc(data->entries, sizeof(TuneEntry) * data->maxSize);
+
+            if (data->entries == NULL)
+            {
+                perror("Unable to allocate dataset entries");
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        TuneEntry *cur = &data->entries[data->size];
+
+        char *ptr = strrchr(linebuf, ' ');
+
+        *ptr = '\0';
+
+        if (sscanf(ptr + 1, "%hd", &cur->gameScore) == 0)
+        {
+            fputs("Unable to read game score\n", stdout);
+            exit(EXIT_FAILURE);
+        }
+
+        ptr = strrchr(linebuf, ' ');
+
+        *ptr = '\0';
+        if (sscanf(ptr + 1, "%lf", &cur->gameResult) == 0)
+        {
+            fputs("Unable to read game result\n", stdout);
+            exit(EXIT_FAILURE);
+        }
+
+        if (board_from_fen(&board, linebuf, false, &stack) < 0)
+        {
+            printf("Invalid FEN in dataset: '%s'\n", linebuf);
+            exit(EXIT_FAILURE);
+        }
+
+        if (init_tuner_entry(cur, &board))
+        {
+            data->size++;
+
+            if (data->size && data->size % 100000 == 0)
+            {
+                printf("%u positions loaded\n", (unsigned int)data->size);
+                fflush(stdout);
+            }
+        }
+    }
+
+    printf("%u positions loaded\n\n", (unsigned int)data->size);
 }
 
-double compute_optimal_k(const tune_data_t *data)
+double sigmoid(double k, double eval) { return 1.0 / (1.0 + exp(-eval * k)); }
+
+double static_eval_mse(const TuneDataset *data, double sigmoidK)
+{
+    double total = 0;
+
+#pragma omp parallel shared(total) num_threads(THREADS)
+    {
+#pragma omp for schedule(static) reduction(+ : total)
+        for (size_t i = 0; i < data->size; ++i)
+        {
+            const TuneEntry *entry = data->entries + i;
+
+            double result =
+                entry->gameResult * (1.0 - LAMBDA) + sigmoid(sigmoidK, entry->gameScore) * LAMBDA;
+            total += pow(result - sigmoid(sigmoidK, entry->staticEval), 2);
+        }
+    }
+    return total / data->size;
+}
+
+double compute_optimal_k(const TuneDataset *data)
 {
     double start = 0;
     double end = 10;
@@ -366,74 +337,71 @@ double compute_optimal_k(const tune_data_t *data)
     return bestK;
 }
 
-double static_eval_mse(const tune_data_t *data, double K)
+size_t first_safety_term(const TuneEntry *entry)
 {
-    double total = 0;
+    size_t left = 0;
+    size_t right = entry->tupleCount;
 
-#pragma omp parallel shared(total)
+    while (left < right)
     {
-#pragma omp for schedule(static, data->size / THREADS) reduction(+ : total)
-        for (size_t i = 0; i < data->size; ++i)
-        {
-            const tune_entry_t *entry = data->entries + i;
+        size_t middle = (left + right) / 2;
 
-            double result =
-                entry->gameResult * (1.0 - LAMBDA) + sigmoid(K, entry->gameScore) * LAMBDA;
-            total += pow(result - sigmoid(K, entry->staticEval), 2);
-        }
+        if (is_safety_term(entry->tuples[middle].index))
+            right = middle;
+        else
+            left = middle + 1;
     }
-    return total / data->size;
+
+    return left;
 }
 
-double adjusted_eval_mse(const tune_data_t *data, const tp_vector_t delta, double K)
-{
-    double safetyScores[COLOR_NB][PHASE_NB];
-    double result = 0.0;
-
-    for (size_t i = 0; i < data->size; ++i)
-        result += pow(data->entries[i].gameResult
-                          - sigmoid(K, adjusted_eval(data->entries + i, delta, safetyScores)),
-            2);
-
-    return result / data->size;
-}
-
-double adjusted_eval(
-    const tune_entry_t *entry, const tp_vector_t delta, double safetyScores[COLOR_NB][PHASE_NB])
+double adjusted_eval(const TuneEntry *restrict entry, const TpVector *restrict delta,
+    TpSplitEval *restrict safetyValues, size_t safetyStart)
 {
     double mixed;
     double midgame, endgame, wsafety[PHASE_NB], bsafety[PHASE_NB];
-    double mg[2][COLOR_NB] = {0};
-    double eg[2][COLOR_NB] = {0};
-    double normal[PHASE_NB], safety[PHASE_NB];
+    double linear[PHASE_NB], safety[PHASE_NB];
+    double mgLinear = 0.0, egLinear = 0.0;
+    double mgSafety[COLOR_NB] = {0.0}, egSafety[COLOR_NB] = {0.0};
 
     // Save any modifications for MG or EG for each evaluation type.
-    for (int i = 0; i < entry->tupleCount; ++i)
+    for (size_t i = 0; i < safetyStart; ++i)
     {
-        int index = entry->tuples[i].index;
-        bool isSafety = is_safety_term(index);
+        const size_t index = entry->tuples[i].index;
+        const int8_t diff = entry->tuples[i].wcoeff - entry->tuples[i].bcoeff;
 
-        mg[isSafety][WHITE] += entry->tuples[i].wcoeff * delta[index][MIDGAME];
-        mg[isSafety][BLACK] += entry->tuples[i].bcoeff * delta[index][MIDGAME];
-        eg[isSafety][WHITE] += entry->tuples[i].wcoeff * delta[index][ENDGAME];
-        eg[isSafety][BLACK] += entry->tuples[i].bcoeff * delta[index][ENDGAME];
+        mgLinear += diff * delta->v[index][MIDGAME];
+        egLinear += diff * delta->v[index][ENDGAME];
+    }
+
+    for (size_t i = safetyStart; i < entry->tupleCount; ++i)
+    {
+        const size_t index = entry->tuples[i].index;
+        const int8_t wcoeff = entry->tuples[i].wcoeff;
+        const int8_t bcoeff = entry->tuples[i].bcoeff;
+
+        mgSafety[WHITE] += wcoeff * delta->v[index][MIDGAME];
+        mgSafety[BLACK] += bcoeff * delta->v[index][MIDGAME];
+        egSafety[WHITE] += wcoeff * delta->v[index][ENDGAME];
+        egSafety[BLACK] += bcoeff * delta->v[index][ENDGAME];
     }
 
     // Grab the original non-safety evaluations and add the modified parameters.
-    normal[MIDGAME] = (double)midgame_score(entry->eval) + mg[0][WHITE] - mg[0][BLACK];
-    normal[ENDGAME] = (double)endgame_score(entry->eval) + eg[0][WHITE] - eg[0][BLACK];
+    linear[MIDGAME] = (double)midgame_score(entry->eval) + mgLinear;
+    linear[ENDGAME] = (double)endgame_score(entry->eval) + egLinear;
 
     // Grab the original safety evaluations and add the modified parameters.
-    wsafety[MIDGAME] = (double)midgame_score(entry->safety[WHITE]) + mg[1][WHITE];
-    wsafety[ENDGAME] = (double)endgame_score(entry->safety[WHITE]) + eg[1][WHITE];
-    bsafety[MIDGAME] = (double)midgame_score(entry->safety[BLACK]) + mg[1][BLACK];
-    bsafety[ENDGAME] = (double)endgame_score(entry->safety[BLACK]) + eg[1][BLACK];
+    wsafety[MIDGAME] = (double)midgame_score(entry->safety[WHITE]) + mgSafety[WHITE];
+    wsafety[ENDGAME] = (double)endgame_score(entry->safety[WHITE]) + egSafety[WHITE];
+    bsafety[MIDGAME] = (double)midgame_score(entry->safety[BLACK]) + mgSafety[BLACK];
+    bsafety[ENDGAME] = (double)endgame_score(entry->safety[BLACK]) + egSafety[BLACK];
 
     // Remove the original safety evaluations from the normal evaluations.
-    normal[MIDGAME] -=
+    linear[MIDGAME] -=
         imax(0, midgame_score(entry->safety[WHITE])) * midgame_score(entry->safety[WHITE]) / 256
         - imax(0, midgame_score(entry->safety[BLACK])) * midgame_score(entry->safety[BLACK]) / 256;
-    normal[ENDGAME] -= imax(0, endgame_score(entry->safety[WHITE])) / 16
+
+    linear[ENDGAME] -= imax(0, endgame_score(entry->safety[WHITE])) / 16
                        - imax(0, endgame_score(entry->safety[BLACK])) / 16;
 
     // Compute the new safety evaluations for each side.
@@ -442,13 +410,13 @@ double adjusted_eval(
     safety[ENDGAME] = fmax(0, wsafety[ENDGAME]) / 16.0 - fmax(0, bsafety[ENDGAME]) / 16.0;
 
     // Save the safety scores for computing gradients later.
-    safetyScores[WHITE][MIDGAME] = wsafety[MIDGAME];
-    safetyScores[WHITE][ENDGAME] = wsafety[ENDGAME];
-    safetyScores[BLACK][MIDGAME] = bsafety[MIDGAME];
-    safetyScores[BLACK][ENDGAME] = bsafety[ENDGAME];
+    safetyValues->v[WHITE][MIDGAME] = wsafety[MIDGAME];
+    safetyValues->v[WHITE][ENDGAME] = wsafety[ENDGAME];
+    safetyValues->v[BLACK][MIDGAME] = bsafety[MIDGAME];
+    safetyValues->v[BLACK][ENDGAME] = bsafety[ENDGAME];
 
-    midgame = normal[MIDGAME] + safety[MIDGAME];
-    endgame = normal[ENDGAME] + safety[ENDGAME];
+    midgame = linear[MIDGAME] + safety[MIDGAME];
+    endgame = linear[ENDGAME] + safety[ENDGAME];
 
     mixed = midgame * entry->phaseFactors[MIDGAME]
             + endgame * entry->phaseFactors[ENDGAME] * entry->scaleFactor;
@@ -456,123 +424,135 @@ double adjusted_eval(
     return mixed;
 }
 
-void compute_gradient(
-    const tune_data_t *data, tp_vector_t gradient, const tp_vector_t delta, double K, int batchIdx)
+double adjusted_eval_mse(
+    const TuneDataset *restrict data, const TpVector *restrict delta, double sigmoidK)
 {
+    TpSplitEval safetyValues;
+    double result = 0.0;
+
+    for (size_t i = 0; i < data->size; ++i)
+    {
+        const TuneEntry *entry = data->entries + i;
+        result += pow(entry->gameResult
+                          - sigmoid(sigmoidK,
+                              adjusted_eval(entry, delta, &safetyValues, first_safety_term(entry))),
+            2);
+    }
+
+    return result / data->size;
+}
+
+void adam_update_gradient(const TuneEntry *entry, TpVector *restrict gradient,
+    const TpVector *restrict delta, double sigmoidK)
+{
+    TpSplitEval safetyValues;
+    const size_t safetyStart = first_safety_term(entry);
+    const double eval = adjusted_eval(entry, delta, &safetyValues, safetyStart);
+    const double sigm = sigmoid(sigmoidK, eval);
+    const double error = (entry->gameResult - sigm) * sigm * (1 - sigm);
+    const double mgBase = error * entry->phaseFactors[MIDGAME];
+    const double egBase = error * entry->phaseFactors[ENDGAME];
+
+    for (size_t i = 0; i < safetyStart; ++i)
+    {
+        const size_t index = entry->tuples[i].index;
+        const int8_t wcoeff = entry->tuples[i].wcoeff;
+        const int8_t bcoeff = entry->tuples[i].bcoeff;
+
+        gradient->v[index][MIDGAME] += mgBase * (wcoeff - bcoeff);
+        gradient->v[index][ENDGAME] += egBase * (wcoeff - bcoeff) * entry->scaleFactor;
+    }
+
+    const double wsafetyMg = fmax(safetyValues.v[WHITE][MIDGAME], 0);
+    const double bsafetyMg = fmax(safetyValues.v[BLACK][MIDGAME], 0);
+    const double wsafetyEg = safetyValues.v[WHITE][ENDGAME] > 0.0 ? 1.0 : 0.0;
+    const double bsafetyEg = safetyValues.v[BLACK][ENDGAME] > 0.0 ? 1.0 : 0.0;
+
+    for (size_t i = safetyStart; i < entry->tupleCount; ++i)
+    {
+        const size_t index = entry->tuples[i].index;
+        const int8_t wcoeff = entry->tuples[i].wcoeff;
+        const int8_t bcoeff = entry->tuples[i].bcoeff;
+
+        gradient->v[index][MIDGAME] += mgBase / 128.0 * (wsafetyMg * wcoeff - bsafetyMg * bcoeff);
+        gradient->v[index][ENDGAME] +=
+            egBase / 16.0 * entry->scaleFactor * (wsafetyEg * wcoeff - bsafetyEg * bcoeff);
+    }
+}
+
+void adam_compute_gradient(const TuneDataset *restrict dataset, TpVector *restrict gradient,
+    const TpVector *restrict delta, double sigmoidK, size_t batchIdx)
+{
+    const size_t batchOffset = batchIdx * BATCH_SIZE;
     pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-#pragma omp parallel shared(gradient, mutex)
+#pragma omp parallel shared(gradient, mutex) num_threads(THREADS)
     {
-        tp_vector_t local = {};
+        TpVector local;
 
-#pragma omp for schedule(static, (BATCH_SIZE - 1) / THREADS + 1)
+        reset_tp_vector(&local);
+
+#pragma omp for schedule(static)
         for (int i = 0; i < BATCH_SIZE; ++i)
-            update_gradient(data->entries + (size_t)batchIdx * BATCH_SIZE + i, local, delta, K);
+            adam_update_gradient(dataset->entries + batchOffset + i, &local, delta, sigmoidK);
 
         pthread_mutex_lock(&mutex);
 
         for (int i = 0; i < IDX_COUNT; ++i)
         {
-            gradient[i][MIDGAME] += local[i][MIDGAME];
-            gradient[i][ENDGAME] += local[i][ENDGAME];
+            gradient->v[i][MIDGAME] += local.v[i][MIDGAME];
+            gradient->v[i][ENDGAME] += local.v[i][ENDGAME];
         }
 
         pthread_mutex_unlock(&mutex);
     }
 }
 
-void update_gradient(
-    const tune_entry_t *entry, tp_vector_t gradient, const tp_vector_t delta, double K)
-{
-    double safetyValues[COLOR_NB][PHASE_NB];
-    double E = adjusted_eval(entry, delta, safetyValues);
-    double S = sigmoid(K, E);
-    double X = (entry->gameResult - S) * S * (1 - S);
-    double mgBase = X * entry->phaseFactors[MIDGAME];
-    double egBase = X * entry->phaseFactors[ENDGAME];
-
-    int firstTermKS = 0;
-    int right = entry->tupleCount;
-
-    while (firstTermKS < right)
-    {
-        int mid = (firstTermKS + right) / 2;
-
-        if (is_safety_term(entry->tuples[mid].index))
-            right = mid;
-        else
-            firstTermKS = mid + 1;
-    }
-
-    for (int i = 0; i < firstTermKS; ++i)
-    {
-        int index = entry->tuples[i].index;
-        int8_t wcoeff = entry->tuples[i].wcoeff;
-        int8_t bcoeff = entry->tuples[i].bcoeff;
-
-        gradient[index][MIDGAME] += mgBase * (wcoeff - bcoeff);
-        gradient[index][ENDGAME] += egBase * (wcoeff - bcoeff) * entry->scaleFactor;
-    }
-
-    for (int i = firstTermKS; i < entry->tupleCount; ++i)
-    {
-        int index = entry->tuples[i].index;
-        int8_t wcoeff = entry->tuples[i].wcoeff;
-        int8_t bcoeff = entry->tuples[i].bcoeff;
-
-        gradient[index][MIDGAME] += mgBase / 128.0
-                                    * (fmax(safetyValues[WHITE][MIDGAME], 0) * wcoeff
-                                        - fmax(safetyValues[BLACK][MIDGAME], 0) * bcoeff);
-        gradient[index][ENDGAME] += egBase / 16.0 * entry->scaleFactor
-                                    * ((safetyValues[WHITE][MIDGAME] > 0.0) * wcoeff
-                                        - (safetyValues[BLACK][ENDGAME] > 0.0) * bcoeff);
-    }
-}
-
-void print_parameters(const tp_vector_t base, const tp_vector_t delta)
+void print_parameters(const TpVector *base, const TpVector *delta)
 {
     printf("\n Parameters:\n");
 
-#define PRINT_SP(idx, val)                                                                       \
-    do {                                                                                         \
-        printf("const scorepair_t %s = SPAIR(%.lf, %.lf);\n", #val,                              \
-            base[idx][MIDGAME] + delta[idx][MIDGAME], base[idx][ENDGAME] + delta[idx][ENDGAME]); \
+#define PRINT_SP(idx, val)                                          \
+    do {                                                            \
+        printf("const scorepair_t %s = SPAIR(%.lf, %.lf);\n", #val, \
+            base->v[idx][MIDGAME] + delta->v[idx][MIDGAME],         \
+            base->v[idx][ENDGAME] + delta->v[idx][ENDGAME]);        \
     } while (0)
 
 #define PRINT_SP_NICE(idx, val, pad, nameAlign)                                        \
     do {                                                                               \
         printf("const scorepair_t %-*s = SPAIR(%*.lf,%*.lf);\n", nameAlign, #val, pad, \
-            base[idx][MIDGAME] + delta[idx][MIDGAME], pad,                             \
-            base[idx][ENDGAME] + delta[idx][ENDGAME]);                                 \
+            base->v[idx][MIDGAME] + delta->v[idx][MIDGAME], pad,                       \
+            base->v[idx][ENDGAME] + delta->v[idx][ENDGAME]);                           \
     } while (0)
 
-#define PRINT_SPA(idx, val, size, pad, lineSplit, prefix)              \
-    do {                                                               \
-        printf("const scorepair_t %s[%d] = {\n    ", #val, size);      \
-        for (int i = 0; i < size; ++i)                                 \
-            printf(prefix "(%*.lf,%*.lf)%s", pad,                      \
-                base[idx + i][MIDGAME] + delta[idx + i][MIDGAME], pad, \
-                base[idx + i][ENDGAME] + delta[idx + i][ENDGAME],      \
-                (i == size - 1)                    ? "\n"              \
-                : (i % lineSplit == lineSplit - 1) ? ",\n    "         \
-                                                   : ", ");            \
-        puts("};");                                                    \
+#define PRINT_SPA(idx, val, size, pad, lineSplit, prefix)                    \
+    do {                                                                     \
+        printf("const scorepair_t %s[%d] = {\n    ", #val, size);            \
+        for (int i = 0; i < size; ++i)                                       \
+            printf(prefix "(%*.lf,%*.lf)%s", pad,                            \
+                base->v[idx + i][MIDGAME] + delta->v[idx + i][MIDGAME], pad, \
+                base->v[idx + i][ENDGAME] + delta->v[idx + i][ENDGAME],      \
+                (i == size - 1)                    ? "\n"                    \
+                : (i % lineSplit == lineSplit - 1) ? ",\n    "               \
+                                                   : ", ");                  \
+        puts("};");                                                          \
     } while (0)
 
-#define PRINT_SPA_PARTIAL(idx, val, size, start, end, pad, prefix)                         \
-    do {                                                                                   \
-        printf("const scorepair_t %s[%d] = {\n    ", #val, size);                          \
-        for (int i = 0; i < size; ++i)                                                     \
-        {                                                                                  \
-            if (i >= start && i < end)                                                     \
-                printf(prefix "(%*.lf,%*.lf)%s", pad,                                      \
-                    base[idx + i - start][MIDGAME] + delta[idx + i - start][MIDGAME], pad, \
-                    base[idx + i - start][ENDGAME] + delta[idx + i - start][ENDGAME],      \
-                    (i == size - 1) ? "\n" : ",\n    ");                                   \
-            else                                                                           \
-                printf("0%s", (i == size - 1) ? "\n" : ",\n    ");                         \
-        }                                                                                  \
-        puts("};");                                                                        \
+#define PRINT_SPA_PARTIAL(idx, val, size, start, end, pad, prefix)                               \
+    do {                                                                                         \
+        printf("const scorepair_t %s[%d] = {\n    ", #val, size);                                \
+        for (int i = 0; i < size; ++i)                                                           \
+        {                                                                                        \
+            if (i >= start && i < end)                                                           \
+                printf(prefix "(%*.lf,%*.lf)%s", pad,                                            \
+                    base->v[idx + i - start][MIDGAME] + delta->v[idx + i - start][MIDGAME], pad, \
+                    base->v[idx + i - start][ENDGAME] + delta->v[idx + i - start][ENDGAME],      \
+                    (i == size - 1) ? "\n" : ",\n    ");                                         \
+            else                                                                                 \
+                printf("0%s", (i == size - 1) ? "\n" : ",\n    ");                               \
+        }                                                                                        \
+        puts("};");                                                                              \
     } while (0)
 
     // psq_score.h start
@@ -587,7 +567,8 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
         {
             printf("    %s_%s_SCORE = %.lf,\n", pieceNames[piece - PAWN],
                 phase == MIDGAME ? "MG" : "EG",
-                base[IDX_PIECE + piece - PAWN][phase] + delta[IDX_PIECE + piece - PAWN][phase]);
+                base->v[IDX_PIECE + piece - PAWN][phase]
+                    + delta->v[IDX_PIECE + piece - PAWN][phase]);
 
             if (phase == MIDGAME && piece == QUEEN) putchar('\n');
         }
@@ -715,6 +696,117 @@ void print_parameters(const tp_vector_t base, const tp_vector_t delta)
     putchar('\n');
 }
 
-double sigmoid(double K, double E) { return 1.0 / (1.0 + exp(-E * K)); }
+static void compute_wdl_eval_mix(TuneDataset *dataset, double sigmoidK)
+{
+    for (size_t i = 0; i < dataset->size; ++i)
+    {
+        TuneEntry *entry = dataset->entries + i;
+
+        entry->gameResult =
+            entry->gameResult * (1.0 - LAMBDA) + sigmoid(sigmoidK, entry->gameScore) * LAMBDA;
+    }
+}
+
+static void adam_update_momentum(double *momentum, double gradient)
+{
+    *momentum = *momentum * 0.9 + gradient * 0.1;
+}
+
+static void adam_update_velocity(double *velocity, double gradient)
+{
+    *velocity = *velocity * 0.999 + gradient * gradient * 0.001;
+}
+
+static void adam_update_delta(double *delta, double momentum, double velocity, double lr)
+{
+    *delta += momentum * lr / sqrt(1e-8 + velocity);
+}
+
+static void adam_update_values(
+    AdamOptimizer *restrict adam, TpVector *restrict delta, double sigmoidK, double learningRate)
+{
+    const double scale = (sigmoidK * 2.0 / BATCH_SIZE);
+
+    for (size_t i = 0; i < IDX_COUNT; ++i)
+    {
+        double mgGrad = adam->gradient.v[i][MIDGAME] * scale;
+        double egGrad = adam->gradient.v[i][ENDGAME] * scale;
+
+        adam_update_momentum(&adam->momentum.v[i][MIDGAME], mgGrad);
+        adam_update_momentum(&adam->momentum.v[i][ENDGAME], egGrad);
+
+        adam_update_velocity(&adam->velocity.v[i][MIDGAME], mgGrad);
+        adam_update_velocity(&adam->velocity.v[i][ENDGAME], egGrad);
+    }
+
+    for (size_t i = 0; i < IDX_COUNT; ++i)
+    {
+        adam_update_delta(&delta->v[i][MIDGAME], adam->momentum.v[i][MIDGAME],
+            adam->velocity.v[i][MIDGAME], learningRate);
+        adam_update_delta(&delta->v[i][ENDGAME], adam->momentum.v[i][ENDGAME],
+            adam->velocity.v[i][ENDGAME], learningRate);
+    }
+
+    reset_tp_vector(&adam->gradient);
+}
+
+static void adam_next_epoch(AdamOptimizer *restrict adam, const TuneDataset *restrict dataset,
+    TpVector *restrict delta, double sigmoidK, double learningRate)
+{
+    const size_t batchCount = dataset->size / BATCH_SIZE;
+
+    for (size_t batchIdx = 0; batchIdx < batchCount; ++batchIdx)
+    {
+        adam_compute_gradient(dataset, &adam->gradient, delta, sigmoidK, batchIdx);
+        adam_update_values(adam, delta, sigmoidK, learningRate);
+    }
+}
 
 #endif
+
+void start_tuning_session(const char *filename)
+{
+#ifdef TUNE
+    AdamOptimizer adam;
+    TpVector delta, base;
+    TuneDataset dataset = {};
+
+    reset_tp_vector(&delta);
+    reset_tp_vector(&base);
+    adam_init(&adam);
+
+    init_base_values(&base);
+    init_tuner_entries(&dataset, filename);
+
+    const double sigmoidK = compute_optimal_k(&dataset);
+    double learningRate = LEARNING_RATE;
+    double lastLoss = 0.0;
+
+    compute_wdl_eval_mix(&dataset, sigmoidK);
+
+    for (size_t iter = 0; iter < ITERS; ++iter)
+    {
+        adam_next_epoch(&adam, &dataset, &delta, sigmoidK, learningRate);
+
+        const double currentLoss = adjusted_eval_mse(&dataset, &delta, sigmoidK);
+        const bool earlyStop = iter > 0 && lastLoss - currentLoss < 1e-8;
+
+        printf("Iteration [%u], Loss [%.7lf]\n", (unsigned int)iter, currentLoss);
+
+        if (iter % LR_DROP_ITERS == LR_DROP_ITERS - 1) learningRate /= LR_DROP_VALUE;
+
+        if (iter % 50 == 49 || iter == ITERS - 1 || earlyStop) print_parameters(&base, &delta);
+
+        fflush(stdout);
+
+        if (earlyStop) break;
+
+        lastLoss = currentLoss;
+    }
+
+    for (size_t i = 0; i < dataset.size; ++i) free(dataset.entries[i].tuples);
+    free(dataset.entries);
+#else
+    (void)filename;
+#endif
+}
