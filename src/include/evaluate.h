@@ -82,6 +82,7 @@ typedef enum tune_idx_e
     IDX_KS_CHECK_B,
     IDX_KS_CHECK_R,
     IDX_KS_CHECK_Q,
+    IDX_KS_UNSAFE_CHECK,
     IDX_KS_QUEENLESS,
     IDX_KS_STORM,
     IDX_KS_SHELTER = IDX_KS_STORM + 24,
@@ -106,6 +107,14 @@ extern evaltrace_t Trace;
 #define TRACE_SAFETY(c, v) Trace.safety[c] = v
 #define TRACE_EVAL(e) Trace.eval = e
 #define TRACE_FACTOR(f) Trace.scaleFactor = f
+#define TRACE_CLEAR_SAFETY(color)               \
+    do {                                        \
+        Trace.coeffs[IDX_KS_KNIGHT][color] = 0; \
+        Trace.coeffs[IDX_KS_BISHOP][color] = 0; \
+        Trace.coeffs[IDX_KS_ROOK][color] = 0;   \
+        Trace.coeffs[IDX_KS_QUEEN][color] = 0;  \
+        Trace.coeffs[IDX_KS_ATTACK][color] = 0; \
+    } while (0);
 
 #else
 
@@ -115,6 +124,7 @@ extern evaltrace_t Trace;
 #define TRACE_SAFETY(c, v)
 #define TRACE_EVAL(e)
 #define TRACE_FACTOR(f)
+#define TRACE_CLEAR_SAFETY(color)
 
 #endif
 
