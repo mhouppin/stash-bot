@@ -245,6 +245,7 @@ score_t scale_endgame(const Board *board, const PawnEntry *pe, score_t eg)
     // This allows us to quickly filter out positions which shouldn't be scaled,
     // even though they have a theoretical scaling factor in our code (like KNvKPPPP).
     color_t strongSide = (eg > 0) ? WHITE : BLACK, weakSide = not_color(strongSide);
+    const EndgameEntry *entry;
     int factor;
     score_t strongMat = board->stack->material[strongSide],
             weakMat = board->stack->material[weakSide];
@@ -255,7 +256,7 @@ score_t scale_endgame(const Board *board, const PawnEntry *pe, score_t eg)
     // or very difficult to win.
     if (!strongPawns && strongMat - weakMat <= BISHOP_MG_SCORE)
         factor = (strongMat <= BISHOP_MG_SCORE)
-                     ? 0
+                     ? SCALE_DRAW
                      : imax((int32_t)(strongMat - weakMat) * 8 / BISHOP_MG_SCORE, 0);
 
     // OCB endgames: scale based on the number of remaining pieces of the strong side,
@@ -274,13 +275,17 @@ score_t scale_endgame(const Board *board, const PawnEntry *pe, score_t eg)
              && (king_moves(get_king_square(board, weakSide)) & weakPawns))
         factor = 130;
 
+    // Check if we have a specialized function for the given material distribution.
+    else if ((entry = endgame_probe_scalefactor(board)) != NULL)
+        factor = entry->scaleFunc(board, strongSide);
+
     // Other endgames. Decrease the endgame score as the number of pawns of the strong
     // side gets lower.
     else
-        factor = imin(256, 177 + 13 * popcount(strongPawns));
+        factor = imin(SCALE_NORMAL, 177 + 13 * popcount(strongPawns));
 
     // Be careful to cast to 32-bit integer here before multiplying to avoid overflows.
-    eg = (score_t)((int32_t)eg * factor / 256);
+    eg = (score_t)((int32_t)eg * factor / SCALE_NORMAL);
     TRACE_FACTOR(factor);
 
     return eg;
@@ -819,7 +824,7 @@ score_t evaluate(const Board *board)
     // Do we have a specialized endgame eval for the current configuration ?
     const EndgameEntry *entry = endgame_probe(board);
 
-    if (entry != NULL) return entry->func(board, entry->winningSide);
+    if (entry != NULL) return entry->scoreFunc(board, entry->winningSide);
 
     // Is there a KXK situation ? (lone King vs mating material)
     if (is_kxk_endgame(board, WHITE)) return eval_kxk(board, WHITE);

@@ -250,44 +250,15 @@ score_t eval_krpkr(const Board *board, color_t winningSide)
     return score;
 }
 
-score_t eval_kbpsk(const Board *board, color_t winningSide)
+int scale_kpsk(const Board *board, color_t winningSide)
 {
-    PawnEntry *pe = pawn_probe(board);
-    score_t score = endgame_score(pe->value + board->psqScorePair);
-    color_t losingSide = not_color(winningSide);
-
-    square_t winningBsq = relative_sq(bb_first_sq(piecetype_bb(board, BISHOP)), winningSide);
-    square_t losingKsq = relative_sq(get_king_square(board, losingSide), winningSide);
-    bitboard_t winningPawns = piecetype_bb(board, PAWN);
-    bitboard_t wrongFile = (square_bb(winningBsq) & DSQ_BB) ? FILE_A_BB : FILE_H_BB;
-
-    if (board->sideToMove == BLACK) score = -score;
-
-    // Check for a wrong-colored bishop situation.
-    if ((winningPawns & wrongFile) == winningPawns)
-    {
-        bitboard_t queeningSquare = (square_bb(winningBsq) & DSQ_BB) ? SQ_A8 : SQ_H8;
-
-        int queeningDistance = SquareDistance[losingKsq][queeningSquare];
-
-        // Check if the losing King is in control of the queening square.
-        if (queeningDistance < 2) return 0;
-
-        return score * (queeningDistance - 1) / queeningDistance;
-    }
-
-    return score;
-}
-
-score_t eval_kpsk(const Board *board, color_t winningSide)
-{
-    PawnEntry *pe = pawn_probe(board);
-    score_t score = endgame_score(pe->value + board->psqScorePair);
-    color_t losingSide = not_color(winningSide);
-
+    const color_t losingSide = not_color(winningSide);
     square_t winningKsq = relative_sq(get_king_square(board, winningSide), winningSide);
     square_t losingKsq = relative_sq(get_king_square(board, losingSide), winningSide);
-    bitboard_t winningPawns = piecetype_bb(board, PAWN);
+    const bitboard_t winningPawns = piece_bb(board, winningSide, PAWN);
+
+    if (!winningPawns)
+        return SCALE_DRAW;
 
     // We only check for draw scenarios with all pawns on a Rook file with the
     // defending King on the promotion path.
@@ -308,47 +279,86 @@ score_t eval_kpsk(const Board *board, color_t winningSide)
 
         // If a KPK situation with only the most advanced Pawn results in a
         // draw, then the position is likely a draw as well.
-        if (!kpk_is_winning(us, losingKsq, winningKsq, mostAdvancedPawn)) return 0;
+        if (!kpk_is_winning(us, losingKsq, winningKsq, mostAdvancedPawn)) return SCALE_DRAW;
     }
 
-    return board->sideToMove == WHITE ? score : -score;
+    return SCALE_NORMAL;
 }
 
-void add_colored_entry(color_t winningSide, char *wpieces, char *bpieces, endgame_func_t func)
+int scale_kbpsk(const Board *board, color_t winningSide)
+{
+    // If the winning side does not have the bishop, don't try to scale down the endgame.
+    if (!piece_bb(board, winningSide, BISHOP))
+        return SCALE_NORMAL;
+
+    const color_t losingSide = not_color(winningSide);
+    const square_t winningBsq = relative_sq(bb_first_sq(piecetype_bb(board, BISHOP)), winningSide);
+    const square_t losingKsq = relative_sq(get_king_square(board, losingSide), winningSide);
+    const bitboard_t winningPawns = piece_bb(board, winningSide, PAWN);
+    const bitboard_t wrongFile = (square_bb(winningBsq) & DSQ_BB) ? FILE_A_BB : FILE_H_BB;
+
+    if (!winningPawns)
+        return SCALE_DRAW;
+
+    // Check for a wrong-colored bishop situation.
+    if ((winningPawns & wrongFile) == winningPawns)
+    {
+        const bitboard_t queeningSquare = (square_bb(winningBsq) & DSQ_BB) ? SQ_A8 : SQ_H8;
+        const int queeningDistance = SquareDistance[losingKsq][queeningSquare];
+
+        // Check if the losing King is in control of the queening square.
+        if (queeningDistance < 2) return SCALE_DRAW;
+
+        return SCALE_NORMAL * (queeningDistance - 1) / queeningDistance;
+    }
+
+    return SCALE_NORMAL;
+}
+
+static EndgameEntry *material_to_entry(
+    const char *wpieces, const char *bpieces, hashkey_t *materialKey)
 {
     char bcopy[16];
     char fen[128];
-
-    strcpy(bcopy, bpieces);
-
-    for (size_t i = 0; bcopy[i]; ++i) bcopy[i] = tolower(bcopy[i]);
-
-    // Generate a FEN corresponding to the material distribution of the pieces.
-    sprintf(fen, "8/%s%d/8/8/8/8/%s%d/8 w - - 0 1", bcopy, 8 - (int)strlen(bcopy), wpieces,
-        8 - (int)strlen(wpieces));
-
+    size_t i;
     Board board;
     Boardstack stack;
 
+    for (i = 0; bpieces[i]; ++i) bcopy[i] = tolower(bpieces[i]);
+
+    bcopy[i] = '\0';
+
+    // Generate a FEN corresponding to the material distribution of the pieces.
+    sprintf(fen, "8/%s%d/8/8/8/8/%s%d/8 w - - 0 1", bcopy, 8 - (int)i, wpieces,
+        8 - (int)strlen(wpieces));
+
     board_from_fen(&board, fen, false, &stack);
 
-    // Try to map the board to a new endgame entry.
-    EndgameEntry *entry = &EndgameTable[board.stack->materialKey & (EGTB_SIZE - 1)];
+    // Map the board to a new endgame entry.
+    *materialKey = board.stack->materialKey;
+    return &EndgameTable[*materialKey & (EGTB_SIZE - 1)];
+}
+
+void add_scoring_colored_entry(
+    color_t winningSide, char *wpieces, char *bpieces, endgame_score_func_t scoreFunc)
+{
+    hashkey_t materialKey;
+    EndgameEntry *entry = material_to_entry(wpieces, bpieces, &materialKey);
 
     // Check for key conflicts and stop the program here.
-    if (entry->key)
+    if (entry->scoreFunc != NULL)
     {
         fputs("Error: key conflicts in endgame table\n", stderr);
         exit(EXIT_FAILURE);
     }
 
     // Assign the endgame specifications to the entry.
-    entry->key = board.stack->materialKey;
-    entry->func = func;
+    entry->key = materialKey;
+    entry->scoreFunc = scoreFunc;
     entry->winningSide = winningSide;
 }
 
-void add_endgame_entry(const char *pieces, endgame_func_t eval)
+void add_scoring_entry(const char *pieces, endgame_score_func_t scoreFunc)
 {
     char buf[32];
 
@@ -357,57 +367,78 @@ void add_endgame_entry(const char *pieces, endgame_func_t eval)
     char *split = strchr(buf, 'v');
     *split = '\0';
 
-    // Add the endgame entry for both sides.
-    add_colored_entry(WHITE, buf, split + 1, eval);
-    add_colored_entry(BLACK, split + 1, buf, eval);
+    // Add the endgame entry for both sides, or one side if material is identical.
+    add_scoring_colored_entry(WHITE, buf, split + 1, scoreFunc);
+
+    if (strcmp(buf, split + 1) != 0) add_scoring_colored_entry(BLACK, split + 1, buf, scoreFunc);
+}
+
+void add_scaling_colored_entry(
+    color_t winningSide, char *wpieces, char *bpieces, endgame_scale_func_t scaleFunc)
+{
+    hashkey_t materialKey;
+    EndgameEntry *entry = material_to_entry(wpieces, bpieces, &materialKey);
+
+    // Check for key conflicts and stop the program here.
+    if (entry->scaleFunc != NULL)
+    {
+        fputs("Error: key conflicts in endgame table\n", stderr);
+        exit(EXIT_FAILURE);
+    }
+
+    // Assign the endgame specifications to the entry.
+    entry->key = materialKey;
+    entry->scaleFunc = scaleFunc;
+    entry->winningSide = winningSide;
+}
+
+void add_scaling_entry(const char *nonPawnMat, endgame_scale_func_t scaleFunc)
+{
+    char buf[32];
+
+    strcpy(buf, nonPawnMat);
+
+    char *split = strchr(buf, 'v');
+    *split = '\0';
+
+    // Add the endgame entry for both sides, or one side if material is identical.
+    add_scaling_colored_entry(WHITE, buf, split + 1, scaleFunc);
+
+    if (strcmp(buf, split + 1) != 0) add_scaling_colored_entry(BLACK, split + 1, buf, scaleFunc);
 }
 
 void init_endgame_table(void)
 {
+    static const char *drawnEndgames[] = {
+        "KvK", "KNvK", "KBvK", "KNNvK", "KBvKN", "KNvKN", "KBvKB", "KBBvKB", NULL};
+
     memset(EndgameTable, 0, sizeof(EndgameTable));
 
-    add_colored_entry(WHITE, "K", "K", &eval_draw);
+    for (size_t i = 0; drawnEndgames[i] != NULL; ++i)
+        add_scoring_entry(drawnEndgames[i], &eval_draw);
 
     // 3-man endgames
-    add_endgame_entry("KPvK", &eval_kpk);
-    add_endgame_entry("KNvK", &eval_draw);
-    add_endgame_entry("KBvK", &eval_draw);
+    add_scoring_entry("KPvK", &eval_kpk);
 
     // 4-man endgames
-    add_endgame_entry("KNNvK", &eval_draw);
-    add_endgame_entry("KBvKN", &eval_draw);
-    add_endgame_entry("KRvKP", &eval_krkp);
-    add_endgame_entry("KRvKN", &eval_krkn);
-    add_endgame_entry("KRvKB", &eval_krkb);
-    add_colored_entry(WHITE, "KN", "KN", &eval_draw);
-    add_colored_entry(WHITE, "KB", "KB", &eval_draw);
-    add_endgame_entry("KQvKR", &eval_kqkr);
-    add_endgame_entry("KQvKP", &eval_kqkp);
+    add_scoring_entry("KRvKP", &eval_krkp);
+    add_scoring_entry("KRvKN", &eval_krkn);
+    add_scoring_entry("KRvKB", &eval_krkb);
+    add_scoring_entry("KQvKR", &eval_kqkr);
+    add_scoring_entry("KQvKP", &eval_kqkp);
+    add_scoring_entry("KBNvK", &eval_kbnk);
 
     // 5-man endgames
-    add_endgame_entry("KBBvKB", &eval_draw);
-    add_endgame_entry("KNNvKP", &eval_knnkp);
-    add_endgame_entry("KRPvKR", &eval_krpkr);
-    add_endgame_entry("KNPvKN", &eval_kmpkn);
-    add_endgame_entry("KBPvKN", &eval_kmpkn);
-    add_endgame_entry("KNPvKB", &eval_kmpkb);
-    add_endgame_entry("KBPvKB", &eval_kmpkb);
+    add_scoring_entry("KNNvKP", &eval_knnkp);
+    add_scoring_entry("KRPvKR", &eval_krpkr);
+    add_scoring_entry("KNPvKN", &eval_kmpkn);
+    add_scoring_entry("KBPvKN", &eval_kmpkn);
+    add_scoring_entry("KNPvKB", &eval_kmpkb);
+    add_scoring_entry("KBPvKB", &eval_kmpkb);
 
-    // KPsK endgames
-    add_endgame_entry("KPPvK", &eval_kpsk);
-    add_endgame_entry("KPPPvK", &eval_kpsk);
-    add_endgame_entry("KPPPPvK", &eval_kpsk);
-    add_endgame_entry("KPPPPPvK", &eval_kpsk);
-
-    // KBPsK endgames
-    add_endgame_entry("KBPvK", &eval_kbpsk);
-    add_endgame_entry("KBPPvK", &eval_kbpsk);
-    add_endgame_entry("KBPPPvK", &eval_kbpsk);
-    add_endgame_entry("KBPPPPvK", &eval_kbpsk);
-    add_endgame_entry("KBPPPPPvK", &eval_kbpsk);
-
-    // KBNK endgame
-    add_endgame_entry("KBNvK", &eval_kbnk);
+    // Scaled endgames
+    add_scaling_entry("KvK", &scale_kpsk);
+    add_scaling_entry("KBvK", &scale_kbpsk);
 }
 
 const EndgameEntry *endgame_probe(const Board *board)
@@ -415,5 +446,22 @@ const EndgameEntry *endgame_probe(const Board *board)
     EndgameEntry *entry = &EndgameTable[board->stack->materialKey & (EGTB_SIZE - 1)];
 
     // Return the entry if the keys match.
-    return entry->key == board->stack->materialKey ? entry : NULL;
+    return entry->key == board->stack->materialKey && entry->scoreFunc != NULL ? entry : NULL;
+}
+
+const EndgameEntry *endgame_probe_scalefactor(const Board *board)
+{
+    // Scaling function entries are stored pawnless.
+    hashkey_t materialKey = board->stack->materialKey;
+
+    for (int i = 0; i < board->pieceCount[WHITE_PAWN]; ++i)
+        materialKey ^= ZobristPsq[WHITE_PAWN][i];
+
+    for (int i = 0; i < board->pieceCount[BLACK_PAWN]; ++i)
+        materialKey ^= ZobristPsq[BLACK_PAWN][i];
+
+    EndgameEntry *entry = &EndgameTable[materialKey & (EGTB_SIZE - 1)];
+
+    // Return the entry if the keys match.
+    return entry->key == materialKey && entry->scaleFunc != NULL ? entry : NULL;
 }

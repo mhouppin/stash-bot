@@ -58,14 +58,18 @@ INLINED score_t away_bonus(square_t sq1, square_t sq2)
     return (10 + 10 * SquareDistance[sq1][sq2]);
 }
 
-// Typedef for specialized endgame functions
-typedef score_t (*endgame_func_t)(const Board *, color_t);
+// Typedef for specialized endgame scoring functions
+typedef score_t (*endgame_score_func_t)(const Board *, color_t);
+
+// Typedef for specialized endgame scaling functions
+typedef int (*endgame_scale_func_t)(const Board *, color_t);
 
 // Struct holding a specialized endgame
 typedef struct _EndgameEntry
 {
     hashkey_t key;
-    endgame_func_t func;
+    endgame_score_func_t scoreFunc;
+    endgame_scale_func_t scaleFunc;
     color_t winningSide;
 } EndgameEntry;
 
@@ -81,8 +85,10 @@ void init_kpk_bitbase(void);
 // Checks if the given KPK endgame is winning.
 bool kpk_is_winning(color_t stm, square_t bksq, square_t wksq, square_t psq);
 
-// A list of all specialized endgames.
+// Generic function for all drawn endgames.
 score_t eval_draw(const Board *board, color_t winningSide);
+
+// A list of all specialized endgames.
 score_t eval_krkn(const Board *board, color_t winningSide);
 score_t eval_krkp(const Board *board, color_t winningSide);
 score_t eval_krkb(const Board *board, color_t winningSide);
@@ -90,11 +96,14 @@ score_t eval_kbnk(const Board *board, color_t winningSide);
 score_t eval_kqkr(const Board *board, color_t winningSide);
 score_t eval_kqkp(const Board *board, color_t winningSide);
 score_t eval_kpk(const Board *board, color_t winningSide);
-score_t eval_kpsk(const Board *board, color_t winningSide);
 score_t eval_knnkp(const Board *board, color_t winningSide);
-score_t eval_kbpsk(const Board *board, color_t winningSide);
+
+int scale_kpsk(const Board *board, color_t winningSide);
+int scale_kbpsk(const Board *board, color_t winningSide);
 
 // Probes the endgame table for the given board.
 const EndgameEntry *endgame_probe(const Board *board);
+
+const EndgameEntry *endgame_probe_scalefactor(const Board *board);
 
 #endif
