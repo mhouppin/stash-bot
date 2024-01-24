@@ -87,6 +87,12 @@ enum
     PIECETYPE_NB = 8
 };
 
+enum
+{
+    SCALE_NORMAL = 256,
+    SCALE_DRAW = 0,
+};
+
 INLINED piecetype_t piece_type(piece_t piece) { return piece & 7; }
 
 INLINED color_t piece_color(piece_t piece) { return piece >> 3; }
