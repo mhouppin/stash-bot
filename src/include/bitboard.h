@@ -130,6 +130,26 @@ INLINED bitboard_t relative_shift_down(bitboard_t b, color_t c)
     return (c == WHITE) ? shift_down(b) : shift_up(b);
 }
 
+// Sets the bitboard from the color's POV.
+INLINED bitboard_t relative_bb(bitboard_t b, color_t c)
+{
+    if (c == WHITE)
+        return b;
+
+#ifdef __GNUC__
+    return __builtin_bswap64(b);
+#else
+    const uint64_t mask8 = 0x00FF00FF00FF00FFul;
+    const uint64_t mask16 = 0x0000FFFF0000FFFFul;
+    const uint64_t mask32 = 0x00000000FFFFFFFFul;
+
+    b = ((b & mask8) << 8) | ((b & ~mask8) >> 8);
+    b = ((b & mask16) << 16) | ((b & ~mask16) >> 16);
+    b = ((b & mask32) << 32) | ((b & ~mask32) >> 32);
+    return b;
+#endif
+}
+
 // Checks if more than one bit is set in the bitboard.
 INLINED bool more_than_one(bitboard_t b) { return b & (b - 1); }
 

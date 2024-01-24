@@ -100,6 +100,7 @@ score_t eval_knnkp(const Board *board, color_t winningSide);
 
 int scale_kpsk(const Board *board, color_t winningSide);
 int scale_kbpsk(const Board *board, color_t winningSide);
+int scale_kqkrps(const Board *board, color_t winningSide);
 
 // Probes the endgame table for the given board.
 const EndgameEntry *endgame_probe(const Board *board);

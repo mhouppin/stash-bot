@@ -257,8 +257,7 @@ int scale_kpsk(const Board *board, color_t winningSide)
     square_t losingKsq = relative_sq(get_king_square(board, losingSide), winningSide);
     const bitboard_t winningPawns = piece_bb(board, winningSide, PAWN);
 
-    if (!winningPawns)
-        return SCALE_DRAW;
+    if (!winningPawns) return SCALE_DRAW;
 
     // We only check for draw scenarios with all pawns on a Rook file with the
     // defending King on the promotion path.
@@ -285,11 +284,44 @@ int scale_kpsk(const Board *board, color_t winningSide)
     return SCALE_NORMAL;
 }
 
+static bool opposite_by_file(square_t sq1, square_t sq2, square_t middle)
+{
+    return (sq_file(sq1) - sq_file(middle)) * (sq_file(sq2) - sq_file(middle)) < 0;
+}
+
+int scale_kqkrps(const Board *board, color_t winningSide)
+{
+    if (piece_bb(board, winningSide, PAWN) || !piece_bb(board, winningSide, QUEEN))
+        return SCALE_NORMAL;
+
+    const color_t losingSide = not_color(winningSide);
+    square_t winningKsq = relative_sq(get_king_square(board, winningSide), winningSide);
+    square_t losingKsq = relative_sq(get_king_square(board, losingSide), winningSide);
+    square_t losingRsq = relative_sq(bb_first_sq(piece_bb(board, losingSide, ROOK)), winningSide);
+    bitboard_t losingPawns = relative_bb(piece_bb(board, losingSide, PAWN), winningSide);
+
+    // Draws can only occur with Pawns on:
+    // - files c to f and ranks 2, 6, 7;
+    // - files b and g on all ranks;
+    // - files a and h on ranks 3 and 7.
+    losingPawns &= 0x00FFE74242C3E700ul;
+
+    bitboard_t kingProximityMask = king_moves(losingKsq);
+    kingProximityMask |= shift_down(kingProximityMask);
+
+    // If the King and Rook are near the Pawn, and the opposing King cannot
+    // attack from behind, it is a draw.
+    if (!!(losingPawns & kingProximityMask & king_moves(losingRsq))
+        && (opposite_by_file(winningKsq, losingKsq, losingRsq) || sq_rank(winningKsq) < sq_rank(losingKsq)))
+        return SCALE_DRAW;
+
+    return SCALE_NORMAL;
+}
+
 int scale_kbpsk(const Board *board, color_t winningSide)
 {
     // If the winning side does not have the bishop, don't try to scale down the endgame.
-    if (!piece_bb(board, winningSide, BISHOP))
-        return SCALE_NORMAL;
+    if (!piece_bb(board, winningSide, BISHOP)) return SCALE_NORMAL;
 
     const color_t losingSide = not_color(winningSide);
     const square_t winningBsq = relative_sq(bb_first_sq(piecetype_bb(board, BISHOP)), winningSide);
@@ -297,8 +329,7 @@ int scale_kbpsk(const Board *board, color_t winningSide)
     const bitboard_t winningPawns = piece_bb(board, winningSide, PAWN);
     const bitboard_t wrongFile = (square_bb(winningBsq) & DSQ_BB) ? FILE_A_BB : FILE_H_BB;
 
-    if (!winningPawns)
-        return SCALE_DRAW;
+    if (!winningPawns) return SCALE_DRAW;
 
     // Check for a wrong-colored bishop situation.
     if ((winningPawns & wrongFile) == winningPawns)
@@ -439,6 +470,7 @@ void init_endgame_table(void)
     // Scaled endgames
     add_scaling_entry("KvK", &scale_kpsk);
     add_scaling_entry("KBvK", &scale_kbpsk);
+    add_scaling_entry("KQvKR", &scale_kqkrps);
 }
 
 const EndgameEntry *endgame_probe(const Board *board)
