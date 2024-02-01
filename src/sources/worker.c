@@ -260,6 +260,7 @@ void wpool_start_search(WorkerPool *wpool, const Board *rootBoard, const SearchP
             curRootMove->move = UciSearchMoves.moves[k].move;
             curRootMove->seldepth = 0;
             curRootMove->score = curRootMove->prevScore = -INF_SCORE;
+            curRootMove->nodes = 0;
             curRootMove->pv[0] = curRootMove->pv[1] = NO_MOVE;
         }
     }
@@ -284,7 +285,7 @@ uint64_t wpool_get_total_nodes(WorkerPool *wpool)
 
     // Compute the sum of the current node counts across all workers.
     for (size_t i = 0; i < wpool->size; ++i)
-        totalNodes += atomic_load_explicit(&wpool->workerList[i]->nodes, memory_order_relaxed);
+        totalNodes += get_worker_nodes(wpool->workerList[i]);
 
     return totalNodes;
 }

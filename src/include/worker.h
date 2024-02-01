@@ -55,6 +55,7 @@ typedef struct _RootMove
     int seldepth;
     score_t prevScore;
     score_t score;
+    uint64_t nodes;
     move_t pv[512];
 } RootMove;
 
@@ -94,9 +95,14 @@ typedef struct _Worker
 
 INLINED Worker *get_worker(const Board *board) { return board->worker; }
 
+INLINED uint64_t get_worker_nodes(const Worker *worker)
+{
+    return atomic_load_explicit(&worker->nodes, memory_order_relaxed);
+}
+
 INLINED score_t draw_score(const Worker *worker)
 {
-    return (atomic_load_explicit(&worker->nodes, memory_order_relaxed) & 2) - 1;
+    return (get_worker_nodes(worker) & 2) - 1;
 }
 
 void worker_init(Worker *worker, size_t idx);

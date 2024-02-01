@@ -25,41 +25,7 @@
 #include <time.h>
 
 // Returns the current time in milliseconds.
-INLINED clock_t chess_clock(void)
-{
-#if defined(_WIN32) || defined(_WIN64)
-    struct timeb tp;
-
-    ftime(&tp);
-    return (clock_t)tp.time * 1000 + tp.millitm;
-#else
-    struct timespec tp;
-
-    clock_gettime(CLOCK_REALTIME, &tp);
-    return (clock_t)tp.tv_sec * 1000 + tp.tv_nsec / 1000000;
-#endif
-}
-
-// Enum for the type of bestmove
-typedef enum bestmove_type_e
-{
-    NO_BM_TYPE = -1,
-    OneLegalMove,
-    Promotion,
-    SoundCapture,
-    SoundCheck,
-    Capture,
-    Quiet,
-    WeirdCheck,
-    WeirdQuiet,
-    BM_TYPE_NB
-} bestmove_type_t;
-
-// Global for scaling time usage based on bestmove type
-extern const double BestmoveTypeScale[BM_TYPE_NB];
-
-// Global for scaling time usage based on stability
-extern const double BestmoveStabilityScale[5];
+clock_t chess_clock(void);
 
 // Enum for the type of time management to use
 typedef enum timeman_mode_e
@@ -84,7 +50,6 @@ typedef struct _Timeman
     score_t prevScore;
     move_t prevBestmove;
     int stability;
-    bestmove_type_t type;
 } Timeman;
 
 // Global for time management

@@ -586,11 +586,14 @@ main_loop:
     {
         if (rootNode)
         {
+            RootMove *currRootMove = find_root_move(worker->rootMoves + worker->pvLine,
+                    worker->rootMoves + worker->rootCount, currmove);
+
             // Exclude already searched PV lines for root nodes.
-            if (find_root_move(worker->rootMoves + worker->pvLine,
-                    worker->rootMoves + worker->rootCount, currmove)
-                == NULL)
+            if (currRootMove == NULL)
                 continue;
+
+            currRootMove->nodes -= get_worker_nodes(worker);
         }
         else
         {
@@ -764,6 +767,8 @@ main_loop:
         {
             RootMove *cur = find_root_move(worker->rootMoves + worker->pvLine,
                 worker->rootMoves + worker->rootCount, currmove);
+
+            cur->nodes += get_worker_nodes(worker);
 
             // Update the PV in root nodes for the first move, and for all moves
             // beating alpha.
