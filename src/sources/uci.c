@@ -614,6 +614,16 @@ void uci_loop(int argc, char **argv)
     add_option_check(&UciOptionList, "Ponder", &UciOptionFields.ponder, NULL);
     add_option_button(&UciOptionList, "Clear Hash", &on_clear_hash);
 
+    TUNE_SCORE(TimemanScoreRange, 50, 200);
+    TUNE_DOUBLE(TimemanScoreFactor, 1.0, 3.0);
+
+    TUNE_DOUBLE(TimemanNodeBase, 1.0, 2.0);
+    TUNE_DOUBLE(TimemanNodeFactor, 1.0, 4.0);
+
+    TUNE_DOUBLE(TimemanStabFactor, 1.0, 4.0);
+    TUNE_DOUBLE(TimemanStabExponent, 0.5, 1.5);
+    TUNE_LONG(TimemanStabIters, 0, 8);
+
     uci_position("startpos");
 
     if (argc > 1)
