@@ -102,9 +102,9 @@ void timeman_init(const Board *board, Timeman *tm, SearchParams *params, clock_t
 
 double score_difference_scale(score_t s)
 {
-    const score_t x = 112 /* TimemanScoreRange */;
+    const score_t x = 131 /* TimemanScoreRange */;
 
-    return pow(2.028 /* TimemanScoreFactor */, iclamp(s, -x, x) / (double)x);
+    return pow(1.962 /* TimemanScoreFactor */, iclamp(s, -x, x) / (double)x);
 }
 
 double node_repartition_scale(const Worker *worker)
@@ -113,12 +113,12 @@ double node_repartition_scale(const Worker *worker)
     const uint64_t best_nodes = worker->rootMoves->nodes;
     const double best_rate = (double)best_nodes / (double)total_nodes;
 
-    return (1.283 /* TimemanNodeBase */ - best_rate) * 1.628 /* TimemanNodeFactor */;
+    return (1.242 /* TimemanNodeBase */ - best_rate) * 1.396 /* TimemanNodeFactor */;
 }
 
 double bestmove_stability_scale(int stability)
 {
-    return 2.639 /* TimemanStabFactor */ / pow(stability + 1, 0.823 /* TimemanStabExponent */);
+    return 2.688 /* TimemanStabFactor */ / pow(stability + 1, 0.782 /* TimemanStabExponent */);
 }
 
 void timeman_update(Timeman *tm, const Board *board, move_t bestmove, score_t score)
@@ -133,7 +133,7 @@ void timeman_update(Timeman *tm, const Board *board, move_t bestmove, score_t sc
         tm->stability = 0;
     }
     else
-        tm->stability = imin(tm->stability + 1, 3 /* TimemanStabIters */);
+        tm->stability = imin(tm->stability + 1, 2 /* TimemanStabIters */);
 
     // Scale the time usage based on the root moves' node repartition.
     double scale = node_repartition_scale(get_worker(board));
