@@ -102,9 +102,9 @@ void timeman_init(const Board *board, Timeman *tm, SearchParams *params, clock_t
 
 double score_difference_scale(score_t s)
 {
-    const score_t x = 131 /* TimemanScoreRange */;
+    const score_t x = 138 /* TimemanScoreRange */;
 
-    return pow(1.962 /* TimemanScoreFactor */, iclamp(s, -x, x) / (double)x);
+    return pow(1.990 /* TimemanScoreFactor */, iclamp(s, -x, x) / (double)x);
 }
 
 double node_repartition_scale(const Worker *worker)
@@ -113,12 +113,12 @@ double node_repartition_scale(const Worker *worker)
     const uint64_t best_nodes = worker->rootMoves->nodes;
     const double best_rate = (double)best_nodes / (double)total_nodes;
 
-    return (1.242 /* TimemanNodeBase */ - best_rate) * 1.396 /* TimemanNodeFactor */;
+    return (1.225 /* TimemanNodeBase */ - best_rate) * 1.294 /* TimemanNodeFactor */;
 }
 
 double bestmove_stability_scale(int stability)
 {
-    return 2.688 /* TimemanStabFactor */ / pow(stability + 1, 0.782 /* TimemanStabExponent */);
+    return 2.925 /* TimemanStabFactor */ / pow(stability + 1, 0.785 /* TimemanStabExponent */);
 }
 
 void timeman_update(Timeman *tm, const Board *board, move_t bestmove, score_t score)
