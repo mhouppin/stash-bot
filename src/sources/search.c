@@ -945,7 +945,10 @@ score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchst
         if (bestScore > -MATE_FOUND && canFutilityPrune && !givesCheck
             && move_type(currmove) == NORMAL_MOVE)
         {
-            score_t delta = futilityBase + PieceScores[ENDGAME][piece_on(board, to_sq(currmove))];
+            // Also check for LMP here.
+            if (moveCount > 2) continue;
+
+            const score_t delta = futilityBase + PieceScores[ENDGAME][piece_on(board, to_sq(currmove))];
 
             // Check if the move is unlikely to improve alpha.
             if (delta < alpha) continue;
