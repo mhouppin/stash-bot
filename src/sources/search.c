@@ -698,7 +698,7 @@ main_loop:
         do_move_gc(board, currmove, &stack, givesCheck);
         atomic_fetch_add_explicit(&get_worker(board)->nodes, 1, memory_order_relaxed);
 
-        const bool do_lmr = depth >= 3 && moveCount > 1 + 3 * pvNode;
+        const bool do_lmr = depth >= 3 && moveCount > 1 + 2 * pvNode;
 
         // Late Move Reductions. For nodes not too close to qsearch (since
         // we can't reduce their search depth), we start reducing moves after
