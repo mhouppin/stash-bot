@@ -945,13 +945,21 @@ score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchst
         if (bestScore > -MATE_FOUND && canFutilityPrune && !givesCheck
             && move_type(currmove) == NORMAL_MOVE)
         {
-            score_t delta = futilityBase + PieceScores[ENDGAME][piece_on(board, to_sq(currmove))];
+            score_t futilityScore = futilityBase + PieceScores[ENDGAME][piece_on(board, to_sq(currmove))];
 
             // Check if the move is unlikely to improve alpha.
-            if (delta < alpha) continue;
+            if (futilityScore < alpha)
+            {
+                bestScore = imax(bestScore, futilityScore);
+                continue;
+            }
 
             // If static eval is far below alpha, only search moves that win material.
-            if (futilityBase < alpha && !see_greater_than(board, currmove, 1)) continue;
+            if (futilityBase < alpha && !see_greater_than(board, currmove, 1))
+            {
+                bestScore = imax(bestScore, futilityBase);
+                continue;
+            }
         }
 
         // Save the piece history for the current move so that sub-nodes can use
