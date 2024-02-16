@@ -274,10 +274,10 @@ retry_search:
 
             // Note: we set the bound to be EXACT_BOUND when the search aborts, even if the last
             // search finished on a fail low/high.
-            int bound = (abs(pvScore) == INF_SCORE) ? EXACT_BOUND
-                        : (pvScore >= beta)         ? LOWER_BOUND
-                        : (pvScore <= alpha)        ? UPPER_BOUND
-                                                    : EXACT_BOUND;
+            int bound = hasSearchAborted     ? EXACT_BOUND
+                        : (pvScore >= beta)  ? LOWER_BOUND
+                        : (pvScore <= alpha) ? UPPER_BOUND
+                                             : EXACT_BOUND;
 
             if (bound == EXACT_BOUND)
                 sort_root_moves(worker->rootMoves, worker->rootMoves + multiPv);
