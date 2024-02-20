@@ -20,6 +20,7 @@
 #include "evaluate.h"
 #include "movelist.h"
 #include "option.h"
+#include "timeman.h"
 #include "tt.h"
 #include "types.h"
 #include <ctype.h>
@@ -31,7 +32,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define UCI_VERSION "v35.9"
+#define UCI_VERSION "v35.10"
 
 // clang-format off
 
@@ -190,13 +191,23 @@ const char *score_to_str(score_t score)
     return buf;
 }
 
+static uint64_t get_nps(uint64_t nodes, clock_t time)
+{
+    // Avoid division by zero
+    time = timemax(time, 1);
+
+    uint64_t nodesPerMillisecond = nodes / time;
+    nodes -= nodesPerMillisecond * time;
+    return (nodesPerMillisecond * 1000 + (nodes * 1000 / time));
+}
+
 void print_pv(
     const Board *board, RootMove *rootMove, int multiPv, int depth, clock_t time, int bound)
 {
     static const char *BoundStr[] = {"", " upperbound", " lowerbound", ""};
 
     uint64_t nodes = wpool_get_total_nodes(&SearchWorkerPool);
-    uint64_t nps = nodes / (time + !time) * 1000;
+    uint64_t nps = get_nps(nodes, time);
     bool searchedMove = (rootMove->score != -INF_SCORE);
     score_t rootScore = (searchedMove) ? rootMove->score : rootMove->prevScore;
 

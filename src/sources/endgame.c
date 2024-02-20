@@ -257,8 +257,7 @@ int scale_kpsk(const Board *board, color_t winningSide)
     square_t losingKsq = relative_sq(get_king_square(board, losingSide), winningSide);
     const bitboard_t winningPawns = piece_bb(board, winningSide, PAWN);
 
-    if (!winningPawns)
-        return SCALE_DRAW;
+    if (!winningPawns) return SCALE_DRAW;
 
     // We only check for draw scenarios with all pawns on a Rook file with the
     // defending King on the promotion path.
@@ -288,8 +287,7 @@ int scale_kpsk(const Board *board, color_t winningSide)
 int scale_kbpsk(const Board *board, color_t winningSide)
 {
     // If the winning side does not have the bishop, don't try to scale down the endgame.
-    if (!piece_bb(board, winningSide, BISHOP))
-        return SCALE_NORMAL;
+    if (!piece_bb(board, winningSide, BISHOP)) return SCALE_NORMAL;
 
     const color_t losingSide = not_color(winningSide);
     const square_t winningBsq = relative_sq(bb_first_sq(piecetype_bb(board, BISHOP)), winningSide);
@@ -297,8 +295,7 @@ int scale_kbpsk(const Board *board, color_t winningSide)
     const bitboard_t winningPawns = piece_bb(board, winningSide, PAWN);
     const bitboard_t wrongFile = (square_bb(winningBsq) & DSQ_BB) ? FILE_A_BB : FILE_H_BB;
 
-    if (!winningPawns)
-        return SCALE_DRAW;
+    if (!winningPawns) return SCALE_DRAW;
 
     // Check for a wrong-colored bishop situation.
     if ((winningPawns & wrongFile) == winningPawns)

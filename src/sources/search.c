@@ -222,62 +222,47 @@ void main_worker_search(Worker *worker)
     free_boardstack(worker->stack);
 }
 
-void worker_search(Worker *worker)
+// Does a whole search iteration on all root moves, MultiPV and aspiration re-searches included.
+void do_search_iteration(Worker *worker, int depth, int multiPv, Searchstack *sstack)
 {
-    Board *board = &worker->board;
-
-    // Clamp MultiPV to the maximal number of lines available.
-    const int multiPv = imin(UciOptionFields.multiPv, worker->rootCount);
-    Searchstack sstack[256];
-
-    init_searchstack(sstack);
-
-    for (int iterDepth = 0; iterDepth < UciSearchParams.depth; ++iterDepth)
+    for (worker->pvLine = 0; worker->pvLine < multiPv; ++worker->pvLine)
     {
-        bool hasSearchAborted;
+        // Reset the seldepth value after each depth increment, and for each
+        // PV line.
+        worker->seldepth = 0;
 
-        for (worker->pvLine = 0; worker->pvLine < multiPv; ++worker->pvLine)
+        score_t alpha, beta, delta;
+        score_t pvScore = worker->rootMoves[worker->pvLine].prevScore;
+        int bound = NO_BOUND;
+
+        // Don't set aspiration window bounds for low depths, as the scores are
+        // very volatile.
+        if (depth <= 8)
         {
-            // Reset the seldepth value after each depth increment, and for each
-            // PV line.
-            worker->seldepth = 0;
-            worker->rootDepth = iterDepth + 1;
+            delta = 0;
+            alpha = -INF_SCORE;
+            beta = INF_SCORE;
+        }
+        else
+        {
+            delta = 8 + abs(pvScore) / 82;
+            alpha = imax(-INF_SCORE, pvScore - delta);
+            beta = imin(INF_SCORE, pvScore + delta);
+        }
 
-            score_t alpha, beta, delta;
-            int depth = iterDepth;
-            score_t pvScore = worker->rootMoves[worker->pvLine].prevScore;
-
-            // Don't set aspiration window bounds for low depths, as the scores are
-            // very volatile.
-            if (iterDepth <= 7)
-            {
-                delta = 0;
-                alpha = -INF_SCORE;
-                beta = INF_SCORE;
-            }
-            else
-            {
-                delta = 8 + abs(pvScore) / 82;
-                alpha = imax(-INF_SCORE, pvScore - delta);
-                beta = imin(INF_SCORE, pvScore + delta);
-            }
-
-retry_search:
-            search(true, board, depth + 1, alpha, beta, &sstack[4], false);
-
-            // Catch search aborting.
-            hasSearchAborted = wpool_is_stopped(&SearchWorkerPool);
-
+        do {
+            search(true, &worker->board, depth, alpha, beta, sstack + 4, false);
             sort_root_moves(
                 worker->rootMoves + worker->pvLine, worker->rootMoves + worker->rootCount);
             pvScore = worker->rootMoves[worker->pvLine].score;
 
             // Note: we set the bound to be EXACT_BOUND when the search aborts, even if the last
-            // search finished on a fail low/high.
-            int bound = hasSearchAborted     ? EXACT_BOUND
-                        : (pvScore >= beta)  ? LOWER_BOUND
-                        : (pvScore <= alpha) ? UPPER_BOUND
-                                             : EXACT_BOUND;
+            // search finished on a fail low/high (this also allows us to exit the search loop
+            // without checking for a search stop again).
+            bound = wpool_is_stopped(&SearchWorkerPool) ? EXACT_BOUND
+                    : (pvScore >= beta)                 ? LOWER_BOUND
+                    : (pvScore <= alpha)                ? UPPER_BOUND
+                                                        : EXACT_BOUND;
 
             if (bound == EXACT_BOUND)
                 sort_root_moves(worker->rootMoves, worker->rootMoves + multiPv);
@@ -290,38 +275,53 @@ retry_search:
                 // and not enough time has passed to avoid flooding the standard output.
                 if (multiPv == 1 && (bound == EXACT_BOUND || time > 3000))
                 {
-                    print_pv(board, worker->rootMoves, 1, iterDepth, time, bound);
+                    print_pv(&worker->board, worker->rootMoves, 1, worker->rootDepth, time, bound);
                     fflush(stdout);
                 }
                 else if (multiPv > 1 && bound == EXACT_BOUND
                          && (worker->pvLine == multiPv - 1 || time > 3000))
                 {
                     for (int i = 0; i < multiPv; ++i)
-                        print_pv(board, worker->rootMoves + i, i + 1, iterDepth, time, bound);
+                        print_pv(&worker->board, worker->rootMoves + i, i + 1, worker->rootDepth,
+                            time, bound);
 
                     fflush(stdout);
                 }
             }
 
-            if (hasSearchAborted) break;
-
             // Update aspiration window bounds in case of fail low/high.
             if (bound == UPPER_BOUND)
             {
-                depth = iterDepth;
+                depth = worker->rootDepth;
                 beta = (alpha + beta) / 2;
                 alpha = imax(-INF_SCORE, (int)pvScore - delta);
-                delta += delta * 79 / 256;
-                goto retry_search;
             }
             else if (bound == LOWER_BOUND)
             {
-                depth -= (depth > iterDepth / 2);
+                depth -= (depth - 1 > (worker->rootDepth - 1) / 2);
                 beta = imin(INF_SCORE, (int)pvScore + delta);
-                delta += delta * 79 / 256;
-                goto retry_search;
             }
-        }
+
+            delta += delta * 79 / 256;
+
+        } while (bound != EXACT_BOUND);
+
+        // Don't search other PV lines if the search aborted.
+        if (wpool_is_stopped(&SearchWorkerPool)) break;
+    }
+}
+
+void worker_search(Worker *worker)
+{
+    // Clamp MultiPV to the maximal number of lines available.
+    int multiPv = imin(UciOptionFields.multiPv, worker->rootCount);
+    Searchstack sstack[256];
+
+    init_searchstack(sstack);
+
+    for (worker->rootDepth = 1; worker->rootDepth <= UciSearchParams.depth; ++worker->rootDepth)
+    {
+        do_search_iteration(worker, worker->rootDepth, multiPv, sstack);
 
         // Reset root moves' score for the next search.
         for (RootMove *i = worker->rootMoves; i < worker->rootMoves + worker->rootCount; ++i)
@@ -330,14 +330,14 @@ retry_search:
             i->score = -INF_SCORE;
         }
 
-        if (hasSearchAborted) break;
+        if (wpool_is_stopped(&SearchWorkerPool)) break;
 
         // If we went over optimal time usage, we just finished our iteration,
         // so we can safely return our bestmove.
         if (!worker->idx)
         {
-            timeman_update(
-                &SearchTimeman, board, worker->rootMoves->move, worker->rootMoves->prevScore);
+            timeman_update(&SearchTimeman, &worker->board, worker->rootMoves->move,
+                worker->rootMoves->prevScore);
             if (timeman_can_stop_search(&SearchTimeman, chess_clock())) break;
         }
 
@@ -349,7 +349,7 @@ retry_search:
 
         // During fixed depth or infinite searches, allow the non-main workers to keep searching
         // as long as the main worker hasn't finished.
-        if (worker->idx && iterDepth == UciSearchParams.depth - 1) --iterDepth;
+        if (worker->idx && worker->rootDepth == UciSearchParams.depth) --worker->rootDepth;
     }
 
     if (worker->idx)

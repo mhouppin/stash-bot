@@ -24,7 +24,6 @@
 #include <pthread.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <time.h>
 
 // Small trick to detect if the system is 64-bit or 32-bit.
 #if (SIZE_MAX == UINT64_MAX)
