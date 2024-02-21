@@ -270,16 +270,13 @@ void do_search_iteration(Worker *worker, int depth, int multiPv, Searchstack *ss
             if (!worker->idx)
             {
                 clock_t time = chess_clock() - SearchTimeman.start;
+                bool lateInfo = time > 3000;
+                bool singlePv = multiPv == 1;
+                bool iterCompleted = worker->pvLine == multiPv - 1;
 
                 // Don't update Multi-PV lines if they are not all analysed at current depth
                 // and not enough time has passed to avoid flooding the standard output.
-                if (multiPv == 1 && (bound == EXACT_BOUND || time > 3000))
-                {
-                    print_pv(&worker->board, worker->rootMoves, 1, worker->rootDepth, time, bound);
-                    fflush(stdout);
-                }
-                else if (multiPv > 1 && bound == EXACT_BOUND
-                         && (worker->pvLine == multiPv - 1 || time > 3000))
+                if ((lateInfo && singlePv) || (bound == EXACT_BOUND && (lateInfo || iterCompleted)))
                 {
                     for (int i = 0; i < multiPv; ++i)
                         print_pv(&worker->board, worker->rootMoves + i, i + 1, worker->rootDepth,
