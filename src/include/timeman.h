@@ -25,20 +25,11 @@
 #include <time.h>
 
 // Returns the current time in milliseconds.
-INLINED clock_t chess_clock(void)
-{
-#if defined(_WIN32) || defined(_WIN64)
-    struct timeb tp;
+clock_t chess_clock(void);
 
-    ftime(&tp);
-    return (clock_t)tp.time * 1000 + tp.millitm;
-#else
-    struct timespec tp;
+INLINED clock_t timemin(clock_t left, clock_t right) { return (left < right) ? left : right; }
 
-    clock_gettime(CLOCK_REALTIME, &tp);
-    return (clock_t)tp.tv_sec * 1000 + tp.tv_nsec / 1000000;
-#endif
-}
+INLINED clock_t timemax(clock_t left, clock_t right) { return (left > right) ? left : right; }
 
 // Enum for the type of bestmove
 typedef enum bestmove_type_e

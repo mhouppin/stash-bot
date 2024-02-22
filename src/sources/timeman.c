@@ -35,14 +35,23 @@ const double BestmoveTypeScale[BM_TYPE_NB] = {
     1.40, // Quiet losing material
 };
 
-INLINED clock_t timemin(clock_t left, clock_t right) { return (left < right) ? left : right; }
-
-// Unused for now, commented to avoid compilation issues with the function being
-// declared static. Uncomment if needed for time management code updates.
-// INLINED clock_t timemax(clock_t left, clock_t right) { return (left > right) ? left : right; }
-
 // Scaling table based on the number of consecutive iterations the bestmove held
 const double BestmoveStabilityScale[5] = {2.50, 1.20, 0.90, 0.80, 0.75};
+
+clock_t chess_clock(void)
+{
+#if defined(_WIN32) || defined(_WIN64)
+    struct timeb tp;
+
+    ftime(&tp);
+    return (clock_t)tp.time * 1000 + tp.millitm;
+#else
+    struct timespec tp;
+
+    clock_gettime(CLOCK_REALTIME, &tp);
+    return (clock_t)tp.tv_sec * 1000 + tp.tv_nsec / 1000000;
+#endif
+}
 
 void timeman_init(const Board *board, Timeman *tm, SearchParams *params, clock_t start)
 {
