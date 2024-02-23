@@ -32,7 +32,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define UCI_VERSION "v35.11"
+#define UCI_VERSION "v35.12"
 
 // clang-format off
 
@@ -235,7 +235,7 @@ void print_pv(
         " hashfull %d"
         " time %" FMT_INFO
         " pv%s\n",
-        imax(depth + searchedMove, 1),
+        imax(depth - !searchedMove, 1),
         rootMove->seldepth,
         multiPv,
         score_to_str(rootScore), BoundStr[bound], score_to_wdl(rootScore, board->ply),
