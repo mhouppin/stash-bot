@@ -32,7 +32,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define UCI_VERSION "v35.12"
+#define UCI_VERSION "v35.13"
 
 // clang-format off
 
@@ -594,20 +594,23 @@ int execute_uci_cmd(const char *command)
 
 void on_hash_set(void *data)
 {
+    // Wait for any unfinished search to complete.
+    worker_wait_search_end(wpool_main_worker(&SearchWorkerPool));
     tt_resize((size_t) * (long *)data);
-    fflush(stdout);
 }
 
-void on_clear_hash(void *nothing __attribute__((unused)))
+void on_clear_hash(void *unused)
 {
-    tt_bzero((size_t)UciOptionFields.threads);
-    fflush(stdout);
+    (void)unused;
+    // The "Clear Hash" option does exactly the same thing as the "ucinewgame" command.
+    uci_ucinewgame(NULL);
 }
 
 void on_thread_set(void *data)
 {
+    // Wait for any unfinished search to complete.
+    worker_wait_search_end(wpool_main_worker(&SearchWorkerPool));
     wpool_init(&SearchWorkerPool, (unsigned long)*(long *)data);
-    fflush(stdout);
 }
 
 void uci_loop(int argc, char **argv)
