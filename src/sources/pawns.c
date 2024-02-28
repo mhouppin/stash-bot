@@ -40,6 +40,29 @@ const scorepair_t PassedBonus[8] = {
     0
 };
 
+// Passed Pawn eval terms
+const scorepair_t PP_OurKingProximity[8] = {
+    0,
+    SPAIR( -24,  50),
+    SPAIR( -27,  32),
+    SPAIR( -11,  -1),
+    SPAIR(  -6, -16),
+    SPAIR(  -1, -17),
+    SPAIR(  21, -20),
+    SPAIR(   3, -27)
+};
+
+const scorepair_t PP_TheirKingProximity[8] = {
+    0,
+    SPAIR( -84,-110),
+    SPAIR(  -3, -20),
+    SPAIR(   1,   9),
+    SPAIR(   9,  23),
+    SPAIR(  13,  37),
+    SPAIR(  16,  40),
+    SPAIR(   3,  31)
+};
+
 // Rank-based bonus for phalanx structures
 const scorepair_t PhalanxBonus[8] = {
     0,
@@ -67,7 +90,7 @@ const scorepair_t DefenderBonus[8] = {
 // clang-format on
 
 scorepair_t evaluate_passed(
-    PawnEntry *entry, color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
+    KingPawnEntry *entry, color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
 {
     scorepair_t ret = 0;
 
@@ -95,8 +118,34 @@ scorepair_t evaluate_passed(
     return ret;
 }
 
+scorepair_t evaluate_passed_pos(const KingPawnEntry *entry, const Board *board, color_t us)
+{
+    scorepair_t ret = 0;
+    square_t ourKing = get_king_square(board, us);
+    square_t theirKing = get_king_square(board, not_color(us));
+    bitboard_t bb = entry->passed[us];
+
+    while (bb)
+    {
+        square_t sq = bb_pop_first_sq(&bb);
+
+        // Give a bonus/penalty based on how close our King and their King are
+        // from the Pawn.
+        int ourDistance = SquareDistance[ourKing][sq];
+        int theirDistance = SquareDistance[theirKing][sq];
+
+        ret += PP_OurKingProximity[ourDistance];
+        ret += PP_TheirKingProximity[theirDistance];
+
+        TRACE_ADD(IDX_PP_OUR_KING_PROX + ourDistance - 1, us, 1);
+        TRACE_ADD(IDX_PP_THEIR_KING_PROX + theirDistance - 1, us, 1);
+    }
+
+    return ret;
+}
+
 scorepair_t evaluate_backward(
-    PawnEntry *entry, color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
+    KingPawnEntry *entry, color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
 {
     bitboard_t stopSquares = (us == WHITE) ? shift_up(ourPawns) : shift_down(ourPawns);
     bitboard_t ourAttackSpan = 0;
@@ -199,21 +248,21 @@ scorepair_t evaluate_doubled_isolated(bitboard_t bb, color_t us __attribute__((u
     return ret;
 }
 
-PawnEntry *pawn_probe(const Board *board)
+KingPawnEntry *kp_probe(const Board *board)
 {
 #ifndef TUNE
     // Check if this pawn structure has already been evaluated.
-    PawnEntry *entry = get_worker(board)->pawnTable + (board->stack->pawnKey % PawnTableSize);
+    KingPawnEntry *entry = get_worker(board)->kingPawnTable + (board->stack->kingPawnKey % KingPawnTableSize);
 
-    if (entry->key == board->stack->pawnKey) return entry;
+    if (entry->key == board->stack->kingPawnKey) return entry;
 
 #else
-    static PawnEntry e;
-    PawnEntry *entry = &e;
+    static KingPawnEntry e;
+    KingPawnEntry *entry = &e;
 #endif
 
     // Reset the entry contents.
-    entry->key = board->stack->pawnKey;
+    entry->key = board->stack->kingPawnKey;
     entry->value = 0;
     entry->attackSpan[WHITE] = entry->attackSpan[BLACK] = 0;
     entry->passed[WHITE] = entry->passed[BLACK] = 0;
@@ -230,10 +279,16 @@ PawnEntry *pawn_probe(const Board *board)
     // Evaluate the Pawn structure.
     entry->value += evaluate_backward(entry, WHITE, wpawns, bpawns);
     entry->value -= evaluate_backward(entry, BLACK, bpawns, wpawns);
+
     entry->value += evaluate_connected(wpawns, WHITE);
     entry->value -= evaluate_connected(bpawns, BLACK);
+
     entry->value += evaluate_passed(entry, WHITE, wpawns, bpawns);
     entry->value -= evaluate_passed(entry, BLACK, bpawns, wpawns);
+
+    entry->value += evaluate_passed_pos(entry, board, WHITE);
+    entry->value -= evaluate_passed_pos(entry, board, BLACK);
+
     entry->value += evaluate_doubled_isolated(wpawns, WHITE);
     entry->value -= evaluate_doubled_isolated(bpawns, BLACK);
 

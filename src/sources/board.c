@@ -488,7 +488,7 @@ int board_from_fen(Board *board, const char *fen, bool isChess960, Boardstack *b
 
 void set_boardstack(Board *board, Boardstack *stack)
 {
-    stack->boardKey = stack->pawnKey = board->stack->materialKey = 0;
+    stack->boardKey = stack->kingPawnKey = board->stack->materialKey = 0;
     stack->material[WHITE] = stack->material[BLACK] = 0;
     stack->checkers = attackers_to(board, get_king_square(board, board->sideToMove))
                       & color_bb(board, not_color(board->sideToMove));
@@ -504,10 +504,10 @@ void set_boardstack(Board *board, Boardstack *stack)
 
         stack->boardKey ^= ZobristPsq[piece][square];
 
-        if (piece_type(piece) == PAWN)
-            stack->pawnKey ^= ZobristPsq[piece][square];
+        if (piece_type(piece) == PAWN || piece_type(piece) == KING)
+            stack->kingPawnKey ^= ZobristPsq[piece][square];
 
-        else if (piece_type(piece) != KING)
+        else
             stack->material[piece_color(piece)] += PieceScores[MIDGAME][piece];
     }
 
@@ -652,7 +652,7 @@ void do_move_gc(Board *restrict board, move_t move, Boardstack *restrict next, b
     next->rule50 = board->stack->rule50;
     next->pliesFromNullMove = board->stack->pliesFromNullMove;
     next->enPassantSquare = board->stack->enPassantSquare;
-    next->pawnKey = board->stack->pawnKey;
+    next->kingPawnKey = board->stack->kingPawnKey;
     next->materialKey = board->stack->materialKey;
     next->material[WHITE] = board->stack->material[WHITE];
     next->material[BLACK] = board->stack->material[BLACK];
@@ -694,7 +694,7 @@ void do_move_gc(Board *restrict board, move_t move, Boardstack *restrict next, b
         {
             if (move_type(move) == EN_PASSANT) capturedSquare -= pawn_direction(us);
 
-            board->stack->pawnKey ^= ZobristPsq[capturedPiece][capturedSquare];
+            board->stack->kingPawnKey ^= ZobristPsq[capturedPiece][capturedSquare];
         }
         else
             board->stack->material[them] -= PieceScores[MIDGAME][capturedPiece];
@@ -756,16 +756,18 @@ void do_move_gc(Board *restrict board, move_t move, Boardstack *restrict next, b
 
             // Update the board, Pawn and material keys.
             key ^= ZobristPsq[piece][to] ^ ZobristPsq[newPiece][to];
-            board->stack->pawnKey ^= ZobristPsq[piece][to];
+            board->stack->kingPawnKey ^= ZobristPsq[piece][to];
             board->stack->material[us] += PieceScores[MIDGAME][promotion_type(move)];
             board->stack->materialKey ^= ZobristPsq[newPiece][board->pieceCount[newPiece] - 1];
             board->stack->materialKey ^= ZobristPsq[piece][board->pieceCount[piece]];
         }
 
         // Update the Pawn key and clear the rule50 counter.
-        board->stack->pawnKey ^= ZobristPsq[piece][from] ^ ZobristPsq[piece][to];
+        board->stack->kingPawnKey ^= ZobristPsq[piece][from] ^ ZobristPsq[piece][to];
         board->stack->rule50 = 0;
     }
+    else if (piece_type(piece) == KING)
+        board->stack->kingPawnKey ^= ZobristPsq[piece][from] ^ ZobristPsq[piece][to];
 
     // Record the captured piece if it exists, and set the board key.
     board->stack->capturedPiece = capturedPiece;

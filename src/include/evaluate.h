@@ -132,6 +132,6 @@ extern evaltrace_t Trace;
 score_t evaluate(const Board *board);
 
 // Returns the scaled value of the endgame score.
-score_t scale_endgame(const Board *board, const PawnEntry *pe, score_t eg);
+score_t scale_endgame(const Board *board, const KingPawnEntry *kpe, score_t eg);
 
 #endif

@@ -31,7 +31,7 @@ typedef struct _Boardstack
     int rule50;
     int pliesFromNullMove;
     square_t enPassantSquare;
-    hashkey_t pawnKey;
+    hashkey_t kingPawnKey;
     score_t material[COLOR_NB];
     hashkey_t materialKey;
     hashkey_t boardKey;

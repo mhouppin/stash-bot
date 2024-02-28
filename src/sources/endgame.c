@@ -145,8 +145,8 @@ score_t eval_knnkp(const Board *board, color_t winningSide)
 
 score_t eval_kmpkn(const Board *board, color_t winningSide)
 {
-    PawnEntry *pe = pawn_probe(board);
-    score_t score = endgame_score(pe->value + board->psqScorePair);
+    KingPawnEntry *kpe = kp_probe(board);
+    score_t score = endgame_score(kpe->value + board->psqScorePair);
     color_t losingSide = not_color(winningSide);
     bool tempo = (board->sideToMove == losingSide);
 
@@ -175,8 +175,8 @@ score_t eval_kmpkn(const Board *board, color_t winningSide)
 
 score_t eval_kmpkb(const Board *board, color_t winningSide)
 {
-    PawnEntry *pe = pawn_probe(board);
-    score_t score = endgame_score(pe->value + board->psqScorePair);
+    KingPawnEntry *kpe = kp_probe(board);
+    score_t score = endgame_score(kpe->value + board->psqScorePair);
     color_t losingSide = not_color(winningSide);
     bool tempo = (board->sideToMove == losingSide);
 
@@ -205,8 +205,8 @@ score_t eval_kmpkb(const Board *board, color_t winningSide)
 
 score_t eval_krpkr(const Board *board, color_t winningSide)
 {
-    PawnEntry *pe = pawn_probe(board);
-    score_t score = endgame_score(pe->value + board->psqScorePair);
+    KingPawnEntry *kpe = kp_probe(board);
+    score_t score = endgame_score(kpe->value + board->psqScorePair);
     color_t losingSide = not_color(winningSide);
     bool tempo = (board->sideToMove == losingSide);
 

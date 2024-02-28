@@ -22,7 +22,7 @@
 #include "board.h"
 
 // Struct for pawn eval data
-typedef struct _PawnEntry
+typedef struct _KingPawnEntry
 {
     hashkey_t key;
     bitboard_t attackSpan[COLOR_NB];
@@ -30,14 +30,14 @@ typedef struct _PawnEntry
     bitboard_t attacks2[COLOR_NB];
     bitboard_t passed[COLOR_NB];
     scorepair_t value;
-} PawnEntry;
+} KingPawnEntry;
 
 enum
 {
-    PawnTableSize = 1 << 15
+    KingPawnTableSize = 1 << 15
 };
 
-// Probes the pawn hash table for the given position.
-PawnEntry *pawn_probe(const Board *board);
+// Probes the King-Pawn hash table for the given position.
+KingPawnEntry *kp_probe(const Board *board);
 
 #endif

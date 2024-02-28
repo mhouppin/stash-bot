@@ -34,29 +34,6 @@ evaltrace_t Trace;
 const scorepair_t CastlingBonus = SPAIR(101, -61);
 const scorepair_t Initiative = SPAIR(17, 8);
 
-// Passed Pawn eval terms
-const scorepair_t PP_OurKingProximity[8] = {
-    0,
-    SPAIR( -24,  50),
-    SPAIR( -27,  32),
-    SPAIR( -11,  -1),
-    SPAIR(  -6, -16),
-    SPAIR(  -1, -17),
-    SPAIR(  21, -20),
-    SPAIR(   3, -27)
-};
-
-const scorepair_t PP_TheirKingProximity[8] = {
-    0,
-    SPAIR( -84,-110),
-    SPAIR(  -3, -20),
-    SPAIR(   1,   9),
-    SPAIR(   9,  23),
-    SPAIR(  13,  37),
-    SPAIR(  16,  40),
-    SPAIR(   3,  31)
-};
-
 // King Safety eval terms
 const scorepair_t KnightWeight    = SPAIR(  48,  13);
 const scorepair_t BishopWeight    = SPAIR(  32,  23);
@@ -239,7 +216,7 @@ bool ocb_endgame(const Board *board)
     return !!dsqMask && !more_than_one(dsqMask);
 }
 
-score_t scale_endgame(const Board *board, const PawnEntry *pe, score_t eg)
+score_t scale_endgame(const Board *board, const KingPawnEntry *kpe, score_t eg)
 {
     // Only detect scalable endgames from the side with a positive evaluation.
     // This allows us to quickly filter out positions which shouldn't be scaled,
@@ -264,7 +241,7 @@ score_t scale_endgame(const Board *board, const PawnEntry *pe, score_t eg)
     else if (ocb_endgame(board))
         factor = (strongMat + weakMat > 2 * BISHOP_MG_SCORE)
                      ? 71 + popcount(color_bb(board, strongSide)) * 9
-                     : 33 + popcount(pe->passed[strongSide]) * 21;
+                     : 33 + popcount(kpe->passed[strongSide]) * 21;
 
     // Rook endgames: drawish if the Pawn advantage is small, and all strong side Pawns
     // are on the same side of the board. Don't scale if the defending King is far from
@@ -349,7 +326,7 @@ void eval_init(const Board *board, evaluation_t *eval)
 }
 
 scorepair_t evaluate_knights(
-    const Board *board, evaluation_t *eval, const PawnEntry *pe, color_t us)
+    const Board *board, evaluation_t *eval, const KingPawnEntry *kpe, color_t us)
 {
     scorepair_t ret = 0;
     bitboard_t bb = piece_bb(board, us, KNIGHT);
@@ -390,7 +367,7 @@ scorepair_t evaluate_knights(
 
         // Give a bonus for a Knight on an Outpost, with higher scores if it is
         // on a center file, or supported by a Pawn.
-        if (sqbb & outpost & ~pe->attackSpan[not_color(us)])
+        if (sqbb & outpost & ~kpe->attackSpan[not_color(us)])
         {
             ret += KnightOutpost;
             TRACE_ADD(IDX_KNIGHT_OUTPOST, us, 1);
@@ -603,32 +580,6 @@ scorepair_t evaluate_queens(const Board *board, evaluation_t *eval, color_t us)
     return ret;
 }
 
-scorepair_t evaluate_passed_pos(const Board *board, const PawnEntry *entry, color_t us)
-{
-    scorepair_t ret = 0;
-    square_t ourKing = get_king_square(board, us);
-    square_t theirKing = get_king_square(board, not_color(us));
-    bitboard_t bb = entry->passed[us];
-
-    while (bb)
-    {
-        square_t sq = bb_pop_first_sq(&bb);
-
-        // Give a bonus/penalty based on how close our King and their King are
-        // from the Pawn.
-        int ourDistance = SquareDistance[ourKing][sq];
-        int theirDistance = SquareDistance[theirKing][sq];
-
-        ret += PP_OurKingProximity[ourDistance];
-        ret += PP_TheirKingProximity[theirDistance];
-
-        TRACE_ADD(IDX_PP_OUR_KING_PROX + ourDistance - 1, us, 1);
-        TRACE_ADD(IDX_PP_THEIR_KING_PROX + theirDistance - 1, us, 1);
-    }
-
-    return ret;
-}
-
 scorepair_t evaluate_threats(const Board *board, const evaluation_t *eval, color_t us)
 {
     color_t them = not_color(us);
@@ -833,7 +784,7 @@ score_t evaluate(const Board *board)
 
     evaluation_t eval;
     scorepair_t tapered = board->psqScorePair;
-    PawnEntry *pe;
+    KingPawnEntry *kpe;
     score_t mg, eg, score;
 
     // Give a bonus for having castling rights in the middlegame.
@@ -852,23 +803,19 @@ score_t evaluate(const Board *board)
 
     eval_init(board, &eval);
 
-    // Add the Pawn structure evaluation.
-    pe = pawn_probe(board);
-    tapered += pe->value;
+    // Add the King-Pawn structure evaluation.
+    kpe = kp_probe(board);
+    tapered += kpe->value;
 
     // Add the pieces' evaluation.
-    tapered += evaluate_knights(board, &eval, pe, WHITE);
-    tapered -= evaluate_knights(board, &eval, pe, BLACK);
+    tapered += evaluate_knights(board, &eval, kpe, WHITE);
+    tapered -= evaluate_knights(board, &eval, kpe, BLACK);
     tapered += evaluate_bishops(board, &eval, WHITE);
     tapered -= evaluate_bishops(board, &eval, BLACK);
     tapered += evaluate_rooks(board, &eval, WHITE);
     tapered -= evaluate_rooks(board, &eval, BLACK);
     tapered += evaluate_queens(board, &eval, WHITE);
     tapered -= evaluate_queens(board, &eval, BLACK);
-
-    // Add the Passed Pawn evaluation.
-    tapered += evaluate_passed_pos(board, pe, WHITE);
-    tapered -= evaluate_passed_pos(board, pe, BLACK);
 
     // Add the threats' evaluation.
     tapered += evaluate_threats(board, &eval, WHITE);
@@ -887,7 +834,7 @@ score_t evaluate(const Board *board)
     mg = midgame_score(tapered);
 
     // Scale the endgame score based on the remaining material and the Pawns.
-    eg = scale_endgame(board, pe, endgame_score(tapered));
+    eg = scale_endgame(board, kpe, endgame_score(tapered));
 
     // Compute the evaluation by interpolating between the middlegame and
     // endgame scores.
