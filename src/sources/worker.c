@@ -50,11 +50,11 @@ void worker_init(Worker *worker, size_t idx)
 {
     worker->idx = idx;
     worker->stack = NULL;
-    worker->pawnTable = calloc(PawnTableSize, sizeof(PawnEntry));
+    worker->kingPawnTable = calloc(KingPawnTableSize, sizeof(KingPawnEntry));
     worker->exit = false;
     worker->searching = true;
 
-    if (worker->pawnTable == NULL)
+    if (worker->kingPawnTable == NULL)
     {
         perror("Unable to allocate pawn table");
         exit(EXIT_FAILURE);
@@ -87,7 +87,7 @@ void worker_destroy(Worker *worker)
     }
 
     // Destroy the pawn table and the locks initialized for the worker.
-    free(worker->pawnTable);
+    free(worker->kingPawnTable);
     pthread_mutex_destroy(&worker->mutex);
     pthread_cond_destroy(&worker->condVar);
 }
@@ -99,7 +99,7 @@ void worker_reset(Worker *worker)
     memset(worker->ctHistory, 0, sizeof(continuation_history_t));
     memset(worker->cmHistory, 0, sizeof(countermove_history_t));
     memset(worker->capHistory, 0, sizeof(capture_history_t));
-    memset(worker->pawnTable, 0, sizeof(PawnEntry) * PawnTableSize);
+    memset(worker->kingPawnTable, 0, sizeof(KingPawnEntry) * KingPawnTableSize);
     worker->verifPlies = 0;
 }
 

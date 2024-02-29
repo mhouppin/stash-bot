@@ -61,8 +61,8 @@ typedef enum tune_idx_e
     IDX_PHALANX = IDX_PASSER + 6,
     IDX_DEFENDER = IDX_PHALANX + 6,
     IDX_PP_OUR_KING_PROX = IDX_DEFENDER + 5,
-    IDX_PP_THEIR_KING_PROX = IDX_PP_OUR_KING_PROX + 7,
-    IDX_PAWN_ATK_MINOR = IDX_PP_THEIR_KING_PROX + 7,
+    IDX_PP_THEIR_KING_PROX = IDX_PP_OUR_KING_PROX + 24,
+    IDX_PAWN_ATK_MINOR = IDX_PP_THEIR_KING_PROX + 24,
     IDX_PAWN_ATK_ROOK,
     IDX_PAWN_ATK_QUEEN,
     IDX_MINOR_ATK_ROOK,
@@ -132,6 +132,6 @@ extern evaltrace_t Trace;
 score_t evaluate(const Board *board);
 
 // Returns the scaled value of the endgame score.
-score_t scale_endgame(const Board *board, const PawnEntry *pe, score_t eg);
+score_t scale_endgame(const Board *board, const KingPawnEntry *kpe, score_t eg);
 
 #endif

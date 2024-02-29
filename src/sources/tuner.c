@@ -120,6 +120,9 @@ static void init_base_values(TpVector *base)
     INIT_BASE_SP(IDX_DOUBLED, DoubledPenalty);
     INIT_BASE_SP(IDX_ISOLATED, IsolatedPenalty);
 
+    INIT_BASE_SPA(IDX_PP_OUR_KING_PROX, PP_OurKingProximity, 24);
+    INIT_BASE_SPA(IDX_PP_THEIR_KING_PROX, PP_TheirKingProximity, 24);
+
     INIT_BASE_SP(IDX_PAWN_ATK_MINOR, PawnAttacksMinor);
     INIT_BASE_SP(IDX_PAWN_ATK_ROOK, PawnAttacksRook);
     INIT_BASE_SP(IDX_PAWN_ATK_QUEEN, PawnAttacksQueen);
@@ -143,21 +146,6 @@ static void init_base_values(TpVector *base)
             base->v[IDX_DEFENDER + r - RANK_2][MIDGAME] = midgame_score(DefenderBonus[r]);
             base->v[IDX_DEFENDER + r - RANK_2][ENDGAME] = endgame_score(DefenderBonus[r]);
         }
-    }
-
-    extern const scorepair_t PP_OurKingProximity[8], PP_TheirKingProximity[8];
-
-    for (int distance = 1; distance <= 7; ++distance)
-    {
-        base->v[IDX_PP_OUR_KING_PROX + distance - 1][MIDGAME] =
-            midgame_score(PP_OurKingProximity[distance]);
-        base->v[IDX_PP_OUR_KING_PROX + distance - 1][ENDGAME] =
-            endgame_score(PP_OurKingProximity[distance]);
-
-        base->v[IDX_PP_THEIR_KING_PROX + distance - 1][MIDGAME] =
-            midgame_score(PP_TheirKingProximity[distance]);
-        base->v[IDX_PP_THEIR_KING_PROX + distance - 1][ENDGAME] =
-            endgame_score(PP_TheirKingProximity[distance]);
     }
 }
 
@@ -605,12 +593,6 @@ void print_parameters(const TpVector *base, const TpVector *delta)
     PRINT_SP(IDX_INITIATIVE, Initiative);
     putchar('\n');
 
-    printf("// Passed Pawn eval terms\n");
-    PRINT_SPA_PARTIAL(IDX_PP_OUR_KING_PROX, PP_OurKingProximity, 8, 1, 8, 4, "SPAIR");
-    putchar('\n');
-    PRINT_SPA_PARTIAL(IDX_PP_THEIR_KING_PROX, PP_TheirKingProximity, 8, 1, 8, 4, "SPAIR");
-    putchar('\n');
-
     printf("// King Safety eval terms\n");
     PRINT_SP_NICE(IDX_KS_KNIGHT, KnightWeight, 4, 15);
     PRINT_SP_NICE(IDX_KS_BISHOP, BishopWeight, 4, 15);
@@ -689,6 +671,11 @@ void print_parameters(const TpVector *base, const TpVector *delta)
 
     printf("// Rank-based bonus for passed Pawns\n");
     PRINT_SPA_PARTIAL(IDX_PASSER, PassedBonus, 8, 1, 7, 3, "SPAIR");
+    putchar('\n');
+    printf("// Passed Pawn eval terms\n");
+    PRINT_SPA(IDX_PP_OUR_KING_PROX, PP_OurKingProximity, 24, 4, 3, "SPAIR");
+    putchar('\n');
+    PRINT_SPA(IDX_PP_THEIR_KING_PROX, PP_TheirKingProximity, 24, 4, 3, "SPAIR");
     putchar('\n');
     printf("// Rank-based bonus for phalanx structures\n");
     PRINT_SPA_PARTIAL(IDX_PHALANX, PhalanxBonus, 8, 1, 7, 3, "SPAIR");
