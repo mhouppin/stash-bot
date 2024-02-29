@@ -138,7 +138,8 @@ scorepair_t evaluate_passed_pos(const KingPawnEntry *entry, const Board *board, 
             int theirDistance = SquareDistance[theirKing][sq];
 
             int ourIndex = (queeningDistance - 1) * 6 + imin(queeningDistance + 2, ourDistance) - 1;
-            int theirIndex = (queeningDistance - 1) * 6 + imin(queeningDistance + 2, theirDistance) - 1;
+            int theirIndex =
+                (queeningDistance - 1) * 6 + imin(queeningDistance + 2, theirDistance) - 1;
 
             ret += PP_OurKingProximity[ourIndex];
             ret += PP_TheirKingProximity[theirIndex];
@@ -259,7 +260,8 @@ KingPawnEntry *kp_probe(const Board *board)
 {
 #ifndef TUNE
     // Check if this pawn structure has already been evaluated.
-    KingPawnEntry *entry = get_worker(board)->kingPawnTable + (board->stack->kingPawnKey % KingPawnTableSize);
+    KingPawnEntry *entry =
+        get_worker(board)->kingPawnTable + (board->stack->kingPawnKey % KingPawnTableSize);
 
     if (entry->key == board->stack->kingPawnKey) return entry;
 
