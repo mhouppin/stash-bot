@@ -48,6 +48,7 @@ void movepicker_init(Movepicker *mp, bool inQsearch, const Board *board, const W
 
     mp->pieceHistory[0] = (ss - 1)->pieceHistory;
     mp->pieceHistory[1] = (ss - 2)->pieceHistory;
+    mp->pieceHistory[3] = (ss - 4)->pieceHistory;
     mp->board = board;
     mp->worker = worker;
 }
@@ -102,6 +103,8 @@ static void score_quiet(Movepicker *mp, ExtendedMove *begin, ExtendedMove *end)
             begin->score += get_pc_history_score(*mp->pieceHistory[0], moved, to);
         if (mp->pieceHistory[1] != NULL)
             begin->score += get_pc_history_score(*mp->pieceHistory[1], moved, to);
+        if (mp->pieceHistory[3] != NULL)
+            begin->score += get_pc_history_score(*mp->pieceHistory[3], moved, to);
 
         ++begin;
     }

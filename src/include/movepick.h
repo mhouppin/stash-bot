@@ -54,7 +54,7 @@ typedef struct _Movepicker
     move_t counter;
     const Board *board;
     const Worker *worker;
-    piece_history_t *pieceHistory[2];
+    piece_history_t *pieceHistory[4];
 } Movepicker;
 
 // Initializes the move picker.
