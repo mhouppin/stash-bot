@@ -130,12 +130,16 @@ static void init_base_values(TpVector *base)
     INIT_BASE_SP(IDX_MINOR_ATK_QUEEN, MinorAttacksQueen);
     INIT_BASE_SP(IDX_ROOK_ATK_QUEEN, RookAttacksQueen);
 
-    extern const scorepair_t PassedBonus[RANK_NB], PhalanxBonus[RANK_NB], DefenderBonus[RANK_NB];
+    extern const scorepair_t PassedBonus[RANK_NB], CandidateBonus[RANK_NB],
+        PhalanxBonus[RANK_NB], DefenderBonus[RANK_NB];
 
     for (rank_t r = RANK_2; r <= RANK_7; ++r)
     {
         base->v[IDX_PASSER + r - RANK_2][MIDGAME] = midgame_score(PassedBonus[r]);
         base->v[IDX_PASSER + r - RANK_2][ENDGAME] = endgame_score(PassedBonus[r]);
+
+        base->v[IDX_CANDIDATE + r - RANK_2][MIDGAME] = midgame_score(CandidateBonus[r]);
+        base->v[IDX_CANDIDATE + r - RANK_2][ENDGAME] = endgame_score(CandidateBonus[r]);
 
         base->v[IDX_PHALANX + r - RANK_2][MIDGAME] = midgame_score(PhalanxBonus[r]);
         base->v[IDX_PHALANX + r - RANK_2][ENDGAME] = endgame_score(PhalanxBonus[r]);
@@ -669,6 +673,8 @@ void print_parameters(const TpVector *base, const TpVector *delta)
     PRINT_SP_NICE(IDX_ISOLATED, IsolatedPenalty, 3, 16);
     putchar('\n');
 
+    printf("// Rank-based bonus for candidate passed Pawns\n");
+    PRINT_SPA_PARTIAL(IDX_CANDIDATE, CandidateBonus, 8, 1, 7, 3, "SPAIR");
     printf("// Rank-based bonus for passed Pawns\n");
     PRINT_SPA_PARTIAL(IDX_PASSER, PassedBonus, 8, 1, 7, 3, "SPAIR");
     putchar('\n');
