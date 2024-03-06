@@ -1238,8 +1238,9 @@ bool see_greater_than(const Board *board, move_t m, score_t threshold)
     };
 
     // "Non-standard" moves are tricky to evaluate, so perform a generic check
-    // here.
-    if (move_type(m) != NORMAL_MOVE) return threshold <= 0;
+    // here. Note that for now we don't count promotions as having a higher SEE
+    // from the "material gain" of replacing the pawn with a stronger piece.
+    if (move_type(m) != NORMAL_MOVE && move_type(m) != PROMOTION) return threshold <= 0;
 
     const square_t from = from_sq(m), to = to_sq(m);
     score_t nextScore = SeeScores[piece_type(piece_on(board, to))] - threshold;
