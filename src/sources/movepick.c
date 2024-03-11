@@ -54,7 +54,7 @@ void movepicker_init(Movepicker *mp, bool inQsearch, const Board *board, const W
 
 static void score_captures(Movepicker *mp, ExtendedMove *begin, ExtendedMove *end)
 {
-    static const score_t MVV_LVA[PIECETYPE_NB] = {0, 0, 640, 640, 1280, 2560, 0, 0};
+    static const score_t MVV_LVA[PIECETYPE_NB] = {0, 0, 1280, 1280, 2560, 5120, 0, 0};
 
     while (begin < end)
     {
@@ -118,7 +118,7 @@ static void score_evasions(Movepicker *mp, ExtendedMove *begin, ExtendedMove *en
 
             // Place captures of the checking piece at the top of the list using
             // MVV/LVA ordering.
-            begin->score = 28672 + captured * 8 - moved;
+            begin->score = 65536 + captured * 8 - moved;
         }
         else
         {

@@ -27,7 +27,7 @@
 typedef struct _ExtendedMove
 {
     move_t move;
-    score_t score;
+    int32_t score;
 } ExtendedMove;
 
 // Structure for holding a list of moves
