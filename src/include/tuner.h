@@ -24,12 +24,10 @@
 
 #ifdef TUNE
 
-#define LAMBDA 0.2
-#define THREADS 4
+#define LAMBDA 0.0
+#define THREADS 2
 #define ITERS 10000
 #define LEARNING_RATE 0.001
-#define LR_DROP_ITERS 10000
-#define LR_DROP_VALUE 1.0
 #define BATCH_SIZE 2048
 
 typedef struct _TuneTuple

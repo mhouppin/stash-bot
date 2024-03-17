@@ -231,6 +231,8 @@ void init_tuner_entries(TuneDataset *data, const char *filename)
 
         char *ptr = strrchr(linebuf, ' ');
 
+        cur->gameScore = 0;
+/*
         *ptr = '\0';
 
         if (sscanf(ptr + 1, "%hd", &cur->gameScore) == 0)
@@ -240,9 +242,9 @@ void init_tuner_entries(TuneDataset *data, const char *filename)
         }
 
         ptr = strrchr(linebuf, ' ');
-
+*/
         *ptr = '\0';
-        if (sscanf(ptr + 1, "%lf", &cur->gameResult) == 0)
+        if (sscanf(ptr + 2, "%lf", &cur->gameResult) == 0)
         {
             fputs("Unable to read game result\n", stdout);
             exit(EXIT_FAILURE);
@@ -781,8 +783,6 @@ void start_tuning_session(const char *filename)
         const bool earlyStop = iter > 0 && lastLoss - currentLoss < 1e-8;
 
         printf("Iteration [%u], Loss [%.7lf]\n", (unsigned int)iter, currentLoss);
-
-        if (iter % LR_DROP_ITERS == LR_DROP_ITERS - 1) learningRate /= LR_DROP_VALUE;
 
         if (iter % 50 == 49 || iter == ITERS - 1 || earlyStop) print_parameters(&base, &delta);
 
