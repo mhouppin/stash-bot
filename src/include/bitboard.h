@@ -19,7 +19,7 @@
 #ifndef BITBOARD_H
 #define BITBOARD_H
 
-#if (defined(USE_PREFETCH) || defined(USE_POPCNT) || defined(USE_PEXT))
+#ifdef USE_PEXT
 // Do not include the header if unspecified, because some compilers might
 // not have it.
 #include <immintrin.h>
@@ -227,64 +227,13 @@ INLINED bitboard_t passed_pawn_span_bb(color_t c, square_t s)
 }
 
 // Returns the number of bits set in the bitboard.
-INLINED int popcount(bitboard_t b)
-{
-// Fall back to "software" popcount for old machines.
-#ifndef USE_POPCNT
-    const bitboard_t m1 = 0x5555555555555555ull;
-    const bitboard_t m2 = 0x3333333333333333ull;
-    const bitboard_t m4 = 0x0F0F0F0F0F0F0F0Full;
-    const bitboard_t hx = 0x0101010101010101ull;
-
-    b -= (b >> 1) & m1;
-    b = (b & m2) + ((b >> 2) & m2);
-    b = (b + (b >> 4)) & m4;
-    return (b * hx) >> 56;
-
-// Use the Intel intrinsic for MSVC and ICC.
-#elif defined(_MSC_VER) || defined(__INTEL_COMPILER)
-
-    return (int)_mm_popcnt_u64(b);
-
-// Assume GCC or Clang (or more generally a compiler supporting GNU extensions).
-#else
-
-    return __builtin_popcountll(b);
-
-#endif
-}
-
-// Use GNU extensions' builtins if possible.
-#if defined(__GNUC__)
+INLINED int popcount(bitboard_t b) { return __builtin_popcountll(b); }
 
 // Returns the index of the first bit set in the bitboard.
 INLINED square_t bb_first_sq(bitboard_t b) { return __builtin_ctzll(b); }
 
 // Returns the index of the last bit set in the bitboard.
 INLINED square_t bb_last_sq(bitboard_t b) { return SQ_H8 ^ __builtin_clzll(b); }
-
-// Use the Windows intrinsics for MSVC.
-#elif defined(_MSC_VER)
-
-// Returns the index of the first bit set in the bitboard.
-INLINED square_t bb_first_sq(bitboard_t b)
-{
-    unsigned long index;
-    _BitScanForward64(&index, b);
-    return (square_t)index;
-}
-
-// Returns the index of the last bit set in the bitboard.
-INLINED square_t bb_last_sq(bitboard_t b)
-{
-    unsigned long index;
-    _BitScanReverse64(&index, b);
-    return (square_t)index;
-}
-
-#else
-#error "Unsupported compiler."
-#endif
 
 // Pops the first bit set from the bitboard and returns its index.
 INLINED square_t bb_pop_first_sq(bitboard_t *b)
@@ -301,13 +250,6 @@ INLINED square_t bb_relative_last_sq(color_t c, bitboard_t b)
 }
 
 // Prefetches the given address.
-INLINED void prefetch(void *ptr __attribute__((unused)))
-{
-#ifdef USE_PREFETCH
-    _mm_prefetch(ptr, _MM_HINT_T0);
-#elif defined(__GNUC__)
-    __builtin_prefetch(ptr);
-#endif
-}
+INLINED void prefetch(void *ptr) { __builtin_prefetch(ptr); }
 
 #endif // BITBOARD_H
