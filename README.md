@@ -50,9 +50,9 @@ Stash supports for now all these UCI options:
     ```
     with `arch_name` being one of the following: x86-64, x86-64-popcnt or
     x86-64-bmi2. For non-x86 builds, or 32-bit x86 builds, you can use
-    `ARCH=generic` instead. This is only required if you're building the engine
-    for a different host, or if the Makefile fails to detect properly the host
-    CPU.
+    `ARCH=generic` instead. Note that specifying the arch manually is only
+    required if you're building the engine for a different host, or if the
+    Makefile fails to detect properly the host CPU.
 
     Additionally, for native binaries you can also pass `NATIVE=yes` to the
     Makefile to enable the usage of all available instruction sets on the host.
