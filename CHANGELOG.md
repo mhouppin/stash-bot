@@ -1,3 +1,14 @@
+## v35.0 (2023-10-16)
+
+### Regression test
+
+- LTC:
+  ```
+  Elo   | 53.65 +- 2.66 (95%)
+  Conf  | 40.0+0.40s Threads=1 Hash=64MB
+  Games | N: 20000 W: 4686 L: 1622 D: 13692
+  ```
+
 ## v34.0 (2022-11-03)
 
 ### Regression test

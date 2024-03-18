@@ -2,11 +2,10 @@
 
 cd src
 
-CFLAGS="$CFLAGS -fprofile-generate" LDFLAGS="$LDFLAGS -lgcov" ARCH="$ARCH" make re
+make re CFLAGS="-O3 -flto -fprofile-generate" LDFLAGS="-lgcov" ARCH="$ARCH"
 
 ./stash-bot bench
 
-CFLAGS="$CFLAGS -fprofile-use -fno-peel-loops -fno-tracer" LDFLAGS="$LDFLAGS -lgcov" \
-    ARCH="$ARCH" make re
+make re CFLAGS="-O3 -flto -fprofile-use -fno-peel-loops -fno-tracer" LDFLAGS="-lgcov" ARCH="$ARCH"
 
 rm sources/*.gcda
