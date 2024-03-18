@@ -923,7 +923,7 @@ score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchst
 
     // Check if Futility Pruning is possible in the moves loop.
     const bool canFutilityPrune = (!inCheck && popcount(occupancy_bb(board)) >= 5);
-    const score_t futilityBase = bestScore + 110;
+    const score_t futilityBase = bestScore + 80;
 
     while ((currmove = movepicker_next_move(&mp, false, 0)) != NO_MOVE)
     {
@@ -942,13 +942,21 @@ score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchst
         if (bestScore > -MATE_FOUND && canFutilityPrune && !givesCheck
             && move_type(currmove) == NORMAL_MOVE)
         {
-            score_t delta = futilityBase + PieceScores[ENDGAME][piece_on(board, to_sq(currmove))];
+            score_t futilityValue = futilityBase + PieceScores[ENDGAME][piece_on(board, to_sq(currmove))];
 
             // Check if the move is unlikely to improve alpha.
-            if (delta < alpha) continue;
+            if (futilityValue <= alpha)
+            {
+                bestScore = imax(bestScore, futilityValue);
+                continue;
+            }
 
             // If static eval is far below alpha, only search moves that win material.
-            if (futilityBase < alpha && !see_greater_than(board, currmove, 1)) continue;
+            if (futilityBase <= alpha && !see_greater_than(board, currmove, 1))
+            {
+                bestScore = imax(bestScore, futilityBase);
+                continue;
+            }
         }
 
         // Save the piece history for the current move so that sub-nodes can use
