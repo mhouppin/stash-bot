@@ -31,6 +31,10 @@
 static int Reductions[2][256];
 int Pruning[2][16];
 
+score_t ProbCutThreshold = 140;
+score_t SeePruningQuiet = 49;
+score_t SeePruningNoisy = 22;
+
 void init_search_tables(void)
 {
     // Compute the LMR base values.
@@ -521,7 +525,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
     // Probcut. If we have a good enough capture (or promotion) and a reduced
     // search returns a value much above beta, we can (almost) safely prune the
     // previous move.
-    const score_t probCutBeta = beta + 140;
+    const score_t probCutBeta = beta + ProbCutThreshold;
 
     if (!rootNode && depth >= 6 && abs(beta) < VICTORY
         && !(found && ttDepth >= depth - 4 && ttScore < probCutBeta))
@@ -618,7 +622,7 @@ main_loop:
             // to lose too much material to be interesting.
             if (depth <= 12
                 && !see_greater_than(
-                    board, currmove, (isQuiet ? -49 * depth : -22 * depth * depth)))
+                    board, currmove, (isQuiet ? -SeePruningQuiet * depth : -SeePruningNoisy * depth * depth)))
                 continue;
         }
 
