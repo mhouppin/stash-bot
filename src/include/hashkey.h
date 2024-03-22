@@ -27,15 +27,7 @@ typedef uint64_t hashkey_t;
 // Multiplies two 64-bit unsigned integers and returns the high 64 bits of the result.
 INLINED uint64_t mul_hi64(uint64_t x, uint64_t n)
 {
-    uint64_t xlo = (uint32_t)x;
-    uint64_t xhi = x >> 32;
-    uint64_t nlo = (uint32_t)n;
-    uint64_t nhi = n >> 32;
-    uint64_t c1 = (xlo * nlo) >> 32;
-    uint64_t c2 = (xhi * nlo) + c1;
-    uint64_t c3 = (xlo * nhi) + (uint32_t)c2;
-
-    return xhi * nhi + (c2 >> 32) + (c3 >> 32);
+    return ((unsigned __int128)x * (unsigned __int128)n) >> 64;
 }
 
 // Global table for Zobrist Piece-Square hashes
