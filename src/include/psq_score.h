@@ -36,11 +36,11 @@ enum
     ROOK_EG_SCORE = 1153,
     QUEEN_EG_SCORE = 2168,
 
-    PAWN_SEE_SCORE = 106,
-    KNIGHT_SEE_SCORE = 353,
-    BISHOP_SEE_SCORE = 373,
-    ROOK_SEE_SCORE = 509,
-    QUEEN_SEE_SCORE = 1065,
+    PAWN_SEE_SCORE = 101,
+    KNIGHT_SEE_SCORE = 313,
+    BISHOP_SEE_SCORE = 362,
+    ROOK_SEE_SCORE = 537,
+    QUEEN_SEE_SCORE = 1042,
 };
 
 // Global for the piece values indexed by phase and piece
