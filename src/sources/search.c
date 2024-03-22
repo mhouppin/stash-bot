@@ -483,7 +483,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
         Boardstack stack;
 
         // Compute the depth reduction based on depth and eval difference with beta.
-        int R = (792 + 67 * depth) / 256 + imin((eval - beta) / 109, 5);
+        int r = (792 + 67 * depth) / 256 + imin((eval - beta) / 109, 5);
 
         ss->currentMove = NULL_MOVE;
         ss->pieceHistory = NULL;
@@ -492,7 +492,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
         atomic_fetch_add_explicit(&get_worker(board)->nodes, 1, memory_order_relaxed);
 
         // Perform the reduced search.
-        score_t score = -search(false, board, depth - R, -beta, -beta + 1, ss + 1, !cutNode);
+        score_t score = -search(false, board, depth - r, -beta, -beta + 1, ss + 1, !cutNode);
         undo_null_move(board);
 
         if (score >= beta)
@@ -510,8 +510,8 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
             // for a few plies. If this search still beats beta, we assume to
             // not be in a zugzwang situation, and return the previous reduced
             // search score.
-            worker->verifPlies = ss->plies + (depth - R) * 3 / 4;
-            score_t zzscore = search(false, board, depth - R, beta - 1, beta, ss, false);
+            worker->verifPlies = ss->plies + (depth - r) * 3 / 4;
+            score_t zzscore = search(false, board, depth - r, beta - 1, beta, ss, false);
             worker->verifPlies = 0;
 
             if (zzscore >= beta) return score;
@@ -632,7 +632,6 @@ main_loop:
 
         Boardstack stack;
         score_t score = -NO_SCORE;
-        int R;
         int extension = 0;
         int newDepth = depth - 1;
         bool givesCheck = move_gives_check(board, currmove);
@@ -695,53 +694,48 @@ main_loop:
         do_move_gc(board, currmove, &stack, givesCheck);
         atomic_fetch_add_explicit(&get_worker(board)->nodes, 1, memory_order_relaxed);
 
-        const bool do_lmr = depth >= 3 && moveCount > 1 + 3 * pvNode;
-
         // Late Move Reductions. For nodes not too close to qsearch (since
         // we can't reduce their search depth), we start reducing moves after
         // a certain movecount has been reached, as we consider them less likely
         // to produce cutoffs in standard searches.
-        if (do_lmr)
+        if (depth >= 3 && moveCount > 1 + 3 * pvNode)
         {
             // Set the base depth reduction value based on depth and
             // movecount.
-            R = lmr_base_value(depth, moveCount, improving, isQuiet);
+            int r = lmr_base_value(depth, moveCount, improving, isQuiet);
 
             // Increase the reduction for non-PV nodes.
-            R += !pvNode;
+            r += !pvNode;
 
             // Increase the reduction for cutNodes.
-            R += cutNode;
+            r += cutNode;
 
             // Decrease the reduction if the move is a killer or countermove.
-            R -= (currmove == mp.killer1 || currmove == mp.killer2 || currmove == mp.counter);
+            r -= (currmove == mp.killer1 || currmove == mp.killer2 || currmove == mp.counter);
 
             // Decrease the reduction if the move escapes a capture.
-            R -= isQuiet && !see_greater_than(board, reverse_move(currmove), 0);
+            r -= isQuiet && !see_greater_than(board, reverse_move(currmove), 0);
 
             // Increase/decrease the reduction based on the move's history.
-            R -= iclamp(histScore / 12614, -3, 3);
+            r -= iclamp(histScore / 12614, -3, 3);
 
             // Clamp the reduction so that we don't extend the move or drop
             // immediately into qsearch.
-            R = iclamp(R, 0, newDepth - 1);
+            r = iclamp(r, 0, newDepth - 1);
+
+            score = -search(false, board, newDepth - r, -alpha - 1, -alpha, ss + 1, true);
+
+            // Perform another search at full depth if LMR failed high.
+            if (r != 0 && score > alpha)
+            {
+                score = -search(false, board, newDepth + extension, -alpha - 1, -alpha, ss + 1, !cutNode);
+
+                update_cont_histories(ss, depth, movedPiece, to_sq(currmove), score > alpha);
+            }
         }
-        else
-            R = 0;
-
-        if (do_lmr) score = -search(false, board, newDepth - R, -alpha - 1, -alpha, ss + 1, true);
-
-        newDepth += extension;
-
-        // If LMR is not possible, or our LMR failed, do a search with no
-        // reductions.
-        if ((R && score > alpha) || (!do_lmr && !(pvNode && moveCount == 1)))
-        {
-            score = -search(false, board, newDepth, -alpha - 1, -alpha, ss + 1, !cutNode);
-
-            // Update continuation histories for post-LMR searches.
-            if (R) update_cont_histories(ss, depth, movedPiece, to_sq(currmove), score > alpha);
-        }
+        // If LMR is not possible, do a search with no reductions.
+        else if (!pvNode || moveCount != 1)
+            score = -search(false, board, newDepth + extension, -alpha - 1, -alpha, ss + 1, !cutNode);
 
         // In PV nodes, perform an additional full-window search for the first
         // move, or when all our previous searches returned fail-highs.
@@ -749,7 +743,7 @@ main_loop:
         {
             (ss + 1)->pv = pv;
             pv[0] = NO_MOVE;
-            score = -search(true, board, newDepth, -beta, -alpha, ss + 1, false);
+            score = -search(true, board, newDepth + extension, -beta, -alpha, ss + 1, false);
         }
 
         undo_move(board, currmove);
