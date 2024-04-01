@@ -578,6 +578,7 @@ main_loop:
     move_t captures[64];
     int ccount = 0;
     bool skipQuiets = false;
+    bool singularQuiet = false;
 
     while ((currmove = movepicker_next_move(&mp, skipQuiets, 0)) != NO_MOVE)
     {
@@ -669,6 +670,8 @@ main_loop:
                     }
                     else
                         extension = 1;
+
+                    singularQuiet = isQuiet;
                 }
 
                 // Multicut Pruning. If our singular search produced a cutoff,
@@ -709,6 +712,9 @@ main_loop:
 
             // Increase the reduction for cutNodes.
             r += cutNode;
+
+            // Decrease the reduction if we singular-extended a quiet move.
+            r -= singularQuiet;
 
             // Decrease the reduction if the move is a killer or countermove.
             r -= (currmove == mp.killer1 || currmove == mp.killer2 || currmove == mp.counter);
