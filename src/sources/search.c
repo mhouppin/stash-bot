@@ -407,6 +407,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
     int ttBound = NO_BOUND;
     score_t ttScore = NO_SCORE;
     move_t ttMove = NO_MOVE;
+    bool ttNoisy = false;
     bool found;
     hashkey_t key = board->stack->boardKey ^ ((hashkey_t)ss->excludedMove << 16);
     TT_Entry *entry = tt_probe(key, &found);
@@ -429,6 +430,8 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
 
                 return ttScore;
             }
+
+        ttNoisy = is_capture_or_promotion(board, ttMove);
     }
 
     (ss + 2)->killers[0] = (ss + 2)->killers[1] = NO_MOVE;
@@ -709,6 +712,9 @@ main_loop:
 
             // Increase the reduction for cutNodes.
             r += cutNode;
+
+            // Increase the reduction for quiets if the TT move is non-quiet.
+            r += isQuiet && ttNoisy;
 
             // Decrease the reduction if the move is a killer or countermove.
             r -= (currmove == mp.killer1 || currmove == mp.killer2 || currmove == mp.counter);
