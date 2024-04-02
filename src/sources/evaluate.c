@@ -162,17 +162,24 @@ bool is_kxk_endgame(const Board *board, color_t us)
 
 score_t eval_kxk(const Board *board, color_t us)
 {
+    square_t losingKsq = get_king_square(board, not_color(us));
+
     // Be careful to avoid stalemating the weak King.
     if (board->sideToMove != us && !board->stack->checkers)
     {
-        Movelist list;
+        bool stalemate = true;
 
-        list_all(&list, board);
-        if (movelist_size(&list) == 0) return 0;
+        for (bitboard_t b = king_moves(losingKsq); b;)
+            if (!(attackers_to(board, bb_pop_first_sq(&b)) & color_bb(board, us)))
+            {
+                stalemate = false;
+                break ;
+            }
+
+        if (stalemate) return 0;
     }
 
     square_t winningKsq = get_king_square(board, us);
-    square_t losingKsq = get_king_square(board, not_color(us));
     score_t score =
         board->stack->material[us] + popcount(piecetype_bb(board, PAWN)) * PAWN_MG_SCORE;
 
