@@ -925,7 +925,7 @@ score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchst
     const bool canFutilityPrune = (!inCheck && popcount(occupancy_bb(board)) >= 5);
     const score_t futilityBase = bestScore + 110;
 
-    while ((currmove = movepicker_next_move(&mp, false, 0)) != NO_MOVE)
+    while ((currmove = movepicker_next_move(&mp, false, KNIGHT_SEE_SCORE - BISHOP_SEE_SCORE)) != NO_MOVE)
     {
         // Only analyse good capture moves.
         if (bestScore > -MATE_FOUND && mp.stage == PICK_BAD_INSTABLE) break;
