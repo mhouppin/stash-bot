@@ -75,7 +75,6 @@ static void init_base_values(TpVector *base)
     INIT_BASE_SPA(IDX_PSQT + 144, QueenSQT, 32);
     INIT_BASE_SPA(IDX_PSQT + 176, KingSQT, 32);
 
-    INIT_BASE_SP(IDX_CASTLING, CastlingBonus);
     INIT_BASE_SP(IDX_INITIATIVE, Initiative);
 
     INIT_BASE_SP(IDX_KS_KNIGHT, KnightWeight);
@@ -109,6 +108,8 @@ static void init_base_values(TpVector *base)
     INIT_BASE_SP(IDX_ROOK_OPEN, RookOnOpenFile);
     INIT_BASE_SP(IDX_ROOK_BLOCKED, RookOnBlockedFile);
     INIT_BASE_SP(IDX_ROOK_XRAY_QUEEN, RookXrayQueen);
+    INIT_BASE_SP(IDX_ROOK_TRAPPED, RookTrapped);
+    INIT_BASE_SP(IDX_ROOK_BURIED, RookBuried);
 
     INIT_BASE_SPA(IDX_MOBILITY_KNIGHT, MobilityN, 9);
     INIT_BASE_SPA(IDX_MOBILITY_BISHOP, MobilityB, 14);
@@ -589,7 +590,6 @@ void print_parameters(const TpVector *base, const TpVector *delta)
     printf("| evaluate.c |\n\n");
 
     printf("// Special eval terms\n");
-    PRINT_SP(IDX_CASTLING, CastlingBonus);
     PRINT_SP(IDX_INITIATIVE, Initiative);
     putchar('\n');
 
@@ -637,6 +637,8 @@ void print_parameters(const TpVector *base, const TpVector *delta)
     PRINT_SP_NICE(IDX_ROOK_OPEN, RookOnOpenFile, 3, 18);
     PRINT_SP_NICE(IDX_ROOK_BLOCKED, RookOnBlockedFile, 3, 18);
     PRINT_SP_NICE(IDX_ROOK_XRAY_QUEEN, RookXrayQueen, 3, 18);
+    PRINT_SP_NICE(IDX_ROOK_TRAPPED, RookTrapped, 3, 18);
+    PRINT_SP_NICE(IDX_ROOK_BURIED, RookBuried, 3, 18);
     putchar('\n');
 
     printf("// Mobility eval terms\n");
