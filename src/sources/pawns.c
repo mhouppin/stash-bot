@@ -25,15 +25,15 @@
 // Miscellanous bonus for Pawn structures
 const scorepair_t BackwardPenalty  = SPAIR( -5, -8);
 const scorepair_t StragglerPenalty = SPAIR(-15,-22);
-const scorepair_t DoubledPenalty   = SPAIR(-15,-50);
-const scorepair_t IsolatedPenalty  = SPAIR( -8,-10);
+const scorepair_t DoubledPenalty   = SPAIR(-15,-47);
+const scorepair_t IsolatedPenalty  = SPAIR( -8,-11);
 
 // Rank-based bonus for passed Pawns
 const scorepair_t PassedBonus[8] = {
     0,
-    SPAIR(-10,  5),
-    SPAIR(-12, 13),
-    SPAIR(-16, 51),
+    SPAIR( -9,  7),
+    SPAIR(-12, 14),
+    SPAIR(-17, 51),
     SPAIR( 17,111),
     SPAIR( 41,205),
     SPAIR( 71,339),
@@ -42,24 +42,24 @@ const scorepair_t PassedBonus[8] = {
 
 // Passed Pawn eval terms
 const scorepair_t PP_OurKingProximity[24] = {
-    SPAIR(   5,  72), SPAIR(   6,  16), SPAIR( -18, -85),
+    SPAIR(   5,  73), SPAIR(   6,  16), SPAIR( -18, -86),
     SPAIR(   0,   0), SPAIR(   0,   0), SPAIR(   0,   0),
-    SPAIR(   8,  75), SPAIR(   8,  26), SPAIR(   7, -29),
+    SPAIR(   8,  76), SPAIR(   8,  26), SPAIR(   7, -29),
     SPAIR( -28, -61), SPAIR(   0,   0), SPAIR(   0,   0),
     SPAIR(   6,  74), SPAIR(  -8,  37), SPAIR( -19, -10),
-    SPAIR(  -6, -44), SPAIR(  26, -43), SPAIR(   0,   0),
-    SPAIR( -11,  54), SPAIR( -26,  30), SPAIR( -13, -12),
-    SPAIR(   1, -15), SPAIR(  15, -18), SPAIR(  35, -23)
+    SPAIR(  -6, -44), SPAIR(  27, -44), SPAIR(   0,   0),
+    SPAIR( -12,  54), SPAIR( -26,  30), SPAIR( -13, -12),
+    SPAIR(   1, -15), SPAIR(  16, -18), SPAIR(  35, -23)
 };
 
 const scorepair_t PP_TheirKingProximity[24] = {
-    SPAIR( -22,-156), SPAIR(   4,   5), SPAIR(   9, 156),
+    SPAIR( -22,-157), SPAIR(   4,   5), SPAIR(   9, 157),
     SPAIR(   0,   0), SPAIR(   0,   0), SPAIR(   0,   0),
     SPAIR( -21,-149), SPAIR(  11, -30), SPAIR(   0,  61),
-    SPAIR(   7, 130), SPAIR(   0,   0), SPAIR(   0,   0),
+    SPAIR(   7, 131), SPAIR(   0,   0), SPAIR(   0,   0),
     SPAIR(  -9,-100), SPAIR(  16, -27), SPAIR(  13,   3),
-    SPAIR(  -2,  55), SPAIR( -20,  84), SPAIR(   0,   0),
-    SPAIR(  -8, -52), SPAIR(  -9,  -5), SPAIR(  -0,  -1),
+    SPAIR(  -2,  55), SPAIR( -21,  84), SPAIR(   0,   0),
+    SPAIR(  -8, -52), SPAIR(  -9,  -5), SPAIR(   0,  -1),
     SPAIR(  19,   0), SPAIR(  -5,  37), SPAIR(  -1,  34)
 };
 
@@ -79,10 +79,10 @@ const scorepair_t PhalanxBonus[8] = {
 const scorepair_t DefenderBonus[8] = {
     0,
     SPAIR( 17, 23),
-    SPAIR( 15, 26),
+    SPAIR( 14, 26),
     SPAIR( 26, 38),
     SPAIR( 62,103),
-    SPAIR(168,139),
+    SPAIR(168,140),
     0,
     0
 };
@@ -93,6 +93,7 @@ scorepair_t evaluate_passed(
     KingPawnEntry *entry, color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
 {
     scorepair_t ret = 0;
+    const bitboard_t pawns = ourPawns | theirPawns;
 
     while (ourPawns)
     {
@@ -105,7 +106,7 @@ scorepair_t evaluate_passed(
         // Check if our Pawn has a free path to its queening square, or if every
         // square attacked by an enemy Pawn is matched by a friendly Pawn
         // attacking it too.
-        if ((queening & theirPawns) == 0
+        if ((queening & pawns) == 0
             && (queening & entry->attacks[not_color(us)] & ~entry->attacks[us]) == 0
             && (queening & entry->attacks2[not_color(us)] & ~entry->attacks2[us]) == 0)
         {
