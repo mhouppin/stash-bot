@@ -79,6 +79,7 @@ typedef enum tune_idx_e
     IDX_KS_QUEEN,
     IDX_KS_ATTACK,
     IDX_KS_WEAK_Z,
+    IDX_KS_ASYM_KINGS,
     IDX_KS_CHECK_N,
     IDX_KS_CHECK_B,
     IDX_KS_CHECK_R,

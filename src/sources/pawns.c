@@ -24,53 +24,53 @@
 
 // Miscellanous bonus for Pawn structures
 const scorepair_t BackwardPenalty  = SPAIR( -5, -8);
-const scorepair_t StragglerPenalty = SPAIR(-15,-22);
-const scorepair_t DoubledPenalty   = SPAIR(-15,-50);
-const scorepair_t IsolatedPenalty  = SPAIR( -8,-10);
+const scorepair_t StragglerPenalty = SPAIR(-15,-23);
+const scorepair_t DoubledPenalty   = SPAIR(-15,-49);
+const scorepair_t IsolatedPenalty  = SPAIR( -8,-11);
 
 // Rank-based bonus for passed Pawns
 const scorepair_t PassedBonus[8] = {
     0,
-    SPAIR(-10,  5),
+    SPAIR( -9,  5),
     SPAIR(-12, 13),
-    SPAIR(-16, 51),
-    SPAIR( 17,111),
+    SPAIR(-17, 51),
+    SPAIR( 17,110),
     SPAIR( 41,205),
-    SPAIR( 71,339),
+    SPAIR( 70,339),
     0
 };
 
 // Passed Pawn eval terms
 const scorepair_t PP_OurKingProximity[24] = {
-    SPAIR(   5,  72), SPAIR(   6,  16), SPAIR( -18, -85),
+    SPAIR(   5,  74), SPAIR(   6,  16), SPAIR( -19, -87),
     SPAIR(   0,   0), SPAIR(   0,   0), SPAIR(   0,   0),
-    SPAIR(   8,  75), SPAIR(   8,  26), SPAIR(   7, -29),
-    SPAIR( -28, -61), SPAIR(   0,   0), SPAIR(   0,   0),
-    SPAIR(   6,  74), SPAIR(  -8,  37), SPAIR( -19, -10),
-    SPAIR(  -6, -44), SPAIR(  26, -43), SPAIR(   0,   0),
-    SPAIR( -11,  54), SPAIR( -26,  30), SPAIR( -13, -12),
-    SPAIR(   1, -15), SPAIR(  15, -18), SPAIR(  35, -23)
+    SPAIR(   8,  76), SPAIR(   8,  26), SPAIR(   7, -30),
+    SPAIR( -29, -62), SPAIR(   0,   0), SPAIR(   0,   0),
+    SPAIR(   6,  74), SPAIR(  -9,  37), SPAIR( -20, -10),
+    SPAIR(  -6, -44), SPAIR(  27, -44), SPAIR(   0,   0),
+    SPAIR( -13,  54), SPAIR( -27,  30), SPAIR( -13, -11),
+    SPAIR(   1, -15), SPAIR(  16, -18), SPAIR(  36, -23)
 };
 
 const scorepair_t PP_TheirKingProximity[24] = {
-    SPAIR( -22,-156), SPAIR(   4,   5), SPAIR(   9, 156),
+    SPAIR( -22,-159), SPAIR(   4,   6), SPAIR(   8, 159),
     SPAIR(   0,   0), SPAIR(   0,   0), SPAIR(   0,   0),
-    SPAIR( -21,-149), SPAIR(  11, -30), SPAIR(   0,  61),
-    SPAIR(   7, 130), SPAIR(   0,   0), SPAIR(   0,   0),
-    SPAIR(  -9,-100), SPAIR(  16, -27), SPAIR(  13,   3),
-    SPAIR(  -2,  55), SPAIR( -20,  84), SPAIR(   0,   0),
-    SPAIR(  -8, -52), SPAIR(  -9,  -5), SPAIR(  -0,  -1),
-    SPAIR(  19,   0), SPAIR(  -5,  37), SPAIR(  -1,  34)
+    SPAIR( -21,-150), SPAIR(  12, -31), SPAIR(   0,  61),
+    SPAIR(   6, 131), SPAIR(   0,   0), SPAIR(   0,   0),
+    SPAIR(  -9,-101), SPAIR(  17, -27), SPAIR(  13,   2),
+    SPAIR(  -2,  56), SPAIR( -21,  85), SPAIR(   0,   0),
+    SPAIR(  -8, -52), SPAIR(  -9,  -5), SPAIR(   1,  -1),
+    SPAIR(  19,  -0), SPAIR(  -5,  38), SPAIR(  -2,  34)
 };
 
 // Rank-based bonus for phalanx structures
 const scorepair_t PhalanxBonus[8] = {
     0,
-    SPAIR(  5, -2),
-    SPAIR( 16,  8),
+    SPAIR(  4, -2),
+    SPAIR( 16,  9),
     SPAIR( 22, 31),
     SPAIR( 45, 65),
-    SPAIR(168,239),
+    SPAIR(168,240),
     SPAIR(183,236),
     0
 };
@@ -79,10 +79,10 @@ const scorepair_t PhalanxBonus[8] = {
 const scorepair_t DefenderBonus[8] = {
     0,
     SPAIR( 17, 23),
-    SPAIR( 15, 26),
+    SPAIR( 14, 26),
     SPAIR( 26, 38),
     SPAIR( 62,103),
-    SPAIR(168,139),
+    SPAIR(168,140),
     0,
     0
 };

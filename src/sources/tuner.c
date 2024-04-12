@@ -82,6 +82,7 @@ static void init_base_values(TpVector *base)
     INIT_BASE_SP(IDX_KS_ROOK, RookWeight);
     INIT_BASE_SP(IDX_KS_QUEEN, QueenWeight);
     INIT_BASE_SP(IDX_KS_ATTACK, AttackWeight);
+    INIT_BASE_SP(IDX_KS_ASYM_KINGS, AsymmetricKings);
     INIT_BASE_SP(IDX_KS_WEAK_Z, WeakKingZone);
     INIT_BASE_SP(IDX_KS_CHECK_N, SafeKnightCheck);
     INIT_BASE_SP(IDX_KS_CHECK_B, SafeBishopCheck);
@@ -599,6 +600,7 @@ void print_parameters(const TpVector *base, const TpVector *delta)
     PRINT_SP_NICE(IDX_KS_ROOK, RookWeight, 4, 15);
     PRINT_SP_NICE(IDX_KS_QUEEN, QueenWeight, 4, 15);
     PRINT_SP_NICE(IDX_KS_ATTACK, AttackWeight, 4, 15);
+    PRINT_SP_NICE(IDX_KS_ASYM_KINGS, AsymmetricKings, 4, 15);
     PRINT_SP_NICE(IDX_KS_WEAK_Z, WeakKingZone, 4, 15);
     PRINT_SP_NICE(IDX_KS_CHECK_N, SafeKnightCheck, 4, 15);
     PRINT_SP_NICE(IDX_KS_CHECK_B, SafeBishopCheck, 4, 15);
