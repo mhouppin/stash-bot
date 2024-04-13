@@ -268,7 +268,8 @@ top:
             {
                 place_top_move(mp->cur, mp->list.last);
 
-                if (mp->cur->move != mp->ttMove) return (mp->cur++)->move;
+                if (mp->cur->move != mp->ttMove && (!skipQuiets || is_capture_or_promotion(mp->board, mp->cur->move)))
+                    return (mp->cur++)->move;
 
                 mp->cur++;
             }
