@@ -582,7 +582,7 @@ main_loop:
     int ccount = 0;
     bool skipQuiets = false;
 
-    while ((currmove = movepicker_next_move(&mp, skipQuiets, 0)) != NO_MOVE)
+    while ((currmove = movepicker_next_move(&mp, skipQuiets, KNIGHT_SEE_SCORE - BISHOP_SEE_SCORE)) != NO_MOVE)
     {
         if (rootNode)
         {
