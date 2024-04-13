@@ -481,6 +481,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
     // turn. If the resulting reduced search still beats beta, we assume our
     // position is so good that we cannot get under beta at this point.
     if (!pvNode && depth >= 3 && ss->plies >= worker->verifPlies && !ss->excludedMove
+        && (ss - 1)->currentMove != NULL_MOVE
         && eval >= beta && eval >= ss->staticEval && board->stack->material[board->sideToMove])
     {
         Boardstack stack;
