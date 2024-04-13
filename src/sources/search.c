@@ -683,8 +683,8 @@ main_loop:
             }
             // Check Extensions. Extend non-LMR searches by one ply for moves
             // that give check.
-            else if (givesCheck)
-                extension = 1;
+            if (givesCheck)
+                extension = imax(extension, 1);
         }
 
         piece_t movedPiece = piece_on(board, from_sq(currmove));
