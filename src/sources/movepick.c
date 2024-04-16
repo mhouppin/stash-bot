@@ -176,7 +176,7 @@ top:
 
             // If we're in qsearch, we skip quiet move generation/selection when
             // not in check.
-            if (mp->inQsearch)
+            if (mp->inQsearch || skipQuiets)
             {
                 mp->cur = mp->list.moves;
                 mp->stage = PICK_BAD_INSTABLE;
@@ -189,7 +189,7 @@ top:
             ++mp->stage;
             // Return the move only if it is pseudo-legal and different from the
             // TT move.
-            if (mp->killer1 && mp->killer1 != mp->ttMove
+            if (!skipQuiets && mp->killer1 && mp->killer1 != mp->ttMove
                 && move_is_pseudo_legal(mp->board, mp->killer1))
                 return mp->killer1;
             // Fallthrough
@@ -198,7 +198,7 @@ top:
             ++mp->stage;
             // Return the move only if it is pseudo-legal and different from the
             // TT move and first killer.
-            if (mp->killer2 && mp->killer2 != mp->ttMove && mp->killer2 != mp->killer1
+            if (!skipQuiets && mp->killer2 && mp->killer2 != mp->ttMove && mp->killer2 != mp->killer1
                 && move_is_pseudo_legal(mp->board, mp->killer2))
                 return mp->killer2;
             // Fallthrough
@@ -207,7 +207,7 @@ top:
             ++mp->stage;
             // Return the move only if it is pseudo-legal and different from the
             // TT move and the two killers.
-            if (mp->counter && mp->counter != mp->ttMove && mp->counter != mp->killer1
+            if (!skipQuiets && mp->counter && mp->counter != mp->ttMove && mp->counter != mp->killer1
                 && mp->counter != mp->killer2 && move_is_pseudo_legal(mp->board, mp->counter))
                 return mp->counter;
             // Fallthrough
