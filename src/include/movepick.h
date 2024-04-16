@@ -29,9 +29,7 @@ typedef enum mp_stage_e
     PICK_TT,
     GEN_INSTABLE,
     PICK_GOOD_INSTABLE,
-    PICK_KILLER1,
-    PICK_KILLER2,
-    PICK_COUNTER,
+    PICK_REFUTATION,
     GEN_QUIET,
     PICK_QUIET,
     PICK_BAD_INSTABLE,
@@ -45,13 +43,11 @@ typedef enum mp_stage_e
 typedef struct _Movepicker
 {
     Movelist list;
-    ExtendedMove *cur, *badCaptures;
+    ExtendedMove *cur, *end, *badCaptures;
+    ExtendedMove refutations[3];
     bool inQsearch;
     mp_stage_t stage;
     move_t ttMove;
-    move_t killer1;
-    move_t killer2;
-    move_t counter;
     const Board *board;
     const Worker *worker;
     piece_history_t *pieceHistory[2];
@@ -63,5 +59,11 @@ void movepicker_init(Movepicker *mp, bool inQsearch, const Board *board, const W
 
 // Returns the next move in the move picker, with the option to skip quiet moves.
 move_t movepicker_next_move(Movepicker *mp, bool skipQuiets, int see_threshold);
+
+INLINED bool movepicker_is_refutation(const Movepicker *mp, move_t move)
+{
+    return move == mp->refutations[0].move || move == mp->refutations[1].move
+        || move == mp->refutations[2].move;
+}
 
 #endif

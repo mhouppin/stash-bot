@@ -32,8 +32,8 @@ void movepicker_init(Movepicker *mp, bool inQsearch, const Board *board, const W
                         && move_is_pseudo_legal(board, ttMove));
 
     mp->ttMove = ttMove;
-    mp->killer1 = ss->killers[0];
-    mp->killer2 = ss->killers[1];
+    mp->refutations[0].move = ss->killers[0];
+    mp->refutations[1].move = ss->killers[1];
 
     // Load the countermove if the search stack from the last turn allows us to
     // do so.
@@ -41,10 +41,10 @@ void movepicker_init(Movepicker *mp, bool inQsearch, const Board *board, const W
     {
         square_t lastTo = to_sq((ss - 1)->currentMove);
         square_t lastPiece = piece_on(board, lastTo);
-        mp->counter = worker->cmHistory[lastPiece][lastTo];
+        mp->refutations[2].move = worker->cmHistory[lastPiece][lastTo];
     }
     else
-        mp->counter = NO_MOVE;
+        mp->refutations[2].move = NO_MOVE;
 
     mp->pieceHistory[0] = (ss - 1)->pieceHistory;
     mp->pieceHistory[1] = (ss - 2)->pieceHistory;
@@ -154,15 +154,15 @@ top:
         case GEN_INSTABLE:
             // Generate and score all capture moves.
             ++mp->stage;
-            mp->list.last = generate_captures(mp->list.moves, mp->board, mp->inQsearch);
-            score_captures(mp, mp->list.moves, mp->list.last);
             mp->cur = mp->badCaptures = mp->list.moves;
+            mp->end = generate_captures(mp->cur, mp->board, mp->inQsearch);
+            score_captures(mp, mp->cur, mp->end);
             // Fallthrough
 
         case PICK_GOOD_INSTABLE:
-            while (mp->cur < mp->list.last)
+            while (mp->cur < mp->end)
             {
-                place_top_move(mp->cur, mp->list.last);
+                place_top_move(mp->cur, mp->end);
 
                 // Only select moves with a positive SEE for this stage.
                 if (mp->cur->move != mp->ttMove
@@ -182,34 +182,30 @@ top:
                 mp->stage = PICK_BAD_INSTABLE;
                 goto top;
             }
+
+            mp->cur = &mp->refutations[0];
+            mp->end = &mp->refutations[3];
+
+            // Skip the countermove if it's a killer as well.
+            if (mp->refutations[2].move == mp->refutations[0].move || mp->refutations[2].move == mp->refutations[1].move)
+                mp->end--;
+
+            score_quiet(mp, mp->cur, mp->end);
             ++mp->stage;
             // Fallthrough
 
-        case PICK_KILLER1:
-            ++mp->stage;
-            // Return the move only if it is pseudo-legal and different from the
-            // TT move.
-            if (mp->killer1 && mp->killer1 != mp->ttMove
-                && move_is_pseudo_legal(mp->board, mp->killer1))
-                return mp->killer1;
-            // Fallthrough
+        case PICK_REFUTATION:
+            while (mp->cur < mp->end)
+            {
+                place_top_move(mp->cur, mp->end);
+                move_t move = (mp->cur++)->move;
 
-        case PICK_KILLER2:
+                // Avoid searching the same move twice. Also make sure the refutation
+                // is actually a viable move on the board.
+                if (move && move != mp->ttMove && move_is_pseudo_legal(mp->board, move))
+                    return move;
+            }
             ++mp->stage;
-            // Return the move only if it is pseudo-legal and different from the
-            // TT move and first killer.
-            if (mp->killer2 && mp->killer2 != mp->ttMove && mp->killer2 != mp->killer1
-                && move_is_pseudo_legal(mp->board, mp->killer2))
-                return mp->killer2;
-            // Fallthrough
-
-        case PICK_COUNTER:
-            ++mp->stage;
-            // Return the move only if it is pseudo-legal and different from the
-            // TT move and the two killers.
-            if (mp->counter && mp->counter != mp->ttMove && mp->counter != mp->killer1
-                && mp->counter != mp->killer2 && move_is_pseudo_legal(mp->board, mp->counter))
-                return mp->counter;
             // Fallthrough
 
         case GEN_QUIET:
@@ -218,8 +214,9 @@ top:
             ++mp->stage;
             if (!skipQuiets)
             {
-                mp->list.last = generate_quiet(mp->cur, mp->board);
-                score_quiet(mp, mp->cur, mp->list.last);
+                mp->cur = mp->badCaptures;
+                mp->end = generate_quiet(mp->cur, mp->board);
+                score_quiet(mp, mp->cur, mp->end);
             }
             // Fallthrough
 
@@ -227,15 +224,13 @@ top:
             // Stop selecting quiets if the search tells us to do so due to
             // quiet move pruning.
             if (!skipQuiets)
-                while (mp->cur < mp->list.last)
+                while (mp->cur < mp->end)
                 {
-                    place_top_move(mp->cur, mp->list.last);
+                    place_top_move(mp->cur, mp->end);
                     move_t move = (mp->cur++)->move;
 
-                    // Return the move only if it is different from the TT move,
-                    // the two killers and the countermove.
-                    if (move != mp->ttMove && move != mp->killer1 && move != mp->killer2
-                        && move != mp->counter)
+                    // Avoid searching the same move twice.
+                    if (move != mp->ttMove && !movepicker_is_refutation(mp, move))
                         return move;
                 }
 
@@ -257,16 +252,16 @@ top:
         case CHECK_GEN_ALL:
             // Generate and score all evasions.
             ++mp->stage;
-            mp->list.last = generate_evasions(mp->list.moves, mp->board);
-            score_evasions(mp, mp->list.moves, mp->list.last);
             mp->cur = mp->list.moves;
+            mp->end = generate_evasions(mp->cur, mp->board);
+            score_evasions(mp, mp->cur, mp->end);
             // Fallthrough
 
         case CHECK_PICK_ALL:
             // Select the next best evasion.
-            while (mp->cur < mp->list.last)
+            while (mp->cur < mp->end)
             {
-                place_top_move(mp->cur, mp->list.last);
+                place_top_move(mp->cur, mp->end);
 
                 if (mp->cur->move != mp->ttMove) return (mp->cur++)->move;
 
