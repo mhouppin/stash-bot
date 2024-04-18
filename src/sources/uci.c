@@ -628,6 +628,11 @@ void uci_loop(int argc, char **argv)
     add_option_check(&UciOptionList, "Ponder", &UciOptionFields.ponder, NULL);
     add_option_button(&UciOptionList, "Clear Hash", &on_clear_hash);
 
+    TUNE_DOUBLE(HistQuad, 0.0, 50.0);
+    TUNE_DOUBLE(HistLinear, -10.0, 500.0);
+    TUNE_DOUBLE(HistBase, -10.0, 500.0);
+    TUNE_DOUBLE(HistMax, 100.0, 5000.0);
+
     uci_position("startpos");
 
     if (argc > 1)

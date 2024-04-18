@@ -16,9 +16,20 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <math.h>
 #include "history.h"
 #include "search.h"
 #include "worker.h"
+
+double HistQuad = 24.0;
+double HistLinear = 1.0;
+double HistBase = 0.0;
+double HistMax = 2563.0;
+
+int history_bonus(int depth)
+{
+    return fmin(HistMax, HistQuad * depth * depth + HistLinear * depth + HistBase);
+}
 
 void update_cont_histories(Searchstack *ss, int depth, piece_t piece, square_t to, bool failHigh)
 {
