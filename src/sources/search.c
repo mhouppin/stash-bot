@@ -944,6 +944,9 @@ score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchst
         {
             score_t delta = futilityBase + PieceScores[ENDGAME][piece_on(board, to_sq(currmove))];
 
+            // Late Move Pruning for qsearch.
+            if (moveCount > 3) continue;
+
             // Check if the move is unlikely to improve alpha.
             if (delta < alpha) continue;
 
