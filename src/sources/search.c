@@ -603,6 +603,8 @@ main_loop:
 
         if (!rootNode && bestScore > -MATE_FOUND)
         {
+            const int lmrDepth = imax(depth - lmr_base_value(depth, moveCount, improving, isQuiet), 0);
+
             // Late Move Pruning. For low-depth nodes, stop searching quiets
             // after a certain movecount has been reached.
             if (depth <= 8 && moveCount > Pruning[improving][depth]) skipQuiets = true;
@@ -621,7 +623,7 @@ main_loop:
             // to lose too much material to be interesting.
             if (depth <= 12
                 && !see_greater_than(
-                    board, currmove, (isQuiet ? -49 * depth : -22 * depth * depth)))
+                    board, currmove, (isQuiet ? -49 * lmrDepth : -22 * lmrDepth * lmrDepth)))
                 continue;
         }
 
