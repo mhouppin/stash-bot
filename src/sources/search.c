@@ -560,7 +560,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
 
             if (probCutScore >= probCutBeta)
             {
-                tt_save(entry, key, score_to_tt(probCutScore, ss->plies), ss->staticEval, depth - 3,
+                tt_save(entry, key, score_to_tt(probCutScore, ss->plies), ss->staticEval, depth - 4,
                     LOWER_BOUND, currmove);
                 return probCutScore;
             }
