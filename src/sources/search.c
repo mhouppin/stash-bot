@@ -452,10 +452,13 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
         // Try to use the TT score as a better evaluation of the position.
         if (ttBound & (ttScore > eval ? LOWER_BOUND : UPPER_BOUND)) eval = ttScore;
     }
-    // Call the evaluation function otherwise.
     else
     {
-        eval = ss->staticEval = evaluate(board);
+        // If we are in a singular node, we already computed the static eval.
+        if (ss->excludedMove)
+            eval = ss->staticEval;
+        else
+            eval = ss->staticEval = evaluate(board);
 
         // Save the eval in TT so that other workers won't have to recompute it.
         tt_save(entry, key, NO_SCORE, eval, 0, NO_BOUND, NO_MOVE);
