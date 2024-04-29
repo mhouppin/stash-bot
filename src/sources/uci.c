@@ -32,7 +32,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define UCI_VERSION "v35.22"
+#define UCI_VERSION "v35.23"
 
 // clang-format off
 
