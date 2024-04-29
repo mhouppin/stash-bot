@@ -48,7 +48,7 @@ int lmr_base_value(int depth, int movecount, bool improving, bool isQuiet)
 
 int lmp_threshold(int depth, bool improving)
 {
-    int result = improving ? 64 + 9 * depth * depth : 13 + 4 * depth * depth;
+    int result = improving ? 63 + 8 * depth * depth : 13 + 4 * depth * depth;
 
     return result / 16;
 }
