@@ -130,6 +130,7 @@ static void init_base_values(TpVector *base)
     INIT_BASE_SP(IDX_MINOR_ATK_ROOK, MinorAttacksRook);
     INIT_BASE_SP(IDX_MINOR_ATK_QUEEN, MinorAttacksQueen);
     INIT_BASE_SP(IDX_ROOK_ATK_QUEEN, RookAttacksQueen);
+    INIT_BASE_SP(IDX_HANGING_PAWN, HangingPawn);
 
     extern const scorepair_t PassedBonus[RANK_NB], PhalanxBonus[RANK_NB], DefenderBonus[RANK_NB];
 
@@ -658,6 +659,7 @@ void print_parameters(const TpVector *base, const TpVector *delta)
     PRINT_SP_NICE(IDX_MINOR_ATK_ROOK, MinorAttacksRook, 3, 17);
     PRINT_SP_NICE(IDX_MINOR_ATK_QUEEN, MinorAttacksQueen, 3, 17);
     PRINT_SP_NICE(IDX_ROOK_ATK_QUEEN, RookAttacksQueen, 3, 17);
+    PRINT_SP_NICE(IDX_HANGING_PAWN, HangingPawn, 3, 17);
     putchar('\n');
 
     // evaluate.c end
@@ -771,7 +773,6 @@ void start_tuning_session(const char *filename)
 
     const double sigmoidK = compute_optimal_k(&dataset);
     double learningRate = LEARNING_RATE;
-    double lastLoss = 0.0;
 
     compute_wdl_eval_mix(&dataset, sigmoidK);
 
@@ -780,19 +781,14 @@ void start_tuning_session(const char *filename)
         adam_next_epoch(&adam, &dataset, &delta, sigmoidK, learningRate);
 
         const double currentLoss = adjusted_eval_mse(&dataset, &delta, sigmoidK);
-        const bool earlyStop = iter > 0 && lastLoss - currentLoss < 1e-8;
 
         printf("Iteration [%u], Loss [%.7lf]\n", (unsigned int)iter, currentLoss);
 
         if (iter % LR_DROP_ITERS == LR_DROP_ITERS - 1) learningRate /= LR_DROP_VALUE;
 
-        if (iter % 50 == 49 || iter == ITERS - 1 || earlyStop) print_parameters(&base, &delta);
+        if (iter % 50 == 49 || iter == ITERS - 1) print_parameters(&base, &delta);
 
         fflush(stdout);
-
-        if (earlyStop) break;
-
-        lastLoss = currentLoss;
     }
 
     for (size_t i = 0; i < dataset.size; ++i) free(dataset.entries[i].tuples);

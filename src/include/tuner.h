@@ -30,7 +30,7 @@
 #define LEARNING_RATE 0.001
 #define LR_DROP_ITERS 10000
 #define LR_DROP_VALUE 1.0
-#define BATCH_SIZE 2048
+#define BATCH_SIZE 4096
 
 typedef struct _TuneTuple
 {
