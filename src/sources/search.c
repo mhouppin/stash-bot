@@ -679,6 +679,14 @@ main_loop:
                 // in the current node, and return a search score early.
                 else if (singularBeta >= beta)
                     return singularBeta;
+
+                // Negative Extensions. If our singular search produced a cutoff,
+                // with singularBeta was too low to beat beta, but the TT entry
+                // having a search score above beta, we assume that searching the
+                // TT move at full depth is futile as we should get a fail-high
+                // deeper on this branch, and reduce its search depth.
+                else if (ttScore >= beta)
+                    extension = -1;
             }
             // Check Extensions. Extend non-LMR searches by one ply for moves
             // that give check.
