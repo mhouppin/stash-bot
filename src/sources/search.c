@@ -648,7 +648,7 @@ main_loop:
             // that's not the case, we consider the TT move to be singular, and
             // we extend non-LMR searches by one or two lies, depending on the
             // margin that the singular search failed low.
-            if (depth >= 8 && currmove == ttMove && !ss->excludedMove && (ttBound & LOWER_BOUND)
+            if (depth >= 6 && currmove == ttMove && !ss->excludedMove && (ttBound & LOWER_BOUND)
                 && abs(ttScore) < VICTORY && ttDepth >= depth - 3)
             {
                 score_t singularBeta = ttScore - 11 * depth / 16;
@@ -686,7 +686,7 @@ main_loop:
                 // TT move at full depth is futile as we should get a fail-high
                 // deeper on this branch, and reduce its search depth.
                 else if (ttScore >= beta)
-                    extension = -1;
+                    extension = -2;
             }
             // Check Extensions. Extend non-LMR searches by one ply for moves
             // that give check.
