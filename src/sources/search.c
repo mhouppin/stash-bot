@@ -528,7 +528,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
     if (!rootNode && depth >= 6 && abs(beta) < VICTORY
         && !(found && ttDepth >= depth - 4 && ttScore < probCutBeta))
     {
-        const score_t probCutSEE = probCutBeta - ss->staticEval;
+        const score_t probCutSEE = imax(0, probCutBeta - ss->staticEval);
         move_t currmove;
 
         movepicker_init(&mp, true, board, worker,
