@@ -531,8 +531,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
         const score_t probCutSEE = probCutBeta - ss->staticEval;
         move_t currmove;
 
-        movepicker_init(&mp, true, board, worker,
-            ttMove && see_greater_than(board, ttMove, probCutSEE) ? ttMove : NO_MOVE, ss);
+        movepicker_init(&mp, true, board, worker, ttMove, ss);
 
         while ((currmove = movepicker_next_move(&mp, false, probCutSEE)) != NO_MOVE)
         {
