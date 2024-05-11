@@ -96,12 +96,11 @@ static void init_base_values(TpVector *base)
     INIT_BASE_SPA(IDX_KNIGHT_CLOSED_POS, ClosedPosKnight, 5);
     INIT_BASE_SP(IDX_KNIGHT_SHIELDED, KnightShielded);
     INIT_BASE_SP(IDX_KNIGHT_OUTPOST, KnightOutpost);
-    INIT_BASE_SP(IDX_KNIGHT_CENTER_OUTPOST, KnightCenterOutpost);
-    INIT_BASE_SP(IDX_KNIGHT_SOLID_OUTPOST, KnightSolidOutpost);
 
     INIT_BASE_SPA(IDX_BISHOP_PAWNS_COLOR, BishopPawnsSameColor, 7);
     INIT_BASE_SP(IDX_BISHOP_PAIR, BishopPairBonus);
     INIT_BASE_SP(IDX_BISHOP_SHIELDED, BishopShielded);
+    INIT_BASE_SP(IDX_BISHOP_OUTPOST, BishopOutpost);
     INIT_BASE_SP(IDX_BISHOP_LONG_DIAG, BishopLongDiagonal);
 
     INIT_BASE_SP(IDX_ROOK_SEMIOPEN, RookOnSemiOpenFile);
@@ -619,8 +618,6 @@ void print_parameters(const TpVector *base, const TpVector *delta)
     printf("// Knight eval terms\n");
     PRINT_SP_NICE(IDX_KNIGHT_SHIELDED, KnightShielded, 3, 19);
     PRINT_SP_NICE(IDX_KNIGHT_OUTPOST, KnightOutpost, 3, 19);
-    PRINT_SP_NICE(IDX_KNIGHT_CENTER_OUTPOST, KnightCenterOutpost, 3, 19);
-    PRINT_SP_NICE(IDX_KNIGHT_SOLID_OUTPOST, KnightSolidOutpost, 3, 19);
     putchar('\n');
     PRINT_SPA(IDX_KNIGHT_CLOSED_POS, ClosedPosKnight, 5, 4, 4, "SPAIR");
     putchar('\n');
@@ -628,6 +625,7 @@ void print_parameters(const TpVector *base, const TpVector *delta)
     printf("// Bishop eval terms\n");
     PRINT_SP_NICE(IDX_BISHOP_PAIR, BishopPairBonus, 3, 18);
     PRINT_SP_NICE(IDX_BISHOP_SHIELDED, BishopShielded, 3, 18);
+    PRINT_SP_NICE(IDX_BISHOP_OUTPOST, BishopOutpost, 3, 18);
     PRINT_SP_NICE(IDX_BISHOP_LONG_DIAG, BishopLongDiagonal, 3, 18);
     putchar('\n');
     PRINT_SPA(IDX_BISHOP_PAWNS_COLOR, BishopPawnsSameColor, 7, 4, 4, "SPAIR");
