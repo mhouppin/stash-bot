@@ -628,6 +628,11 @@ void uci_loop(int argc, char **argv)
     add_option_check(&UciOptionList, "Ponder", &UciOptionFields.ponder, NULL);
     add_option_button(&UciOptionList, "Clear Hash", &on_clear_hash);
 
+    TUNE_LONG(RFP_D, 4, 12);
+    TUNE_SCORE(RFP_K, 40, 130);
+    TUNE_SCORE(RFP_I, 20, 110);
+    TUNE_SCORE(RFP_B, 0, 50);
+
     uci_position("startpos");
 
     if (argc > 1)

@@ -28,6 +28,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+long RFP_D = 8;
+score_t RFP_K = 85;
+score_t RFP_I = 73;
+score_t RFP_B = 12;
+
 static int Reductions[2][256];
 
 void init_search_tables(void)
@@ -469,10 +474,10 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
 
     improving = ss->plies >= 2 && ss->staticEval > (ss - 2)->staticEval;
 
-    // Futility Pruning. If our eval is quite good and depth is low, we just
+    // Reverse Futility Pruning. If our eval is quite good and depth is low, we
     // assume that we won't fall far behind in the next plies, and we return the
     // eval.
-    if (!pvNode && depth <= 8 && eval - 85 * depth + 73 * improving >= beta && eval < VICTORY)
+    if (!pvNode && depth <= RFP_D && eval - imax(RFP_K * depth - RFP_I * improving, RFP_B) >= beta && eval < VICTORY)
         return eval;
 
     // Null Move Pruning. If our eval currently beats beta, and we still have
