@@ -604,7 +604,7 @@ main_loop:
         {
             // Late Move Pruning. For low-depth nodes, stop searching quiets
             // after a certain movecount has been reached.
-            if (depth <= 9 && moveCount >= lmp_threshold(depth, improving)) skipQuiets = true;
+            if (moveCount >= lmp_threshold(depth, improving)) skipQuiets = true;
 
             // Futility Pruning. For low-depth nodes, stop searching quiets if
             // the eval suggests that only captures will save the day.
