@@ -451,10 +451,15 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
         // Try to use the TT score as a better evaluation of the position.
         if (ttBound & (ttScore > eval ? LOWER_BOUND : UPPER_BOUND)) eval = ttScore;
     }
-    // Call the evaluation function otherwise.
     else
     {
-        eval = ss->staticEval = evaluate(board);
+        // For singular nodes, reuse the previously stored eval by the original node.
+        if (ss->excludedMove)
+            eval = ss->staticEval;
+
+        // Call the evaluation function otherwise.
+        else
+            eval = ss->staticEval = evaluate(board);
 
         // Save the eval in TT so that other workers won't have to recompute it.
         tt_save(entry, key, NO_SCORE, eval, 0, NO_BOUND, NO_MOVE);
@@ -681,7 +686,7 @@ main_loop:
                     return singularBeta;
 
                 // Negative Extensions. If our singular search produced a cutoff,
-                // with singularBeta was too low to beat beta, but the TT entry
+                // with a singularBeta too low to beat beta, but the TT entry
                 // having a search score above beta, we assume that searching the
                 // TT move at full depth is futile as we should get a fail-high
                 // deeper on this branch, and reduce its search depth.
@@ -908,12 +913,14 @@ score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchst
         // Stand Pat. If not playing a capture is better because of better quiet
         // moves, allow for a simple eval return.
         alpha = imax(alpha, bestScore);
+
         if (alpha >= beta)
         {
             // Save the eval in TT so that other workers won't have to recompute it.
             if (!found)
                 tt_save(entry, board->stack->boardKey, score_to_tt(bestScore, ss->plies), eval, 0,
                     LOWER_BOUND, NO_MOVE);
+
             return alpha;
         }
     }

@@ -713,84 +713,89 @@ scorepair_t evaluate_safety(const Board *board, evaluation_t *eval, color_t us)
     // one piece attacking with a friendly Queen still on the board.
     bool queenless = !piece_bb(board, us, QUEEN);
 
-    if (eval->safetyAttackers[us] >= 1 + queenless)
+    if (eval->safetyAttackers[us] < 1 + queenless)
     {
-        color_t them = not_color(us);
-        square_t theirKing = get_king_square(board, them);
-
-        // We define weak squares as squares that we attack where the enemy has
-        // no defenders, or only the King as a defender.
-        bitboard_t weak = eval->attacked[us] & ~eval->attackedTwice[them]
-                          & (~eval->attacked[them] | eval->attackedBy[them][KING]);
-
-        // We define safe squares as squares that are attacked (or weak and attacked twice),
-        // and where we can land on.
-        bitboard_t safe =
-            ~color_bb(board, us) & (~eval->attacked[them] | (weak & eval->attackedTwice[us]));
-
-        bitboard_t rookCheckSpan = rook_moves(board, theirKing);
-        bitboard_t bishopCheckSpan = bishop_moves(board, theirKing);
-
-        bitboard_t knightChecks = eval->attackedBy[us][KNIGHT] & knight_moves(theirKing);
-        bitboard_t allChecks = knightChecks;
-
-        bitboard_t bishopChecks = eval->attackedBy[us][BISHOP] & bishopCheckSpan;
-        allChecks |= bishopChecks;
-
-        bitboard_t rookChecks = eval->attackedBy[us][ROOK] & rookCheckSpan;
-        allChecks |= rookChecks;
-
-        bitboard_t queenChecks = eval->attackedBy[us][QUEEN] & (bishopCheckSpan | rookCheckSpan);
-        allChecks |= queenChecks;
-
-        scorepair_t bonus = eval->safetyScore[us] + SafetyOffset;
-
-        // Add bonuses based on the number of attacks and the number of weak
-        // squares in the King zone, and a penalty if we don't have a Queen for
-        // attacking.
-        bonus += AttackWeight * eval->safetyAttacks[us];
-        bonus += WeakKingZone * popcount(weak & eval->kingZone[us]);
-        bonus += QueenlessAttack * queenless;
-
-        // Add bonuses per piece for each safe check that we can perform.
-        bonus += SafeKnightCheck * popcount(knightChecks & safe);
-        bonus += SafeBishopCheck * popcount(bishopChecks & safe);
-        bonus += SafeRookCheck * popcount(rookChecks & safe);
-        bonus += SafeQueenCheck * popcount(queenChecks & safe);
-
-        // Add a bonus for all unsafe checks we can perform.
-        bonus += UnsafeCheck * popcount(allChecks & ~safe);
-
-        // Evaluate the Pawn Storm/Shelter.
-        {
-            bitboard_t ourPawns = piece_bb(board, us, PAWN);
-            bitboard_t theirPawns = piece_bb(board, them, PAWN);
-
-            for (file_t f = imax(FILE_A, sq_file(theirKing) - 1);
-                 f <= imin(FILE_H, sq_file(theirKing) + 1); ++f)
-                bonus += evaluate_safety_file(ourPawns, theirPawns, f, theirKing, us);
-        }
-
-        TRACE_ADD(IDX_KS_OFFSET, us, 1);
-        TRACE_ADD(IDX_KS_QUEENLESS, us, queenless);
-        TRACE_ADD(IDX_KS_WEAK_Z, us, popcount(weak & eval->kingZone[us]));
-        TRACE_ADD(IDX_KS_CHECK_N, us, popcount(knightChecks & safe));
-        TRACE_ADD(IDX_KS_CHECK_B, us, popcount(bishopChecks & safe));
-        TRACE_ADD(IDX_KS_CHECK_R, us, popcount(rookChecks & safe));
-        TRACE_ADD(IDX_KS_CHECK_Q, us, popcount(queenChecks & safe));
-        TRACE_ADD(IDX_KS_UNSAFE_CHECK, us, popcount(allChecks & ~safe));
-        TRACE_SAFETY(us, bonus);
-
-        // Compute the final safety score. The middlegame term scales
-        // quadratically, while the endgame term scales linearly. The safety
-        // evaluation cannot be negative.
-        score_t mg = midgame_score(bonus), eg = endgame_score(bonus);
-
-        return create_scorepair(imax(mg, 0) * mg / 256, imax(eg, 0) / 16);
+        TRACE_CLEAR_SAFETY(us);
+        return 0;
     }
 
-    TRACE_CLEAR_SAFETY(us);
-    return 0;
+    color_t them = not_color(us);
+    square_t theirKing = get_king_square(board, them);
+
+    // We define weak squares as squares that we attack where the enemy has
+    // no defenders, or only the King as a defender.
+    bitboard_t weak = eval->attacked[us] & ~eval->attackedTwice[them]
+                        & (~eval->attacked[them] | eval->attackedBy[them][KING]);
+
+    // We define safe squares as squares that are attacked (or weak and attacked twice),
+    // and where we can land on.
+    bitboard_t safe =
+        ~color_bb(board, us) & (~eval->attacked[them] | (weak & eval->attackedTwice[us]));
+
+    bitboard_t rookCheckSpan = rook_moves(board, theirKing);
+    bitboard_t bishopCheckSpan = bishop_moves(board, theirKing);
+
+    bitboard_t knightChecks = eval->attackedBy[us][KNIGHT] & knight_moves(theirKing);
+    bitboard_t allChecks = knightChecks;
+
+    bitboard_t bishopChecks = eval->attackedBy[us][BISHOP] & bishopCheckSpan;
+    allChecks |= bishopChecks;
+
+    bitboard_t rookChecks = eval->attackedBy[us][ROOK] & rookCheckSpan;
+    allChecks |= rookChecks;
+
+    bitboard_t queenChecks = eval->attackedBy[us][QUEEN] & (bishopCheckSpan | rookCheckSpan);
+    allChecks |= queenChecks;
+
+    scorepair_t bonus = eval->safetyScore[us] + SafetyOffset;
+
+    // Add bonuses based on the number of attacks and the number of weak
+    // squares in the King zone, and a penalty if we don't have a Queen for
+    // attacking.
+    bonus += AttackWeight * eval->safetyAttacks[us];
+    bonus += WeakKingZone * popcount(weak & eval->kingZone[us]);
+    bonus += QueenlessAttack * queenless;
+
+    // Add bonuses per piece for each safe check that we can perform.
+    bonus += SafeKnightCheck * popcount(knightChecks & safe);
+    bonus += SafeBishopCheck * popcount(bishopChecks & safe);
+    bonus += SafeRookCheck * popcount(rookChecks & safe);
+    bonus += SafeQueenCheck * popcount(queenChecks & safe);
+
+    // Add a bonus for all unsafe checks we can perform.
+    bonus += UnsafeCheck * popcount(allChecks & ~safe);
+
+    // Evaluate the Pawn Storm/Shelter.
+    {
+        bitboard_t ourPawns = piece_bb(board, us, PAWN);
+        bitboard_t theirPawns = piece_bb(board, them, PAWN);
+        file_t kingFile = sq_file(theirKing);
+
+        if (kingFile != FILE_A)
+            bonus += evaluate_safety_file(ourPawns, theirPawns, kingFile - 1, theirKing, us);
+
+        bonus += evaluate_safety_file(ourPawns, theirPawns, kingFile, theirKing, us);
+
+        if (kingFile != FILE_H)
+            bonus += evaluate_safety_file(ourPawns, theirPawns, kingFile + 1, theirKing, us);
+    }
+
+    TRACE_ADD(IDX_KS_OFFSET, us, 1);
+    TRACE_ADD(IDX_KS_QUEENLESS, us, queenless);
+    TRACE_ADD(IDX_KS_WEAK_Z, us, popcount(weak & eval->kingZone[us]));
+    TRACE_ADD(IDX_KS_CHECK_N, us, popcount(knightChecks & safe));
+    TRACE_ADD(IDX_KS_CHECK_B, us, popcount(bishopChecks & safe));
+    TRACE_ADD(IDX_KS_CHECK_R, us, popcount(rookChecks & safe));
+    TRACE_ADD(IDX_KS_CHECK_Q, us, popcount(queenChecks & safe));
+    TRACE_ADD(IDX_KS_UNSAFE_CHECK, us, popcount(allChecks & ~safe));
+    TRACE_SAFETY(us, bonus);
+
+    // Compute the final safety score. The middlegame term scales
+    // quadratically, while the endgame term scales linearly. The safety
+    // evaluation cannot be negative.
+    score_t mg = midgame_score(bonus), eg = endgame_score(bonus);
+
+    return create_scorepair(imax(mg, 0) * mg / 256, imax(eg, 0) / 16);
 }
 
 score_t evaluate(const Board *board)
