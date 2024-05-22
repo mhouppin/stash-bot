@@ -451,6 +451,9 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
         // Try to use the TT score as a better evaluation of the position.
         if (ttBound & (ttScore > eval ? LOWER_BOUND : UPPER_BOUND)) eval = ttScore;
     }
+    // For singular nodes, make use of the already computed static eval.
+    else if (ss->excludedMove)
+        eval = ss->staticEval;
     // Call the evaluation function otherwise.
     else
     {
@@ -567,7 +570,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
     }
 
     // Reduce depth if the node is absent from TT.
-    if (!rootNode && !found && depth >= 3) --depth;
+    if (!rootNode && !ss->excludedMove && !found && depth >= 3) --depth;
 
 main_loop:
     movepicker_init(&mp, false, board, worker, ttMove, ss);
