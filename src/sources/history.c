@@ -20,10 +20,6 @@
 #include "search.h"
 #include "worker.h"
 
-score_t HistBase = 0;
-score_t HistScale = 200;
-score_t HistMax = 2563;
-
 void update_cont_histories(Searchstack *ss, int depth, piece_t piece, square_t to, bool failHigh)
 {
     int bonus = history_bonus(depth);
