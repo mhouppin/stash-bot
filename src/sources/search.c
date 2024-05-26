@@ -613,7 +613,7 @@ main_loop:
 
             // Continuation History Pruning. For low-depth nodes, prune quiet moves if
             // they seem to be bad continuations to the previous moves.
-            if (depth <= 6 && get_conthist_score(board, ss, currmove) < 858 - 5619 * (depth - 1))
+            if (depth <= 6 && get_conthist_score(board, ss, currmove) < 854 - 5332 * (depth - 1))
                 continue;
 
             // SEE Pruning. For low-depth nodes, don't search moves which seem
@@ -730,7 +730,7 @@ main_loop:
             r -= isQuiet && !see_greater_than(board, reverse_move(currmove), 0);
 
             // Increase/decrease the reduction based on the move's history.
-            r -= iclamp(histScore / 12517, -3, 3);
+            r -= iclamp(histScore / 12860, -3, 3);
 
             // Clamp the reduction so that we don't extend the move or drop
             // immediately into qsearch.
