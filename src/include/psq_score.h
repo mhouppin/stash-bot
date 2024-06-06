@@ -24,17 +24,17 @@
 // Enum for all pieces' midgame and endgame scores
 enum
 {
-    PAWN_MG_SCORE = 104,
-    KNIGHT_MG_SCORE = 386,
-    BISHOP_MG_SCORE = 411,
-    ROOK_MG_SCORE = 544,
-    QUEEN_MG_SCORE = 1177,
+    PAWN_MG_SCORE = 103,
+    KNIGHT_MG_SCORE = 384,
+    BISHOP_MG_SCORE = 408,
+    ROOK_MG_SCORE = 540,
+    QUEEN_MG_SCORE = 1174,
 
     PAWN_EG_SCORE = 207,
-    KNIGHT_EG_SCORE = 664,
+    KNIGHT_EG_SCORE = 663,
     BISHOP_EG_SCORE = 722,
     ROOK_EG_SCORE = 1173,
-    QUEEN_EG_SCORE = 2212,
+    QUEEN_EG_SCORE = 2213,
 
     PAWN_SEE_SCORE = 106,
     KNIGHT_SEE_SCORE = 353,

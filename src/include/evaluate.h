@@ -86,8 +86,8 @@ typedef enum tune_idx_e
     IDX_KS_UNSAFE_CHECK,
     IDX_KS_QUEENLESS,
     IDX_KS_STORM,
-    IDX_KS_SHELTER = IDX_KS_STORM + 24,
-    IDX_KS_OFFSET = IDX_KS_SHELTER + 24,
+    IDX_KS_SHELTER = IDX_KS_STORM + 27,
+    IDX_KS_OFFSET = IDX_KS_SHELTER + 27,
     IDX_COUNT
 } tune_idx_t;
 

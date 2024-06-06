@@ -89,8 +89,8 @@ static void init_base_values(TpVector *base)
     INIT_BASE_SP(IDX_KS_CHECK_Q, SafeQueenCheck);
     INIT_BASE_SP(IDX_KS_UNSAFE_CHECK, UnsafeCheck);
     INIT_BASE_SP(IDX_KS_QUEENLESS, QueenlessAttack);
-    INIT_BASE_SPA(IDX_KS_STORM, KingStorm, 24);
-    INIT_BASE_SPA(IDX_KS_SHELTER, KingShelter, 24);
+    INIT_BASE_SPA(IDX_KS_STORM, KingStorm, 27);
+    INIT_BASE_SPA(IDX_KS_SHELTER, KingShelter, 27);
     INIT_BASE_SP(IDX_KS_OFFSET, SafetyOffset);
 
     INIT_BASE_SPA(IDX_KNIGHT_CLOSED_POS, ClosedPosKnight, 5);
@@ -609,10 +609,10 @@ void print_parameters(const TpVector *base, const TpVector *delta)
     PRINT_SP_NICE(IDX_KS_OFFSET, SafetyOffset, 4, 15);
     putchar('\n');
     printf("// Storm/Shelter indexes:\n");
-    printf("// 0-7 - Side\n// 9-15 - Front\n// 16-23 - Center\n");
-    PRINT_SPA(IDX_KS_STORM, KingStorm, 24, 4, 4, "SPAIR");
+    printf("// 0-8 - Side\n// 9-17 - Front\n// 18-26 - Center\n");
+    PRINT_SPA(IDX_KS_STORM, KingStorm, 27, 4, 3, "SPAIR");
     putchar('\n');
-    PRINT_SPA(IDX_KS_SHELTER, KingShelter, 24, 4, 4, "SPAIR");
+    PRINT_SPA(IDX_KS_SHELTER, KingShelter, 27, 4, 3, "SPAIR");
     putchar('\n');
 
     printf("// Knight eval terms\n");
