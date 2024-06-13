@@ -300,7 +300,7 @@ void eval_init(const Board *board, const KingPawnEntry *kpe, evaluation_t *eval)
     eval->attackedBy[WHITE][PAWN] = wattacks;
     eval->attackedBy[BLACK][PAWN] = battacks;
     eval->attackedTwice[WHITE] |= eval->attacked[WHITE] & wattacks;
-    eval->attackedTwice[BLACK] |= eval->attacked[BLACK] & wattacks;
+    eval->attackedTwice[BLACK] |= eval->attacked[BLACK] & battacks;
     eval->attackedTwice[WHITE] |= kpe->attacks2[WHITE];
     eval->attackedTwice[BLACK] |= kpe->attacks2[BLACK];
     eval->attacked[WHITE] |= wattacks;
