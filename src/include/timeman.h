@@ -46,9 +46,6 @@ typedef enum bestmove_type_e
     BM_TYPE_NB
 } bestmove_type_t;
 
-// Global for scaling time usage based on bestmove type
-extern const double BestmoveTypeScale[BM_TYPE_NB];
-
 // Global for scaling time usage based on stability
 extern const double BestmoveStabilityScale[5];
 
