@@ -136,25 +136,38 @@ move_t str_to_move(const Board *board, const char *str)
     return NO_MOVE;
 }
 
-int winrate_model(score_t score, int ply)
+void get_winrate_params(const Board *board, double params[2])
 {
     // clang-format off
-    static const double as[4] = {  -4.19608390,   27.38380265,   32.62081910,   98.27443919};
-    static const double bs[4] = {   0.36809906,   -1.71950139,    9.71771959,   61.99845003};
+    static const double as[4] = {-180.13481505,  541.48089241, -633.47610686,  409.68374895};
+    static const double bs[4] = { -76.66115199,  189.33883856, -129.66753868,  120.80666689};
     // clang-format on
 
-    double p = imin(ply, 240) / 64.0;
-    double a = ((as[0] * p + as[1]) * p + as[2]) * p + as[3];
-    double b = ((bs[0] * p + bs[1]) * p + bs[2]) * p + bs[3];
+    int material =
+        9 * popcount(piecetype_bb(board, QUEEN)) + 5 * popcount(piecetype_bb(board, ROOK))
+        + 3 * popcount(piecetypes_bb(board, KNIGHT, BISHOP)) + popcount(piecetype_bb(board, PAWN));
 
-    // Clamp the score value to avoid issues while computing the exponent.
-    double v = fmin(fmax(-4000.0, (double)score), 4000.0);
+    // The fitted model only uses data for material counts in [17, 78], and is
+    // anchored at count 58.
+    double m = iclamp(material, 17, 78) / 58.0;
 
-    // Return the winrate in per mille units.
-    return (int)(0.5 + 1000.0 / (1.0 + exp((a - v) / b)));
+    // Return a = p_a(material) and b = p_b(material), see
+    // https://github.com/official-stockfish/WDL_model
+    params[0] = (((as[0] * m + as[1]) * m + as[2]) * m) + as[3];
+    params[1] = (((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3];
 }
 
-const char *score_to_wdl(score_t score, int ply)
+int winrate_model(score_t score, const Board *board)
+{
+    double params[2];
+
+    get_winrate_params(board, params);
+
+    // Return the winrate in per mille units.
+    return (int)(0.5 + 1000.0 / (1.0 + exp((params[0] - score) / params[1])));
+}
+
+const char *score_to_wdl(score_t score, const Board *board)
 {
     static char buf[17];
 
@@ -163,8 +176,8 @@ const char *score_to_wdl(score_t score, int ply)
 
     else
     {
-        int wdlWin = winrate_model(score, ply);
-        int wdlLose = winrate_model(-score, ply);
+        int wdlWin = winrate_model(score, board);
+        int wdlLose = winrate_model(-score, board);
         int wdlDraw = 1000 - wdlWin - wdlLose;
 
         sprintf(buf, " wdl %d %d %d", wdlWin, wdlDraw, wdlLose);
@@ -173,9 +186,8 @@ const char *score_to_wdl(score_t score, int ply)
     return buf;
 }
 
-const char *score_to_str(score_t score)
+const char *score_to_str(score_t score, const Board *board)
 {
-    static const score_t NormalizeScore = 154;
     static char buf[12];
 
     if (abs(score) >= MATE_FOUND)
@@ -183,7 +195,13 @@ const char *score_to_str(score_t score)
 
     else
     {
-        if (UciOptionFields.normalizeScore) score = (int32_t)score * 100 / NormalizeScore;
+        if (UciOptionFields.normalizeScore && abs(score) < VICTORY)
+        {
+            double params[2];
+
+            get_winrate_params(board, params);
+            score = (score_t)lround(score * 100.0 / params[0]);
+        }
 
         sprintf(buf, "cp %d", score);
     }
@@ -238,7 +256,7 @@ void print_pv(
         imax(depth - !searchedMove, 1),
         rootMove->seldepth,
         multiPv,
-        score_to_str(rootScore), BoundStr[bound], score_to_wdl(rootScore, board->ply),
+        score_to_str(rootScore, board), BoundStr[bound], score_to_wdl(rootScore, board),
         (info_t)nodes,
         (info_t)nps,
         tt_hashfull(),

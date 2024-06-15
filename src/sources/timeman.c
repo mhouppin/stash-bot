@@ -125,8 +125,7 @@ void timeman_update(Timeman *tm, const Board *board, move_t bestmove, score_t sc
     list_all(&list, board);
 
     // Do we only have one legal move ? Don't burn much time on these.
-    if (movelist_size(&list) == 1)
-        scale = 0.2;
+    if (movelist_size(&list) == 1) scale = 0.2;
 
     // Update bestmove + stability statistics.
     if (tm->prevBestmove != bestmove)

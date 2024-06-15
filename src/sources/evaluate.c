@@ -388,7 +388,8 @@ scorepair_t evaluate_knights(
     return ret;
 }
 
-scorepair_t evaluate_bishops(const Board *board, evaluation_t *eval, const KingPawnEntry *kpe, color_t us)
+scorepair_t evaluate_bishops(
+    const Board *board, evaluation_t *eval, const KingPawnEntry *kpe, color_t us)
 {
     scorepair_t ret = 0;
     const bitboard_t occupancy = occupancy_bb(board) ^ piece_bb(board, us, QUEEN);
