@@ -269,7 +269,7 @@ score_t scale_endgame(const Board *board, const KingPawnEntry *kpe, score_t eg)
     return eg;
 }
 
-void eval_init(const Board *board, const KingPawnEntry *kpe, evaluation_t *eval)
+void eval_init(const Board *board, evaluation_t *eval)
 {
     memset(eval, 0, sizeof(evaluation_t));
 
@@ -294,15 +294,15 @@ void eval_init(const Board *board, const KingPawnEntry *kpe, evaluation_t *eval)
     bitboard_t occupied = occupancy_bb(board);
     bitboard_t wpawns = piece_bb(board, WHITE, PAWN);
     bitboard_t bpawns = piece_bb(board, BLACK, PAWN);
-    bitboard_t wattacks = kpe->attacks[WHITE];
-    bitboard_t battacks = kpe->attacks[BLACK];
+    bitboard_t wattacks = wpawns_attacks_bb(wpawns);
+    bitboard_t battacks = bpawns_attacks_bb(bpawns);
 
     eval->attackedBy[WHITE][PAWN] = wattacks;
     eval->attackedBy[BLACK][PAWN] = battacks;
     eval->attackedTwice[WHITE] |= eval->attacked[WHITE] & wattacks;
     eval->attackedTwice[BLACK] |= eval->attacked[BLACK] & battacks;
-    eval->attackedTwice[WHITE] |= kpe->attacks2[WHITE];
-    eval->attackedTwice[BLACK] |= kpe->attacks2[BLACK];
+    eval->attackedTwice[WHITE] |= wpawns_2attacks_bb(wpawns);
+    eval->attackedTwice[BLACK] |= bpawns_2attacks_bb(bpawns);
     eval->attacked[WHITE] |= wattacks;
     eval->attacked[BLACK] |= battacks;
 
@@ -811,8 +811,8 @@ score_t evaluate(const Board *board)
     KingPawnEntry *kpe;
     score_t mg, eg, score;
 
+    eval_init(board, &eval);
     kpe = kp_probe(board);
-    eval_init(board, kpe, &eval);
 
     // Add the King-Pawn structure evaluation.
     tapered += kpe->value;
