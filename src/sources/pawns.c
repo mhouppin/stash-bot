@@ -90,7 +90,7 @@ const scorepair_t DefenderBonus[8] = {
 // clang-format on
 
 scorepair_t evaluate_passed(
-    KingPawnEntry *entry, color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
+    KingPawnEntry *restrict entry, const PawnLocalData *restrict data, color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
 {
     scorepair_t ret = 0;
 
@@ -106,8 +106,8 @@ scorepair_t evaluate_passed(
         // square attacked by an enemy Pawn is matched by a friendly Pawn
         // attacking it too.
         if ((queening & theirPawns) == 0
-            && (queening & entry->attacks[not_color(us)] & ~entry->attacks[us]) == 0
-            && (queening & entry->attacks2[not_color(us)] & ~entry->attacks2[us]) == 0)
+            && (queening & data->attacks[not_color(us)] & ~data->attacks[us]) == 0
+            && (queening & data->attacks2[not_color(us)] & ~data->attacks2[us]) == 0)
         {
             ret += PassedBonus[relative_sq_rank(sq, us)];
             entry->passed[us] |= square_bb(sq);
@@ -153,7 +153,7 @@ scorepair_t evaluate_passed_pos(const KingPawnEntry *entry, const Board *board, 
 }
 
 scorepair_t evaluate_backward(
-    KingPawnEntry *entry, color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
+    KingPawnEntry *restrict entry, const PawnLocalData *restrict data, color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
 {
     bitboard_t stopSquares = (us == WHITE) ? shift_up(ourPawns) : shift_down(ourPawns);
     bitboard_t ourAttackSpan = 0;
@@ -164,9 +164,7 @@ scorepair_t evaluate_backward(
     // Save the pawn attack span to the entry for later use.
     entry->attackSpan[us] = ourAttackSpan;
 
-    bitboard_t theirAttacks =
-        (us == WHITE) ? bpawns_attacks_bb(theirPawns) : wpawns_attacks_bb(theirPawns);
-    bitboard_t backward = stopSquares & theirAttacks & ~ourAttackSpan;
+    bitboard_t backward = stopSquares & data->attacks[not_color(us)] & ~ourAttackSpan;
 
     backward = (us == WHITE) ? shift_down(backward) : shift_up(backward);
 
@@ -270,6 +268,8 @@ KingPawnEntry *kp_probe(const Board *board)
     KingPawnEntry *entry = &e;
 #endif
 
+    PawnLocalData data;
+
     // Reset the entry contents.
     entry->key = board->stack->kingPawnKey;
     entry->value = 0;
@@ -280,20 +280,20 @@ KingPawnEntry *kp_probe(const Board *board)
     const bitboard_t bpawns = piece_bb(board, BLACK, PAWN);
 
     // Compute and save the Pawn direct attacks for later use.
-    entry->attacks[WHITE] = wpawns_attacks_bb(wpawns);
-    entry->attacks[BLACK] = bpawns_attacks_bb(bpawns);
-    entry->attacks2[WHITE] = wpawns_2attacks_bb(wpawns);
-    entry->attacks2[BLACK] = bpawns_2attacks_bb(bpawns);
+    data.attacks[WHITE] = wpawns_attacks_bb(wpawns);
+    data.attacks[BLACK] = bpawns_attacks_bb(bpawns);
+    data.attacks2[WHITE] = wpawns_2attacks_bb(wpawns);
+    data.attacks2[BLACK] = bpawns_2attacks_bb(bpawns);
 
     // Evaluate the Pawn structure.
-    entry->value += evaluate_backward(entry, WHITE, wpawns, bpawns);
-    entry->value -= evaluate_backward(entry, BLACK, bpawns, wpawns);
+    entry->value += evaluate_backward(entry, &data, WHITE, wpawns, bpawns);
+    entry->value -= evaluate_backward(entry, &data, BLACK, bpawns, wpawns);
 
     entry->value += evaluate_connected(wpawns, WHITE);
     entry->value -= evaluate_connected(bpawns, BLACK);
 
-    entry->value += evaluate_passed(entry, WHITE, wpawns, bpawns);
-    entry->value -= evaluate_passed(entry, BLACK, bpawns, wpawns);
+    entry->value += evaluate_passed(entry, &data, WHITE, wpawns, bpawns);
+    entry->value -= evaluate_passed(entry, &data, BLACK, bpawns, wpawns);
 
     entry->value += evaluate_passed_pos(entry, board, WHITE);
     entry->value -= evaluate_passed_pos(entry, board, BLACK);
