@@ -139,8 +139,8 @@ move_t str_to_move(const Board *board, const char *str)
 void get_winrate_params(const Board *board, double params[2])
 {
     // clang-format off
-    static const double as[4] = {-180.13481505,  541.48089241, -633.47610686,  409.68374895};
-    static const double bs[4] = { -76.66115199,  189.33883856, -129.66753868,  120.80666689};
+    static const double as[4] = {-115.80269028,  326.13955902, -411.17611305,  342.29869813};
+    static const double bs[4] = { -35.81090243,   83.17183837,  -52.14133486,   81.73401953};
     // clang-format on
 
     int material =
@@ -186,8 +186,9 @@ const char *score_to_wdl(score_t score, const Board *board)
     return buf;
 }
 
-const char *score_to_str(score_t score, const Board *board)
+const char *score_to_str(score_t score)
 {
+    static const score_t NormalizeScore = 141;
     static char buf[12];
 
     if (abs(score) >= MATE_FOUND)
@@ -195,13 +196,7 @@ const char *score_to_str(score_t score, const Board *board)
 
     else
     {
-        if (UciOptionFields.normalizeScore && abs(score) < VICTORY)
-        {
-            double params[2];
-
-            get_winrate_params(board, params);
-            score = (score_t)lround(score * 100.0 / params[0]);
-        }
+        if (UciOptionFields.normalizeScore) score = (int32_t)score * 100 / NormalizeScore;
 
         sprintf(buf, "cp %d", score);
     }
@@ -256,7 +251,7 @@ void print_pv(
         imax(depth - !searchedMove, 1),
         rootMove->seldepth,
         multiPv,
-        score_to_str(rootScore, board), BoundStr[bound], score_to_wdl(rootScore, board),
+        score_to_str(rootScore), BoundStr[bound], score_to_wdl(rootScore, board),
         (info_t)nodes,
         (info_t)nps,
         tt_hashfull(),
