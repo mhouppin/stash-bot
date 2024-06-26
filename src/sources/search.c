@@ -741,14 +741,16 @@ main_loop:
             // Perform another search at full depth if LMR failed high.
             if (r != 0 && score > alpha)
             {
-                score = -search(false, board, newDepth + extension, -alpha - 1, -alpha, ss + 1, !cutNode);
+                score = -search(
+                    false, board, newDepth + extension, -alpha - 1, -alpha, ss + 1, !cutNode);
 
                 update_cont_histories(ss, depth, movedPiece, to_sq(currmove), score > alpha);
             }
         }
         // If LMR is not possible, do a search with no reductions.
         else if (!pvNode || moveCount != 1)
-            score = -search(false, board, newDepth + extension, -alpha - 1, -alpha, ss + 1, !cutNode);
+            score =
+                -search(false, board, newDepth + extension, -alpha - 1, -alpha, ss + 1, !cutNode);
 
         // In PV nodes, perform an additional full-window search for the first
         // move, or when all our previous searches returned fail-highs.

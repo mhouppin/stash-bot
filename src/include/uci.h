@@ -64,7 +64,6 @@ typedef struct _CommandMap
 char *get_next_token(char **str);
 
 const char *move_to_str(move_t move, bool isChess960);
-const char *score_to_str(score_t score);
 move_t str_to_move(const Board *board, const char *str);
 
 // Displays the formatted content while in debug mode.
