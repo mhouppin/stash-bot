@@ -89,8 +89,8 @@ const scorepair_t DefenderBonus[8] = {
 
 // clang-format on
 
-scorepair_t evaluate_passed(
-    KingPawnEntry *restrict entry, const PawnLocalData *restrict data, color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
+scorepair_t evaluate_passed(KingPawnEntry *restrict entry, const PawnLocalData *restrict data,
+    color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
 {
     scorepair_t ret = 0;
 
@@ -152,8 +152,8 @@ scorepair_t evaluate_passed_pos(const KingPawnEntry *entry, const Board *board, 
     return ret;
 }
 
-scorepair_t evaluate_backward(
-    KingPawnEntry *restrict entry, const PawnLocalData *restrict data, color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
+scorepair_t evaluate_backward(KingPawnEntry *restrict entry, const PawnLocalData *restrict data,
+    color_t us, bitboard_t ourPawns, bitboard_t theirPawns)
 {
     bitboard_t stopSquares = (us == WHITE) ? shift_up(ourPawns) : shift_down(ourPawns);
     bitboard_t ourAttackSpan = 0;

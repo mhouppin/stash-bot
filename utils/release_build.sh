@@ -7,35 +7,32 @@
 
 set -e
 
-version=35.0
+version=36.0
 
 cd $(dirname "$0")
 
 cd ../src
 
-cat Makefile | sed 's/-Werror/-Wno-coverage-mismatch/g' > tmp.make
-
-for arch in 64 x86-64 x86-64-modern x86-64-bmi2
+for arch in generic x86-64 x86-64-popcnt x86-64-bmi2
 do
     ext_arch=${arch/x86-64/x86_64}
+    ext_arch=${ext_arch/generic/64}
 
-    ARCH="$arch" CFLAGS="-fprofile-generate" LDFLAGS="-lgcov" make -f tmp.make re
+    ARCH="$arch" CFLAGS="-fprofile-generate -O3 -flto" LDFLAGS="-lgcov" make re
 
     ./stash-bot bench
 
-    ARCH="$arch" CFLAGS="-fprofile-use -fno-peel-loops -fno-tracer" LDFLAGS="-lgcov" \
-        make -f tmp.make re EXE="stash-$version-linux-$ext_arch" \
+    ARCH="$arch" CFLAGS="-fprofile-use -fno-peel-loops -fno-tracer -O3 -flto" \
+        LDFLAGS="-lgcov -static" make re EXE="stash-$version-linux-$ext_arch" \
 
-    ARCH="$arch" CC=x86_64-w64-mingw32-gcc CFLAGS="-fprofile-use -fno-peel-loops -fno-tracer" \
-        LDFLAGS="-lgcov -static" make -f tmp.make re \
+    ARCH="$arch" CC=x86_64-w64-mingw32-gcc LDFLAGS="-static" make re \
         EXE="stash-$version-windows-$ext_arch.exe" \
 
     rm $(find sources \( -name "*.gcda" \) )
 done
 
-CFLAGS="-m32" make -f tmp.make re EXE="stash-$version-linux-i386" ARCH=i386
+CFLAGS="-m32 -O3 -flto" make re EXE="stash-$version-linux-i386" ARCH=i386 LDFLAGS="-lgcov -static"
 
-make -f tmp.make clean
+make clean
 
 rm stash-bot
-rm -f tmp.make

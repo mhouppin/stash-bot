@@ -70,8 +70,7 @@ else
 		arch:=$(maybe_arch)
 
 		ifeq ($(arch),x86-64-modern)
-			arch:=x86-64-popcnt
-			_ := $(warning Using 'x86-64-modern' as an architecture is deprecated, and will be removed in the future. Use 'x86-64-popcnt' instead.)
+			_ := $(error Using 'x86-64-modern' as an architecture has been removed since the v36 release. Use 'x86-64-popcnt' instead)
 		endif
 	else
 		arch:=generic
