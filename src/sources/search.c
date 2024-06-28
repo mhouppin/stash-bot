@@ -169,8 +169,7 @@ void main_worker_search(Worker *worker)
     // before the GUI sends us the "stop" in infinite mode
     // or "ponderhit" in ponder mode.
     while (!wpool_is_stopped(&SearchWorkerPool)
-           && (wpool_is_pondering(&SearchWorkerPool) || UciSearchParams.infinite))
-        ;
+           && (wpool_is_pondering(&SearchWorkerPool) || UciSearchParams.infinite));
 
     wpool_stop(&SearchWorkerPool);
 
@@ -410,6 +409,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
     bool found;
     hashkey_t key = board->stack->boardKey ^ ((hashkey_t)ss->excludedMove << 16);
     TT_Entry *entry = tt_probe(key, &found);
+    score_t rawEval;
     score_t eval;
 
     if (found)
@@ -439,14 +439,16 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
     // Don't perform early pruning or compute the eval while in check.
     if (inCheck)
     {
-        eval = ss->staticEval = NO_SCORE;
+        eval = ss->staticEval = rawEval = NO_SCORE;
         improving = false;
         goto main_loop;
     }
     // Use the TT stored information for getting an eval.
     else if (found)
     {
-        eval = ss->staticEval = entry->eval;
+        rawEval = entry->eval;
+        eval = ss->staticEval =
+            rawEval + get_correction(worker->corrHistory, board->sideToMove, get_pawn_key(board));
 
         // Try to use the TT score as a better evaluation of the position.
         if (ttBound & (ttScore > eval ? LOWER_BOUND : UPPER_BOUND)) eval = ttScore;
@@ -454,10 +456,12 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
     // Call the evaluation function otherwise.
     else
     {
-        eval = ss->staticEval = evaluate(board);
+        rawEval = evaluate(board);
+        eval = ss->staticEval =
+            rawEval + get_correction(worker->corrHistory, board->sideToMove, get_pawn_key(board));
 
         // Save the eval in TT so that other workers won't have to recompute it.
-        tt_save(entry, key, NO_SCORE, eval, 0, NO_BOUND, NO_MOVE);
+        tt_save(entry, key, NO_SCORE, rawEval, 0, NO_BOUND, NO_MOVE);
     }
 
     if (rootNode && worker->pvLine) ttMove = worker->rootMoves[worker->pvLine].move;
@@ -559,7 +563,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
 
             if (probCutScore >= probCutBeta)
             {
-                tt_save(entry, key, score_to_tt(probCutScore, ss->plies), ss->staticEval, depth - 3,
+                tt_save(entry, key, score_to_tt(probCutScore, ss->plies), rawEval, depth - 3,
                     LOWER_BOUND, currmove);
                 return probCutScore;
             }
@@ -824,15 +828,24 @@ main_loop:
     if (moveCount == 0)
         bestScore = (ss->excludedMove) ? alpha : (board->stack->checkers) ? mated_in(ss->plies) : 0;
 
+    int bound = (bestScore >= beta)    ? LOWER_BOUND
+                : (pvNode && bestmove) ? EXACT_BOUND
+                                       : UPPER_BOUND;
+
+    // If we're not in check, and we don't have a tactical best-move,
+    // and the static eval needs moving in a direction, then update corrhist.
+    if (!(board->stack->checkers || (bestmove && is_capture_or_promotion(board, bestmove))
+            || (bound == LOWER_BOUND && bestScore <= ss->staticEval)
+            || (bound == UPPER_BOUND && bestScore >= ss->staticEval)))
+    {
+        add_correction_history(worker->corrHistory, board->sideToMove, get_pawn_key(board), depth,
+            bestScore - ss->staticEval);
+    }
+
     // Only save TT for the first MultiPV move in root nodes.
     if (!rootNode || worker->pvLine == 0)
     {
-        int bound = (bestScore >= beta)    ? LOWER_BOUND
-                    : (pvNode && bestmove) ? EXACT_BOUND
-                                           : UPPER_BOUND;
-
-        tt_save(
-            entry, key, score_to_tt(bestScore, ss->plies), ss->staticEval, depth, bound, bestmove);
+        tt_save(entry, key, score_to_tt(bestScore, ss->plies), rawEval, depth, bound, bestmove);
     }
 
     return bestScore;
@@ -884,12 +897,14 @@ score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchst
     }
 
     bool inCheck = !!board->stack->checkers;
+    score_t rawEval;
     score_t eval;
     score_t bestScore;
 
     // Don't compute the eval while in check.
     if (inCheck)
     {
+        rawEval = NO_SCORE;
         eval = NO_SCORE;
         bestScore = -INF_SCORE;
     }
@@ -898,14 +913,22 @@ score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchst
         // Use the TT stored information for getting an eval.
         if (found)
         {
-            eval = bestScore = entry->eval;
+            rawEval = entry->eval;
+            eval = bestScore =
+                rawEval
+                + get_correction(worker->corrHistory, board->sideToMove, get_pawn_key(board));
 
             // Try to use the TT score as a better evaluation of the position.
             if (ttBound & (ttScore > eval ? LOWER_BOUND : UPPER_BOUND)) bestScore = ttScore;
         }
         // Call the evaluation function otherwise.
         else
-            eval = bestScore = evaluate(board);
+        {
+            rawEval = evaluate(board);
+            eval = bestScore =
+                rawEval
+                + get_correction(worker->corrHistory, board->sideToMove, get_pawn_key(board));
+        }
 
         // Stand Pat. If not playing a capture is better because of better quiet
         // moves, allow for a simple eval return.
@@ -914,8 +937,8 @@ score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchst
         {
             // Save the eval in TT so that other workers won't have to recompute it.
             if (!found)
-                tt_save(entry, board->stack->boardKey, score_to_tt(bestScore, ss->plies), eval, 0,
-                    LOWER_BOUND, NO_MOVE);
+                tt_save(entry, board->stack->boardKey, score_to_tt(bestScore, ss->plies), rawEval,
+                    0, LOWER_BOUND, NO_MOVE);
             return alpha;
         }
     }
@@ -1006,8 +1029,8 @@ score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchst
                 : (bestScore <= oldAlpha) ? UPPER_BOUND
                                           : EXACT_BOUND;
 
-    tt_save(
-        entry, board->stack->boardKey, score_to_tt(bestScore, ss->plies), eval, 0, bound, bestmove);
+    tt_save(entry, board->stack->boardKey, score_to_tt(bestScore, ss->plies), rawEval, 0, bound,
+        bestmove);
 
     return bestScore;
 }
