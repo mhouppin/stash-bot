@@ -32,7 +32,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define UCI_VERSION "v35.30"
+#define UCI_VERSION "v36.0"
 
 // clang-format off
 
@@ -291,7 +291,7 @@ void uci_ponderhit(const char *args __attribute__((unused))) { wpool_ponderhit(&
 void uci_uci(const char *args __attribute__((unused)))
 {
     puts("id name Stash " UCI_VERSION);
-    puts("id author Morgan Houppin");
+    puts("id author Morgan Houppin et al. (see AUTHORS file)");
     show_options(&UciOptionList);
     puts("uciok");
     fflush(stdout);

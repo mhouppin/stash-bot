@@ -36,7 +36,17 @@ Movelist UciSearchMoves;
 
 uint64_t Seed = 1048592ul;
 
-OptionFields UciOptionFields = {1, 16, 100, 1, false, false, false, false, true};
+OptionFields UciOptionFields = {
+    .threads = 1,
+    .hash = 16,
+    .moveOverhead = 100,
+    .multiPv = 1,
+    .chess960 = false,
+    .ponder = false,
+    .debug = false,
+    .showWDL = false,
+    .normalizeScore = true,
+};
 
 Timeman SearchTimeman;
 
