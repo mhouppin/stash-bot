@@ -99,6 +99,7 @@ void worker_reset(Worker *worker)
     memset(worker->ctHistory, 0, sizeof(continuation_history_t));
     memset(worker->cmHistory, 0, sizeof(countermove_history_t));
     memset(worker->capHistory, 0, sizeof(capture_history_t));
+    memset(worker->corrHistory, 0, sizeof(correction_history_t));
     memset(worker->kingPawnTable, 0, sizeof(KingPawnEntry) * KingPawnTableSize);
     worker->verifPlies = 0;
 }
