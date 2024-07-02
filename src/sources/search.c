@@ -155,7 +155,6 @@ void main_worker_search(Worker *worker)
         // node counter, time manager, workers' board and threads, and TT reset.
         tt_clear();
         wpool_new_search(&SearchWorkerPool);
-        timeman_init(board, &SearchTimeman, &UciSearchParams, chess_clock());
 
         if (UciSearchParams.depth == 0) UciSearchParams.depth = MAX_PLIES;
 
