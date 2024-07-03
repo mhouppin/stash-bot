@@ -1,5 +1,24 @@
+/*
+**    Stash, a UCI chess playing engine developed from scratch
+**    Copyright (C) 2019-2024 Morgan Houppin
+**
+**    Stash is free software: you can redistribute it and/or modify
+**    it under the terms of the GNU General Public License as published by
+**    the Free Software Foundation, either version 3 of the License, or
+**    (at your option) any later version.
+**
+**    Stash is distributed in the hope that it will be useful,
+**    but WITHOUT ANY WARRANTY; without even the implied warranty of
+**    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**    GNU General Public License for more details.
+**
+**    You should have received a copy of the GNU General Public License
+**    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "worker.h"
 #include "movelist.h"
+#include "timeman.h"
 #include "uci.h"
 #include <stdio.h>
 #include <string.h>
@@ -234,6 +253,9 @@ void wpool_start_search(WorkerPool *wpool, const Board *rootBoard, const SearchP
     // command.
     atomic_store_explicit(&wpool->stop, false, memory_order_relaxed);
     atomic_store_explicit(&wpool->ponder, searchParams->ponder, memory_order_relaxed);
+
+    // Init the time manager here to account for the potential worker wakeup/init delay.
+    timeman_init(rootBoard, &SearchTimeman, &UciSearchParams, chess_clock());
 
     for (size_t i = 0; i < wpool->size; ++i)
     {
