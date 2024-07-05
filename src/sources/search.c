@@ -676,12 +676,12 @@ main_loop:
                         extension = 1;
                 }
 
-                // Multicut Pruning. If our singular search produced a cutoff,
-                // and the search bounds were equal or superior to our normal
-                // search, assume that there are multiple moves that beat beta
-                // in the current node, and return a search score early.
-                else if (singularBeta >= beta)
-                    return singularBeta;
+                // Multicut Pruning. If our singular search produced a cutoff
+                // above the bounds of our normal search, assume that there are
+                // multiple moves that beat beta in the current node, and return
+                // a search score early.
+                else if (singularScore >= beta && abs(singularScore) < MATE_FOUND)
+                    return singularScore;
 
                 // Negative Extensions. If our singular search produced a cutoff,
                 // with singularBeta was too low to beat beta, but the TT entry
