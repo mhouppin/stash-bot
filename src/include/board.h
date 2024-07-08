@@ -300,8 +300,7 @@ INLINED void do_move(Board *restrict board, move_t move, Boardstack *restrict st
 // Helper function for extracting a zobrist hash of the pawn structure.
 INLINED hashkey_t get_pawn_key(const Board *board)
 {
-    return board->stack->kingPawnKey ^ ZobristPsq[WHITE_KING][get_king_square(board, WHITE)]
-           ^ ZobristPsq[BLACK_KING][get_king_square(board, BLACK)];
+    return board->stack->kingPawnKey;
 }
 
 #endif // BOARD_H
