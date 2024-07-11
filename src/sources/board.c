@@ -1224,19 +1224,19 @@ bool move_is_pseudo_legal(const Board *board, move_t move)
     return true;
 }
 
+score_t SeeScores[PIECETYPE_NB] = {
+    0,
+    PAWN_SEE_SCORE,
+    KNIGHT_SEE_SCORE,
+    BISHOP_SEE_SCORE,
+    ROOK_SEE_SCORE,
+    QUEEN_SEE_SCORE,
+    0,
+    0,
+};
+
 bool see_greater_than(const Board *board, move_t m, score_t threshold)
 {
-    static const score_t SeeScores[PIECETYPE_NB] = {
-        0,
-        PAWN_SEE_SCORE,
-        KNIGHT_SEE_SCORE,
-        BISHOP_SEE_SCORE,
-        ROOK_SEE_SCORE,
-        QUEEN_SEE_SCORE,
-        0,
-        0,
-    };
-
     // "Non-standard" moves are tricky to evaluate, so perform a generic check
     // here. Note that for now we don't count promotions as having a higher SEE
     // from the "material gain" of replacing the pawn with a stronger piece.

@@ -641,6 +641,82 @@ void uci_loop(int argc, char **argv)
     add_option_check(&UciOptionList, "Ponder", &UciOptionFields.ponder, NULL);
     add_option_button(&UciOptionList, "Clear Hash", &on_clear_hash);
 
+    extern score_t SeeScores[PIECETYPE_NB];
+
+    add_option_score(&UciOptionList, "PawnSeeScore", &SeeScores[PAWN], 0, PAWN_SEE_SCORE * 2, NULL);
+    add_option_score(&UciOptionList, "KnightSeeScore", &SeeScores[KNIGHT], 0, KNIGHT_SEE_SCORE * 2, NULL);
+    add_option_score(&UciOptionList, "BishopSeeScore", &SeeScores[BISHOP], 0, BISHOP_SEE_SCORE * 2, NULL);
+    add_option_score(&UciOptionList, "RookSeeScore", &SeeScores[ROOK], 0, ROOK_SEE_SCORE * 2, NULL);
+    add_option_score(&UciOptionList, "QueenSeeScore", &SeeScores[QUEEN], 0, QUEEN_SEE_SCORE * 2, NULL);
+
+    TUNE_SCORE(HistoryQuadratic, 0, 64);
+    TUNE_SCORE(HistoryLinear, -256, 256);
+    TUNE_SCORE(HistoryConstant, -256, 256);
+    TUNE_SCORE(HistoryMax, 0, 4096);
+
+    TUNE_DOUBLE(LmrNoisyBase, 0.00, 8.31);
+    TUNE_DOUBLE(LmrNoisyFactor, 0.00, 21.63);
+    TUNE_DOUBLE(LmrQuietBase, 0.00, 21.39);
+    TUNE_DOUBLE(LmrQuietFactor, 0.00, 41.53);
+
+    TUNE_LONG(LmrBase, -830, 415);
+    TUNE_LONG(LmrImproving, 0, 1076);
+
+    TUNE_LONG(LmpGoodBase, 0, 126);
+    TUNE_LONG(LmpGoodFactor, 0, 16);
+    TUNE_LONG(LmpBadBase, 0, 26);
+    TUNE_LONG(LmpBadFactor, 0, 8);
+
+    TUNE_SCORE(DeltaBase, 1, 16);
+    TUNE_SCORE(DeltaDiv, 1, 164);
+    TUNE_SCORE(DeltaScale, 0, 158);
+
+    TUNE_SCORE(RazoringDelta, 0, 270);
+
+    TUNE_LONG(RfpDepth, 0, 16);
+    TUNE_SCORE(RfpFactor, 0, 170);
+    TUNE_SCORE(RfpImproving, 0, 146);
+
+    TUNE_LONG(NmpBase, 0, 1584);
+    TUNE_LONG(NmpFactor, 0, 134);
+    TUNE_SCORE(NmpEvalDiv, 1, 218);
+    TUNE_LONG(NmpEvalMax, 0, 10);
+    TUNE_LONG(NmpVerifDepth, 0, 24);
+
+    TUNE_SCORE(ProbCutDelta, 0, 280);
+    TUNE_LONG(ProbCutDepth, 0, 12);
+    TUNE_LONG(ProbCutEntryDepth, 0, 8);
+    TUNE_LONG(ProbCutReduction, 0, 6);
+
+    TUNE_LONG(IirDepth, 0, 6);
+
+    TUNE_LONG(LmpDepth, 0, 18);
+
+    TUNE_LONG(FpDepth, 0, 14);
+    TUNE_SCORE(FpBase, 0, 372);
+    TUNE_SCORE(FpFactor, 0, 134);
+
+    TUNE_LONG(ChpDepth, 0, 8);
+    TUNE_LONG(ChpBase, -842, 1684);
+    TUNE_LONG(ChpFactor, 0, 11356);
+
+    TUNE_LONG(SeeDepth, 0, 24);
+    TUNE_SCORE(SeeQuiet, 0, 98);
+    TUNE_SCORE(SeeNoisy, 0, 44);
+
+    TUNE_LONG(SingularDepth, 0, 16);
+    TUNE_LONG(SingularEntryDepth, 0, 6);
+    TUNE_SCORE(SingularBetaFactor, 0, 22);
+    TUNE_LONG(SingularShift, -2, 4);
+    TUNE_SCORE(SingularScoreDE, 0, 34);
+    TUNE_LONG(SingularMaxDE, 0, 18);
+
+    TUNE_LONG(LmrHistoryDiv, 1, 25228);
+    TUNE_LONG(LmrHistoryMax, 0, 6);
+
+    TUNE_LONG(QsFpMinPieces, 2, 10);
+    TUNE_SCORE(QsFpDelta, 0, 220);
+
     uci_position("startpos");
 
     if (argc > 1)
