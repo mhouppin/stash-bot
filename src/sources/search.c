@@ -35,20 +35,20 @@ void init_search_tables(void)
     // Compute the LMR base values.
     for (int i = 1; i < 256; ++i)
     {
-        Reductions[0][i] = (int)(log(i) * 10.81 + 4.15);  // Noisy LMR formula
-        Reductions[1][i] = (int)(log(i) * 20.76 + 10.69); // Quiet LMR formula
+        Reductions[0][i] = (int)(log(i) * 10.83 + 4.09);  // Noisy LMR formula
+        Reductions[1][i] = (int)(log(i) * 19.98 + 10.95); // Quiet LMR formula
     }
 }
 
 int lmr_base_value(int depth, int movecount, bool improving, bool isQuiet)
 {
-    return (-415 + Reductions[isQuiet][depth] * Reductions[isQuiet][movecount] + !improving * 538)
+    return (-418 + Reductions[isQuiet][depth] * Reductions[isQuiet][movecount] + !improving * 510)
            / 1024;
 }
 
 int lmp_threshold(int depth, bool improving)
 {
-    int result = improving ? 63 + 8 * depth * depth : 13 + 4 * depth * depth;
+    int result = improving ? 66 + 7 * depth * depth : 14 + 4 * depth * depth;
 
     return result / 16;
 }
@@ -242,7 +242,7 @@ void do_search_iteration(Worker *worker, int depth, int multiPv, Searchstack *ss
         }
         else
         {
-            delta = 8 + abs(pvScore) / 82;
+            delta = 8 + abs(pvScore) / 87;
             alpha = imax(-INF_SCORE, pvScore - delta);
             beta = imin(INF_SCORE, pvScore + delta);
         }
@@ -475,7 +475,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
     // Futility Pruning. If our eval is quite good and depth is low, we just
     // assume that we won't fall far behind in the next plies, and we return the
     // eval.
-    if (!pvNode && depth <= 8 && eval - 85 * depth + 73 * improving >= beta && eval < VICTORY)
+    if (!pvNode && depth <= 8 && eval - 87 * depth + 75 * improving >= beta && eval < VICTORY)
         return eval;
 
     // Null Move Pruning. If our eval currently beats beta, and we still have
@@ -488,7 +488,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
         Boardstack stack;
 
         // Compute the depth reduction based on depth and eval difference with beta.
-        int r = (792 + 67 * depth) / 256 + imin((eval - beta) / 109, 5);
+        int r = (843 + 64 * depth) / 256 + imin((eval - beta) / 107, 5);
 
         ss->currentMove = NULL_MOVE;
         ss->pieceHistory = NULL;
@@ -526,7 +526,7 @@ score_t search(bool pvNode, Board *board, int depth, score_t alpha, score_t beta
     // Probcut. If we have a good enough capture (or promotion) and a reduced
     // search returns a value much above beta, we can (almost) safely prune the
     // previous move.
-    const score_t probCutBeta = beta + 140;
+    const score_t probCutBeta = beta + 144;
 
     if (!rootNode && depth >= 6 && abs(beta) < VICTORY
         && !(found && ttDepth >= depth - 4 && ttScore < probCutBeta))
@@ -611,19 +611,19 @@ main_loop:
 
             // Futility Pruning. For low-depth nodes, stop searching quiets if
             // the eval suggests that only captures will save the day.
-            if (depth <= 7 && !inCheck && isQuiet && eval + 186 + 67 * depth <= alpha)
+            if (depth <= 7 && !inCheck && isQuiet && eval + 194 + 66 * depth <= alpha)
                 skipQuiets = true;
 
             // Continuation History Pruning. For low-depth nodes, prune quiet moves if
             // they seem to be bad continuations to the previous moves.
-            if (depth <= 4 && get_conthist_score(board, ss, currmove) < 842 - 5678 * (depth - 1))
+            if (depth <= 4 && get_conthist_score(board, ss, currmove) < 788 - 5450 * (depth - 1))
                 continue;
 
             // SEE Pruning. For low-depth nodes, don't search moves which seem
             // to lose too much material to be interesting.
             if (depth <= 12
                 && !see_greater_than(
-                    board, currmove, (isQuiet ? -49 * depth : -22 * depth * depth)))
+                    board, currmove, (isQuiet ? -50 * depth : -22 * depth * depth)))
                 continue;
         }
 
@@ -654,8 +654,8 @@ main_loop:
             if (depth >= 8 && currmove == ttMove && !ss->excludedMove && (ttBound & LOWER_BOUND)
                 && abs(ttScore) < VICTORY && ttDepth >= depth - 3)
             {
-                score_t singularBeta = ttScore - 11 * depth / 16;
-                int singularDepth = depth / 2 + 1;
+                score_t singularBeta = ttScore - 10 * depth / 16;
+                int singularDepth = (depth + 1) / 2;
 
                 // Exclude the TT move from the singular search.
                 ss->excludedMove = ttMove;
@@ -667,7 +667,7 @@ main_loop:
                 // move.
                 if (singularScore < singularBeta)
                 {
-                    if (!pvNode && singularBeta - singularScore > 17 && ss->doubleExtensions <= 9)
+                    if (!pvNode && singularBeta - singularScore > 15 && ss->doubleExtensions <= 9)
                     {
                         extension = 2;
                         ss->doubleExtensions++;
@@ -733,7 +733,7 @@ main_loop:
             r -= isQuiet && !see_greater_than(board, reverse_move(currmove), 0);
 
             // Increase/decrease the reduction based on the move's history.
-            r -= iclamp(histScore / 12614, -3, 3);
+            r -= iclamp(histScore / 11960, -3, 3);
 
             // Clamp the reduction so that we don't extend the move or drop
             // immediately into qsearch.
@@ -954,7 +954,7 @@ score_t qsearch(bool pvNode, Board *board, score_t alpha, score_t beta, Searchst
 
     // Check if Futility Pruning is possible in the moves loop.
     const bool canFutilityPrune = (!inCheck && popcount(occupancy_bb(board)) >= 5);
-    const score_t futilityBase = bestScore + 110;
+    const score_t futilityBase = bestScore + 106;
 
     while ((currmove = movepicker_next_move(&mp, false, 0)) != NO_MOVE)
     {
