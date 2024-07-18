@@ -44,7 +44,7 @@ typedef move_t countermove_history_t[PIECE_NB][SQUARE_NB];
 typedef int32_t correction_history_t[COLOR_NB][CORRECTION_HISTORY_ENTRY_NB];
 
 // Returns the history bonus for the given depth.
-INLINED int history_bonus(int depth) { return imin(27 * depth * depth - 32 * depth - 34, 2461); }
+INLINED int history_bonus(int depth) { return iclamp(27 * depth * depth - 32 * depth - 34, 1, 2461); }
 
 // Updates the butterfly history table for the given piece and move.
 INLINED void add_bf_history(butterfly_history_t hist, piece_t piece, move_t move, int32_t bonus)
