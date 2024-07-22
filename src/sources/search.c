@@ -78,12 +78,24 @@ int get_conthist_score(const Board *board, const Searchstack *ss, move_t move)
     return history;
 }
 
-int get_history_score(const Board *board, const Worker *worker, const Searchstack *ss, move_t move)
+int get_history_score(const Board *board, const Worker *worker, const Searchstack *ss, move_t move, bool isQuiet)
 {
     const piece_t movedPiece = piece_on(board, from_sq(move));
 
-    return get_bf_history_score(worker->bfHistory, movedPiece, move)
-           + get_conthist_score(board, ss, move);
+    if (isQuiet)
+    {
+        return get_bf_history_score(worker->bfHistory, movedPiece, move)
+               + get_conthist_score(board, ss, move);
+    }
+    else
+    {
+        const square_t to = to_sq(move);
+        const piecetype_t captured = move_type(move) == PROMOTION ? promotion_type(move)
+                                   : move_type(move) == EN_PASSANT ? PAWN
+                                   : piece_type(piece_on(board, to));
+
+        return get_cap_history_score(worker->capHistory, movedPiece, to, captured);
+    }
 }
 
 uint64_t perft(Board *board, unsigned int depth)
@@ -640,7 +652,7 @@ main_loop:
         int extension = 0;
         int newDepth = depth - 1;
         bool givesCheck = move_gives_check(board, currmove);
-        int histScore = isQuiet ? get_history_score(board, worker, ss, currmove) : 0;
+        int histScore = get_history_score(board, worker, ss, currmove, isQuiet);
 
         if (!rootNode && ss->plies < 2 * worker->rootDepth
             && 2 * ss->doubleExtensions < worker->rootDepth)
@@ -733,7 +745,7 @@ main_loop:
             r -= isQuiet && !see_greater_than(board, reverse_move(currmove), 0);
 
             // Increase/decrease the reduction based on the move's history.
-            r -= iclamp(histScore / 11601, -3, 3);
+            r -= isQuiet ? iclamp(histScore / 11601, -3, 3) : iclamp(histScore / 12000, -2, 2);
 
             // Clamp the reduction so that we don't extend the move or drop
             // immediately into qsearch.
