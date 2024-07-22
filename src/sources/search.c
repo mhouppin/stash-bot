@@ -721,7 +721,7 @@ main_loop:
             r += !pvNode;
 
             // Increase the reduction for cutNodes.
-            r += cutNode;
+            r += cutNode * 2;
 
             // Increase the reduction if the TT move is non-quiet.
             r += ttNoisy;
