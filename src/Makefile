@@ -16,14 +16,14 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-SOURCES := $(wildcard sources/*.c)
+SOURCES := $(wildcard sources/new_*.c)
 
 OBJECTS := $(SOURCES:%.c=%.o)
 DEPENDS := $(SOURCES:%.c=%.d)
 
 ARCH ?=
 NATIVE ?= no
-CFLAGS ?= -O3 -flto
+CFLAGS ?= -O3 -flto -DNDEBUG
 CPPFLAGS ?= -Werror
 LDFLAGS ?=
 

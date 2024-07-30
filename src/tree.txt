@@ -1,0 +1,23 @@
+UCI
+|
++-> Options (shared, locked)
+|   |
+|   +-> OptionList
+|   |
+|   +-> OptionFields
+|
++-> RootBoard (shared, locked)
+|
++-> SearchParams (shared, locked)
+|
++-> WorkerPool
+    |
+    +-> WorkerSettings (const-like)
+    |
+    +-> TTable (shared, lockless)
+    |
+    +-> Timeman (shared, locked)
+    |
+    +-> Worker
+        |
+        +-> SearchBoard
