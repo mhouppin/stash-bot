@@ -16,14 +16,14 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-SOURCES := $(wildcard sources/*.c)
+SOURCES := $(wildcard sources/new_*.c)
 
 OBJECTS := $(SOURCES:%.c=%.o)
 DEPENDS := $(SOURCES:%.c=%.d)
 
 ARCH ?=
 NATIVE ?= no
-CFLAGS ?= -O3 -flto
+CFLAGS ?= -O3 -flto -DNDEBUG
 CPPFLAGS ?= -Werror
 LDFLAGS ?=
 
@@ -81,10 +81,10 @@ endif
 # Add .exe to the executable name if we are on Windows, and link the binary statically.
 
 ifeq ($(OS),Windows_NT)
-	EXE = stash-bot.exe
+	EXE = stash.exe
 	own_LDFLAGS += -static
 else
-	EXE = stash-bot
+	EXE = stash
 endif
 
 # Enable use of PREFETCH instruction
