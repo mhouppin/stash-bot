@@ -219,6 +219,51 @@ void main_worker_search(Worker *worker)
     free_boardstack(worker->stack);
 }
 
+// Function to be used in scenarios where we fail to complete a single search at depth 1
+void use_emergency_scoring(Worker *worker, Searchstack *ss)
+{
+    Movepicker mp;
+    const Board *board = &worker->board;
+    bool found;
+    move_t currmove;
+    score_t score = NO_SCORE;
+    move_t ttMove = NO_MOVE;
+    TT_Entry *entry = tt_probe(board->stack->boardKey, &found);
+
+    if (found)
+    {
+        score = score_from_tt(entry->score, ss->plies);
+        ttMove = entry->bestmove;
+
+        if (abs(score) >= INF_SCORE)
+            score = entry->eval;
+    }
+
+    if (abs(score) >= INF_SCORE)
+        score = evaluate(board);
+
+    movepicker_init(&mp, false, board, worker, ttMove, ss);
+
+    while ((currmove = movepicker_next_move(&mp, false, 0)) != NO_MOVE)
+    {
+        RootMove *bestRootMove = find_root_move(worker->rootMoves,
+            worker->rootMoves + worker->rootCount, currmove);
+
+        if (bestRootMove != NULL)
+        {
+            bestRootMove->pv[0] = currmove;
+            bestRootMove->pv[1] = NO_MOVE;
+            bestRootMove->seldepth = 0;
+            bestRootMove->score = score;
+
+            RootMove tmp = *bestRootMove;
+            *bestRootMove = worker->rootMoves[0];
+            worker->rootMoves[0] = tmp;
+            break;
+        }
+    }
+}
+
 // Does a whole search iteration on all root moves, MultiPV and aspiration re-searches included.
 void do_search_iteration(Worker *worker, int depth, int multiPv, Searchstack *sstack)
 {
@@ -263,6 +308,14 @@ void do_search_iteration(Worker *worker, int depth, int multiPv, Searchstack *ss
 
             if (bound == EXACT_BOUND)
                 sort_root_moves(worker->rootMoves, worker->rootMoves + multiPv);
+
+            // Hard time scramble: if we end up exiting depth 1 without even completing a single
+            // root move search, use a very fast move selection/scoring trick to avoid returning
+            // random bad moves. This is especially useful in SMP scenarios where the main thread
+            // would fail to start before getting past maximal time usage due to the time it needs
+            // to launch other worker threads.
+            if (depth == 1 && multiPv == 1 && pvScore == -INF_SCORE)
+                use_emergency_scoring(worker, sstack + 4);
 
             if (!worker->idx)
             {
