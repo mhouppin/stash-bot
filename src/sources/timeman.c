@@ -106,11 +106,11 @@ double score_difference_scale(score_t s)
     // Clamp score to the range [-100, 100], and convert it to a time scale in
     // the range [0.5, 2.0].
     // Examples:
-    // -100 -> 2.000x time
-    //  -50 -> 1.414x time
+    // -100 -> 0.500x time
+    //  -50 -> 0.707x time
     //    0 -> 1.000x time
-    //  +50 -> 0.707x time
-    // +100 -> 0.500x time
+    //  +50 -> 1.414x time
+    // +100 -> 2.000x time
     return pow(T, iclamp(s, -X, X) / (double)X);
 }
 
