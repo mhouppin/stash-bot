@@ -149,7 +149,7 @@ TT_Entry *tt_probe(hashkey_t key, bool *found)
 
 void tt_save(TT_Entry *entry, hashkey_t k, score_t s, score_t e, int d, int b, move_t m)
 {
-    if (m || k != entry->key) entry->bestmove = (uint16_t)m;
+    if (k == entry->key && m == NO_MOVE) m = entry->bestmove;
 
     // Do not erase entries with high depth for the same position.
     if (b == EXACT_BOUND || k != entry->key || d + 4 >= entry->depth)
@@ -159,5 +159,6 @@ void tt_save(TT_Entry *entry, hashkey_t k, score_t s, score_t e, int d, int b, m
         entry->eval = e;
         entry->genbound = SearchTT.generation | (uint8_t)b;
         entry->depth = d;
+        entry->bestmove = m;
     }
 }
