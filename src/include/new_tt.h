@@ -19,8 +19,6 @@
 #ifndef TT_H
 #define TT_H
 
-#include <stdatomic.h>
-
 #include "new_chess_types.h"
 #include "new_hashkey.h"
 
@@ -32,27 +30,30 @@ enum {
     GENERATION_CYCLE = 256 + GENERATION_SHIFT - 1,
 };
 
-typedef struct _OpaqueEntry {
-    _Atomic Key key;
-    _Atomic u64 entry_data;
-} OpaqueEntry;
+typedef struct _TranspositionEntry {
+    Key key;
+    Score score;
+    Score eval;
+    u8 depth;
+    u8 genbound;
+    Move bestmove;
+} TranspositionEntry;
+
+INLINED i16 tt_entry_replace_score(const TranspositionEntry *tt_entry, u8 generation) {
+    return (i16)tt_entry->depth
+        - (((i16)GENERATION_CYCLE + (i16)generation - (i16)tt_entry->genbound) & GENERATION_MASK);
+}
+
+INLINED Bound tt_entry_bound(const TranspositionEntry *tt_entry) {
+    return (Bound)(tt_entry->genbound & ~GENERATION_MASK);
+}
 
 typedef struct _TranspositionCluster {
-    OpaqueEntry cluster_entry[ENTRY_CLUSTER_SIZE];
+    TranspositionEntry cluster_entry[ENTRY_CLUSTER_SIZE];
 } TranspositionCluster;
 
 // Required for correct prefetching and structure alignment
 static_assert(64 % sizeof(TranspositionCluster) == 0);
-
-typedef struct _TranspositionEntry {
-    Key key;
-    Bound bound;
-    i16 depth;
-    Score eval;
-    Score score;
-    Move bestmove;
-    OpaqueEntry *entry_ptr;
-} TranspositionEntry;
 
 typedef struct _TranspositionTable {
     usize cluster_count;
@@ -61,7 +62,7 @@ typedef struct _TranspositionTable {
 } TranspositionTable;
 
 // Returns the entry cluster for the given hashkey
-INLINED OpaqueEntry *tt_entry_at(TranspositionTable *tt, Key key) {
+INLINED TranspositionEntry *tt_entry_at(TranspositionTable *tt, Key key) {
     return tt->table[u64_mulhi(key, tt->cluster_count)].cluster_entry;
 }
 
@@ -81,37 +82,6 @@ INLINED Score score_from_tt(Score score, u16 plies_from_root) {
                                : score;
 }
 
-INLINED void tt_entry_set(
-    TranspositionEntry *restrict tt_entry,
-    OpaqueEntry *restrict opaque_entry,
-    Key key,
-    u64 entry_data
-) {
-    tt_entry->key = key;
-    tt_entry->bound = (u8)(entry_data & ~GENERATION_MASK);
-    tt_entry->depth = (i16)(u8)(entry_data >> 8);
-    tt_entry->eval = (Score)(u16)(entry_data >> 16);
-    tt_entry->score = (Score)(u16)(entry_data >> 32);
-    tt_entry->bestmove = (Move)(entry_data >> 48);
-    tt_entry->entry_ptr = opaque_entry;
-}
-
-INLINED void write_opaque_entry(
-    OpaqueEntry *restrict opaque_entry,
-    Key key,
-    u8 generation_bound,
-    u8 depth,
-    Score eval,
-    Score score,
-    Move bestmove
-) {
-    u64 entry_data = (u64)generation_bound | ((u64)depth << 8) | ((u64)(u16)eval << 16)
-        | ((u64)(u16)score << 32) | ((u64)bestmove << 48);
-
-    atomic_store_explicit(&opaque_entry->key, key, memory_order_relaxed);
-    atomic_store_explicit(&opaque_entry->entry_data, entry_data, memory_order_relaxed);
-}
-
 void tt_init(TranspositionTable *tt);
 
 void tt_destroy(TranspositionTable *tt);
@@ -119,8 +89,8 @@ void tt_destroy(TranspositionTable *tt);
 // Clears the TT contents before starting a new game
 void tt_init_new_game(TranspositionTable *tt, usize thread_count);
 
-// Stores data matching the entry for the given key
-void tt_probe(TranspositionTable *tt, Key key, TranspositionEntry *tt_entry, bool *found);
+// Returns data matching the given key
+TranspositionEntry *tt_probe(TranspositionTable *tt, Key key, bool *found);
 
 // Saves the given entry in the TT
 void tt_save(

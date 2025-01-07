@@ -273,15 +273,15 @@ void main_worker_search(Worker *worker) {
     // TT.
     if (worker->root_moves->pv.length == 1) {
         Boardstack stack;
-        TranspositionEntry tt_entry;
+        TranspositionEntry *tt_entry;
         bool found;
 
         board_do_move(board, worker->root_moves->move, &stack);
-        tt_probe(&worker->pool->tt, board->stack->board_key, &tt_entry, &found);
+        tt_entry = tt_probe(&worker->pool->tt, board->stack->board_key, &found);
         board_undo_move(board, worker->root_moves->move);
 
         if (found) {
-            ponder_move = tt_entry.bestmove;
+            ponder_move = tt_entry->bestmove;
 
             // Careful with data races !
             if (!board_move_is_pseudolegal(board, ponder_move)
@@ -509,7 +509,7 @@ Score search(
         }
     }
 
-    TranspositionEntry tt_entry;
+    TranspositionEntry *tt_entry;
     Score tt_score = NO_SCORE;
     Move tt_move = NO_MOVE;
     i16 tt_depth = 0;
@@ -521,13 +521,13 @@ Score search(
     Score eval;
 
     // Probe the TT for information on the current position.
-    tt_probe(&worker->pool->tt, key, &tt_entry, &tt_found);
+    tt_entry = tt_probe(&worker->pool->tt, key, &tt_found);
 
     if (tt_found) {
-        tt_score = score_from_tt(tt_entry.score, ss->plies);
-        tt_move = tt_entry.bestmove;
-        tt_depth = tt_entry.depth;
-        tt_bound = tt_entry.bound;
+        tt_score = score_from_tt(tt_entry->score, ss->plies);
+        tt_move = tt_entry->bestmove;
+        tt_depth = tt_entry->depth;
+        tt_bound = tt_entry_bound(tt_entry);
 
         // Check if we can directly return a score for non-PV nodes.
         if (tt_depth >= depth && !pv_node
@@ -557,7 +557,7 @@ Score search(
     }
     // Use the TT stored information for getting an eval.
     else if (tt_found) {
-        raw_eval = tt_entry.eval;
+        raw_eval = tt_entry->eval;
         eval = ss->static_eval = raw_eval
             + correction_hist_score(worker->correction_hist,
                                     board->side_to_move,
@@ -577,7 +577,7 @@ Score search(
                                     board_pawn_key(board));
 
         // Save the eval in TT so that other workers won't have to recompute it.
-        tt_save(&worker->pool->tt, &tt_entry, key, NO_SCORE, raw_eval, 0, NO_BOUND, NO_MOVE);
+        tt_save(&worker->pool->tt, tt_entry, key, NO_SCORE, raw_eval, 0, NO_BOUND, NO_MOVE);
     }
 
     improving = ss->plies >= 2 && ss->static_eval > (ss - 2)->static_eval;
@@ -707,7 +707,7 @@ Score search(
             if (probcut_score >= probcut_beta) {
                 tt_save(
                     &worker->pool->tt,
-                    &tt_entry,
+                    tt_entry,
                     key,
                     score_to_tt(probcut_score, ss->plies),
                     raw_eval,
@@ -1020,7 +1020,7 @@ main_loop:
     if (!root_node || worker->pv_line == 0) {
         tt_save(
             &worker->pool->tt,
-            &tt_entry,
+            tt_entry,
             key,
             score_to_tt(best_score, ss->plies),
             raw_eval,
@@ -1070,14 +1070,14 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
     Bound tt_bound = NO_BOUND;
     Move tt_move = NO_MOVE;
     bool tt_found;
-    TranspositionEntry tt_entry;
+    TranspositionEntry *tt_entry;
 
-    tt_probe(&worker->pool->tt, board->stack->board_key, &tt_entry, &tt_found);
+    tt_entry = tt_probe(&worker->pool->tt, board->stack->board_key, &tt_found);
 
     // Probe the TT for information on the current position.
     if (tt_found) {
-        tt_score = score_from_tt(tt_entry.score, ss->plies);
-        tt_bound = tt_entry.bound;
+        tt_score = score_from_tt(tt_entry->score, ss->plies);
+        tt_bound = tt_entry_bound(tt_entry);
 
         // Check if we can directly return a score for non-PV nodes.
         if (!pv_node
@@ -1089,7 +1089,7 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
 
     // TODO: this is silly. The tt_move should be set in the (tt_found) condition above. Test this
     // as a potential gainer later.
-    tt_move = tt_entry.bestmove;
+    tt_move = tt_entry->bestmove;
 
     const bool in_check = !!board->stack->checkers;
     Score raw_eval;
@@ -1103,7 +1103,7 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
     } else {
         // Use the TT stored information for getting an eval.
         if (tt_found) {
-            raw_eval = tt_entry.eval;
+            raw_eval = tt_entry->eval;
             eval = best_score = raw_eval
                 + correction_hist_score(
                                     worker->correction_hist,
@@ -1136,7 +1136,7 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
             if (!tt_found) {
                 tt_save(
                     &worker->pool->tt,
-                    &tt_entry,
+                    tt_entry,
                     board->stack->board_key,
                     score_to_tt(best_score, ss->plies),
                     raw_eval,
@@ -1248,7 +1248,7 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
 
     tt_save(
         &worker->pool->tt,
-        &tt_entry,
+        tt_entry,
         board->stack->board_key,
         score_to_tt(best_score, ss->plies),
         raw_eval,
