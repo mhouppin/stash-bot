@@ -119,7 +119,8 @@ TranspositionEntry *tt_probe(TranspositionTable *tt, Key key, bool *found) {
     for (usize i = 1; i < ENTRY_CLUSTER_SIZE; ++i) {
         TranspositionEntry *cur_entry = &cluster_start[i];
 
-        if (tt_entry_replace_score(replace, tt->generation) > tt_entry_replace_score(cur_entry, tt->generation)) {
+        if (tt_entry_replace_score(replace, tt->generation)
+            > tt_entry_replace_score(cur_entry, tt->generation)) {
             replace = cur_entry;
         }
     }

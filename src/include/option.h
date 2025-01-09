@@ -123,6 +123,8 @@ typedef struct _OptionList {
     usize capacity;
 } OptionList;
 
+// TODO: tuning macros are missing.
+
 void optlist_init(OptionList *optlist);
 
 void optlist_destroy(OptionList *optlist);

@@ -60,7 +60,9 @@ static void kpk_init_entry(KpkPosition *pos, u32 index) {
             pos->result = KPK_INVALID;
         }
         // Test if we can promote the Pawn without getting captured.
-        else if (square_rank(psq) == RANK_7 && strong_ksq != psq + NORTH && (square_distance(weak_ksq, psq + NORTH) > 1 || square_distance(strong_ksq, psq + NORTH) == 1)) {
+        else if (square_rank(psq) == RANK_7 && strong_ksq != psq + NORTH
+                 && (square_distance(weak_ksq, psq + NORTH) > 1
+                     || square_distance(strong_ksq, psq + NORTH) == 1)) {
             pos->result = KPK_WIN;
         }
     } else {

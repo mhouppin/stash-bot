@@ -34,6 +34,7 @@ typedef enum _TuneIndex {
     IDX_INITIATIVE = IDX_PSQT + 48 + 32 * 5,
     IDX_KING_SAFETY,
     IDX_COUNT,
+    // TODO: almost all constants are missing here.
 } TuneIndex;
 
 typedef struct _EvalTrace {
@@ -85,9 +86,10 @@ INLINED void trace_set_scalefactor(Scalefactor scalefactor) {
 
 INLINED void trace_clear_safety(Color us) {
     (void)us;
-    // Code missing for now
+    // TODO: code missing for now
 }
 #else
+// TODO: replace these by functions that do nothing
 #define trace_init()
 #define trace_add(index, us, coeff)
 #define trace_set_phase(phase)

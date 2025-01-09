@@ -238,12 +238,16 @@ Score eval_krkp(const Board *board, Color strong_side) {
         score = ROOK_EG_SCORE - square_distance(strong_king, weak_pawn);
     }
     // Is the weak King unable to reach either the Rook or its Pawn ?
-    else if (square_distance(weak_king, weak_pawn) >= 3 + !strong_tempo && square_distance(weak_king, strong_rook) >= 3) {
+    else if (square_distance(weak_king, weak_pawn) >= 3 + !strong_tempo
+             && square_distance(weak_king, strong_rook) >= 3) {
         score = ROOK_EG_SCORE - square_distance(strong_king, weak_pawn);
     }
     // Is the Pawn close to the promotion square and defended by its King ? Also, is the strong King
     // unable to reach the Pawn ?
-    else if (square_rank_relative(weak_king, strong_side) <= RANK_3 && square_distance(weak_king, weak_pawn) == 1 && square_rank_relative(strong_king, strong_side) >= RANK_4 && square_distance(strong_king, weak_pawn) >= 3 + strong_tempo) {
+    else if (square_rank_relative(weak_king, strong_side) <= RANK_3
+             && square_distance(weak_king, weak_pawn) == 1
+             && square_rank_relative(strong_king, strong_side) >= RANK_4
+             && square_distance(strong_king, weak_pawn) >= 3 + strong_tempo) {
         score = 40 - 4 * square_distance(strong_king, weak_pawn);
     } else {
         score = 100

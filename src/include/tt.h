@@ -53,7 +53,10 @@ typedef struct _TranspositionCluster {
 } TranspositionCluster;
 
 // Required for correct prefetching and structure alignment
-static_assert(64 % sizeof(TranspositionCluster) == 0, "Clusters are not aligned to cache boundaries");
+static_assert(
+    64 % sizeof(TranspositionCluster) == 0,
+    "Clusters are not aligned to cache boundaries"
+);
 
 typedef struct _TranspositionTable {
     usize cluster_count;

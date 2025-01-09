@@ -766,7 +766,10 @@ static Score eval_scale_endgame(const Board *board, const KingPawnEntry *kpe, Sc
     }
     // Rook endgames: drawish if the pawn advantage is small, and all strong side pawns are on the
     // same side of the board. Don't scale if the defending King is far from his own pawns.
-    else if (strong_material == ROOK_MG_SCORE && weak_material == ROOK_MG_SCORE && (bb_popcount(strong_pawns) < 2 + bb_popcount(weak_pawns)) && !!(KINGSIDE_BB & strong_pawns) != !!(QUEENSIDE_BB & strong_pawns) && !!(king_attacks_bb(board_king_square(board, weak_side)) & weak_pawns)) {
+    else if (strong_material == ROOK_MG_SCORE && weak_material == ROOK_MG_SCORE
+             && (bb_popcount(strong_pawns) < 2 + bb_popcount(weak_pawns))
+             && !!(KINGSIDE_BB & strong_pawns) != !!(QUEENSIDE_BB & strong_pawns)
+             && !!(king_attacks_bb(board_king_square(board, weak_side)) & weak_pawns)) {
         factor = 130;
     }
     // Check if we have a specialized function for the given material distribution.

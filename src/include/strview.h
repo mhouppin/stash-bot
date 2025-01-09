@@ -22,12 +22,9 @@
 #include "core.h"
 #include "memory.h"
 
-#define STATIC_STRVIEW(s) \
-    (StringView) { \
-        .data = (const u8 *)(s), .size = sizeof(s) - 1 \
-    }
+#define STATIC_STRVIEW(s) (StringView) {.data = (const u8 *)(s), .size = sizeof(s) - 1}
 
-#define EmptyStrview (StringView){.data = NULL, .size = 0}
+#define EmptyStrview (StringView) {.data = NULL, .size = 0}
 
 INLINED usize cstr_length(const char *cstr) {
     usize i = 0;

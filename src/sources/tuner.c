@@ -875,4 +875,6 @@ void init_disp_sequence_and_base_values(
     disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("\n[evaluate.c]\n\n"));
     TUNE_ADD_SCOREPAIR(Initiative, IDX_INITIATIVE, 0, 2);
     disp_sequence_add_newline(disp_sequence);
+
+    // TODO: a lot of the display code is missing. We will need to add it later.
 }

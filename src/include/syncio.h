@@ -38,4 +38,8 @@ INLINED usize fwrite_string(FILE *f, const String *string) {
     return fwrite_strview(f, strview_from_string(string));
 }
 
+// TODO: implement these
+// void toggle_debug(bool state);
+// void info_debug(const char *fmt, ...);
+
 #endif
