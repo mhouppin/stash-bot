@@ -16,7 +16,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-SOURCES := $(wildcard sources/new_*.c)
+SOURCES := $(wildcard sources/*.c)
 
 OBJECTS := $(SOURCES:%.c=%.o)
 DEPENDS := $(SOURCES:%.c=%.d)

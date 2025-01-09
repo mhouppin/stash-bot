@@ -17,39 +17,38 @@
 */
 
 #include "hashkey.h"
-#include "bitboard.h"
+
+#include "chess_types.h"
 #include "random.h"
-#include <math.h>
 
-hashkey_t ZobristPsq[PIECE_NB][SQUARE_NB];
-hashkey_t ZobristEnPassant[FILE_NB];
-hashkey_t ZobristCastling[CASTLING_NB];
-hashkey_t ZobristSideToMove;
+Key ZobristPsq[PIECE_NB][SQUARE_NB];
+Key ZobristEnPassant[FILE_NB];
+Key ZobristCastling[CASTLING_NB];
+Key ZobristSideToMove;
 
-void zobrist_init(void)
-{
-    uint64_t seed = 0x7F6E5D4C3B2A1908ull;
+void zobrist_init(void) {
+    u64 seed = 0x7F6E5D4C3B2A1908ull;
 
-    // Initialize the Piece-Square Zobrist table.
-    for (piece_t piece = WHITE_PAWN; piece <= BLACK_KING; ++piece)
-        for (square_t square = SQ_A1; square <= SQ_H8; ++square)
-            ZobristPsq[piece][square] = qrandom(&seed);
-
-    // Initialize the En-Passant Zobrist table.
-    for (file_t file = FILE_A; file <= FILE_H; ++file) ZobristEnPassant[file] = qrandom(&seed);
-
-    // Initialize the Castling Zobrist table.
-    for (int cr = 0; cr < CASTLING_NB; ++cr)
-    {
-        ZobristCastling[cr] = 0;
-        bitboard_t b = cr;
-        while (b)
-        {
-            hashkey_t k = ZobristCastling[1ull << bb_pop_first_sq(&b)];
-            ZobristCastling[cr] ^= k ? k : qrandom(&seed);
+    for (Piece piece = WHITE_PAWN; piece <= BLACK_KING; ++piece) {
+        for (Square square = SQ_A1; square <= SQ_H8; ++square) {
+            ZobristPsq[piece][square] = u64_random(&seed);
         }
     }
 
-    // Initialize the Zobrist key for the side to move.
-    ZobristSideToMove = qrandom(&seed);
+    for (File file = FILE_A; file <= FILE_H; ++file) {
+        ZobristEnPassant[file] = u64_random(&seed);
+    }
+
+    for (CastlingRights cr = 0; cr < CASTLING_NB; ++cr) {
+        ZobristCastling[cr] = 0;
+        u64 b = cr;
+
+        while (b) {
+            Key key = ZobristCastling[U64(1) << u64_first_one(b)];
+            ZobristCastling[cr] ^= key ?: u64_random(&seed);
+            b &= b - 1;
+        }
+    }
+
+    ZobristSideToMove = u64_random(&seed);
 }

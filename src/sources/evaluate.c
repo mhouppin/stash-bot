@@ -17,109 +17,72 @@
 */
 
 #include "evaluate.h"
-#include "endgame.h"
-#include "movelist.h"
-#include "pawns.h"
-#include "types.h"
-#include <stdlib.h>
+
 #include <string.h>
 
-#ifdef TUNE
-evaltrace_t Trace;
-#endif
+#include "attacks.h"
+#include "endgame.h"
+#include "kp_eval.h"
+#include "movelist.h"
+#include "psq_table.h"
+
+EvalTrace Trace;
 
 // clang-format off
 
 // Special eval terms
-const scorepair_t Initiative = SPAIR(24, 30);
-
-// King Safety eval terms
-const scorepair_t KnightWeight    = SPAIR(  48,  19);
-const scorepair_t BishopWeight    = SPAIR(  33,  33);
-const scorepair_t RookWeight      = SPAIR(  35, -37);
-const scorepair_t QueenWeight     = SPAIR(  11,   7);
-const scorepair_t AttackWeight    = SPAIR(   8,  11);
-const scorepair_t WeakKingZone    = SPAIR(  27, -29);
-const scorepair_t SafeKnightCheck = SPAIR(  80,   9);
-const scorepair_t SafeBishopCheck = SPAIR(  38,  37);
-const scorepair_t SafeRookCheck   = SPAIR(  91,  49);
-const scorepair_t SafeQueenCheck  = SPAIR(  49,  64);
-const scorepair_t UnsafeCheck     = SPAIR(  19,  47);
-const scorepair_t QueenlessAttack = SPAIR( -83, -10);
-const scorepair_t SafetyOffset    = SPAIR(  33,  35);
-
-// Storm/Shelter indexes:
-// 0-7 - Side
-// 9-15 - Front
-// 16-23 - Center
-const scorepair_t KingStorm[24] = {
-    SPAIR(  -7,  -2), SPAIR( -14,  -1), SPAIR(  18,   4), SPAIR(  -7,   4),
-    SPAIR( -27,  11), SPAIR( -27,   3), SPAIR( -49,   2), SPAIR( -21,  -2),
-    SPAIR(   0,   0), SPAIR(   1,  -5), SPAIR(  42,  10), SPAIR(   2,  -1),
-    SPAIR(  -6,  -0), SPAIR(  -6,  11), SPAIR(   3,  20), SPAIR(  15,  -1),
-    SPAIR(   7,  -1), SPAIR(   0,   0), SPAIR(  42,   3), SPAIR(  26,  -3),
-    SPAIR(  -6,  -0), SPAIR( -12,  17), SPAIR(  -3,  39), SPAIR(  -0, -18)
-};
-
-const scorepair_t KingShelter[24] = {
-    SPAIR( -50,   7), SPAIR( -39,  49), SPAIR( -38, -13), SPAIR( -23,   5),
-    SPAIR(   9,  -1), SPAIR(   9,  -0), SPAIR(   2,  -0), SPAIR(  -7, -26),
-    SPAIR(   0,   0), SPAIR(  -4,  -5), SPAIR(  -3,  36), SPAIR(   4,  17),
-    SPAIR(  12,   7), SPAIR(  26,  -0), SPAIR(   7,  -0), SPAIR(  16, -20),
-    SPAIR( -30, -12), SPAIR(  13, -46), SPAIR(   3,  27), SPAIR(  13,  44),
-    SPAIR(  13,  10), SPAIR(  21,   0), SPAIR(   6,  -0), SPAIR(  18,  11)
-};
+const Scorepair Initiative = SPAIR(24, 30);
 
 // Knight eval terms
-const scorepair_t KnightShielded      = SPAIR(  4, 22);
-const scorepair_t KnightOutpost       = SPAIR( 42, 13);
+const Scorepair KnightShielded      = SPAIR(  4, 22);
+const Scorepair KnightOutpost       = SPAIR( 42, 13);
 
-const scorepair_t ClosedPosKnight[5] = {
+const Scorepair ClosedPosKnight[5] = {
     SPAIR(   7, -20), SPAIR(   8,   2), SPAIR(   9,  20), SPAIR(  13,  30),
     SPAIR(  13,  49)
 };
 
 // Bishop eval terms
-const scorepair_t BishopPairBonus    = SPAIR( 22,102);
-const scorepair_t BishopShielded     = SPAIR(  3,  7);
-const scorepair_t BishopOutpost      = SPAIR( 35, 17);
-const scorepair_t BishopLongDiagonal = SPAIR( 14, 31);
+const Scorepair BishopPairBonus    = SPAIR( 22,102);
+const Scorepair BishopShielded     = SPAIR(  3,  7);
+const Scorepair BishopOutpost      = SPAIR( 35, 17);
+const Scorepair BishopLongDiagonal = SPAIR( 14, 31);
 
-const scorepair_t BishopPawnsSameColor[7] = {
+const Scorepair BishopPawnsSameColor[7] = {
     SPAIR(  17,  39), SPAIR(  16,  28), SPAIR(  13,  19), SPAIR(   9,  11),
     SPAIR(   6,   2), SPAIR(   3,  -4), SPAIR(  -3, -13)
 };
 
 // Rook eval terms
-const scorepair_t RookOnSemiOpenFile = SPAIR( 13, 29);
-const scorepair_t RookOnOpenFile     = SPAIR( 38, 14);
-const scorepair_t RookOnBlockedFile  = SPAIR( -7,-13);
-const scorepair_t RookXrayQueen      = SPAIR( 15,  5);
-const scorepair_t RookTrapped        = SPAIR( -1,-14);
-const scorepair_t RookBuried         = SPAIR(-60,-27);
+const Scorepair RookOnSemiOpenFile = SPAIR( 13, 29);
+const Scorepair RookOnOpenFile     = SPAIR( 38, 14);
+const Scorepair RookOnBlockedFile  = SPAIR( -7,-13);
+const Scorepair RookXrayQueen      = SPAIR( 15,  5);
+const Scorepair RookTrapped        = SPAIR( -1,-14);
+const Scorepair RookBuried         = SPAIR(-60,-27);
 
 // Mobility eval terms
-const scorepair_t MobilityN[9] = {
+const Scorepair KnightMobility[9] = {
     SPAIR( -56,   4), SPAIR( -44, -33), SPAIR( -35,  37), SPAIR( -25,  60),
     SPAIR( -18,  79), SPAIR( -13,  99), SPAIR(  -7, 109), SPAIR(   0, 114),
     SPAIR(   5, 107)
 };
 
-const scorepair_t MobilityB[14] = {
+const Scorepair BishopMobility[14] = {
     SPAIR( -55, -55), SPAIR( -43, -33), SPAIR( -25,  -9), SPAIR( -23,  23),
     SPAIR( -15,  39), SPAIR( -10,  53), SPAIR(  -5,  61), SPAIR(  -5,  65),
     SPAIR(  -4,  65), SPAIR(  -3,  67), SPAIR(  -0,  57), SPAIR(   4,  51),
     SPAIR(   6,  44), SPAIR(  14,  35)
 };
 
-const scorepair_t MobilityR[15] = {
+const Scorepair RookMobility[15] = {
     SPAIR(-111, -13), SPAIR( -37,  33), SPAIR( -25,  74), SPAIR( -30,  94),
     SPAIR( -27, 109), SPAIR( -28, 122), SPAIR( -30, 130), SPAIR( -25, 133),
     SPAIR( -21, 141), SPAIR( -12, 149), SPAIR( -12, 155), SPAIR(  -7, 161),
     SPAIR(  -0, 162), SPAIR(  11, 161), SPAIR(  28, 153)
 };
 
-const scorepair_t MobilityQ[28] = {
+const Scorepair QueenMobility[28] = {
     SPAIR( -65,-153), SPAIR(  30, 169), SPAIR(   8, 159), SPAIR(   2, 132),
     SPAIR(   9,  85), SPAIR(   6, 119), SPAIR(   5, 149), SPAIR(   5, 177),
     SPAIR(   6, 189), SPAIR(   6, 208), SPAIR(   7, 218), SPAIR(  11, 221),
@@ -129,59 +92,89 @@ const scorepair_t MobilityQ[28] = {
     SPAIR(  44, 154), SPAIR(  -7, 167), SPAIR(  14, 178), SPAIR(  46, 157)
 };
 
+// King Safety eval terms
+const Scorepair KnightWeight    = SPAIR(  48,  19);
+const Scorepair BishopWeight    = SPAIR(  33,  33);
+const Scorepair RookWeight      = SPAIR(  35, -37);
+const Scorepair QueenWeight     = SPAIR(  11,   7);
+const Scorepair AttackWeight    = SPAIR(   8,  11);
+const Scorepair WeakKingZone    = SPAIR(  27, -29);
+const Scorepair SafeKnightCheck = SPAIR(  80,   9);
+const Scorepair SafeBishopCheck = SPAIR(  38,  37);
+const Scorepair SafeRookCheck   = SPAIR(  91,  49);
+const Scorepair SafeQueenCheck  = SPAIR(  49,  64);
+const Scorepair UnsafeCheck     = SPAIR(  19,  47);
+const Scorepair QueenlessAttack = SPAIR( -83, -10);
+const Scorepair SafetyOffset    = SPAIR(  33,  35);
+
+// Storm/Shelter indexes:
+// 0-7 - Side
+// 9-15 - Front
+// 16-23 - Center
+const Scorepair KingStorm[24] = {
+    SPAIR(  -7,  -2), SPAIR( -14,  -1), SPAIR(  18,   4), SPAIR(  -7,   4),
+    SPAIR( -27,  11), SPAIR( -27,   3), SPAIR( -49,   2), SPAIR( -21,  -2),
+    SPAIR(   0,   0), SPAIR(   1,  -5), SPAIR(  42,  10), SPAIR(   2,  -1),
+    SPAIR(  -6,  -0), SPAIR(  -6,  11), SPAIR(   3,  20), SPAIR(  15,  -1),
+    SPAIR(   7,  -1), SPAIR(   0,   0), SPAIR(  42,   3), SPAIR(  26,  -3),
+    SPAIR(  -6,  -0), SPAIR( -12,  17), SPAIR(  -3,  39), SPAIR(  -0, -18)
+};
+
+const Scorepair KingShelter[24] = {
+    SPAIR( -50,   7), SPAIR( -39,  49), SPAIR( -38, -13), SPAIR( -23,   5),
+    SPAIR(   9,  -1), SPAIR(   9,  -0), SPAIR(   2,  -0), SPAIR(  -7, -26),
+    SPAIR(   0,   0), SPAIR(  -4,  -5), SPAIR(  -3,  36), SPAIR(   4,  17),
+    SPAIR(  12,   7), SPAIR(  26,  -0), SPAIR(   7,  -0), SPAIR(  16, -20),
+    SPAIR( -30, -12), SPAIR(  13, -46), SPAIR(   3,  27), SPAIR(  13,  44),
+    SPAIR(  13,  10), SPAIR(  21,   0), SPAIR(   6,  -0), SPAIR(  18,  11)
+};
+
 // Threat eval terms
-const scorepair_t PawnAttacksMinor  = SPAIR( 69, 84);
-const scorepair_t PawnAttacksRook   = SPAIR( 63, 59);
-const scorepair_t PawnAttacksQueen  = SPAIR( 62, 12);
-const scorepair_t MinorAttacksRook  = SPAIR( 70, 59);
-const scorepair_t MinorAttacksQueen = SPAIR( 55, 58);
-const scorepair_t RookAttacksQueen  = SPAIR( 57, 44);
-const scorepair_t HangingPawn       = SPAIR( 10, 53);
+const Scorepair PawnAttacksMinor  = SPAIR( 69, 84);
+const Scorepair PawnAttacksRook   = SPAIR( 63, 59);
+const Scorepair PawnAttacksQueen  = SPAIR( 62, 12);
+const Scorepair MinorAttacksRook  = SPAIR( 70, 59);
+const Scorepair MinorAttacksQueen = SPAIR( 55, 58);
+const Scorepair RookAttacksQueen  = SPAIR( 57, 44);
+const Scorepair HangingPawn       = SPAIR( 10, 53);
 
 // clang-format on
 
-typedef struct evaluation_s
-{
-    bitboard_t kingZone[COLOR_NB];
-    bitboard_t mobilityZone[COLOR_NB];
-    bitboard_t attacked[COLOR_NB];
-    bitboard_t attackedTwice[COLOR_NB];
-    bitboard_t attackedBy[COLOR_NB][PIECETYPE_NB];
-    int safetyAttackers[COLOR_NB];
-    int safetyAttacks[COLOR_NB];
-    scorepair_t safetyScore[COLOR_NB];
-    int positionClosed;
-} evaluation_t;
+static bool opposite_colored_bishops(Bitboard bishops) {
+    return (bishops & DSQ_BB) && (bishops & LSQ_BB);
+}
 
-bool is_kxk_endgame(const Board *board, color_t us)
-{
-    // Weak side has pieces or Pawns, this is not a KXK endgame.
-    if (more_than_one(color_bb(board, not_color(us)))) return false;
+static bool is_kxk_endgame(const Board *board, Color us) {
+    // If the weak side has pieces or Pawns, this is not a KXK endgame.
+    if (bb_more_than_one(board_color_bb(board, color_flip(us)))) {
+        return false;
+    }
 
     return board->stack->material[us] >= ROOK_MG_SCORE;
 }
 
-score_t eval_kxk(const Board *board, color_t us)
-{
+static Score eval_kxk(const Board *board, Color us) {
     // Be careful to avoid stalemating the weak King.
-    if (board->sideToMove != us && !board->stack->checkers)
-    {
+    if (board->side_to_move != us && !board->stack->checkers) {
         Movelist list;
 
-        list_all(&list, board);
-        if (movelist_size(&list) == 0) return 0;
+        movelist_generate_legal(&list, board);
+
+        if (movelist_size(&list) == 0) {
+            return 0;
+        }
     }
 
-    square_t winningKsq = get_king_square(board, us);
-    square_t losingKsq = get_king_square(board, not_color(us));
-    score_t score =
-        board->stack->material[us] + popcount(piecetype_bb(board, PAWN)) * PAWN_MG_SCORE;
+    const Square winning_ksq = board_king_square(board, us);
+    const Square losing_ksq = board_king_square(board, color_flip(us));
+    Score score = board->stack->material[us]
+        + board_piece_count(board, create_piece(us, PAWN)) * PAWN_MG_SCORE;
 
     // Push the weak King to the corner.
-    score += edge_bonus(losingKsq);
+    score += corner_bonus(losing_ksq);
 
-    // Give a bonus for close Kings.
-    score += close_bonus(winningKsq, losingKsq);
+    // Keep the two Kings close for mating with low material.
+    score += close_bonus(winning_ksq, losing_ksq);
 
     // Set the score as winning if we have mating material:
     // - a major piece;
@@ -190,678 +183,679 @@ score_t eval_kxk(const Board *board, color_t us)
     // - three Knights.
     // Note that the KBNK case has already been handled at this point
     // in the eval, so it's not necessary to worry about it.
-    bitboard_t knights = piecetype_bb(board, KNIGHT);
-    bitboard_t bishops = piecetype_bb(board, BISHOP);
+    const Bitboard knights = board_piecetype_bb(board, KNIGHT);
+    const Bitboard bishops = board_piecetype_bb(board, BISHOP);
 
-    if (piecetype_bb(board, QUEEN) || piecetype_bb(board, ROOK) || (knights && bishops)
-        || ((bishops & DSQ_BB) && (bishops & LSQ_BB)) || (popcount(knights) >= 3))
+    if (board_piecetypes_bb(board, QUEEN, ROOK) || (knights && bishops)
+        || opposite_colored_bishops(bishops) || bb_popcount(knights) >= 3) {
         score += VICTORY;
+    }
 
-    return board->sideToMove == us ? score : -score;
+    return (board->side_to_move == us) ? score : -score;
 }
 
-bool ocb_endgame(const Board *board)
-{
-    // Check if there is exactly one White Bishop and one Black Bishop.
-    bitboard_t wbishop = piece_bb(board, WHITE, BISHOP);
+static void evaldata_init(EvaluationData *evaldata, const Board *board, Color us) {
+    const Color them = color_flip(us);
+    const Square our_king = board_king_square(board, us);
+    const Bitboard our_pawns = board_piece_bb(board, us, PAWN);
+    const Bitboard our_pawn_attacks = pawns_attacks_bb(our_pawns, us);
 
-    if (!wbishop || more_than_one(wbishop)) return false;
+    trace_add(
+        IDX_PSQT + 48 + (KING - KNIGHT) * 32 + square_to_psqt_index(square_relative(our_king, us)),
+        us,
+        1
+    );
 
-    bitboard_t bbishop = piece_bb(board, BLACK, BISHOP);
+    // Set the King Attack zone as the 3x4 square surrounding the King (counting an additional rank
+    // in front of the King). Initialize the attack tables at the same time.
+    evaldata->attacked[us] = evaldata->attacked_by[us][KING] = evaldata->king_zone[them] =
+        king_attacks_bb(our_king);
+    evaldata->king_zone[them] |= bb_shift_up_relative(evaldata->king_zone[them], us);
 
-    if (!bbishop || more_than_one(bbishop)) return false;
+    // Initialize pawn attacks.
+    evaldata->attacked_by[us][PAWN] = our_pawn_attacks;
+    evaldata->attacked2[us] |= evaldata->attacked[us] & our_pawn_attacks;
+    evaldata->attacked2[us] |= pawns_attacks2_bb(our_pawns, us);
+    evaldata->attacked[us] |= our_pawn_attacks;
 
-    // Then check that the Bishops are on opposite colored squares.
-    bitboard_t dsqMask = (wbishop | bbishop) & DSQ_BB;
-
-    return !!dsqMask && !more_than_one(dsqMask);
+    // Set the initial opponent's mobility zone as the squares not attacked by our pawns.
+    // Additionally, exclude those squares from the King safety zone.
+    evaldata->mobility_zone[them] = ~our_pawn_attacks;
+    evaldata->king_zone[them] &= ~our_pawn_attacks;
 }
 
-score_t scale_endgame(const Board *board, const KingPawnEntry *kpe, score_t eg)
-{
-    // Only detect scalable endgames from the side with a positive evaluation.
-    // This allows us to quickly filter out positions which shouldn't be scaled,
-    // even though they have a theoretical scaling factor in our code (like KNvKPPPP).
-    color_t strongSide = (eg > 0) ? WHITE : BLACK, weakSide = not_color(strongSide);
-    const EndgameEntry *entry;
-    int factor;
-    score_t strongMat = board->stack->material[strongSide],
-            weakMat = board->stack->material[weakSide];
-    bitboard_t strongPawns = piece_bb(board, strongSide, PAWN),
-               weakPawns = piece_bb(board, weakSide, PAWN);
+static void evaldata_init_next(EvaluationData *evaldata, const Board *board, Color us) {
+    const Bitboard our_pawns = board_piece_bb(board, us, PAWN);
+    const Bitboard occupancy = board_occupancy_bb(board);
+    const Bitboard low_ranks = (us == WHITE) ? RANK_2_BB | RANK_3_BB : RANK_6_BB | RANK_7_BB;
 
-    // No Pawns and low material difference, the endgame is either drawn
-    // or very difficult to win.
-    if (!strongPawns && strongMat - weakMat <= BISHOP_MG_SCORE)
-        factor = (strongMat <= BISHOP_MG_SCORE)
-                     ? SCALE_DRAW
-                     : imax((int32_t)(strongMat - weakMat) * 8 / BISHOP_MG_SCORE, 0);
-
-    // OCB endgames: scale based on the number of remaining pieces of the strong side,
-    // or if there are no other remaining pieces, based on the number of passed pawns.
-    else if (ocb_endgame(board))
-        factor = (strongMat + weakMat > 2 * BISHOP_MG_SCORE)
-                     ? 71 + popcount(color_bb(board, strongSide)) * 9
-                     : 33 + popcount(kpe->passed[strongSide]) * 21;
-
-    // Rook endgames: drawish if the Pawn advantage is small, and all strong side Pawns
-    // are on the same side of the board. Don't scale if the defending King is far from
-    // his own Pawns.
-    else if (strongMat == ROOK_MG_SCORE && weakMat == ROOK_MG_SCORE
-             && (popcount(strongPawns) - popcount(weakPawns) < 2)
-             && !!(KINGSIDE_BB & strongPawns) != !!(QUEENSIDE_BB & strongPawns)
-             && (king_moves(get_king_square(board, weakSide)) & weakPawns))
-        factor = 130;
-
-    // Check if we have a specialized function for the given material distribution.
-    else if ((entry = endgame_probe_scalefactor(board)) != NULL)
-        factor = entry->scaleFunc(board, strongSide);
-
-    // Other endgames. Decrease the endgame score as the number of pawns of the strong
-    // side gets lower.
-    else
-        factor = imin(SCALE_NORMAL, 177 + 13 * popcount(strongPawns));
-
-    // Be careful to cast to 32-bit integer here before multiplying to avoid overflows.
-    eg = (score_t)((int32_t)eg * factor / SCALE_NORMAL);
-    TRACE_FACTOR(factor);
-
-    return eg;
+    // Exclude our King, rammed pawns and pawns on low ranks from the mobility zone.
+    evaldata->mobility_zone[us] &=
+        ~(our_pawns & (bb_shift_down_relative(occupancy, us) | low_ranks));
+    evaldata->mobility_zone[us] &= ~board_piece_bb(board, us, KING);
 }
 
-void eval_init(const Board *board, evaluation_t *eval)
-{
-    memset(eval, 0, sizeof(evaluation_t));
+static void evaldata_set_position_closed(EvaluationData *evaldata, const Board *board) {
+    const Bitboard wpawns = board_piece_bb(board, WHITE, PAWN);
+    const Bitboard bpawns = board_piece_bb(board, BLACK, PAWN);
+    const Bitboard occupancy = board_occupancy_bb(board);
 
-    square_t wksq = get_king_square(board, WHITE);
-    square_t bksq = get_king_square(board, BLACK);
+    // Compute position closedness based on the number of pawns who cannot advance (including pawns
+    // with their stop squares controlled).
+    const Bitboard fixed_pawns =
+        (wpawns & bb_shift_down(occupancy | evaldata->attacked_by[BLACK][PAWN]))
+        | (bpawns & bb_shift_up(occupancy | evaldata->attacked_by[WHITE][PAWN]));
 
-    TRACE_ADD(IDX_PSQT + 48 + (KING - KNIGHT) * 32 + to_sq32(wksq), WHITE, 1);
-    TRACE_ADD(IDX_PSQT + 48 + (KING - KNIGHT) * 32 + to_sq32(bksq ^ SQ_A8), BLACK, 1);
-
-    // Set the King Attack zone as the 3x4 square surrounding the King
-    // (counting an additional rank in front of the King). Initialize the attack
-    // tables at the same time.
-    eval->kingZone[WHITE] = king_moves(bksq);
-    eval->kingZone[BLACK] = king_moves(wksq);
-
-    eval->attacked[WHITE] = eval->attackedBy[WHITE][KING] = eval->kingZone[BLACK];
-    eval->attacked[BLACK] = eval->attackedBy[BLACK][KING] = eval->kingZone[WHITE];
-
-    eval->kingZone[WHITE] |= shift_down(eval->kingZone[WHITE]);
-    eval->kingZone[BLACK] |= shift_up(eval->kingZone[BLACK]);
-
-    bitboard_t occupied = occupancy_bb(board);
-    bitboard_t wpawns = piece_bb(board, WHITE, PAWN);
-    bitboard_t bpawns = piece_bb(board, BLACK, PAWN);
-    bitboard_t wattacks = wpawns_attacks_bb(wpawns);
-    bitboard_t battacks = bpawns_attacks_bb(bpawns);
-
-    eval->attackedBy[WHITE][PAWN] = wattacks;
-    eval->attackedBy[BLACK][PAWN] = battacks;
-    eval->attackedTwice[WHITE] |= eval->attacked[WHITE] & wattacks;
-    eval->attackedTwice[BLACK] |= eval->attacked[BLACK] & battacks;
-    eval->attackedTwice[WHITE] |= wpawns_2attacks_bb(wpawns);
-    eval->attackedTwice[BLACK] |= bpawns_2attacks_bb(bpawns);
-    eval->attacked[WHITE] |= wattacks;
-    eval->attacked[BLACK] |= battacks;
-
-    // Exclude opponent Pawns' attacks from the Mobility and King Attack zones.
-    eval->mobilityZone[WHITE] = ~battacks;
-    eval->mobilityZone[BLACK] = ~wattacks;
-    eval->kingZone[WHITE] &= eval->mobilityZone[WHITE];
-    eval->kingZone[BLACK] &= eval->mobilityZone[BLACK];
-
-    // Exclude rammed Pawns and our Pawns on ranks 2 and 3 from the Mobility zone.
-    eval->mobilityZone[WHITE] &= ~(wpawns & (shift_down(occupied) | RANK_2_BB | RANK_3_BB));
-    eval->mobilityZone[BLACK] &= ~(bpawns & (shift_up(occupied) | RANK_6_BB | RANK_7_BB));
-
-    // Exclude our King from the Mobility zone.
-    eval->mobilityZone[WHITE] &= ~square_bb(wksq);
-    eval->mobilityZone[BLACK] &= ~square_bb(bksq);
-
-    // Compute position closedness based on the number of Pawns who cannot advance
-    // (including Pawns with their stop squares controlled).
-    bitboard_t fixedPawns = wpawns & shift_down(occupied | battacks);
-    fixedPawns |= bpawns & shift_up(occupied | wattacks);
-
-    eval->positionClosed = imin(4, popcount(fixedPawns) / 2);
+    evaldata->position_closed = i32_min(4, bb_popcount(fixed_pawns) / 2);
 }
 
-scorepair_t evaluate_knights(
-    const Board *board, evaluation_t *eval, const KingPawnEntry *kpe, color_t us)
-{
-    scorepair_t ret = 0;
-    bitboard_t bb = piece_bb(board, us, KNIGHT);
-    bitboard_t ourPawns = piece_bb(board, us, PAWN);
-    bitboard_t outpost = RANK_4_BB | RANK_5_BB | (us == WHITE ? RANK_6_BB : RANK_3_BB);
+static Scorepair evaluate_knights(
+    const Board *restrict board,
+    EvaluationData *restrict evaldata,
+    const KingPawnEntry *kpe,
+    Color us
+) {
+    const Bitboard our_pawns = board_piece_bb(board, us, PAWN);
+    const Bitboard outpost_ranks = RANK_4_BB | RANK_5_BB | (us == WHITE ? RANK_6_BB : RANK_3_BB);
+    Scorepair ret = 0;
+    Bitboard bb = board_piece_bb(board, us, KNIGHT);
 
-    while (bb)
-    {
-        square_t sq = bb_pop_first_sq(&bb);
-        bitboard_t sqbb = square_bb(sq);
-        bitboard_t b = knight_moves(sq);
+    while (bb) {
+        const Square sq = bb_pop_first_square(&bb);
+        Bitboard b = knight_attacks_bb(sq);
 
-        TRACE_ADD(IDX_PIECE + KNIGHT - PAWN, us, 1);
-        TRACE_ADD(IDX_PSQT + 48 + (KNIGHT - KNIGHT) * 32 + to_sq32(relative_sq(sq, us)), us, 1);
+        trace_add(IDX_PIECE + KNIGHT - PAWN, us, 1);
+        trace_add(
+            IDX_PSQT + 48 + (KNIGHT - KNIGHT) * 32 + square_to_psqt_index(square_relative(sq, us)),
+            us,
+            1
+        );
 
         // Give a bonus/penalty based on how closed the position is.
-        ret += ClosedPosKnight[eval->positionClosed];
-        TRACE_ADD(IDX_KNIGHT_CLOSED_POS + eval->positionClosed, us, 1);
+        ret += ClosedPosKnight[evaldata->position_closed];
+        trace_add(IDX_KNIGHT_CLOSED_POS + evaldata->position_closed, us, 1);
 
         // If the Knight is pinned, it has no Mobility squares.
-        if (board->stack->kingBlockers[us] & sqbb) b = 0;
+        if (bb_square_is_set(board->stack->king_blockers[us], sq)) {
+            b = 0;
+        }
 
         // Update the attack tables.
-        eval->attackedBy[us][KNIGHT] |= b;
-        eval->attackedTwice[us] |= eval->attacked[us] & b;
-        eval->attacked[us] |= b;
+        evaldata->attacked_by[us][KNIGHT] |= b;
+        evaldata->attacked2[us] |= evaldata->attacked[us] & b;
+        evaldata->attacked[us] |= b;
 
         // Give a bonus for the Knight's mobility.
-        ret += MobilityN[popcount(b & eval->mobilityZone[us])];
-        TRACE_ADD(IDX_MOBILITY_KNIGHT + popcount(b & eval->mobilityZone[us]), us, 1);
+        ret += KnightMobility[bb_popcount(b & evaldata->mobility_zone[us])];
+        trace_add(IDX_MOBILITY_KNIGHT + bb_popcount(b & evaldata->mobility_zone[us]), us, 1);
 
-        // give a bonus for a Knight with a Pawn above it.
-        if (relative_shift_up(sqbb, us) & ourPawns)
-        {
+        // Give a bonus for a Knight with a Pawn above it.
+        if (bb_square_is_set(bb_shift_down_relative(our_pawns, us), sq)) {
             ret += KnightShielded;
-            TRACE_ADD(IDX_KNIGHT_SHIELDED, us, 1);
+            trace_add(IDX_KNIGHT_SHIELDED, us, 1);
         }
 
         // Give a bonus for a Knight on an outpost.
-        if (sqbb & outpost & eval->attackedBy[us][PAWN] & ~kpe->attackSpan[not_color(us)])
-        {
+        if (bb_square_is_set(
+                outpost_ranks & evaldata->attacked_by[us][PAWN] & ~kpe->attack_span[color_flip(us)],
+                sq
+            )) {
             ret += KnightOutpost;
-            TRACE_ADD(IDX_KNIGHT_OUTPOST, us, 1);
+            trace_add(IDX_KNIGHT_OUTPOST, us, 1);
         }
 
         // Give a bonus for a Knight targeting the King Attack zone.
-        if (b & eval->kingZone[us])
-        {
-            eval->safetyAttackers[us] += 1;
-            eval->safetyAttacks[us] += popcount(b & eval->kingZone[us]);
-            eval->safetyScore[us] += KnightWeight;
-            TRACE_ADD(IDX_KS_KNIGHT, us, 1);
-            TRACE_ADD(IDX_KS_ATTACK, us, popcount(b & eval->kingZone[us]));
+        if (b & evaldata->king_zone[us]) {
+            evaldata->safety_attackers[us] += 1;
+            evaldata->safety_attacks[us] += bb_popcount(b & evaldata->king_zone[us]);
+            evaldata->safety_value[us] += KnightWeight;
+            trace_add(IDX_KS_KNIGHT, us, 1);
+            trace_add(IDX_KS_ATTACK, us, bb_popcount(b & evaldata->king_zone[us]));
         }
     }
+
     return ret;
 }
 
-scorepair_t evaluate_bishops(
-    const Board *board, evaluation_t *eval, const KingPawnEntry *kpe, color_t us)
-{
-    scorepair_t ret = 0;
-    const bitboard_t occupancy = occupancy_bb(board) ^ piece_bb(board, us, QUEEN);
-    bitboard_t bb = piece_bb(board, us, BISHOP);
-    bitboard_t ourPawns = piece_bb(board, us, PAWN);
-    bitboard_t outpost = RANK_4_BB | RANK_5_BB | (us == WHITE ? RANK_6_BB : RANK_3_BB);
+static Scorepair evaluate_bishops(
+    const Board *restrict board,
+    EvaluationData *restrict evaldata,
+    const KingPawnEntry *kpe __attribute__((unused)),
+    Color us
+) {
+    const Bitboard our_pawns = board_piece_bb(board, us, PAWN);
+    const Bitboard outpost_ranks = RANK_4_BB | RANK_5_BB | (us == WHITE ? RANK_6_BB : RANK_3_BB);
+    const Bitboard occupancy = board_occupancy_bb(board) ^ board_piece_bb(board, us, QUEEN);
+    Scorepair ret = 0;
+    Bitboard bb = board_piece_bb(board, us, BISHOP);
 
     // Give a bonus for the Bishop pair.
-    if (more_than_one(bb))
-    {
+    if (bb_more_than_one(bb)) {
         ret += BishopPairBonus;
-        TRACE_ADD(IDX_BISHOP_PAIR, us, 1);
+        trace_add(IDX_BISHOP_PAIR, us, 1);
     }
 
-    while (bb)
-    {
-        square_t sq = bb_pop_first_sq(&bb);
-        bitboard_t sqbb = square_bb(sq);
-        bitboard_t b = bishop_moves_bb(sq, occupancy);
+    while (bb) {
+        const Square sq = bb_pop_first_square(&bb);
+        Bitboard b = bishop_attacks_bb(sq, occupancy);
 
-        TRACE_ADD(IDX_PIECE + BISHOP - PAWN, us, 1);
-        TRACE_ADD(IDX_PSQT + 48 + (BISHOP - KNIGHT) * 32 + to_sq32(relative_sq(sq, us)), us, 1);
+        trace_add(IDX_PIECE + BISHOP - PAWN, us, 1);
+        trace_add(
+            IDX_PSQT + 48 + (BISHOP - KNIGHT) * 32 + square_to_psqt_index(square_relative(sq, us)),
+            us,
+            1
+        );
 
         // Give a bonus/penalty based on the number of friendly Pawns which are
         // on same color squares as the Bishop.
         {
-            bitboard_t sqMask = (sqbb & DSQ_BB) ? DSQ_BB : LSQ_BB;
+            const Bitboard sq_mask = bb_square_is_set(DSQ_BB, sq) ? DSQ_BB : LSQ_BB;
 
-            ret += BishopPawnsSameColor[imin(popcount(sqMask & ourPawns), 6)];
-            TRACE_ADD(IDX_BISHOP_PAWNS_COLOR + imin(popcount(sqMask & ourPawns), 6), us, 1);
+            ret += BishopPawnsSameColor[u8_min(bb_popcount(sq_mask & our_pawns), 6)];
+            trace_add(IDX_BISHOP_PAWNS_COLOR + u8_min(bb_popcount(sq_mask & our_pawns), 6), us, 1);
         }
 
-        // If the Bishop is pinned, reduce its mobility to all the squares
-        // between the King and the pinner.
-        if (board->stack->kingBlockers[us] & sqbb) b &= LineBB[get_king_square(board, us)][sq];
+        // If the Bishop is pinned, reduce its mobility to all the squares between the King and the
+        // pinner.
+        if (bb_square_is_set(board->stack->king_blockers[us], sq)) {
+            b &= line_bb(board_king_square(board, us), sq);
+        }
 
         // Update the attack tables.
-        eval->attackedBy[us][BISHOP] |= b;
-        eval->attackedTwice[us] |= eval->attacked[us] & b;
-        eval->attacked[us] |= b;
+        evaldata->attacked_by[us][BISHOP] |= b;
+        evaldata->attacked2[us] |= evaldata->attacked[us] & b;
+        evaldata->attacked[us] |= b;
 
         // Give a bonus for the Bishop's mobility.
-        ret += MobilityB[popcount(b & eval->mobilityZone[us])];
-        TRACE_ADD(IDX_MOBILITY_BISHOP + popcount(b & eval->mobilityZone[us]), us, 1);
+        ret += BishopMobility[bb_popcount(b & evaldata->mobility_zone[us])];
+        trace_add(IDX_MOBILITY_BISHOP + bb_popcount(b & evaldata->mobility_zone[us]), us, 1);
 
-        // Give a bonus for Bishop with a Pawn above it.
-        if (relative_shift_up(square_bb(sq), us) & ourPawns)
-        {
+        // Give a bonus for a Knight with a Pawn above it.
+        if (bb_square_is_set(bb_shift_down_relative(our_pawns, us), sq)) {
             ret += BishopShielded;
-            TRACE_ADD(IDX_BISHOP_SHIELDED, us, 1);
+            trace_add(IDX_BISHOP_SHIELDED, us, 1);
         }
 
         // Give a bonus for a Bishop on an outpost.
-        if (sqbb & outpost & eval->attackedBy[us][PAWN] & ~kpe->attackSpan[not_color(us)])
-        {
+        if (bb_square_is_set(
+                outpost_ranks & evaldata->attacked_by[us][PAWN] & ~kpe->attack_span[color_flip(us)],
+                sq
+            )) {
             ret += BishopOutpost;
-            TRACE_ADD(IDX_BISHOP_OUTPOST, us, 1);
+            trace_add(IDX_BISHOP_OUTPOST, us, 1);
         }
 
         // Give a bonus for a Bishop seeing the center squares (generally in
         // fianchetto).
-        if (more_than_one(b & CENTER_BB))
-        {
+        if (bb_more_than_one(b & CENTER_BB)) {
             ret += BishopLongDiagonal;
-            TRACE_ADD(IDX_BISHOP_LONG_DIAG, us, 1);
+            trace_add(IDX_BISHOP_LONG_DIAG, us, 1);
         }
 
         // Give a bonus for a Bishop targeting the King Attack zone.
-        if (b & eval->kingZone[us])
-        {
-            eval->safetyAttackers[us] += 1;
-            eval->safetyAttacks[us] += popcount(b & eval->kingZone[us]);
-            eval->safetyScore[us] += BishopWeight;
-            TRACE_ADD(IDX_KS_BISHOP, us, 1);
-            TRACE_ADD(IDX_KS_ATTACK, us, popcount(b & eval->kingZone[us]));
+        if (b & evaldata->king_zone[us]) {
+            evaldata->safety_attackers[us] += 1;
+            evaldata->safety_attacks[us] += bb_popcount(b & evaldata->king_zone[us]);
+            evaldata->safety_value[us] += BishopWeight;
+            trace_add(IDX_KS_BISHOP, us, 1);
+            trace_add(IDX_KS_ATTACK, us, bb_popcount(b & evaldata->king_zone[us]));
         }
     }
+
     return ret;
 }
 
-scorepair_t evaluate_rooks(const Board *board, evaluation_t *eval, color_t us)
-{
-    scorepair_t ret = 0;
-    const bitboard_t occupancy = occupancy_bb(board) ^ pieces_bb(board, us, ROOK, QUEEN);
-    const bitboard_t ourPawns = piece_bb(board, us, PAWN);
-    const bitboard_t theirPawns = piece_bb(board, not_color(us), PAWN);
-    const bitboard_t theirQueens = piece_bb(board, not_color(us), QUEEN);
-    bitboard_t bb = piece_bb(board, us, ROOK);
+static Scorepair
+    evaluate_rooks(const Board *restrict board, EvaluationData *restrict evaldata, Color us) {
+    const Bitboard occupancy = board_occupancy_bb(board) ^ board_pieces_bb(board, us, ROOK, QUEEN);
+    const Bitboard our_pawns = board_piece_bb(board, us, PAWN);
+    const Bitboard their_pawns = board_piece_bb(board, color_flip(us), PAWN);
+    Scorepair ret = 0;
+    Bitboard bb = board_piece_bb(board, us, ROOK);
 
-    while (bb)
-    {
-        square_t sq = bb_pop_first_sq(&bb);
-        bitboard_t sqbb = square_bb(sq);
-        bitboard_t rookFile = sq_file_bb(sq);
-        bitboard_t b = rook_moves_bb(sq, occupancy);
+    while (bb) {
+        const Square sq = bb_pop_first_square(&bb);
+        const Bitboard rook_file_bb = square_file_bb(sq);
+        Bitboard b = rook_attacks_bb(sq, occupancy);
 
-        TRACE_ADD(IDX_PIECE + ROOK - PAWN, us, 1);
-        TRACE_ADD(IDX_PSQT + 48 + (ROOK - KNIGHT) * 32 + to_sq32(relative_sq(sq, us)), us, 1);
+        trace_add(IDX_PIECE + ROOK - PAWN, us, 1);
+        trace_add(
+            IDX_PSQT + 48 + (ROOK - KNIGHT) * 32 + square_to_psqt_index(square_relative(sq, us)),
+            us,
+            1
+        );
 
-        // If the Rook is pinned, reduce its mobility to all the squares
-        // between the King and the pinner.
-        if (board->stack->kingBlockers[us] & sqbb) b &= LineBB[get_king_square(board, us)][sq];
-
-        // Update the attack tables.
-        eval->attackedBy[us][ROOK] |= b;
-        eval->attackedTwice[us] |= eval->attacked[us] & b;
-        eval->attacked[us] |= b;
-
-        // Give a bonus for a Rook on an open (or semi-open) file.
-        if (!(rookFile & ourPawns))
-        {
-            ret += (rookFile & theirPawns) ? RookOnSemiOpenFile : RookOnOpenFile;
-            TRACE_ADD((rookFile & theirPawns) ? IDX_ROOK_SEMIOPEN : IDX_ROOK_OPEN, us, 1);
+        // If the Rook is pinned, reduce its mobility to all the squares between the King and the
+        // pinner.
+        if (bb_square_is_set(board->stack->king_blockers[us], sq)) {
+            b &= line_bb(board_king_square(board, us), sq);
         }
 
+        // Update the attack tables.
+        evaldata->attacked_by[us][ROOK] |= b;
+        evaldata->attacked2[us] |= evaldata->attacked[us] & b;
+        evaldata->attacked[us] |= b;
+
+        // Give a bonus for a Rook on an open (or semi-open) file.
+        if (!(rook_file_bb & our_pawns)) {
+            ret += (rook_file_bb & their_pawns) ? RookOnSemiOpenFile : RookOnOpenFile;
+            trace_add((rook_file_bb & their_pawns) ? IDX_ROOK_SEMIOPEN : IDX_ROOK_OPEN, us, 1);
+        }
         // Give a penalty for a Rook on a file with a blocked friendly Pawn.
-        else if (relative_shift_up(rookFile & ourPawns, us) & occupancy)
-        {
+        else if (bb_shift_up_relative(rook_file_bb & our_pawns, us) & occupancy) {
             ret += RookOnBlockedFile;
-            TRACE_ADD(IDX_ROOK_BLOCKED, us, 1);
+            trace_add(IDX_ROOK_BLOCKED, us, 1);
         }
 
         // Give a bonus for a Rook on the same file as the opponent's Queen(s).
-        if (rookFile & theirQueens)
-        {
+        if (rook_file_bb & board_piece_bb(board, color_flip(us), QUEEN)) {
             ret += RookXrayQueen;
-            TRACE_ADD(IDX_ROOK_XRAY_QUEEN, us, 1);
+            trace_add(IDX_ROOK_XRAY_QUEEN, us, 1);
         }
 
-        int mobility = popcount(b & eval->mobilityZone[us]);
+        const u8 mobility = bb_popcount(b & evaldata->mobility_zone[us]);
 
         // Give a bonus for the Rook's mobility.
-        ret += MobilityR[mobility];
-        TRACE_ADD(IDX_MOBILITY_ROOK + mobility, us, 1);
+        ret += RookMobility[mobility];
+        trace_add(IDX_MOBILITY_ROOK + mobility, us, 1);
 
         // Check for trapped Rooks.
-        if (mobility <= 4 && relative_sq_rank(sq, us) <= RANK_2)
-        {
-            file_t kFile = sq_file(get_king_square(board, us));
-            file_t rFile = sq_file(sq);
+        if (mobility <= 4 && square_rank_relative(sq, us) <= RANK_2) {
+            const File king_file = square_file(board_king_square(board, us));
+            const File rook_file = square_file(sq);
 
             // Check if the King resides between the Rook and the middle of the board.
-            if (kFile != rFile && (kFile < rFile) == (kFile >= FILE_E))
-            {
-                bool canCastle = has_castling(us, board->stack->castlings);
-                ret += canCastle ? RookTrapped : RookBuried;
-                TRACE_ADD(canCastle ? IDX_ROOK_TRAPPED : IDX_ROOK_BURIED, us, 1);
+            if (king_file != rook_file && (king_file < rook_file) == (king_file >= FILE_E)) {
+                const bool can_castle = !!(board->stack->castlings & relative_cr(us));
+                ret += can_castle ? RookTrapped : RookBuried;
+                trace_add(can_castle ? IDX_ROOK_TRAPPED : IDX_ROOK_BURIED, us, 1);
             }
         }
 
         // Give a bonus for a Rook targeting the King Attack zone.
-        if (b & eval->kingZone[us])
-        {
-            eval->safetyAttackers[us] += 1;
-            eval->safetyAttacks[us] += popcount(b & eval->kingZone[us]);
-            eval->safetyScore[us] += RookWeight;
-            TRACE_ADD(IDX_KS_ROOK, us, 1);
-            TRACE_ADD(IDX_KS_ATTACK, us, popcount(b & eval->kingZone[us]));
+        if (b & evaldata->king_zone[us]) {
+            evaldata->safety_attackers[us] += 1;
+            evaldata->safety_attacks[us] += bb_popcount(b & evaldata->king_zone[us]);
+            evaldata->safety_value[us] += RookWeight;
+            trace_add(IDX_KS_ROOK, us, 1);
+            trace_add(IDX_KS_ATTACK, us, bb_popcount(b & evaldata->king_zone[us]));
         }
     }
+
     return ret;
 }
 
-scorepair_t evaluate_queens(const Board *board, evaluation_t *eval, color_t us)
-{
-    scorepair_t ret = 0;
-    const bitboard_t occupancyB = occupancy_bb(board) ^ piece_bb(board, us, BISHOP);
-    const bitboard_t occupancyR = occupancy_bb(board) ^ piece_bb(board, us, ROOK);
-    bitboard_t bb = piece_bb(board, us, QUEEN);
+static Scorepair
+    evaluate_queens(const Board *restrict board, EvaluationData *restrict evaldata, Color us) {
+    const Bitboard occupancy_b = board_occupancy_bb(board) ^ board_piece_bb(board, us, BISHOP);
+    const Bitboard occupancy_r = board_occupancy_bb(board) ^ board_piece_bb(board, us, ROOK);
+    Scorepair ret = 0;
+    Bitboard bb = board_piece_bb(board, us, QUEEN);
 
-    while (bb)
-    {
-        square_t sq = bb_pop_first_sq(&bb);
-        bitboard_t sqbb = square_bb(sq);
-        bitboard_t b = bishop_moves_bb(sq, occupancyB) | rook_moves_bb(sq, occupancyR);
+    while (bb) {
+        const Square sq = bb_pop_first_square(&bb);
+        Bitboard b = bishop_attacks_bb(sq, occupancy_b) | rook_attacks_bb(sq, occupancy_r);
 
-        TRACE_ADD(IDX_PIECE + QUEEN - PAWN, us, 1);
-        TRACE_ADD(IDX_PSQT + 48 + (QUEEN - KNIGHT) * 32 + to_sq32(relative_sq(sq, us)), us, 1);
+        trace_add(IDX_PIECE + QUEEN - PAWN, us, 1);
+        trace_add(
+            IDX_PSQT + 48 + (QUEEN - KNIGHT) * 32 + square_to_psqt_index(square_relative(sq, us)),
+            us,
+            1
+        );
 
-        // If the Queen is pinned, reduce its mobility to all the squares
-        // between the King and the pinner.
-        if (board->stack->kingBlockers[us] & sqbb) b &= LineBB[get_king_square(board, us)][sq];
+        // If the Queen is pinned, reduce its mobility to all the squares between the King and the
+        // pinner.
+        if (bb_square_is_set(board->stack->king_blockers[us], sq)) {
+            b &= line_bb(board_king_square(board, us), sq);
+        }
 
         // Update the attack tables.
-        eval->attackedBy[us][QUEEN] |= b;
-        eval->attackedTwice[us] |= eval->attacked[us] & b;
-        eval->attacked[us] |= b;
+        evaldata->attacked_by[us][QUEEN] |= b;
+        evaldata->attacked2[us] |= evaldata->attacked[us] & b;
+        evaldata->attacked[us] |= b;
 
         // Give a bonus for the Queen's mobility.
-
-        ret += MobilityQ[popcount(b & eval->mobilityZone[us])];
-        TRACE_ADD(IDX_MOBILITY_QUEEN + popcount(b & eval->mobilityZone[us]), us, 1);
+        ret += QueenMobility[bb_popcount(b & evaldata->mobility_zone[us])];
+        trace_add(IDX_MOBILITY_QUEEN + bb_popcount(b & evaldata->mobility_zone[us]), us, 1);
 
         // Give a bonus for a Queen targeting the King Attack zone.
-        if (b & eval->kingZone[us])
-        {
-            eval->safetyAttackers[us] += 1;
-            eval->safetyAttacks[us] += popcount(b & eval->kingZone[us]);
-            eval->safetyScore[us] += QueenWeight;
-            TRACE_ADD(IDX_KS_QUEEN, us, 1);
-            TRACE_ADD(IDX_KS_ATTACK, us, popcount(b & eval->kingZone[us]));
+        if (b & evaldata->king_zone[us]) {
+            evaldata->safety_attackers[us] += 1;
+            evaldata->safety_attacks[us] += bb_popcount(b & evaldata->king_zone[us]);
+            evaldata->safety_value[us] += QueenWeight;
+            trace_add(IDX_KS_QUEEN, us, 1);
+            trace_add(IDX_KS_ATTACK, us, bb_popcount(b & evaldata->king_zone[us]));
         }
     }
+
     return ret;
 }
 
-scorepair_t evaluate_threats(const Board *board, const evaluation_t *eval, color_t us)
-{
-    color_t them = not_color(us);
-    bitboard_t rooks = piece_bb(board, them, ROOK);
-    bitboard_t queens = piece_bb(board, them, QUEEN);
-    scorepair_t ret = 0;
-    bitboard_t attacks;
+static Scorepair evaluate_threats(const Board *board, const EvaluationData *evaldata, Color us) {
+    const Color them = color_flip(us);
+    Bitboard rooks = board_piece_bb(board, them, ROOK);
+    Bitboard queens = board_piece_bb(board, them, QUEEN);
+    Scorepair ret = 0;
+    Bitboard attacks;
 
-    attacks = pieces_bb(board, them, KNIGHT, BISHOP) & eval->attackedBy[us][PAWN];
+    attacks = board_pieces_bb(board, them, KNIGHT, BISHOP) & evaldata->attacked_by[us][PAWN];
 
     // Give a bonus for a Pawn attacking a minor piece.
-    if (attacks)
-    {
-        ret += PawnAttacksMinor * popcount(attacks);
-        TRACE_ADD(IDX_PAWN_ATK_MINOR, us, popcount(attacks));
+    if (attacks) {
+        ret += PawnAttacksMinor * bb_popcount(attacks);
+        trace_add(IDX_PAWN_ATK_MINOR, us, bb_popcount(attacks));
     }
 
-    attacks = rooks & eval->attackedBy[us][PAWN];
+    attacks = rooks & evaldata->attacked_by[us][PAWN];
 
     // Give a bonus for a Pawn attacking a Rook.
-    if (attacks)
-    {
+    if (attacks) {
         rooks &= ~attacks;
-        ret += PawnAttacksRook * popcount(attacks);
-        TRACE_ADD(IDX_PAWN_ATK_ROOK, us, popcount(attacks));
+        ret += PawnAttacksRook * bb_popcount(attacks);
+        trace_add(IDX_PAWN_ATK_ROOK, us, bb_popcount(attacks));
     }
 
-    attacks = queens & eval->attackedBy[us][PAWN];
+    attacks = queens & evaldata->attacked_by[us][PAWN];
 
     // Give a bonus for a Pawn attacking a Queen.
-    if (attacks)
-    {
+    if (attacks) {
         queens &= ~attacks;
-        ret += PawnAttacksQueen * popcount(attacks);
-        TRACE_ADD(IDX_PAWN_ATK_QUEEN, us, popcount(attacks));
+        ret += PawnAttacksQueen * bb_popcount(attacks);
+        trace_add(IDX_PAWN_ATK_QUEEN, us, bb_popcount(attacks));
     }
 
-    attacks = rooks & (eval->attackedBy[us][KNIGHT] | eval->attackedBy[us][BISHOP]);
+    attacks = rooks & (evaldata->attacked_by[us][KNIGHT] | evaldata->attacked_by[us][BISHOP]);
 
     // Give a bonus for a minor piece attacking a Rook.
-    if (attacks)
-    {
-        ret += MinorAttacksRook * popcount(attacks);
-        TRACE_ADD(IDX_MINOR_ATK_ROOK, us, popcount(attacks));
+    if (attacks) {
+        ret += MinorAttacksRook * bb_popcount(attacks);
+        trace_add(IDX_MINOR_ATK_ROOK, us, bb_popcount(attacks));
     }
 
-    attacks = queens & (eval->attackedBy[us][KNIGHT] | eval->attackedBy[us][BISHOP]);
+    attacks = queens & (evaldata->attacked_by[us][KNIGHT] | evaldata->attacked_by[us][BISHOP]);
 
     // Give a bonus for a minor piece attacking a Queen.
-    if (attacks)
-    {
+    if (attacks) {
         queens &= ~attacks;
-        ret += MinorAttacksQueen * popcount(attacks);
-        TRACE_ADD(IDX_MINOR_ATK_QUEEN, us, popcount(attacks));
+        ret += MinorAttacksQueen * bb_popcount(attacks);
+        trace_add(IDX_MINOR_ATK_QUEEN, us, bb_popcount(attacks));
     }
 
-    attacks = queens & eval->attackedBy[us][ROOK];
+    attacks = queens & evaldata->attacked_by[us][ROOK];
 
     // Give a bonus for a Rook attacking a Queen.
-    if (attacks)
-    {
-        ret += RookAttacksQueen * popcount(attacks);
-        TRACE_ADD(IDX_ROOK_ATK_QUEEN, us, popcount(attacks));
+    if (attacks) {
+        ret += RookAttacksQueen * bb_popcount(attacks);
+        trace_add(IDX_ROOK_ATK_QUEEN, us, bb_popcount(attacks));
     }
 
-    attacks = piece_bb(board, them, PAWN) & ~eval->attacked[them] & eval->attacked[us];
+    attacks =
+        board_piece_bb(board, them, PAWN) & ~evaldata->attacked[them] & evaldata->attacked[us];
 
     // Give a bonus if the opponent has hanging Pawns.
-    if (attacks)
-    {
-        ret += HangingPawn * popcount(attacks);
-        TRACE_ADD(IDX_HANGING_PAWN, us, popcount(attacks));
+    if (attacks) {
+        ret += HangingPawn * bb_popcount(attacks);
+        trace_add(IDX_HANGING_PAWN, us, bb_popcount(attacks));
     }
 
     return ret;
 }
 
-scorepair_t evaluate_safety_file(
-    bitboard_t ourPawns, bitboard_t theirPawns, file_t file, square_t theirKing, color_t us)
-{
-    scorepair_t ret = 0;
-
+static Scorepair evaluate_safety_file(
+    Bitboard our_pawns,
+    Bitboard their_pawns,
+    File f,
+    Square their_king,
+    Color us
+) {
     // Map the base array index depending on whether the current file is on the
     // side (0), in the middle of the field (16), or the same as the King (8).
-    file_t kingFile = sq_file(theirKing);
-    int fileIndex = (kingFile == file) ? 8 : (kingFile >= FILE_E) == (kingFile < file) ? 0 : 16;
+    const File king_file = square_file(their_king);
+    const u8 offset = (king_file == f) ? 8 : (king_file >= FILE_E) == (king_file < f) ? 0 : 16;
+    Scorepair ret = 0;
 
     // Give a bonus/penalty based on the rank distance between our Pawns and their King.
     {
-        bitboard_t pawnMask = ourPawns & file_bb(file);
-        int distance =
-            pawnMask ? abs(sq_rank(bb_relative_last_sq(us, pawnMask)) - sq_rank(theirKing)) : 7;
+        const Bitboard file_pawns = our_pawns & file_bb(f);
+        const u8 distance = file_pawns
+            ? square_rank_distance(bb_last_square_relative(file_pawns, us), their_king)
+            : 7;
 
-        ret += KingStorm[fileIndex + distance];
+        ret += KingStorm[offset + distance];
 
-        TRACE_ADD(IDX_KS_STORM + fileIndex + distance, us, 1);
+        trace_add(IDX_KS_STORM + offset + distance, us, 1);
     }
 
     // Give a bonus/penalty based on the rank distance between their Pawns and their King.
     {
-        bitboard_t pawnMask = theirPawns & file_bb(file);
-        int distance =
-            pawnMask ? abs(sq_rank(bb_relative_last_sq(us, pawnMask)) - sq_rank(theirKing)) : 7;
+        const Bitboard file_pawns = their_pawns & file_bb(f);
+        const u8 distance = file_pawns
+            ? square_rank_distance(bb_last_square_relative(file_pawns, us), their_king)
+            : 7;
 
-        ret += KingShelter[fileIndex + distance];
+        ret += KingShelter[offset + distance];
 
-        TRACE_ADD(IDX_KS_SHELTER + fileIndex + distance, us, 1);
+        trace_add(IDX_KS_SHELTER + offset + distance, us, 1);
     }
 
     return ret;
 }
 
-scorepair_t evaluate_safety(const Board *board, evaluation_t *eval, color_t us)
-{
+static Scorepair evaluate_safety(const Board *board, const EvaluationData *evaldata, Color us) {
     // Add a bonus if we have 2 pieces (or more) on the King Attack zone, or
     // one piece attacking with a friendly Queen still on the board.
-    bool queenless = !piece_bb(board, us, QUEEN);
+    const bool queenless = !board_piece_bb(board, us, QUEEN);
 
-    if (eval->safetyAttackers[us] < 1 + queenless)
-    {
-        TRACE_CLEAR_SAFETY(us);
+    if (evaldata->safety_attackers[us] < 1 + queenless) {
+        trace_clear_safety(us);
         return 0;
     }
 
-    color_t them = not_color(us);
-    square_t theirKing = get_king_square(board, them);
+    const Color them = color_flip(us);
+    const Square their_king = board_king_square(board, them);
 
     // We define weak squares as squares that we attack where the enemy has
     // no defenders, or only the King as a defender.
-    bitboard_t weak = eval->attacked[us] & ~eval->attackedTwice[them]
-                      & (~eval->attacked[them] | eval->attackedBy[them][KING]);
+    const Bitboard weak_squares = evaldata->attacked[us] & ~evaldata->attacked2[them]
+        & (~evaldata->attacked[them] | evaldata->attacked_by[them][KING]);
 
     // We define safe squares as squares that are attacked (or weak and attacked twice),
     // and where we can land on.
-    bitboard_t safe =
-        ~color_bb(board, us) & (~eval->attacked[them] | (weak & eval->attackedTwice[us]));
+    const Bitboard safe_squares = ~board_color_bb(board, us)
+        & (~evaldata->attacked[them] | (weak_squares & evaldata->attacked2[us]));
 
-    bitboard_t rookCheckSpan = rook_moves(board, theirKing);
-    bitboard_t bishopCheckSpan = bishop_moves(board, theirKing);
+    const Bitboard rook_check_span = rook_attacks_bb(their_king, board_occupancy_bb(board));
+    const Bitboard bishop_check_span = bishop_attacks_bb(their_king, board_occupancy_bb(board));
 
-    bitboard_t knightChecks = eval->attackedBy[us][KNIGHT] & knight_moves(theirKing);
-    bitboard_t allChecks = knightChecks;
+    const Bitboard knight_checks =
+        evaldata->attacked_by[us][KNIGHT] & knight_attacks_bb(their_king);
+    const Bitboard bishop_checks = evaldata->attacked_by[us][BISHOP] & bishop_check_span;
+    const Bitboard rook_checks = evaldata->attacked_by[us][ROOK] & rook_check_span;
+    const Bitboard queen_checks =
+        evaldata->attacked_by[us][QUEEN] & (bishop_check_span | rook_check_span);
+    const Bitboard all_checks = knight_checks | bishop_checks | rook_checks | queen_checks;
 
-    bitboard_t bishopChecks = eval->attackedBy[us][BISHOP] & bishopCheckSpan;
-    allChecks |= bishopChecks;
-
-    bitboard_t rookChecks = eval->attackedBy[us][ROOK] & rookCheckSpan;
-    allChecks |= rookChecks;
-
-    bitboard_t queenChecks = eval->attackedBy[us][QUEEN] & (bishopCheckSpan | rookCheckSpan);
-    allChecks |= queenChecks;
-
-    scorepair_t bonus = eval->safetyScore[us] + SafetyOffset;
+    Scorepair bonus = evaldata->safety_value[us] + SafetyOffset;
 
     // Add bonuses based on the number of attacks and the number of weak
     // squares in the King zone, and a penalty if we don't have a Queen for
     // attacking.
-    bonus += AttackWeight * eval->safetyAttacks[us];
-    bonus += WeakKingZone * popcount(weak & eval->kingZone[us]);
+    bonus += AttackWeight * evaldata->safety_attacks[us];
+    bonus += WeakKingZone * bb_popcount(weak_squares & evaldata->king_zone[us]);
     bonus += QueenlessAttack * queenless;
 
     // Add bonuses per piece for each safe check that we can perform.
-    bonus += SafeKnightCheck * popcount(knightChecks & safe);
-    bonus += SafeBishopCheck * popcount(bishopChecks & safe);
-    bonus += SafeRookCheck * popcount(rookChecks & safe);
-    bonus += SafeQueenCheck * popcount(queenChecks & safe);
+    bonus += SafeKnightCheck * bb_popcount(knight_checks & safe_squares);
+    bonus += SafeBishopCheck * bb_popcount(bishop_checks & safe_squares);
+    bonus += SafeRookCheck * bb_popcount(rook_checks & safe_squares);
+    bonus += SafeQueenCheck * bb_popcount(queen_checks & safe_squares);
 
     // Add a bonus for all unsafe checks we can perform.
-    bonus += UnsafeCheck * popcount(allChecks & ~safe);
+    bonus += UnsafeCheck * bb_popcount(all_checks & ~safe_squares);
 
     // Evaluate the Pawn Storm/Shelter.
     {
-        bitboard_t ourPawns = piece_bb(board, us, PAWN);
-        bitboard_t theirPawns = piece_bb(board, them, PAWN);
+        const Bitboard our_pawns = board_piece_bb(board, us, PAWN);
+        const Bitboard their_pawns = board_piece_bb(board, them, PAWN);
+        const File king_file = square_file(their_king);
 
-        for (file_t f = imax(FILE_A, sq_file(theirKing) - 1);
-             f <= imin(FILE_H, sq_file(theirKing) + 1); ++f)
-            bonus += evaluate_safety_file(ourPawns, theirPawns, f, theirKing, us);
+        if (file_is_valid(king_file - 1)) {
+            bonus += evaluate_safety_file(our_pawns, their_pawns, king_file - 1, their_king, us);
+        }
+
+        bonus += evaluate_safety_file(our_pawns, their_pawns, king_file, their_king, us);
+
+        if (file_is_valid(king_file + 1)) {
+            bonus += evaluate_safety_file(our_pawns, their_pawns, king_file + 1, their_king, us);
+        }
     }
 
-    TRACE_ADD(IDX_KS_OFFSET, us, 1);
-    TRACE_ADD(IDX_KS_QUEENLESS, us, queenless);
-    TRACE_ADD(IDX_KS_WEAK_Z, us, popcount(weak & eval->kingZone[us]));
-    TRACE_ADD(IDX_KS_CHECK_N, us, popcount(knightChecks & safe));
-    TRACE_ADD(IDX_KS_CHECK_B, us, popcount(bishopChecks & safe));
-    TRACE_ADD(IDX_KS_CHECK_R, us, popcount(rookChecks & safe));
-    TRACE_ADD(IDX_KS_CHECK_Q, us, popcount(queenChecks & safe));
-    TRACE_ADD(IDX_KS_UNSAFE_CHECK, us, popcount(allChecks & ~safe));
-    TRACE_SAFETY(us, bonus);
+    trace_add(IDX_KS_OFFSET, us, 1);
+    trace_add(IDX_KS_QUEENLESS, us, queenless);
+    trace_add(IDX_KS_WEAK_Z, us, bb_popcount(weak_squares & evaldata->king_zone[us]));
+    trace_add(IDX_KS_CHECK_N, us, bb_popcount(knight_checks & safe_squares));
+    trace_add(IDX_KS_CHECK_B, us, bb_popcount(bishop_checks & safe_squares));
+    trace_add(IDX_KS_CHECK_R, us, bb_popcount(rook_checks & safe_squares));
+    trace_add(IDX_KS_CHECK_Q, us, bb_popcount(queen_checks & safe_squares));
+    trace_add(IDX_KS_UNSAFE_CHECK, us, bb_popcount(all_checks & ~safe_squares));
+    trace_set_safety(us, bonus);
 
     // Compute the final safety score. The middlegame term scales
     // quadratically, while the endgame term scales linearly. The safety
     // evaluation cannot be negative.
-    score_t mg = midgame_score(bonus), eg = endgame_score(bonus);
-
-    return create_scorepair(imax(mg, 0) * mg / 256, imax(eg, 0) / 16);
+    const Score mg = scorepair_midgame(bonus);
+    const Score eg = scorepair_endgame(bonus);
+    return create_scorepair(i32_max(mg, 0) * mg / 256, i16_max(eg, 0) / 16);
 }
 
-score_t evaluate(const Board *board)
-{
-    TRACE_INIT;
+static bool eval_is_ocb_endgame(const Board *board) {
+    // Check if there is exactly one White Bishop and one Black Bishop.
+    if (board_piece_count(board, WHITE_BISHOP) != 1
+        || board_piece_count(board, BLACK_BISHOP) != 1) {
+        return false;
+    }
+
+    // Then check that the Bishops are on opposite colored squares.
+    return opposite_colored_bishops(board_piecetype_bb(board, BISHOP));
+}
+
+static Score eval_scale_endgame(const Board *board, const KingPawnEntry *kpe, Score eg) {
+    // Only detect endgame scaling from the side with a positive evaluation. This allows us to
+    // quickly filter out positions which shouldn't be scaled, even though they have a theoretical
+    // scaling factor in our code (like KNvKPPPP).
+    const Color strong_side = eg > 0 ? WHITE : BLACK;
+    const Color weak_side = color_flip(strong_side);
+    const Score strong_material = board->stack->material[strong_side];
+    const Score weak_material = board->stack->material[weak_side];
+    const Bitboard strong_pawns = board_piece_bb(board, strong_side, PAWN);
+    const Bitboard weak_pawns = board_piece_bb(board, weak_side, PAWN);
+    const EndgameEntry *entry;
+    Scalefactor factor;
+
+    // Scale down endgames with no pawns and low material difference.
+    if (!strong_pawns && strong_material - weak_material <= BISHOP_MG_SCORE) {
+        factor = (strong_material <= BISHOP_MG_SCORE)
+            ? SCALE_DRAW
+            : i16_max((i32)(strong_material - weak_material) * 8 / BISHOP_MG_SCORE, SCALE_DRAW);
+    }
+    // Scale down OCB endgames.
+    else if (eval_is_ocb_endgame(board)) {
+        factor = (strong_material + weak_material > 2 * BISHOP_MG_SCORE)
+            ? 71 + (i32)board_color_count(board, strong_side) * 9
+            : 33 + (i32)bb_popcount(kpe->passed[strong_side]) * 21;
+    }
+    // Rook endgames: drawish if the pawn advantage is small, and all strong side pawns are on the
+    // same side of the board. Don't scale if the defending King is far from his own pawns.
+    else if (strong_material == ROOK_MG_SCORE && weak_material == ROOK_MG_SCORE && (bb_popcount(strong_pawns) < 2 + bb_popcount(weak_pawns)) && !!(KINGSIDE_BB & strong_pawns) != !!(QUEENSIDE_BB & strong_pawns) && !!(king_attacks_bb(board_king_square(board, weak_side)) & weak_pawns)) {
+        factor = 130;
+    }
+    // Check if we have a specialized function for the given material distribution.
+    else if ((entry = endgame_probe_scale(board)) != NULL) {
+        factor = entry->scale_fn(board, strong_side);
+    }
+    // Other endgames.
+    else {
+        factor = i16_min(177 + 13 * bb_popcount(strong_pawns), SCALE_NORMAL);
+    }
+
+    trace_set_scalefactor(factor);
+    return (Score)((i32)eg * factor / SCALE_NORMAL);
+}
+
+Score evaluate(const Board *board) {
+    trace_init();
 
     // Do we have a specialized endgame eval for the current configuration ?
-    const EndgameEntry *entry = endgame_probe(board);
+    const EndgameEntry *entry = endgame_probe_score(board);
 
-    if (entry != NULL) return entry->scoreFunc(board, entry->winningSide);
+    if (entry != NULL) {
+        return entry->score_fn(board, entry->strong_side);
+    }
 
     // Is there a KXK situation ? (lone King vs mating material)
-    if (is_kxk_endgame(board, WHITE)) return eval_kxk(board, WHITE);
-    if (is_kxk_endgame(board, BLACK)) return eval_kxk(board, BLACK);
+    if (is_kxk_endgame(board, WHITE)) {
+        return eval_kxk(board, WHITE);
+    }
 
-    evaluation_t eval;
-    scorepair_t tapered = board->psqScorePair;
+    if (is_kxk_endgame(board, BLACK)) {
+        return eval_kxk(board, BLACK);
+    }
+
+    EvaluationData evaldata;
+    Scorepair tapered = board->psq_scorepair;
     KingPawnEntry *kpe;
-    score_t mg, eg, score;
 
-    eval_init(board, &eval);
-    kpe = kp_probe(board);
+    // Initialize the evaldata structure.
+    memset(&evaldata, 0, sizeof(evaldata));
+    evaldata_init(&evaldata, board, WHITE);
+    evaldata_init(&evaldata, board, BLACK);
+    evaldata_init_next(&evaldata, board, WHITE);
+    evaldata_init_next(&evaldata, board, BLACK);
+    evaldata_set_position_closed(&evaldata, board);
 
     // Add the King-Pawn structure evaluation.
+    kpe = king_pawn_probe(board);
     tapered += kpe->value;
 
     // Add the pieces' evaluation.
-    tapered += evaluate_knights(board, &eval, kpe, WHITE);
-    tapered -= evaluate_knights(board, &eval, kpe, BLACK);
-    tapered += evaluate_bishops(board, &eval, kpe, WHITE);
-    tapered -= evaluate_bishops(board, &eval, kpe, BLACK);
-    tapered += evaluate_rooks(board, &eval, WHITE);
-    tapered -= evaluate_rooks(board, &eval, BLACK);
-    tapered += evaluate_queens(board, &eval, WHITE);
-    tapered -= evaluate_queens(board, &eval, BLACK);
+    tapered += evaluate_knights(board, &evaldata, kpe, WHITE);
+    tapered -= evaluate_knights(board, &evaldata, kpe, BLACK);
+    tapered += evaluate_bishops(board, &evaldata, kpe, WHITE);
+    tapered -= evaluate_bishops(board, &evaldata, kpe, BLACK);
+    tapered += evaluate_rooks(board, &evaldata, WHITE);
+    tapered -= evaluate_rooks(board, &evaldata, BLACK);
+    tapered += evaluate_queens(board, &evaldata, WHITE);
+    tapered -= evaluate_queens(board, &evaldata, BLACK);
 
     // Add the threats' evaluation.
-    tapered += evaluate_threats(board, &eval, WHITE);
-    tapered -= evaluate_threats(board, &eval, BLACK);
+    tapered += evaluate_threats(board, &evaldata, WHITE);
+    tapered -= evaluate_threats(board, &evaldata, BLACK);
 
     // Add the King Safety evaluation.
-    tapered += evaluate_safety(board, &eval, WHITE);
-    tapered -= evaluate_safety(board, &eval, BLACK);
+    tapered += evaluate_safety(board, &evaldata, WHITE);
+    tapered -= evaluate_safety(board, &evaldata, BLACK);
 
     // Add the Initiative bonus for the side to move.
-    tapered += (board->sideToMove == WHITE) ? Initiative : -Initiative;
-    TRACE_ADD(IDX_INITIATIVE, board->sideToMove, 1);
+    tapered += (board->side_to_move == WHITE) ? Initiative : -Initiative;
+    trace_add(IDX_INITIATIVE, board->side_to_move, 1);
 
-    TRACE_EVAL(tapered);
+    Score mg = scorepair_midgame(tapered);
+    Score eg = eval_scale_endgame(board, kpe, scorepair_endgame(tapered));
+    Score score;
 
-    mg = midgame_score(tapered);
+    trace_set_eval(tapered);
 
-    // Scale the endgame score based on the remaining material and the Pawns.
-    eg = scale_endgame(board, kpe, endgame_score(tapered));
-
-    // Compute the evaluation by interpolating between the middlegame and
-    // endgame scores.
+    // Compute the evaluation by interpolating between the middlegame and endgame scores.
     {
-        int phase = 4 * popcount(piecetype_bb(board, QUEEN))
-                    + 2 * popcount(piecetype_bb(board, ROOK))
-                    + popcount(piecetypes_bb(board, KNIGHT, BISHOP));
+        i16 phase = 4 * board_piecetype_count(board, QUEEN) + 2 * board_piecetype_count(board, ROOK)
+            + board_piecetype_count(board, BISHOP) + board_piecetype_count(board, KNIGHT);
 
-        phase = iclamp(phase, ENDGAME_COUNT, MIDGAME_COUNT);
-
+        phase = i16_clamp(phase, ENDGAME_COUNT, MIDGAME_COUNT);
+        trace_set_phase(phase);
         score = mg * (phase - ENDGAME_COUNT) / (MIDGAME_COUNT - ENDGAME_COUNT);
         score += eg * (MIDGAME_COUNT - phase) / (MIDGAME_COUNT - ENDGAME_COUNT);
-
-        TRACE_PHASE(phase);
     }
 
     // Return the score relative to the side to move.
-    return board->sideToMove == WHITE ? score : -score;
+    return board->side_to_move == WHITE ? score : -score;
 }

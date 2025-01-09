@@ -17,231 +17,411 @@
 */
 
 #include "endgame.h"
-#include "pawns.h"
+
 #include <ctype.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-EndgameEntry EndgameTable[EGTB_SIZE];
+#include "attacks.h"
+#include "kp_eval.h"
+#include "kpk_bitbase.h"
+#include "psq_table.h"
+#include "strmanip.h"
+#include "strview.h"
+#include "syncio.h"
 
-score_t eval_draw(
-    const Board *board __attribute__((unused)), color_t winningSide __attribute__((unused)))
-{
-    return 0;
+static EndgameEntry EndgameTable[ENDGAME_TABLE_SIZE];
+
+static EndgameEntry *
+    material_to_eg_entry(StringView white_pieces, StringView black_pieces, Key *material_key) {
+    assert(white_pieces.size <= 8 && black_pieces.size <= 8);
+    String fen;
+    u8 bcopy[8];
+    Board board;
+    Boardstack stack;
+
+    string_init(&fen);
+    string_reserve(&fen, 64);
+
+    // Change the casing of the black pieces for the FEN representation.
+    for (usize i = 0; i < black_pieces.size; ++i) {
+        assert(isalpha(black_pieces.data[i]));
+        bcopy[i] = black_pieces.data[i] ^ 0b00100000;
+    }
+
+    // Generate a FEN corresponding to the material distribution of the pieces.
+    string_push_back_strview(&fen, STATIC_STRVIEW("8/"));
+    string_push_back_range(&fen, bcopy, black_pieces.size);
+    string_push_back_u64(&fen, 8 - black_pieces.size);
+    string_push_back_strview(&fen, STATIC_STRVIEW("/8/8/8/8/"));
+    string_push_back_strview(&fen, white_pieces);
+    string_push_back_u64(&fen, 8 - white_pieces.size);
+    string_push_back_strview(&fen, STATIC_STRVIEW("/8 w - - 0 1"));
+
+    if (!board_try_init(&board, strview_from_string(&fen), false, &stack)) {
+        fwrite_strview(stderr, STATIC_STRVIEW("Unable to initialize board material\n"));
+        exit(EXIT_FAILURE);
+    }
+
+    *material_key = stack.material_key;
+    return &EndgameTable[*material_key % ENDGAME_TABLE_SIZE];
 }
 
-score_t eval_krkp(const Board *board, color_t winningSide)
-{
-    square_t winningKsq = get_king_square(board, winningSide);
-    square_t losingKsq = get_king_square(board, not_color(winningSide));
-    square_t winningRook = bb_first_sq(piecetype_bb(board, ROOK));
-    square_t losingPawn = bb_first_sq(piecetype_bb(board, PAWN));
-    square_t pushSquare = losingPawn + pawn_direction(not_color(winningSide));
-    square_t promoteSquare =
-        create_sq(sq_file(losingPawn), relative_rank(RANK_8, not_color(winningSide)));
-    score_t score;
+static void add_scoring_colored_entry(
+    StringView white_pieces,
+    StringView black_pieces,
+    Color strong_side,
+    EndgameScoreFn score_fn
+) {
+    Key material_key;
+    EndgameEntry *entry = material_to_eg_entry(white_pieces, black_pieces, &material_key);
 
-    // Does the winning King control the promotion path ?
-    if (forward_file_bb(winningSide, winningKsq) & square_bb(losingPawn))
-        score = ROOK_EG_SCORE - SquareDistance[winningKsq][losingPawn];
+    // Check for key collisions and stop the program here.
+    if (entry->score_fn != NULL || (entry->key && entry->key != material_key)) {
+        fwrite_strview(stderr, STATIC_STRVIEW("Error: key conflicts in endgame table\n"));
+        exit(EXIT_FAILURE);
+    }
 
-    // Is the losing King unable to reach either the Rook or its Pawn ?
-    else if (SquareDistance[losingKsq][losingPawn] >= 3 + (board->sideToMove != winningSide)
-             && SquareDistance[losingKsq][winningRook] >= 3)
-        score = ROOK_EG_SCORE - SquareDistance[winningKsq][losingPawn];
-
-    // Is the Pawn close to the promotion square and defended by its King ?
-    // Also, is the winning King unable to reach the Pawn ?
-    else if (relative_rank(winningSide, losingKsq) <= RANK_3
-             && SquareDistance[losingKsq][losingPawn] == 1
-             && relative_rank(winningSide, winningKsq) >= RANK_4
-             && SquareDistance[winningKsq][losingPawn] >= 3 + (board->sideToMove == winningSide))
-        score = 40 - 4 * SquareDistance[winningKsq][losingPawn];
-
-    else
-        score =
-            100
-            - 4
-                  * (SquareDistance[winningKsq][pushSquare] - SquareDistance[losingKsq][pushSquare]
-                      - SquareDistance[losingPawn][promoteSquare]);
-
-    return board->sideToMove == winningSide ? score : -score;
+    // Assign the endgame specifications to the entry.
+    entry->key = material_key;
+    entry->score_fn = score_fn;
+    entry->strong_side = strong_side;
 }
 
-score_t eval_krkn(const Board *board, color_t winningSide)
-{
-    square_t losingKsq = get_king_square(board, not_color(winningSide));
-    square_t losingKnight = bb_first_sq(piecetype_bb(board, KNIGHT));
-    score_t score = edge_bonus(losingKsq) + away_bonus(losingKsq, losingKnight);
+static void add_scoring_entry(StringView non_pawn_material, EndgameScoreFn score_fn) {
+    const usize split_index = strview_find(non_pawn_material, 'v');
+    const StringView strong_pieces = strview_subview(non_pawn_material, 0, split_index);
+    const StringView weak_pieces =
+        strview_subview(non_pawn_material, split_index + 1, non_pawn_material.size);
 
-    return board->sideToMove == winningSide ? score : -score;
+    assert(split_index != NPOS);
+    add_scoring_colored_entry(strong_pieces, weak_pieces, WHITE, score_fn);
+
+    // Add the endgame entry for both sides if the material distribution isn't identical.
+    if (!strview_equals_strview(strong_pieces, weak_pieces)) {
+        add_scoring_colored_entry(weak_pieces, strong_pieces, BLACK, score_fn);
+    }
 }
 
-score_t eval_krkb(const Board *board, color_t winningSide)
-{
-    score_t score = edge_bonus(get_king_square(board, not_color(winningSide)));
+static void add_scaling_colored_entry(
+    StringView white_pieces,
+    StringView black_pieces,
+    Color strong_side,
+    EndgameScaleFn scale_fn
+) {
+    Key material_key;
+    EndgameEntry *entry = material_to_eg_entry(white_pieces, black_pieces, &material_key);
 
-    return board->sideToMove == winningSide ? score : -score;
+    // Check for key collisions and stop the program here.
+    if (entry->scale_fn != NULL || (entry->key && entry->key != material_key)) {
+        fwrite_strview(stderr, STATIC_STRVIEW("Error: key conflicts in endgame table\n"));
+        exit(EXIT_FAILURE);
+    }
+
+    // Assign the endgame specifications to the entry.
+    entry->key = material_key;
+    entry->scale_fn = scale_fn;
+    entry->strong_side = strong_side;
 }
 
-score_t eval_kbnk(const Board *board, color_t winningSide)
-{
-    square_t losingKsq = get_king_square(board, not_color(winningSide));
-    square_t winningKsq = get_king_square(board, winningSide);
-    score_t score = VICTORY + KNIGHT_MG_SCORE + BISHOP_MG_SCORE;
+static void add_scaling_entry(StringView non_pawn_material, EndgameScaleFn scale_fn) {
+    const usize split_index = strview_find(non_pawn_material, 'v');
+    const StringView strong_pieces = strview_subview(non_pawn_material, 0, split_index);
+    const StringView weak_pieces =
+        strview_subview(non_pawn_material, split_index + 1, non_pawn_material.size);
 
-    score += 70 - 10 * SquareDistance[losingKsq][winningKsq];
+    assert(split_index != NPOS);
+    add_scaling_colored_entry(strong_pieces, weak_pieces, WHITE, scale_fn);
+
+    // Add the endgame entry for both sides if the material distribution isn't identical.
+    if (!strview_equals_strview(strong_pieces, weak_pieces)) {
+        add_scaling_colored_entry(weak_pieces, strong_pieces, BLACK, scale_fn);
+    }
+}
+
+void endgame_table_init(void) {
+    static const StringView drawn_endgames[] = {
+        STATIC_STRVIEW("KvK"),
+        STATIC_STRVIEW("KNvK"),
+        STATIC_STRVIEW("KBvK"),
+        STATIC_STRVIEW("KNNvK"),
+        STATIC_STRVIEW("KBvKN"),
+        STATIC_STRVIEW("KNvKN"),
+        STATIC_STRVIEW("KBvKB"),
+        STATIC_STRVIEW("KBBvKB"),
+        EmptyStrview,
+    };
+
+    memset(EndgameTable, 0, sizeof(EndgameTable));
+
+    for (usize i = 0; drawn_endgames[i].size != 0; ++i) {
+        add_scoring_entry(drawn_endgames[i], &eval_draw);
+    }
+
+    // 3-man endgames
+    add_scoring_entry(STATIC_STRVIEW("KPvK"), &eval_kpk);
+
+    // 4-man endgames
+    add_scoring_entry(STATIC_STRVIEW("KBNvK"), &eval_kbnk);
+    add_scoring_entry(STATIC_STRVIEW("KRvKP"), &eval_krkp);
+    add_scoring_entry(STATIC_STRVIEW("KRvKN"), &eval_krkn);
+    add_scoring_entry(STATIC_STRVIEW("KRvKB"), &eval_krkb);
+    add_scoring_entry(STATIC_STRVIEW("KQvKP"), &eval_kqkp);
+    add_scoring_entry(STATIC_STRVIEW("KQvKR"), &eval_kqkr);
+
+    // 5-man endgames
+    add_scoring_entry(STATIC_STRVIEW("KNPvKN"), &eval_kmpkn);
+    add_scoring_entry(STATIC_STRVIEW("KNPvKB"), &eval_kmpkb);
+    add_scoring_entry(STATIC_STRVIEW("KNNvKP"), &eval_knnkp);
+    add_scoring_entry(STATIC_STRVIEW("KBPvKN"), &eval_kmpkn);
+    add_scoring_entry(STATIC_STRVIEW("KBPvKB"), &eval_kmpkb);
+    add_scoring_entry(STATIC_STRVIEW("KRPvKR"), &eval_krpkr);
+
+    // Scaled endgames
+    add_scaling_entry(STATIC_STRVIEW("KvK"), &scale_kpsk);
+    add_scaling_entry(STATIC_STRVIEW("KBvK"), &scale_kbpsk);
+}
+
+Score eval_draw(
+    const Board *board __attribute__((unused)),
+    Color strong_side __attribute__((unused))
+) {
+    return DRAW;
+}
+
+Score eval_kpk(const Board *board, Color strong_side) {
+    Square strong_king = board_king_square(board, strong_side);
+    Square strong_pawn = bb_first_square(board_piecetype_bb(board, PAWN));
+    Square weak_king = board_king_square(board, color_flip(strong_side));
+    const Color us = strong_side == board->side_to_move ? WHITE : BLACK;
+    const bool flip_file = square_file(strong_pawn) >= FILE_E;
+
+    strong_king = normalize_square(strong_side, strong_king, flip_file);
+    strong_pawn = normalize_square(strong_side, strong_pawn, flip_file);
+    weak_king = normalize_square(strong_side, weak_king, flip_file);
+
+    // Probe the KPK bitbase to evaluate the position.
+    const Score score = kpk_bitbase_is_winning(weak_king, strong_king, strong_pawn, us)
+        ? VICTORY + PAWN_EG_SCORE + square_rank(strong_pawn) * 3
+        : DRAW;
+    return us == WHITE ? score : -score;
+}
+
+Score eval_kbnk(const Board *board, Color strong_side) {
+    const Square strong_king = board_king_square(board, strong_side);
+    Square weak_king = board_king_square(board, color_flip(strong_side));
+    Score score = VICTORY + KNIGHT_MG_SCORE + BISHOP_MG_SCORE + close_bonus(weak_king, strong_king);
 
     // Don't push the King to the wrong corner.
-    if (piecetype_bb(board, BISHOP) & DSQ_BB) losingKsq ^= SQ_A8;
+    if (board_piecetype_bb(board, BISHOP) & DSQ_BB) {
+        weak_king = square_flip(weak_king);
+    }
 
-    score += abs(sq_file(losingKsq) - sq_rank(losingKsq)) * 100;
-
-    return board->sideToMove == winningSide ? score : -score;
+    score += i8_abs((i8)square_file(weak_king) - (i8)square_rank(weak_king)) * 100;
+    return board->side_to_move == strong_side ? score : -score;
 }
 
-score_t eval_kqkr(const Board *board, color_t winningSide)
-{
-    score_t score = QUEEN_EG_SCORE - ROOK_EG_SCORE;
-    square_t losingKsq = get_king_square(board, not_color(winningSide));
-    square_t winningKsq = get_king_square(board, winningSide);
+Score eval_krkp(const Board *board, Color strong_side) {
+    const Color weak_side = color_flip(strong_side);
+    const Square strong_king = board_king_square(board, strong_side);
+    const Square strong_rook = bb_first_square(board_piecetype_bb(board, ROOK));
+    const Square weak_king = board_king_square(board, weak_side);
+    const Square weak_pawn = bb_first_square(board_piecetype_bb(board, PAWN));
+    const Square push_square = weak_pawn + pawn_direction(weak_side);
+    const Square promotion_square =
+        create_square(square_file(weak_pawn), rank_relative(RANK_8, weak_side));
+    const bool strong_tempo = board->side_to_move == strong_side;
+    Score score;
 
-    score += edge_bonus(losingKsq);
-    score += close_bonus(winningKsq, losingKsq);
+    // Does the strong King control the promotion path ?
+    if (bb_square_is_set(forward_file_bb(strong_king, strong_side), weak_pawn)) {
+        score = ROOK_EG_SCORE - square_distance(strong_king, weak_pawn);
+    }
+    // Is the weak King unable to reach either the Rook or its Pawn ?
+    else if (square_distance(weak_king, weak_pawn) >= 3 + !strong_tempo && square_distance(weak_king, strong_rook) >= 3) {
+        score = ROOK_EG_SCORE - square_distance(strong_king, weak_pawn);
+    }
+    // Is the Pawn close to the promotion square and defended by its King ? Also, is the strong King
+    // unable to reach the Pawn ?
+    else if (square_rank_relative(weak_king, strong_side) <= RANK_3 && square_distance(weak_king, weak_pawn) == 1 && square_rank_relative(strong_king, strong_side) >= RANK_4 && square_distance(strong_king, weak_pawn) >= 3 + strong_tempo) {
+        score = 40 - 4 * square_distance(strong_king, weak_pawn);
+    } else {
+        score = 100
+            - 4
+                * (square_distance(strong_king, push_square)
+                   - square_distance(weak_king, push_square)
+                   - square_distance(weak_pawn, promotion_square));
+    }
 
-    return board->sideToMove == winningSide ? score : -score;
+    return strong_tempo ? score : -score;
 }
 
-score_t eval_kqkp(const Board *board, color_t winningSide)
-{
-    square_t losingKsq = get_king_square(board, not_color(winningSide));
-    square_t losingPawn = bb_first_sq(piecetype_bb(board, PAWN));
-    square_t winningKsq = get_king_square(board, winningSide);
-    score_t score = close_bonus(winningKsq, losingKsq);
+Score eval_krkn(const Board *board, Color strong_side) {
+    const Square weak_king = board_king_square(board, color_flip(strong_side));
+    const Square weak_knight = bb_first_square(board_piecetype_bb(board, KNIGHT));
+    const Score score = corner_bonus(weak_king) + away_bonus(weak_king, weak_knight);
+    return board->side_to_move == strong_side ? score : -score;
+}
 
-    // Check for potential draws with a Pawn on its 7th Rank on either a Knight
-    // or Rook file, and the winning King too far away to avoid the promotion
-    // without perpetual checks.
-    if (relative_sq_rank(losingPawn, not_color(winningSide)) != RANK_7
-        || SquareDistance[losingKsq][losingPawn] != 1
-        || ((FILE_B_BB | FILE_D_BB | FILE_E_BB | FILE_G_BB) & square_bb(losingPawn)))
+Score eval_krkb(const Board *board, Color strong_side) {
+    const Score score = corner_bonus(board_king_square(board, color_flip(strong_side)));
+    return board->side_to_move == strong_side ? score : -score;
+}
+
+Score eval_kqkp(const Board *board, Color strong_side) {
+    const Color weak_side = color_flip(strong_side);
+    const Square strong_king = board_king_square(board, strong_side);
+    const Square weak_king = board_king_square(board, weak_side);
+    const Square weak_pawn = bb_first_square(board_piecetype_bb(board, PAWN));
+    Score score = close_bonus(weak_king, strong_king);
+
+    // Check for potential draws with a Pawn on its 7th Rank on either a knight or rook file, and
+    // the winning King too far away to avoid the promotion without perpetual checks.
+    if (square_rank_relative(weak_pawn, weak_side) != RANK_7
+        || square_distance(weak_king, weak_pawn) != 1
+        || bb_square_is_set(FILE_B_BB | FILE_D_BB | FILE_E_BB | FILE_G_BB, weak_pawn)) {
         score += QUEEN_EG_SCORE - PAWN_EG_SCORE;
+    }
 
-    return board->sideToMove == winningSide ? score : -score;
+    return board->side_to_move == strong_side ? score : -score;
 }
 
-score_t eval_knnkp(const Board *board, color_t winningSide)
-{
-    score_t score = PAWN_EG_SCORE;
-
-    // Very complex position. For mating, we need the Pawn sufficiently far away
-    // from its promotion square, and the losing King close to an edge.
-    score += edge_bonus(get_king_square(board, not_color(winningSide)));
-    score -= 5 * relative_sq_rank(bb_first_sq(piecetype_bb(board, PAWN)), not_color(winningSide));
-
-    return board->sideToMove == winningSide ? score : -score;
+Score eval_kqkr(const Board *board, Color strong_side) {
+    const Square strong_king = board_king_square(board, strong_side);
+    const Square weak_king = board_king_square(board, color_flip(strong_side));
+    const Score score = QUEEN_EG_SCORE - ROOK_EG_SCORE + corner_bonus(weak_king)
+        + close_bonus(weak_king, strong_king);
+    return board->side_to_move == strong_side ? score : -score;
 }
 
-score_t eval_kmpkn(const Board *board, color_t winningSide)
-{
-    KingPawnEntry *kpe = kp_probe(board);
-    score_t score = endgame_score(kpe->value + board->psqScorePair);
-    color_t losingSide = not_color(winningSide);
-    bool tempo = (board->sideToMove == losingSide);
+Score eval_knnkp(const Board *board, Color strong_side) {
+    // Very complex position. For mating, we need the Pawn sufficiently far away from its promotion
+    // square, and the weak King close to an edge.
+    const Color weak_side = color_flip(strong_side);
+    const Score score = PAWN_EG_SCORE + corner_bonus(board_king_square(board, weak_side))
+        - 5 * square_rank_relative(bb_first_square(board_piecetype_bb(board, PAWN)), weak_side);
+    return board->side_to_move == strong_side ? score : -score;
+}
 
-    square_t winningKsq = get_king_square(board, winningSide);
-    square_t winningPsq = bb_first_sq(piecetype_bb(board, PAWN));
-    square_t losingKsq = get_king_square(board, losingSide);
-    square_t losingNsq = bb_first_sq(piece_bb(board, losingSide, KNIGHT));
+Score eval_kmpkn(const Board *board, Color strong_side) {
+    KingPawnEntry *kpe = king_pawn_probe(board);
+    Score score = scorepair_endgame(kpe->value + board->psq_scorepair);
+    const Color weak_side = color_flip(strong_side);
+    const bool strong_tempo = board->side_to_move == strong_side;
+    const Square strong_king = board_king_square(board, strong_side);
+    const Square weak_king = board_king_square(board, weak_side);
+    const Square strong_pawn = bb_first_square(board_piecetype_bb(board, PAWN));
+    const Square weak_knight = bb_first_square(board_piece_bb(board, weak_side, KNIGHT));
+    const Bitboard queening_path = forward_file_bb(strong_pawn, strong_side);
+    const Bitboard passed_span = passed_pawn_span_bb(strong_pawn, strong_side);
 
-    if (board->sideToMove == BLACK) score = -score;
+    if (board->side_to_move == BLACK) {
+        score = -score;
+    }
 
-    bitboard_t queeningPath = forward_file_bb(winningSide, winningPsq);
-    bitboard_t passedSpan = passed_pawn_span_bb(winningSide, winningPsq);
+    // Verifications are simple here: if either the defending King or Knight can efficiently control
+    // the promotion path of the Pawn, the position is very drawish.
+    if (bb_square_is_set(queening_path, weak_king)) {
+        return score / 16;
+    }
 
-    // Verifications are simple here: if either the defending King or Knight can
-    // control efficiently the promotion path of the Pawn, the position is very
-    // drawish.
-    if (queeningPath & square_bb(losingKsq)) return score / 16;
+    if (queening_path & knight_attacks_bb(weak_knight)) {
+        return score / 8;
+    }
 
-    if (queeningPath & knight_moves(losingNsq)) return score / 8;
-
-    if ((passedSpan & square_bb(losingKsq)) && !(passedSpan & square_bb(winningKsq)) && tempo)
+    if (bb_square_is_set(passed_span, weak_king) && !bb_square_is_set(passed_span, strong_king)
+        && !strong_tempo) {
         return score / 4;
+    }
 
     return score;
 }
 
-score_t eval_kmpkb(const Board *board, color_t winningSide)
-{
-    KingPawnEntry *kpe = kp_probe(board);
-    score_t score = endgame_score(kpe->value + board->psqScorePair);
-    color_t losingSide = not_color(winningSide);
-    bool tempo = (board->sideToMove == losingSide);
+Score eval_kmpkb(const Board *board, Color strong_side) {
+    KingPawnEntry *kpe = king_pawn_probe(board);
+    Score score = scorepair_endgame(kpe->value + board->psq_scorepair);
+    const Color weak_side = color_flip(strong_side);
+    const bool strong_tempo = board->side_to_move == strong_side;
+    const Square strong_king = board_king_square(board, strong_side);
+    const Square weak_king = board_king_square(board, weak_side);
+    const Square strong_pawn = bb_first_square(board_piecetype_bb(board, PAWN));
+    const Square weak_bishop = bb_first_square(board_piece_bb(board, weak_side, BISHOP));
+    const Bitboard queening_path = forward_file_bb(strong_pawn, strong_side);
+    const Bitboard passed_span = passed_pawn_span_bb(strong_pawn, strong_side);
 
-    square_t winningKsq = get_king_square(board, winningSide);
-    square_t winningPsq = bb_first_sq(piecetype_bb(board, PAWN));
-    square_t losingKsq = get_king_square(board, losingSide);
-    square_t losingBsq = bb_first_sq(piece_bb(board, losingSide, BISHOP));
+    if (board->side_to_move == BLACK) {
+        score = -score;
+    }
 
-    if (board->sideToMove == BLACK) score = -score;
+    // Verifications are simple here: if either the defending King or Knight can efficiently control
+    // the promotion path of the Pawn, the position is very drawish.
+    if (bb_square_is_set(queening_path, weak_king)) {
+        return score / 16;
+    }
 
-    bitboard_t queeningPath = forward_file_bb(winningSide, winningPsq);
-    bitboard_t passedSpan = passed_pawn_span_bb(winningSide, winningPsq);
+    if (queening_path & bishop_attacks_bb(weak_bishop, board_occupancy_bb(board))) {
+        return score / 8;
+    }
 
-    // Verifications are simple here: if either the defending King or Bishop can
-    // control efficiently the promotion path of the Pawn, the position is very
-    // drawish.
-    if (queeningPath & square_bb(losingKsq)) return score / 16;
-
-    if (queeningPath & bishop_moves(board, losingBsq)) return score / 8;
-
-    if ((passedSpan & square_bb(losingKsq)) && !(passedSpan & square_bb(winningKsq)) && tempo)
+    if (bb_square_is_set(passed_span, weak_king) && !bb_square_is_set(passed_span, strong_king)
+        && !strong_tempo) {
         return score / 4;
+    }
 
     return score;
 }
 
-score_t eval_krpkr(const Board *board, color_t winningSide)
-{
-    KingPawnEntry *kpe = kp_probe(board);
-    score_t score = endgame_score(kpe->value + board->psqScorePair);
-    color_t losingSide = not_color(winningSide);
-    bool tempo = (board->sideToMove == losingSide);
+Score eval_krpkr(const Board *board, Color strong_side) {
+    KingPawnEntry *kpe = king_pawn_probe(board);
+    Score score = scorepair_endgame(kpe->value + board->psq_scorepair);
+    const Color weak_side = color_flip(strong_side);
+    const bool strong_tempo = board->side_to_move == strong_side;
+    const Square strong_king = square_relative(board_king_square(board, strong_side), strong_side);
+    const Square weak_king = square_relative(board_king_square(board, weak_side), strong_side);
+    const Square strong_pawn =
+        square_relative(bb_first_square(board_piecetype_bb(board, PAWN)), strong_side);
+    const Square weak_rook =
+        square_relative(bb_first_square(board_piece_bb(board, weak_side, ROOK)), strong_side);
 
-    square_t winningKsq = relative_sq(get_king_square(board, winningSide), winningSide);
-    square_t winningPsq = relative_sq(bb_first_sq(piecetype_bb(board, PAWN)), winningSide);
-    square_t losingKsq = relative_sq(get_king_square(board, losingSide), winningSide);
-    square_t losingRsq = relative_sq(bb_first_sq(piece_bb(board, losingSide, ROOK)), winningSide);
+    if (board->side_to_move == BLACK) {
+        score = -score;
+    }
 
-    if (board->sideToMove == BLACK) score = -score;
+    // Check if a Philidor position can be built, or if the back-rank defense can be used.
+    if (bb_square_is_set(passed_pawn_span_bb(strong_pawn, WHITE), weak_king)) {
+        const Rank sk_rank = square_rank(strong_king);
+        const Rank wk_rank = square_rank(weak_king);
+        const Rank sp_rank = square_rank(strong_pawn);
+        const Rank wr_rank = square_rank(weak_rook);
 
-    // Check if a Philidor position can be built, or if the back-rank defense
-    // can be used.
-    if (passed_pawn_span_bb(WHITE, winningPsq) & square_bb(losingKsq))
-    {
-        rank_t rankLK = sq_rank(losingKsq);
-        rank_t rankLR = sq_rank(losingRsq);
-        rank_t rankWK = sq_rank(winningKsq);
-        rank_t rankWP = sq_rank(winningPsq);
+        if (wk_rank == RANK_6 || wk_rank == RANK_7) {
+            if (wr_rank == RANK_5 && sk_rank < RANK_5 && sp_rank < RANK_5) {
+                return score / 64;
+            }
 
-        if (rankLK == RANK_6 || rankLK == RANK_7)
-        {
-            if (rankLR == RANK_5 && rankWK < RANK_5 && rankWP < RANK_5) return score / 64;
-            if (rankLR == RANK_1 && rankWP == RANK_5) return score / 64;
+            if (wr_rank == RANK_1 && sp_rank == RANK_5) {
+                return score / 64;
+            }
         }
-        if (rankLK >= RANK_7)
-        {
-            if (rankLR == RANK_6 && rankWK < RANK_6 && rankWP < RANK_6) return score / 64;
-            if (rankLR <= RANK_2 && rankWP == RANK_6) return score / 64;
+
+        if (wk_rank >= RANK_7) {
+            if (wr_rank == RANK_6 && sk_rank < RANK_6 && sp_rank < RANK_6) {
+                return score / 64;
+            }
+
+            if (wr_rank <= RANK_2 && sp_rank == RANK_6) {
+                return score / 64;
+            }
         }
 
-        if (rankLK == RANK_8 && rankLR == RANK_8)
-        {
-            if (square_bb(winningPsq) & (FILE_A_BB | FILE_B_BB | FILE_G_BB | FILE_H_BB))
+        if (wk_rank == RANK_8 && wr_rank == RANK_8) {
+            if (bb_square_is_set(FILE_A_BB | FILE_B_BB | FILE_G_BB | FILE_H_BB, strong_pawn)) {
                 return score / 16;
-            if (rankWK + tempo < RANK_6) return score / 16;
+            }
+
+            if (sk_rank + strong_tempo < RANK_6) {
+                return score / 16;
+            }
         }
 
         return score / 2;
@@ -250,215 +430,91 @@ score_t eval_krpkr(const Board *board, color_t winningSide)
     return score;
 }
 
-int scale_kpsk(const Board *board, color_t winningSide)
-{
-    const color_t losingSide = not_color(winningSide);
-    square_t winningKsq = relative_sq(get_king_square(board, winningSide), winningSide);
-    square_t losingKsq = relative_sq(get_king_square(board, losingSide), winningSide);
-    const bitboard_t winningPawns = piece_bb(board, winningSide, PAWN);
+Scalefactor scale_kpsk(const Board *board, Color strong_side) {
+    const Bitboard strong_pawns = board_piece_bb(board, strong_side, PAWN);
 
-    if (!winningPawns) return SCALE_DRAW;
+    if (!strong_pawns) {
+        return SCALE_DRAW;
+    }
 
-    // We only check for draw scenarios with all pawns on a Rook file with the
-    // defending King on the promotion path.
-    if ((winningPawns & FILE_A_BB) == winningPawns || (winningPawns & FILE_H_BB) == winningPawns)
-    {
-        square_t mostAdvancedPawn =
-            (winningSide == WHITE) ? bb_last_sq(winningPawns) : bb_first_sq(winningPawns) ^ SQ_A8;
+    // We only check for draw scenarios with all pawns on a Rook file with the defending King on the
+    // promotion path.
+    if ((strong_pawns & FILE_A_BB) == strong_pawns || (strong_pawns & FILE_H_BB) == strong_pawns) {
+        Square strong_king = board_king_square(board, strong_side);
+        Square weak_king = board_king_square(board, color_flip(strong_side));
+        Square most_advanced_pawn =
+            (strong_side == WHITE) ? bb_last_square(strong_pawns) : bb_first_square(strong_pawns);
+        const Color us = strong_side == board->side_to_move ? WHITE : BLACK;
+        const bool flip_file = square_file(most_advanced_pawn) >= FILE_E;
 
-        // Don't forget to map the pieces to the queenside for a kingside Pawn.
-        if (sq_file(mostAdvancedPawn) == FILE_H)
-        {
-            winningKsq ^= FILE_H;
-            losingKsq ^= FILE_H;
-            mostAdvancedPawn ^= FILE_H;
+        strong_king = normalize_square(strong_side, strong_king, flip_file);
+        most_advanced_pawn = normalize_square(strong_side, most_advanced_pawn, flip_file);
+        weak_king = normalize_square(strong_side, weak_king, flip_file);
+
+        // If a KPK situation with only the most advanced Pawn results in a draw, then the position
+        // is likely a draw as well.
+        if (!kpk_bitbase_is_winning(weak_king, strong_king, most_advanced_pawn, us)) {
+            return SCALE_DRAW;
         }
-
-        color_t us = (board->sideToMove == winningSide) ? WHITE : BLACK;
-
-        // If a KPK situation with only the most advanced Pawn results in a
-        // draw, then the position is likely a draw as well.
-        if (!kpk_is_winning(us, losingKsq, winningKsq, mostAdvancedPawn)) return SCALE_DRAW;
     }
 
     return SCALE_NORMAL;
 }
 
-int scale_kbpsk(const Board *board, color_t winningSide)
-{
-    // If the winning side does not have the bishop, don't try to scale down the endgame.
-    if (!piece_bb(board, winningSide, BISHOP)) return SCALE_NORMAL;
+Scalefactor scale_kbpsk(const Board *board, Color strong_side) {
+    // If the strong side does not have the bishop, don't try to scale down the endgame.
+    if (!board_piece_bb(board, strong_side, BISHOP)) {
+        return SCALE_NORMAL;
+    }
 
-    const color_t losingSide = not_color(winningSide);
-    const square_t winningBsq = relative_sq(bb_first_sq(piecetype_bb(board, BISHOP)), winningSide);
-    const square_t losingKsq = relative_sq(get_king_square(board, losingSide), winningSide);
-    const bitboard_t winningPawns = piece_bb(board, winningSide, PAWN);
-    const bitboard_t wrongFile = (square_bb(winningBsq) & DSQ_BB) ? FILE_A_BB : FILE_H_BB;
+    const Bitboard strong_pawns = board_piece_bb(board, strong_side, PAWN);
 
-    if (!winningPawns) return SCALE_DRAW;
+    if (!strong_pawns) {
+        return SCALE_DRAW;
+    }
+
+    const Color weak_side = color_flip(strong_side);
+    const Square strong_bishop =
+        square_relative(bb_first_square(board_piecetype_bb(board, BISHOP)), strong_side);
+    const Square weak_king = square_relative(board_king_square(board, weak_side), strong_side);
+    const Bitboard wrong_file = bb_square_is_set(DSQ_BB, strong_bishop) ? FILE_A_BB : FILE_H_BB;
 
     // Check for a wrong-colored bishop situation.
-    if ((winningPawns & wrongFile) == winningPawns)
-    {
-        const bitboard_t queeningSquare = (square_bb(winningBsq) & DSQ_BB) ? SQ_A8 : SQ_H8;
-        const int queeningDistance = SquareDistance[losingKsq][queeningSquare];
+    if ((strong_pawns & wrong_file) == strong_pawns) {
+        const Square queening_square = bb_square_is_set(DSQ_BB, strong_bishop) ? SQ_A8 : SQ_H8;
+        const u8 queening_distance = square_distance(weak_king, queening_square);
 
-        // Check if the losing King is in control of the queening square.
-        if (queeningDistance < 2) return SCALE_DRAW;
+        // Check if the weak King is in control of the queening square.
+        if (queening_distance < 2) {
+            return SCALE_DRAW;
+        }
 
-        return SCALE_NORMAL * (queeningDistance - 1) / queeningDistance;
+        return SCALE_NORMAL * (i32)(queening_distance - 1) / (i32)queening_distance;
     }
 
     return SCALE_NORMAL;
 }
 
-static EndgameEntry *material_to_entry(
-    const char *wpieces, const char *bpieces, hashkey_t *materialKey)
-{
-    char bcopy[16];
-    char fen[128];
-    size_t i;
-    Board board;
-    Boardstack stack;
-
-    for (i = 0; bpieces[i]; ++i) bcopy[i] = tolower(bpieces[i]);
-
-    bcopy[i] = '\0';
-
-    // Generate a FEN corresponding to the material distribution of the pieces.
-    sprintf(fen, "8/%s%d/8/8/8/8/%s%d/8 w - - 0 1", bcopy, 8 - (int)i, wpieces,
-        8 - (int)strlen(wpieces));
-
-    board_from_fen(&board, fen, false, &stack);
-
-    // Map the board to a new endgame entry.
-    *materialKey = board.stack->materialKey;
-    return &EndgameTable[*materialKey & (EGTB_SIZE - 1)];
+// Probes the endgame table for the given board. Returns a pointer to the corresponding endgame if
+// found, NULL otherwise.
+const EndgameEntry *endgame_probe_score(const Board *board) {
+    const EndgameEntry *entry = &EndgameTable[board->stack->material_key % ENDGAME_TABLE_SIZE];
+    return entry->key == board->stack->material_key && entry->score_fn != NULL ? entry : NULL;
 }
 
-void add_scoring_colored_entry(
-    color_t winningSide, char *wpieces, char *bpieces, endgame_score_func_t scoreFunc)
-{
-    hashkey_t materialKey;
-    EndgameEntry *entry = material_to_entry(wpieces, bpieces, &materialKey);
+// Same as above, except that this one probes for a scaling function rather than a scoring one.
+const EndgameEntry *endgame_probe_scale(const Board *board) {
+    // Scaling function entries are stored with pawnless material keys.
+    Key material_key = board->stack->material_key;
 
-    // Check for key conflicts and stop the program here.
-    if (entry->scoreFunc != NULL)
-    {
-        fputs("Error: key conflicts in endgame table\n", stderr);
-        exit(EXIT_FAILURE);
+    for (u8 i = 0; i < board_piece_count(board, WHITE_PAWN); ++i) {
+        material_key ^= ZobristPsq[WHITE_PAWN][i];
     }
 
-    // Assign the endgame specifications to the entry.
-    entry->key = materialKey;
-    entry->scoreFunc = scoreFunc;
-    entry->winningSide = winningSide;
-}
-
-void add_scoring_entry(const char *pieces, endgame_score_func_t scoreFunc)
-{
-    char buf[32];
-
-    strcpy(buf, pieces);
-
-    char *split = strchr(buf, 'v');
-    *split = '\0';
-
-    // Add the endgame entry for both sides, or one side if material is identical.
-    add_scoring_colored_entry(WHITE, buf, split + 1, scoreFunc);
-
-    if (strcmp(buf, split + 1) != 0) add_scoring_colored_entry(BLACK, split + 1, buf, scoreFunc);
-}
-
-void add_scaling_colored_entry(
-    color_t winningSide, char *wpieces, char *bpieces, endgame_scale_func_t scaleFunc)
-{
-    hashkey_t materialKey;
-    EndgameEntry *entry = material_to_entry(wpieces, bpieces, &materialKey);
-
-    // Check for key conflicts and stop the program here.
-    if (entry->scaleFunc != NULL)
-    {
-        fputs("Error: key conflicts in endgame table\n", stderr);
-        exit(EXIT_FAILURE);
+    for (u8 i = 0; i < board_piece_count(board, BLACK_PAWN); ++i) {
+        material_key ^= ZobristPsq[BLACK_PAWN][i];
     }
 
-    // Assign the endgame specifications to the entry.
-    entry->key = materialKey;
-    entry->scaleFunc = scaleFunc;
-    entry->winningSide = winningSide;
-}
-
-void add_scaling_entry(const char *nonPawnMat, endgame_scale_func_t scaleFunc)
-{
-    char buf[32];
-
-    strcpy(buf, nonPawnMat);
-
-    char *split = strchr(buf, 'v');
-    *split = '\0';
-
-    // Add the endgame entry for both sides, or one side if material is identical.
-    add_scaling_colored_entry(WHITE, buf, split + 1, scaleFunc);
-
-    if (strcmp(buf, split + 1) != 0) add_scaling_colored_entry(BLACK, split + 1, buf, scaleFunc);
-}
-
-void init_endgame_table(void)
-{
-    static const char *drawnEndgames[] = {
-        "KvK", "KNvK", "KBvK", "KNNvK", "KBvKN", "KNvKN", "KBvKB", "KBBvKB", NULL};
-
-    memset(EndgameTable, 0, sizeof(EndgameTable));
-
-    for (size_t i = 0; drawnEndgames[i] != NULL; ++i)
-        add_scoring_entry(drawnEndgames[i], &eval_draw);
-
-    // 3-man endgames
-    add_scoring_entry("KPvK", &eval_kpk);
-
-    // 4-man endgames
-    add_scoring_entry("KRvKP", &eval_krkp);
-    add_scoring_entry("KRvKN", &eval_krkn);
-    add_scoring_entry("KRvKB", &eval_krkb);
-    add_scoring_entry("KQvKR", &eval_kqkr);
-    add_scoring_entry("KQvKP", &eval_kqkp);
-    add_scoring_entry("KBNvK", &eval_kbnk);
-
-    // 5-man endgames
-    add_scoring_entry("KNNvKP", &eval_knnkp);
-    add_scoring_entry("KRPvKR", &eval_krpkr);
-    add_scoring_entry("KNPvKN", &eval_kmpkn);
-    add_scoring_entry("KBPvKN", &eval_kmpkn);
-    add_scoring_entry("KNPvKB", &eval_kmpkb);
-    add_scoring_entry("KBPvKB", &eval_kmpkb);
-
-    // Scaled endgames
-    add_scaling_entry("KvK", &scale_kpsk);
-    add_scaling_entry("KBvK", &scale_kbpsk);
-}
-
-const EndgameEntry *endgame_probe(const Board *board)
-{
-    EndgameEntry *entry = &EndgameTable[board->stack->materialKey & (EGTB_SIZE - 1)];
-
-    // Return the entry if the keys match.
-    return entry->key == board->stack->materialKey && entry->scoreFunc != NULL ? entry : NULL;
-}
-
-const EndgameEntry *endgame_probe_scalefactor(const Board *board)
-{
-    // Scaling function entries are stored pawnless.
-    hashkey_t materialKey = board->stack->materialKey;
-
-    for (int i = 0; i < board->pieceCount[WHITE_PAWN]; ++i)
-        materialKey ^= ZobristPsq[WHITE_PAWN][i];
-
-    for (int i = 0; i < board->pieceCount[BLACK_PAWN]; ++i)
-        materialKey ^= ZobristPsq[BLACK_PAWN][i];
-
-    EndgameEntry *entry = &EndgameTable[materialKey & (EGTB_SIZE - 1)];
-
-    // Return the entry if the keys match.
-    return entry->key == materialKey && entry->scaleFunc != NULL ? entry : NULL;
+    const EndgameEntry *entry = &EndgameTable[material_key % ENDGAME_TABLE_SIZE];
+    return entry->key == material_key && entry->scale_fn != NULL ? entry : NULL;
 }

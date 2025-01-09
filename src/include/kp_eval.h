@@ -16,20 +16,36 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef RANDOM_H
-#define RANDOM_H
+#ifndef KP_EVAL_H
+#define KP_EVAL_H
 
-#include "core.h"
+#include "board.h"
 
-// Generates a random 64-bit unsigned integer
-INLINED u64 u64_random(u64 *seed) {
-    u64 x = *seed;
+enum {
+    KING_PAWN_ENTRY_NB = 32768,
+};
 
-    x ^= x >> 12;
-    x ^= x << 25;
-    x ^= x >> 27;
-    *seed = x;
-    return x * U64(0x2545F4914F6CDD1D);
-}
+// Struct for pawn eval data
+typedef struct _KingPawnEntry {
+    Key key;
+    Bitboard attack_span[COLOR_NB];
+    Bitboard passed[COLOR_NB];
+    Scorepair value;
+} KingPawnEntry;
+
+typedef struct _KingPawnTable {
+    KingPawnEntry entry[KING_PAWN_ENTRY_NB];
+} KingPawnTable;
+
+// Struct for local pawn eval data
+typedef struct _PawnLocalData {
+    Bitboard attacks[COLOR_NB];
+    Bitboard attacks2[COLOR_NB];
+} PawnLocalData;
+
+static_assert(sizeof(KingPawnTable) % 64 == 0, "Misaligned King-Pawn table");
+
+// Probes the King-Pawn hash table for the given position.
+KingPawnEntry *king_pawn_probe(const Board *board);
 
 #endif

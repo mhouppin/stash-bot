@@ -20,82 +20,77 @@
 #define MOVELIST_H
 
 #include "board.h"
-#include "types.h"
-#include <stddef.h>
+#include "chess_types.h"
+#include "core.h"
+#include "hashkey.h"
 
 // Structure for holding moves along with their score
-typedef struct _ExtendedMove
-{
-    move_t move;
-    int32_t score;
+typedef struct _ExtendedMove {
+    Move move;
+    i32 score;
 } ExtendedMove;
 
 // Structure for holding a list of moves
-typedef struct _MoveList
-{
-    ExtendedMove moves[256];
-    ExtendedMove *last;
+typedef struct _Movelist {
+    ExtendedMove moves[MAX_MOVES];
+    ExtendedMove *end;
 } Movelist;
 
-// Global list for the "go searchmoves" option
-extern Movelist UciSearchMoves;
-
-// Generates all legal moves for the given board and stores them in the given movelist.
-ExtendedMove *generate_all(ExtendedMove *restrict movelist, const Board *restrict board);
+// Generates all legal moves for the given board and stores them in the given move list
+ExtendedMove *extmove_generate_legal(ExtendedMove *restrict movelist, const Board *restrict board);
 
 // Generates all pseudo-legal moves for the given board (only for not in-check positions) and stores
-// them in the given movelist.
-ExtendedMove *generate_classic(ExtendedMove *restrict movelist, const Board *restrict board);
+// them in the given move list
+ExtendedMove *
+    extmove_generate_standard(ExtendedMove *restrict movelist, const Board *restrict board);
 
 // Generates all pseudo-legal moves for the given board (only for in-check positions) and stores
-// them in the given movelist.
-ExtendedMove *generate_evasions(ExtendedMove *restrict movelist, const Board *restrict board);
+// them in the given move list
+ExtendedMove *
+    extmove_generate_incheck(ExtendedMove *restrict movelist, const Board *restrict board);
 
-// Generates all pseudo-legal captures/queen promotions for the given board and stores them in the
-// given movelist.
-ExtendedMove *generate_captures(
-    ExtendedMove *restrict movelist, const Board *restrict board, bool inQsearch);
+// Generates all pseudo-legal captures/promotions for the given board (only for not in-check
+// positions) and stores them in the given move list
+ExtendedMove *extmove_generate_noisy(
+    ExtendedMove *restrict movelist,
+    const Board *restrict board,
+    bool in_qsearch
+);
 
-// Generates all pseudo-legal non-captures/non-queen promotions for the given board and stores them
-// in the given movelist.
-ExtendedMove *generate_quiet(ExtendedMove *restrict movelist, const Board *restrict board);
+// Generates all pseudo-legal non-captures/non-promotions for the given board (only for not in-check
+// positions) and stores them in the given move list
+ExtendedMove *extmove_generate_quiet(ExtendedMove *restrict movelist, const Board *restrict board);
 
-// Places the move with the highest score in the first position of the movelist.
-void place_top_move(ExtendedMove *begin, ExtendedMove *end);
+// Places the move with the highest score in the first position of the move list
+void extmove_pick_best(ExtendedMove *begin, ExtendedMove *end);
 
-// Generates all legal moves for the given board.
-INLINED void list_all(Movelist *restrict movelist, const Board *restrict board)
-{
-    movelist->last = generate_all(movelist->moves, board);
+// Generates all legal moves for the given board
+INLINED void movelist_generate_legal(Movelist *restrict movelist, const Board *restrict board) {
+    movelist->end = extmove_generate_legal(movelist->moves, board);
 }
 
-// Generates all pseudo-legal moves for the given board.
-INLINED void list_pseudo(Movelist *restrict movelist, const Board *restrict board)
-{
-    movelist->last = board->stack->checkers ? generate_evasions(movelist->moves, board)
-                                            : generate_classic(movelist->moves, board);
+// Generates all pseudo-legal moves for the given board
+INLINED void movelist_generate_pseudo(Movelist *restrict movelist, const Board *restrict board) {
+    movelist->end = board->stack->checkers ? extmove_generate_incheck(movelist->moves, board)
+                                           : extmove_generate_standard(movelist->moves, board);
 }
 
-// Returns the size of the movelist.
-INLINED size_t movelist_size(const Movelist *movelist)
-{
-    return (movelist->last - movelist->moves);
+// Returns the size of the move list
+INLINED usize movelist_size(const Movelist *movelist) {
+    return (usize)(movelist->end - movelist->moves);
 }
 
-// Returns the start of the movelist.
-INLINED const ExtendedMove *movelist_begin(const Movelist *movelist) { return (movelist->moves); }
-
-// Returns the end of the movelist.
-INLINED const ExtendedMove *movelist_end(const Movelist *movelist) { return (movelist->last); }
-
-// Checks if the movelist contains the given move.
-INLINED bool movelist_has_move(const Movelist *movelist, move_t move)
-{
-    for (const ExtendedMove *extmove = movelist_begin(movelist); extmove < movelist_end(movelist);
-         ++extmove)
-        if (extmove->move == move) return true;
-
-    return false;
+// Returns the start of the move list
+INLINED const ExtendedMove *movelist_begin(const Movelist *movelist) {
+    return movelist->moves;
 }
 
-#endif // MOVELIST_H
+// Returns the end of the move list
+INLINED const ExtendedMove *movelist_end(const Movelist *movelist) {
+    return movelist->end;
+}
+
+// Checks if the move list contains the given move
+bool movelist_contains(const Movelist *movelist, Move move);
+
+#endif

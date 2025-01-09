@@ -17,154 +17,151 @@
 */
 
 #include "timeman.h"
-#include "movelist.h"
-#include "types.h"
-#include "uci.h"
-#include "worker.h"
+
 #include <math.h>
 
+#include "movelist.h"
+
 // Scaling table based on the number of consecutive iterations the bestmove held
-const double BestmoveStabilityScale[5] = {2.50, 1.20, 0.90, 0.80, 0.75};
+const f64 BestmoveStabilityScale[5] = {2.50, 1.20, 0.90, 0.80, 0.75};
 
-clock_t chess_clock(void)
-{
-#if defined(_WIN32) || defined(_WIN64)
-    struct timeb tp;
+void timeman_init(
+    Timeman *restrict timeman,
+    const Board *restrict root_board,
+    const SearchParams *restrict search_params,
+    Timepoint start
+) {
+    const Duration overhead = search_params->move_overhead;
 
-    ftime(&tp);
-    return (clock_t)tp.time * 1000 + tp.millitm;
-#else
-    struct timespec tp;
+    timeman->start = start;
+    timeman->pondering = false;
+    timeman->delay_check_nodes = 1000;
 
-    clock_gettime(CLOCK_REALTIME, &tp);
-    return (clock_t)tp.tv_sec * 1000 + tp.tv_nsec / 1000000;
-#endif
-}
+    if (search_params->nodes != 0) {
+        timeman->delay_check_nodes = (u64)fmin(1000.0, sqrt(search_params->nodes) + 0.5);
+    }
 
-void timeman_init(const Board *board, Timeman *tm, SearchParams *params, clock_t start)
-{
-    clock_t overhead = UciOptionFields.moveOverhead;
+    if (search_params->tc_is_set) {
+        const u16 mtg =
+            (search_params->movestogo != 0) ? u16_min(search_params->movestogo, 100) : 40;
+        Duration time =
+            (root_board->side_to_move == WHITE) ? search_params->wtime : search_params->btime;
+        Duration inc =
+            (root_board->side_to_move == WHITE) ? search_params->winc : search_params->binc;
 
-    tm->start = start;
-    tm->pondering = false;
-    tm->checkFrequency = 1000;
+        timeman->mode = TmTournament;
 
-    if (params->nodes) tm->checkFrequency = (int)fmin(1000.0, sqrt(params->nodes) + 0.5);
+        // Don't let time go to or under zero here. This also fixes a problem with some GUIs issuing
+        // a negative remaining time.
+        time = duration_max(1, time - overhead);
+        inc = duration_max(0, inc);
 
-    if (params->wtime || params->btime)
-    {
-        tm->mode = Tournament;
-
-        double mtg = (params->movestogo) ? params->movestogo : 40.0;
-        clock_t time = (board->sideToMove == WHITE) ? params->wtime : params->btime;
-        clock_t inc = (board->sideToMove == WHITE) ? params->winc : params->binc;
-
-        // Don't let time underflow here.
-        time -= timemin(time, overhead);
-
-        tm->averageTime = time / mtg + inc;
-        tm->maximalTime = time / pow(mtg, 0.4) + inc;
+        timeman->average_time = time / (i64)mtg + inc;
+        timeman->maximal_time = (Duration)(time / pow(mtg, 0.4)) + inc;
 
         // Allow for more time usage when we're pondering, since we're not using
         // our clock as long as the opponent thinks.
-        if (params->ponder)
-        {
-            tm->pondering = true;
-            tm->averageTime += tm->averageTime / 4;
+        if (search_params->ponder) {
+            timeman->pondering = true;
+            timeman->average_time += timeman->average_time / 4;
         }
 
-        tm->averageTime = timemin(tm->averageTime, time);
-        tm->maximalTime = timemin(tm->maximalTime, time);
-        tm->optimalTime = tm->maximalTime;
-
-        // Log the maximal time in debug mode.
-        debug_printf("info maximal_time %" FMT_INFO "\n", (info_t)tm->maximalTime);
+        // Don't allow the search to use more time than the remaining time, even with the added
+        // increment.
+        timeman->average_time = duration_min(time - 1, timeman->average_time);
+        timeman->maximal_time = duration_min(time - 1, timeman->maximal_time);
+        timeman->optimal_time = timeman->maximal_time;
+        // info_debug()
+    } else if (search_params->movetime != 0) {
+        timeman->mode = TmMovetime;
+        timeman->maximal_time =
+            duration_max(1, search_params->movetime - search_params->move_overhead);
+        timeman->average_time = timeman->maximal_time;
+        timeman->optimal_time = timeman->maximal_time;
+        // info_debug()
+    } else {
+        timeman->mode = TmNone;
     }
-    else if (params->movetime)
-    {
-        tm->mode = Movetime;
-        tm->averageTime = tm->maximalTime = tm->optimalTime =
-            (params->movetime <= overhead) ? 1 : (params->movetime - overhead);
 
-        // Log the maximal time in debug mode.
-        debug_printf("info maximal_time %" FMT_INFO "\n", (info_t)tm->maximalTime);
-    }
-    else
-        tm->mode = NoTimeman;
-
-    tm->prevScore = NO_SCORE;
-    tm->prevBestmove = NO_MOVE;
-    tm->stability = 0;
-    tm->type = NO_BM_TYPE;
+    timeman->previous_score = NO_SCORE;
+    timeman->previous_bestmove = NO_MOVE;
+    timeman->stability = 0;
 }
 
-double score_difference_scale(score_t s)
-{
-    const score_t X = 100;
-    const double T = 2.0;
+f64 timeman_scale_score_diff(i32 score_progression) {
+    const i32 k = 100;
+    const f64 x = 2.0;
 
-    // Clamp score to the range [-100, 100], and convert it to a time scale in
-    // the range [0.5, 2.0].
+    // Clamp the score progression to the range [-100, 100], and convert it to a time scale in the
+    // range [0.5, 2.0]. This is done so that we allot more time when the score starts falling, and
+    // less time when it raises.
     // Examples:
-    // -100 -> 0.500x time
-    //  -50 -> 0.707x time
+    // -100 -> 2.000x time
+    //  -50 -> 1.414x time
     //    0 -> 1.000x time
-    //  +50 -> 1.414x time
-    // +100 -> 2.000x time
-    return pow(T, iclamp(s, -X, X) / (double)X);
+    //  +50 -> 0.707x time
+    // +100 -> 0.500x time
+    return pow(x, i32_clamp(-score_progression, -k, k) / (f64)k);
 }
 
-void timeman_update(Timeman *tm, const Board *board, move_t bestmove, score_t score)
-{
-    // Only update the timeman when we need one.
-    if (tm->mode != Tournament) return;
+void timeman_update(
+    Timeman *restrict timeman,
+    const Board *restrict root_board,
+    Move bestmove,
+    Score root_score
+) {
+    if (timeman->mode != TmTournament) {
+        return;
+    }
 
-    Movelist list;
-    double scale = 1.0;
+    Movelist movelist;
+    f64 scale = 1.0;
 
-    list_all(&list, board);
+    movelist_generate_legal(&movelist, root_board);
 
-    // Do we only have one legal move ? Don't burn much time on these.
-    if (movelist_size(&list) == 1) scale = 0.2;
+    // Cut down time usage on positions with a single legal move.
+    if (movelist_size(&movelist) == 1) {
+        scale = 0.2;
+    }
 
     // Update bestmove + stability statistics.
-    if (tm->prevBestmove != bestmove)
-    {
-        tm->prevBestmove = bestmove;
-        tm->stability = 0;
+    if (timeman->previous_bestmove != bestmove) {
+        timeman->previous_bestmove = bestmove;
+        timeman->stability = 0;
+    } else {
+        timeman->stability = u16_min(timeman->stability + 1, 4);
     }
-    else
-        tm->stability = imin(tm->stability + 1, 4);
 
     // Scale the time usage based on how long this bestmove has held
     // through search iterations.
-    scale *= BestmoveStabilityScale[tm->stability];
+    scale *= BestmoveStabilityScale[timeman->stability];
 
     // Scale the time usage based on how the score changed from the
     // previous iteration (the higher it goes, the quicker we stop searching).
-    if (tm->prevScore != NO_SCORE) scale *= score_difference_scale(tm->prevScore - score);
+    if (timeman->previous_score != NO_SCORE) {
+        scale *= timeman_scale_score_diff((i32)root_score - (i32)timeman->previous_score);
+    }
 
     // Update score + optimal time usage.
-    tm->prevScore = score;
-    tm->optimalTime = timemin(tm->maximalTime, tm->averageTime * scale);
-
-    // Log the optimal time in debug mode.
-    debug_printf("info optimal_time %" FMT_INFO "\n", (info_t)tm->optimalTime);
+    timeman->previous_score = root_score;
+    timeman->optimal_time = duration_min(timeman->maximal_time, timeman->average_time * scale);
+    // info_debug()
 }
 
-void check_time(void)
-{
-    if (--SearchWorkerPool.checks > 0) return;
+bool timeman_can_stop_search(const Timeman *timeman, Timepoint current_tp) {
+    if (timeman->pondering && /* wpool_is_pondering(&SearchWorkerPool) */ true) {
+        return false;
+    }
 
-    // Reset the verification counter.
-    SearchWorkerPool.checks = SearchTimeman.checkFrequency;
+    return timeman->mode != TmNone
+        && timepoint_diff(timeman->start, current_tp) >= timeman->optimal_time;
+}
 
-    // If we are in infinite mode, or the stop has already been set,
-    // we can safely return.
-    if (UciSearchParams.infinite || wpool_is_stopped(&SearchWorkerPool)) return;
+bool timeman_must_stop_search(const Timeman *timeman, Timepoint current_tp) {
+    if (timeman->pondering && /* wpool_is_pondering(&SearchWorkerPool) */ true) {
+        return false;
+    }
 
-    // Check if we went over the requested node count or the maximal time usage.
-    if (wpool_get_total_nodes(&SearchWorkerPool) >= UciSearchParams.nodes
-        || timeman_must_stop_search(&SearchTimeman, chess_clock()))
-        wpool_stop(&SearchWorkerPool);
+    return timeman->mode != TmNone
+        && timepoint_diff(timeman->start, current_tp) >= timeman->maximal_time;
 }

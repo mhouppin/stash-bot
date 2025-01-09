@@ -19,41 +19,41 @@
 #ifndef HASHKEY_H
 #define HASHKEY_H
 
-#include "types.h"
+#include "chess_types.h"
+#include "core.h"
 
 // Typedef for hashing keys
-typedef uint64_t hashkey_t;
+typedef u64 Key;
 
-// Multiplies two 64-bit unsigned integers and returns the high 64 bits of the result.
-INLINED uint64_t mul_hi64(uint64_t x, uint64_t n)
-{
-#ifdef __SIZEOF_INT128__
-    return ((unsigned __int128)x * (unsigned __int128)n) >> 64;
+// Multiplies two u64s and returns the high 64 bits of the result
+INLINED u64 u64_mulhi(u64 lhs, u64 rhs) {
+#ifdef HAS_INT128
+    return ((u128)lhs * (u128)rhs) >> 64;
 #else
-    uint64_t xlo = (uint32_t)x;
-    uint64_t xhi = x >> 32;
-    uint64_t nlo = (uint32_t)n;
-    uint64_t nhi = n >> 32;
-    uint64_t c1 = (xlo * nlo) >> 32;
-    uint64_t c2 = (xhi * nlo) + c1;
-    uint64_t c3 = (xlo * nhi) + (uint32_t)c2;
+    u64 llo = (u32)lhs;
+    u64 lhi = lhs >> 32;
+    u64 rlo = (u32)rhs;
+    u64 rhi = rhs >> 32;
+    u64 c1 = (llo * rlo) >> 32;
+    u64 c2 = (lhi * rlo) + c1;
+    u64 c3 = (llo * rhi) + (u32)c2;
 
-    return xhi * nhi + (c2 >> 32) + (c3 >> 32);
+    return lhi * rhi + (c2 >> 32) + (c3 >> 32);
 #endif
 }
 
 // Global table for Zobrist Piece-Square hashes
-extern hashkey_t ZobristPsq[PIECE_NB][SQUARE_NB];
+extern Key ZobristPsq[PIECE_NB][SQUARE_NB];
 
-// Global table for Zobrist Enpassant hashes
-extern hashkey_t ZobristEnPassant[FILE_NB];
+// Global table for Zobrist en passant hashes
+extern Key ZobristEnPassant[FILE_NB];
 
-// Global table for Zobrist Castling hashes
-extern hashkey_t ZobristCastling[CASTLING_NB];
+// Global table for Zobrist castling hashes
+extern Key ZobristCastling[CASTLING_NB];
 
 // Global value for Zobrist STM hash
-extern hashkey_t ZobristSideToMove;
+extern Key ZobristSideToMove;
 
 void zobrist_init(void);
 
-#endif // HASHKEY_H
+#endif

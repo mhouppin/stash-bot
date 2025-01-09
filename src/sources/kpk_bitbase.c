@@ -16,181 +16,143 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "endgame.h"
-#include <stdio.h>
+#include "kpk_bitbase.h"
+
 #include <stdlib.h>
 #include <string.h>
 
-enum
-{
-    KPK_SIZE = 2 * 24 * 64 * 64,
+#include "attacks.h"
+#include "bitboard.h"
+#include "wmalloc.h"
 
-    KPK_INVALID = 0,
-    KPK_UNKNOWN = 1,
-    KPK_DRAW = 2,
-    KPK_WIN = 4
-};
+static u8 KpkBitbase[KPK_SIZE / 8];
 
-typedef struct kpk_position_s
-{
-    color_t sideToMove;
-    square_t kingSquare[COLOR_NB];
-    square_t pawnSquare;
-    uint8_t result;
-} kpk_position_t;
-
-uint8_t KPK_Bitbase[KPK_SIZE / 8];
-
-INLINED unsigned int kpk_index(color_t stm, square_t bksq, square_t wksq, square_t psq)
-{
-    return (unsigned int)wksq | ((unsigned int)bksq << 6) | ((unsigned int)stm << 12)
-           | ((unsigned int)sq_file(psq) << 13) | ((unsigned int)(RANK_7 - sq_rank(psq)) << 15);
+static u32 kpk_index(Square weak_ksq, Square strong_ksq, Square psq, Color stm) {
+    assert(square_is_valid(weak_ksq));
+    assert(square_is_valid(strong_ksq));
+    assert(square_is_valid(psq));
+    assert(square_file(psq) < FILE_E);
+    assert(square_rank(psq) != RANK_1 && square_rank(psq) != RANK_8);
+    assert(color_is_valid(stm));
+    return (u32)weak_ksq | ((u32)strong_ksq << 6) | ((u32)stm << 12) | ((u32)square_file(psq) << 13)
+        | ((u32)(RANK_7 - square_rank(psq)) << 15);
 }
 
-bool kpk_is_winning(color_t stm, square_t bksq, square_t wksq, square_t psq)
-{
-    unsigned int index = kpk_index(stm, bksq, wksq, psq);
+static void kpk_init_entry(KpkPosition *pos, u32 index) {
+    assert(index < KPK_SIZE);
+    const Square weak_ksq = (Square)(index & 0b111111u);
+    const Square strong_ksq = (Square)((index >> 6) & 0b111111u);
+    const Color stm = (Color)((index >> 12) & 0b1u);
+    const Square psq = create_square((File)((index >> 13) & 0b11u), (Rank)(RANK_7 - (index >> 15)));
 
-    return KPK_Bitbase[index >> 3] & (1 << (index & 7));
-}
+    pos->stm = stm;
+    pos->ksq[WHITE] = strong_ksq;
+    pos->ksq[BLACK] = weak_ksq;
+    pos->psq = psq;
+    pos->result = KPK_UNKNOWN;
 
-void kpk_set(kpk_position_t *pos, unsigned int index)
-{
-    const square_t wksq = (square_t)(index & 0x3F);
-    const square_t bksq = (square_t)((index >> 6) & 0x3F);
-    const color_t stm = (color_t)((index >> 12) & 1);
-    const square_t psq =
-        create_sq((file_t)((index >> 13) & 0x3), (rank_t)(RANK_7 - ((index >> 15) & 0x7)));
-
-    pos->sideToMove = stm;
-    pos->kingSquare[WHITE] = wksq;
-    pos->kingSquare[BLACK] = bksq;
-    pos->pawnSquare = psq;
-
-    // Overlapping/adjacent Kings ?
-    if (SquareDistance[wksq][bksq] <= 1) pos->result = KPK_INVALID;
-
-    // Overlapping King with Pawn ?
-    else if (wksq == psq || bksq == psq)
+    // Test for overlapping pieces.
+    if (square_distance(strong_ksq, weak_ksq) <= 1 || weak_ksq == psq || strong_ksq == psq) {
         pos->result = KPK_INVALID;
-
-    // Losing king in check while the winning side has the move ?
-    else if (stm == WHITE && (PawnMoves[WHITE][psq] & square_bb(bksq)))
-        pos->result = KPK_INVALID;
-
-    // Can we promote without getting captured ?
-    else if (stm == WHITE && sq_rank(psq) == RANK_7 && wksq != psq + NORTH
-             && (SquareDistance[bksq][psq + NORTH] > 1 || SquareDistance[wksq][psq + NORTH] == 1))
-        pos->result = KPK_WIN;
-
-    // Is it stalemate ?
-    else if (stm == BLACK && !(king_moves(bksq) & ~(king_moves(wksq) | PawnMoves[WHITE][psq])))
-        pos->result = KPK_DRAW;
-
-    // Can the losing side capture the Pawn ?
-    else if (stm == BLACK && (king_moves(bksq) & ~king_moves(wksq) & square_bb(psq)))
-        pos->result = KPK_DRAW;
-
-    else
-        pos->result = KPK_UNKNOWN;
+    } else if (stm == WHITE) {
+        // Test if the weak King is in check while the strong side has the move.
+        if (bb_square_is_set(pawn_attacks_bb(psq, WHITE), weak_ksq)) {
+            pos->result = KPK_INVALID;
+        }
+        // Test if we can promote the Pawn without getting captured.
+        else if (square_rank(psq) == RANK_7 && strong_ksq != psq + NORTH && (square_distance(weak_ksq, psq + NORTH) > 1 || square_distance(strong_ksq, psq + NORTH) == 1)) {
+            pos->result = KPK_WIN;
+        }
+    } else {
+        // Test for a stalemate.
+        if (!(king_attacks_bb(weak_ksq)
+              & ~(king_attacks_bb(strong_ksq) | pawn_attacks_bb(psq, WHITE)))) {
+            pos->result = KPK_DRAW;
+        }
+        // Test if the weak King can capture the Pawn.
+        else if (bb_square_is_set(king_attacks_bb(weak_ksq) & ~king_attacks_bb(strong_ksq), psq)) {
+            pos->result = KPK_DRAW;
+        }
+    }
 }
 
-void kpk_classify(kpk_position_t *pos, kpk_position_t *kpkTable)
-{
-    const uint8_t goodResult = (pos->sideToMove == WHITE) ? KPK_WIN : KPK_DRAW;
-    const uint8_t badResult = (pos->sideToMove == WHITE) ? KPK_DRAW : KPK_WIN;
+void kpk_classify(KpkPosition *pos, KpkPosition *kpk_table) {
+    const u8 good_result = (pos->stm == WHITE) ? KPK_WIN : KPK_DRAW;
+    const u8 bad_result = good_result ^ KPK_DRAW ^ KPK_WIN;
+    const Square strong_ksq = pos->ksq[WHITE];
+    const Square weak_ksq = pos->ksq[BLACK];
+    const Color stm = pos->stm;
+    const Square psq = pos->psq;
 
-    const square_t wksq = pos->kingSquare[WHITE];
-    const square_t bksq = pos->kingSquare[BLACK];
-    const color_t stm = pos->sideToMove;
-    const square_t psq = pos->pawnSquare;
-
-    uint8_t result = KPK_INVALID;
-    bitboard_t b = king_moves(pos->kingSquare[stm]);
-
-    // We will pack all moves' results in the result variable with bitwise 'or's.
-    // We exploit the fact that invalid entries with overlapping pieces are stored
-    // as KPK_INVALID (aka 0) to avoid checking for move legality (expect for double
-    // Pawn pushes, where we need to check if the square above the pawn is empty).
+    // We will pack all moves' results in the result variable with bitwise ORs. We use the fact that
+    // invalid entries with overlapping pieces are stored as KPK_INVALID (aka 0) to avoid checking
+    // for move legality (expect for double Pawn pushes, where we need to check if the square above
+    // the pawn is empty).
+    u8 result = KPK_INVALID;
+    Bitboard bb = king_attacks_bb(pos->ksq[stm]);
 
     // Get all entries' results for King moves.
-    while (b)
-    {
-        if (stm == WHITE)
-            result |= kpkTable[kpk_index(BLACK, bksq, bb_pop_first_sq(&b), psq)].result;
-        else
-            result |= kpkTable[kpk_index(WHITE, bb_pop_first_sq(&b), wksq, psq)].result;
+    while (bb) {
+        const Square next_strong_ksq = (stm == WHITE) ? bb_pop_first_square(&bb) : strong_ksq;
+        const Square next_weak_ksq = (stm == WHITE) ? weak_ksq : bb_pop_first_square(&bb);
+
+        result |= kpk_table[kpk_index(next_weak_ksq, next_strong_ksq, psq, color_flip(stm))].result;
     }
 
-    // If the winning side has the move, also get all entries' results for Pawn moves.
-    if (stm == WHITE)
-    {
-        // Single push
-        if (sq_rank(psq) < RANK_7)
-            result |= kpkTable[kpk_index(BLACK, bksq, wksq, psq + NORTH)].result;
+    // If the strong side has the move, also get all entries' results for Pawn moves.
+    if (stm == WHITE) {
+        if (square_rank(psq) < RANK_7) {
+            result |= kpk_table[kpk_index(weak_ksq, strong_ksq, psq + NORTH, BLACK)].result;
+        }
 
-        // Double push
-        if (sq_rank(psq) == RANK_2 && psq + NORTH != wksq && psq + NORTH != bksq)
-            result |= kpkTable[kpk_index(BLACK, bksq, wksq, psq + NORTH + NORTH)].result;
+        if (square_rank(psq) == RANK_2 && psq + NORTH != strong_ksq && psq + NORTH != weak_ksq) {
+            result |= kpk_table[kpk_index(weak_ksq, strong_ksq, psq + NORTH + NORTH, BLACK)].result;
+        }
     }
 
-    pos->result = ((result & goodResult)    ? goodResult
-                   : (result & KPK_UNKNOWN) ? KPK_UNKNOWN
-                                            : badResult);
+    // If we can get the "good result" with at least one move, we have a good result. Otherwise, we
+    // have a "bad result", except if at least one of the moves has an unknown result.
+    pos->result = (result & good_result) ? good_result
+        : (result & KPK_UNKNOWN)         ? KPK_UNKNOWN
+                                         : bad_result;
 }
 
-void init_kpk_bitbase(void)
-{
-    kpk_position_t *kpkTable = malloc(sizeof(kpk_position_t) * KPK_SIZE);
+void kpk_bitbase_init(void) {
+    KpkPosition *kpk_table = wrap_malloc(sizeof(KpkPosition) * KPK_SIZE);
+    u32 index;
+    bool table_modified;
 
-    if (kpkTable == NULL)
-    {
-        perror("Unable to initialize KPK bitbase");
-        exit(EXIT_FAILURE);
+    // Fill the bitbase with zeros, and then perform an early recognition of trivial wins/draws and
+    // illegal positions.
+    memset(KpkBitbase, 0, sizeof(KpkBitbase));
+
+    for (index = 0; index < KPK_SIZE; ++index) {
+        kpk_init_entry(&kpk_table[index], index);
     }
 
-    unsigned int index;
-    bool repeat;
-
-    // Fill the bitbase with zeroes, and then perform an early
-    // recognition of trivial wins/draws and illegal positions.
-    memset(KPK_Bitbase, 0, sizeof(KPK_Bitbase));
-    for (index = 0; index < KPK_SIZE; ++index) kpk_set(kpkTable + index, index);
-
-    // Backtrack all known wins/draws to the undecided positions, by trying to
-    // determine the result of a position from the child states' results.
+    // Classify all undecided positions by retrograde analysis.
     do {
-        repeat = false;
-        for (index = 0; index < KPK_SIZE; ++index)
-            if (kpkTable[index].result == KPK_UNKNOWN)
-            {
-                kpk_classify(kpkTable + index, kpkTable);
-                repeat |= kpkTable[index].result != KPK_UNKNOWN;
+        table_modified = false;
+
+        for (index = 0; index < KPK_SIZE; ++index) {
+            if (kpk_table[index].result == KPK_UNKNOWN) {
+                kpk_classify(&kpk_table[index], kpk_table);
+                table_modified |= kpk_table[index].result != KPK_UNKNOWN;
             }
-    } while (repeat);
+        }
+    } while (table_modified);
 
     // Index the wins in the bitbase as set bits.
-    for (index = 0; index < KPK_SIZE; ++index)
-        if (kpkTable[index].result == KPK_WIN) KPK_Bitbase[index / 8] |= 1 << (index % 8);
+    for (index = 0; index < KPK_SIZE; ++index) {
+        if (kpk_table[index].result == KPK_WIN) {
+            KpkBitbase[index >> 3] |= 1u << (index & 7);
+        }
+    }
 
-    free(kpkTable);
+    free(kpk_table);
 }
 
-score_t eval_kpk(const Board *board, color_t winningSide)
-{
-    square_t winningKing = get_king_square(board, winningSide);
-    square_t winningPawn = bb_first_sq(piecetype_bb(board, PAWN));
-    square_t losingKing = get_king_square(board, not_color(winningSide));
-    color_t us = winningSide == board->sideToMove ? WHITE : BLACK;
-
-    winningKing = normalize_square(board, winningSide, winningKing);
-    winningPawn = normalize_square(board, winningSide, winningPawn);
-    losingKing = normalize_square(board, winningSide, losingKing);
-
-    // Probe the bitbase to evaluate the KPK position.
-    score_t score = kpk_is_winning(us, losingKing, winningKing, winningPawn)
-                        ? VICTORY + PAWN_EG_SCORE + sq_rank(winningPawn) * 3
-                        : 0;
-
-    return winningSide == board->sideToMove ? score : -score;
+bool kpk_bitbase_is_winning(Square weak_ksq, Square strong_ksq, Square psq, Color stm) {
+    u32 index = kpk_index(weak_ksq, strong_ksq, psq, stm);
+    return (KpkBitbase[index >> 3] & (1u << (index & 7))) != 0;
 }

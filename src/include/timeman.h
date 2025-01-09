@@ -20,85 +20,53 @@
 #define TIMEMAN_H
 
 #include "board.h"
-#include "uci.h"
-#include <sys/timeb.h>
-#include <time.h>
-
-// Returns the current time in milliseconds.
-clock_t chess_clock(void);
-
-INLINED clock_t timemin(clock_t left, clock_t right) { return (left < right) ? left : right; }
-
-INLINED clock_t timemax(clock_t left, clock_t right) { return (left > right) ? left : right; }
-
-// Enum for the type of bestmove
-typedef enum bestmove_type_e
-{
-    NO_BM_TYPE = -1,
-    OneLegalMove,
-    Promotion,
-    SoundCapture,
-    SoundCheck,
-    Capture,
-    Quiet,
-    WeirdCheck,
-    WeirdQuiet,
-    BM_TYPE_NB
-} bestmove_type_t;
-
-// Global for scaling time usage based on stability
-extern const double BestmoveStabilityScale[5];
+#include "chess_types.h"
+#include "core.h"
+#include "search_params.h"
 
 // Enum for the type of time management to use
-typedef enum timeman_mode_e
-{
-    Tournament,
-    Movetime,
-    NoTimeman
-} timeman_mode_t;
+typedef enum _TimemanMode {
+    TmNone,
+    TmMovetime,
+    TmTournament,
+} TimemanMode;
 
 // Struct for time management
-typedef struct _Timeman
-{
-    clock_t start;
-    timeman_mode_t mode;
+typedef struct _Timeman {
+    Timepoint start;
+    TimemanMode mode;
     bool pondering;
-    int checkFrequency;
+    u64 delay_check_nodes;
 
-    clock_t averageTime;
-    clock_t maximalTime;
-    clock_t optimalTime;
+    Duration average_time;
+    Duration maximal_time;
+    Duration optimal_time;
 
-    score_t prevScore;
-    move_t prevBestmove;
-    int stability;
-    bestmove_type_t type;
+    Score previous_score;
+    Move previous_bestmove;
+    u16 stability;
 } Timeman;
 
-// Global for time management
-extern Timeman SearchTimeman;
+// Initializes the time manager based on search parameters
+void timeman_init(
+    Timeman *restrict timeman,
+    const Board *restrict root_board,
+    const SearchParams *restrict search_params,
+    Timepoint start
+);
 
-// Initializes the time management based on "go" command parameters.
-void timeman_init(const Board *board, Timeman *tm, SearchParams *params, clock_t start);
+// Updates the time manager based on the current bestmove and score
+void timeman_update(
+    Timeman *restrict timeman,
+    const Board *restrict root_board,
+    Move bestmove,
+    Score root_score
+);
 
-// Updates the time management based on the current bestmove and score.
-void timeman_update(Timeman *tm, const Board *board, move_t bestmove, score_t score);
+// Checks if the time manager thinks we have spent enough time in search
+bool timeman_can_stop_search(const Timeman *timeman, Timepoint current_tp);
 
-// Checks time usage periodically.
-void check_time(void);
-
-// Checks if we can safely stop the search.
-INLINED bool timeman_can_stop_search(Timeman *tm, clock_t cur)
-{
-    if (tm->pondering && wpool_is_pondering(&SearchWorkerPool)) return false;
-    return tm->mode != NoTimeman && cur >= tm->start + tm->optimalTime;
-}
-
-// Checks if we must stop the search.
-INLINED bool timeman_must_stop_search(Timeman *tm, clock_t cur)
-{
-    if (tm->pondering && wpool_is_pondering(&SearchWorkerPool)) return false;
-    return tm->mode != NoTimeman && cur >= tm->start + tm->maximalTime;
-}
+// Checks if the time manager says we must interrupt the search now
+bool timeman_must_stop_search(const Timeman *timeman, Timepoint current_tp);
 
 #endif

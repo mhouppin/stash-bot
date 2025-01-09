@@ -17,525 +17,845 @@
 */
 
 #include "option.h"
-#include "uci.h"
-#include <errno.h>
+
 #include <inttypes.h>
-#include <stdio.h>
+#include <math.h>
+#include <stdarg.h>
 #include <stdlib.h>
 
-// The function pointer table dispatcher for setting options.
-bool (*const TrySetOptionList[OPTION_TYPE_COUNT])(Option *, const char *) = {
-    &try_set_option_spin_int,
-    &try_set_option_spin_flt,
-    &try_set_option_check,
-    &try_set_option_string,
-    &try_set_option_combo,
-    &try_set_option_button,
-    &try_set_option_score,
-    &try_set_option_scorepair,
-    &try_set_option_scorepair,
-};
+#include "syncio.h"
+#include "wmalloc.h"
 
-void option_allocation_failure(void)
-{
-    perror("Unable to allocate option table");
-    exit(ENOMEM);
+void option_button_show(StringView name, const OptionParams *params) {
+    __attribute__((unused)) const OptButtonParams *button_params = &params->button;
+
+    sync_lock_stdout();
+    fwrite_strview(stdout, STATIC_STRVIEW("option name "));
+    fwrite_strview(stdout, name);
+    fwrite_strview(stdout, STATIC_STRVIEW(" type button\n"));
+    sync_unlock_stdout();
 }
 
-void init_option_list(OptionList *list)
-{
-    list->options = NULL;
-    list->size = 0;
-    list->maxSize = 0;
+void option_spin_integer_show(StringView name, const OptionParams *params) {
+    const OptSpinIntegerParams *spin_integer_params = &params->spin_integer;
+
+    sync_lock_stdout();
+    fwrite_strview(stdout, STATIC_STRVIEW("option name "));
+    fwrite_strview(stdout, name);
+    fprintf(
+        stdout,
+        " type spin default %" PRIi64 " min %" PRIi64 " max %" PRIi64 "\n",
+        spin_integer_params->default_value,
+        spin_integer_params->min_value,
+        spin_integer_params->max_value
+    );
+    sync_unlock_stdout();
 }
 
-void quit_option_list(OptionList *list)
-{
-    for (size_t i = 0; i < list->size; ++i)
-    {
-        Option *cur = &list->options[i];
+void option_spin_float_show(StringView name, const OptionParams *params) {
+    const OptSpinFloatParams *spin_float_params = &params->spin_float;
+    const i64 default_qvalue =
+        (i64)round(spin_float_params->default_value * spin_float_params->resolution);
+    const i64 min_qvalue = (i64)round(spin_float_params->min_value * spin_float_params->resolution);
+    const i64 max_qvalue = (i64)round(spin_float_params->max_value * spin_float_params->resolution);
 
-        free(cur->name);
+    sync_lock_stdout();
+    fwrite_strview(stdout, STATIC_STRVIEW("option name "));
+    fwrite_strview(stdout, name);
+    fprintf(
+        stdout,
+        " type spin default %" PRIi64 " min %" PRIi64 " max %" PRIi64 "\n",
+        default_qvalue,
+        min_qvalue,
+        max_qvalue
+    );
+    sync_unlock_stdout();
+}
 
-        switch (cur->type)
-        {
-            case OptionSpinInt:
-            case OptionSpinFlt:
-            case OptionScore:
-            case OptionSpairMG:
-            case OptionSpairEG:
-                // All these option types require default/min/max values.
-                free(cur->def);
-                free(cur->min);
-                free(cur->max);
-                break;
+void option_check_show(StringView name, const OptionParams *params) {
+    const OptCheckParams *check_params = &params->check;
 
-            case OptionCombo:
-                for (size_t k = 0; cur->comboList[k]; ++k) free(cur->comboList[k]);
-                free(cur->comboList);
-                // Fallthrough
+    sync_lock_stdout();
+    fwrite_strview(stdout, STATIC_STRVIEW("option name "));
+    fwrite_strview(stdout, name);
+    fprintf(stdout, " type check default %s\n", check_params->default_value ? "true" : "false");
+    sync_unlock_stdout();
+}
 
-            case OptionString:
-                free(*(char **)cur->data);
-                *(char **)cur->data = NULL;
-                break;
+void option_string_show(StringView name, const OptionParams *params) {
+    const OptStringParams *string_params = &params->string;
 
-            case OptionCheck: free(cur->def); break;
+    sync_lock_stdout();
+    fwrite_strview(stdout, STATIC_STRVIEW("option name "));
+    fwrite_strview(stdout, name);
+    fwrite_strview(stdout, STATIC_STRVIEW(" type string default "));
+    fwrite_string(stdout, &string_params->default_value);
+    fputc('\n', stdout);
+    sync_unlock_stdout();
+}
 
-            case OptionButton: break;
+void option_combo_show(StringView name, const OptionParams *params) {
+    const OptComboParams *combo_params = &params->combo;
 
-            // Safeguard
-            default: break;
+    sync_lock_stdout();
+    fwrite_strview(stdout, STATIC_STRVIEW("option name "));
+    fwrite_strview(stdout, name);
+    fwrite_strview(stdout, STATIC_STRVIEW(" type combo default "));
+    fwrite_string(stdout, &combo_params->default_value);
+
+    for (usize i = 0; i < combo_params->allowed_count; ++i) {
+        fwrite_strview(stdout, STATIC_STRVIEW(" var "));
+        fwrite_string(stdout, &combo_params->allowed_values[i]);
+    }
+
+    fputc('\n', stdout);
+    sync_unlock_stdout();
+}
+
+void option_score_show(StringView name, const OptionParams *params) {
+    const OptScoreParams *score_params = &params->score;
+
+    sync_lock_stdout();
+    fwrite_strview(stdout, STATIC_STRVIEW("option name "));
+    fwrite_strview(stdout, name);
+    fprintf(
+        stdout,
+        " type spin default %" PRIi16 " min %" PRIi16 " max %" PRIi16 "\n",
+        score_params->default_value,
+        score_params->min_value,
+        score_params->max_value
+    );
+    sync_unlock_stdout();
+}
+
+void option_half_scorepair_show(StringView name, const OptionParams *params) {
+    const OptHalfScorepairParams *half_scorepair_params = &params->half_scorepair;
+
+    sync_lock_stdout();
+    fwrite_strview(stdout, STATIC_STRVIEW("option name "));
+    fwrite_strview(stdout, name);
+    fprintf(
+        stdout,
+        " type spin default %" PRIi16 " min %" PRIi16 " max %" PRIi16 "\n",
+        half_scorepair_params->default_value,
+        half_scorepair_params->min_value,
+        half_scorepair_params->max_value
+    );
+    sync_unlock_stdout();
+}
+
+void option_default_show_tune(
+    __attribute__((unused)) StringView name,
+    __attribute__((unused)) const OptionParams *params
+) {
+}
+
+void option_spin_integer_show_tune(StringView name, const OptionParams *params) {
+    const OptSpinIntegerParams *spin_integer_params = &params->spin_integer;
+
+    if (!spin_integer_params->is_tunable) {
+        return;
+    }
+
+    const i64 step =
+        i64_max(1, (spin_integer_params->max_value - spin_integer_params->min_value) / 20);
+
+    sync_lock_stdout();
+    fwrite_strview(stdout, name);
+    fprintf(
+        stdout,
+        ", int, %" PRIi64 ", %" PRIi64 ", %" PRIi64 ", %" PRIi64 ", 0.002",
+        spin_integer_params->default_value,
+        spin_integer_params->min_value,
+        spin_integer_params->max_value,
+        step
+    );
+    sync_unlock_stdout();
+}
+
+void option_spin_float_show_tune(StringView name, const OptionParams *params) {
+    const OptSpinFloatParams *spin_float_params = &params->spin_float;
+
+    if (!spin_float_params->is_tunable) {
+        return;
+    }
+
+    const i64 default_qvalue =
+        (i64)round(spin_float_params->default_value * spin_float_params->resolution);
+    const i64 min_qvalue = (i64)round(spin_float_params->min_value * spin_float_params->resolution);
+    const i64 max_qvalue = (i64)round(spin_float_params->max_value * spin_float_params->resolution);
+    const i64 step = i64_max(1, (max_qvalue - min_qvalue) / 20);
+
+    sync_lock_stdout();
+    fwrite_strview(stdout, name);
+    fprintf(
+        stdout,
+        ", int, %" PRIi64 ", %" PRIi64 ", %" PRIi64 ", %" PRIi64 ", 0.002",
+        default_qvalue,
+        min_qvalue,
+        max_qvalue,
+        step
+    );
+    sync_unlock_stdout();
+}
+
+void option_score_show_tune(StringView name, const OptionParams *params) {
+    const OptScoreParams *score_params = &params->score;
+
+    if (!score_params->is_tunable) {
+        return;
+    }
+
+    const i64 step = i64_max(1, ((i64)score_params->max_value - (i64)score_params->min_value) / 20);
+
+    sync_lock_stdout();
+    fwrite_strview(stdout, name);
+    fprintf(
+        stdout,
+        ", int, %" PRIi16 ", %" PRIi16 ", %" PRIi16 ", %" PRIi64 ", 0.002",
+        score_params->default_value,
+        score_params->min_value,
+        score_params->max_value,
+        step
+    );
+    sync_unlock_stdout();
+}
+
+void option_half_scorepair_show_tune(StringView name, const OptionParams *params) {
+    const OptHalfScorepairParams *half_scorepair_params = &params->half_scorepair;
+
+    if (!half_scorepair_params->is_tunable) {
+        return;
+    }
+
+    const i64 step = i64_max(
+        1,
+        ((i64)half_scorepair_params->max_value - (i64)half_scorepair_params->min_value) / 20
+    );
+
+    sync_lock_stdout();
+    fwrite_strview(stdout, name);
+    fprintf(
+        stdout,
+        ", int, %" PRIi16 ", %" PRIi16 ", %" PRIi16 ", %" PRIi64 ", 0.002",
+        half_scorepair_params->default_value,
+        half_scorepair_params->min_value,
+        half_scorepair_params->max_value,
+        step
+    );
+    sync_unlock_stdout();
+}
+
+bool option_button_try_set(__attribute__((unused)) OptionParams *params, StringView value) {
+    if (value.size != 0) {
+        sync_lock_stdout();
+        fwrite_strview(
+            stdout,
+            STATIC_STRVIEW("info string error: expected no value for button option, got '")
+        );
+        fwrite_strview(stdout, value);
+        fwrite_strview(stdout, STATIC_STRVIEW("'\n"));
+        sync_unlock_stdout();
+        return false;
+    }
+
+    return true;
+}
+
+bool option_spin_integer_try_set(OptionParams *params, StringView value) {
+    OptSpinIntegerParams *spin_integer_params = &params->spin_integer;
+    i64 v;
+
+    if (!strview_parse_i64(value, &v)) {
+        sync_lock_stdout();
+        fwrite_strview(stdout, STATIC_STRVIEW("info string error: failed to parse '"));
+        fwrite_strview(stdout, value);
+        fwrite_strview(stdout, STATIC_STRVIEW("' as an integer\n"));
+        sync_unlock_stdout();
+        return false;
+    }
+
+    if (v < spin_integer_params->min_value || v > spin_integer_params->max_value) {
+        fprintf(
+            stdout,
+            "info string error: %" PRIi64 " is outside the expected range (%" PRIi64
+            " <= x <= %" PRIi64 ")\n",
+            v,
+            spin_integer_params->min_value,
+            spin_integer_params->max_value
+        );
+        return false;
+    }
+
+    *spin_integer_params->current_value = v;
+    return true;
+}
+
+bool option_spin_float_try_set(OptionParams *params, StringView value) {
+    OptSpinFloatParams *spin_float_params = &params->spin_float;
+    i64 v;
+
+    if (!strview_parse_i64(value, &v)) {
+        sync_lock_stdout();
+        fwrite_strview(stdout, STATIC_STRVIEW("info string error: failed to parse '"));
+        fwrite_strview(stdout, value);
+        fwrite_strview(stdout, STATIC_STRVIEW("' as an integer\n"));
+        sync_unlock_stdout();
+        return false;
+    }
+
+    const i64 min_qvalue = (i64)round(spin_float_params->min_value * spin_float_params->resolution);
+    const i64 max_qvalue = (i64)round(spin_float_params->max_value * spin_float_params->resolution);
+
+    if (v < min_qvalue || v > max_qvalue) {
+        fprintf(
+            stdout,
+            "info string error: %" PRIi64 " is outside the expected range (%" PRIi64
+            " <= x <= %" PRIi64 ")\n",
+            v,
+            min_qvalue,
+            max_qvalue
+        );
+        return false;
+    }
+
+    *spin_float_params->current_value = fmax(
+        fmin((f64)v / spin_float_params->resolution, spin_float_params->max_value),
+        spin_float_params->min_value
+    );
+    return true;
+}
+
+bool option_check_try_set(OptionParams *params, StringView value) {
+    OptCheckParams *check_params = &params->check;
+
+    if (strview_equals_strview_nocase(value, strview_from_cstr("true"))) {
+        *check_params->current_value = true;
+    } else if (strview_equals_strview_nocase(value, strview_from_cstr("false"))) {
+        *check_params->current_value = false;
+    } else {
+        sync_lock_stdout();
+        fwrite_strview(stdout, STATIC_STRVIEW("info string error: failed to parse '"));
+        fwrite_strview(stdout, value);
+        fwrite_strview(stdout, STATIC_STRVIEW("' as a boolean\n"));
+        sync_unlock_stdout();
+        return false;
+    }
+
+    return true;
+}
+
+bool option_string_try_set(OptionParams *params, StringView value) {
+    OptStringParams *string_params = &params->string;
+
+    // info_debug()
+    string_clear(string_params->current_value);
+    string_push_back_strview(string_params->current_value, value);
+    return true;
+}
+
+bool option_combo_try_set(OptionParams *params, StringView value) {
+    OptComboParams *combo_params = &params->combo;
+
+    for (usize i = 0; i < combo_params->allowed_count; ++i) {
+        StringView combo_value = strview_from_string(&combo_params->allowed_values[i]);
+
+        if (strview_equals_strview_nocase(value, combo_value)) {
+            string_clear(combo_params->current_value);
+            string_push_back_strview(combo_params->current_value, combo_value);
+            return true;
         }
     }
 
-    free(list->options);
-    list->options = NULL;
-    list->maxSize = 0;
-}
-
-Option *insert_option(OptionList *list, const char *name)
-{
-    // Extend the option buffer if we're running out of empty slots.
-    if (list->size == list->maxSize)
-    {
-        list->maxSize += (!list->maxSize) ? 16 : list->maxSize;
-        list->options = realloc(list->options, list->maxSize * sizeof(Option));
-        if (list->options == NULL) option_allocation_failure();
-    }
-
-    // Do a binary search to find the index of our new option.
-    size_t left = 0;
-    size_t right = list->size;
-
-    while (left < right)
-    {
-        size_t i = (left + right) / 2;
-        if (strcasecmp(name, list->options[i].name) < 0)
-            right = i;
-        else
-            left = i + 1;
-    }
-
-    // Make the space to insert the new option.
-    memmove(&list->options[left + 1], &list->options[left], sizeof(Option) * (list->size - left));
-    memset(&list->options[left], 0, sizeof(Option));
-
-    list->options[left].name = strdup(name);
-
-    if (list->options[left].name == NULL) option_allocation_failure();
-
-    list->size++;
-
-    // Return the option pointer to the caller.
-    return &list->options[left];
-}
-
-void add_option_spin_int(
-    OptionList *list, const char *name, long *data, long min, long max, void (*callback)(void *))
-{
-    Option *cur = insert_option(list, name);
-
-    cur->type = OptionSpinInt;
-    cur->data = data;
-    cur->callback = callback;
-    cur->def = malloc(sizeof(long));
-    cur->min = malloc(sizeof(long));
-    cur->max = malloc(sizeof(long));
-    if (cur->def == NULL || cur->min == NULL || cur->max == NULL) option_allocation_failure();
-
-    *(long *)cur->def = *data;
-    *(long *)cur->min = min;
-    *(long *)cur->max = max;
-}
-
-void add_option_spin_flt(OptionList *list, const char *name, double *data, double min, double max,
-    void (*callback)(void *))
-{
-    Option *cur = insert_option(list, name);
-
-    cur->type = OptionSpinFlt;
-    cur->data = data;
-    cur->callback = callback;
-    cur->def = malloc(sizeof(double));
-    cur->min = malloc(sizeof(double));
-    cur->max = malloc(sizeof(double));
-    if (cur->def == NULL || cur->min == NULL || cur->max == NULL) option_allocation_failure();
-
-    *(double *)cur->def = *data;
-    *(double *)cur->min = min;
-    *(double *)cur->max = max;
-}
-
-void add_option_score(OptionList *list, const char *name, score_t *data, score_t min, score_t max,
-    void (*callback)(void *))
-{
-    Option *cur = insert_option(list, name);
-
-    cur->type = OptionScore;
-    cur->data = data;
-    cur->callback = callback;
-    cur->def = malloc(sizeof(score_t));
-    cur->min = malloc(sizeof(score_t));
-    cur->max = malloc(sizeof(score_t));
-    if (cur->def == NULL || cur->min == NULL || cur->max == NULL) option_allocation_failure();
-
-    *(score_t *)cur->def = *data;
-    *(score_t *)cur->min = min;
-    *(score_t *)cur->max = max;
-}
-
-void add_option_scorepair(OptionList *list, const char *name, scorepair_t *data, scorepair_t min,
-    scorepair_t max, void (*callback)(void *))
-{
-    // We register scorepair options as two separated options, one for the
-    // middlegame value with a "MG" suffix, and one for the endgame value with
-    // the "EG" suffix. Both operate on the same scorepair pointer internally.
-    char *buffer = malloc(strlen(name) + 3);
-
-    if (buffer == NULL) option_allocation_failure();
-
-    // Start by initializing the middlegame option.
-    strcpy(buffer, name);
-    strcat(buffer, "MG");
-
-    Option *cur = insert_option(list, buffer);
-
-    cur->type = OptionSpairMG;
-    cur->data = data;
-    cur->callback = callback;
-    cur->def = malloc(sizeof(score_t));
-    cur->min = malloc(sizeof(score_t));
-    cur->max = malloc(sizeof(score_t));
-    if (cur->def == NULL || cur->min == NULL || cur->max == NULL) option_allocation_failure();
-
-    *(score_t *)cur->def = midgame_score(*data);
-    *(score_t *)cur->min = midgame_score(min);
-    *(score_t *)cur->max = midgame_score(max);
-
-    // Then initialize the endgame option.
-    buffer[strlen(buffer) - 2] = 'E';
-
-    cur = insert_option(list, buffer);
-
-    cur->type = OptionSpairEG;
-    cur->data = data;
-    cur->callback = callback;
-    cur->def = malloc(sizeof(score_t));
-    cur->min = malloc(sizeof(score_t));
-    cur->max = malloc(sizeof(score_t));
-    if (cur->def == NULL || cur->min == NULL || cur->max == NULL) option_allocation_failure();
-
-    *(score_t *)cur->def = endgame_score(*data);
-    *(score_t *)cur->min = endgame_score(min);
-    *(score_t *)cur->max = endgame_score(max);
-    free(buffer);
-}
-
-void add_option_check(OptionList *list, const char *name, bool *data, void (*callback)(void *))
-{
-    Option *cur = insert_option(list, name);
-
-    cur->type = OptionCheck;
-    cur->data = data;
-    cur->callback = callback;
-    cur->def = malloc(sizeof(bool));
-    if (cur->def == NULL) option_allocation_failure();
-    *(bool *)cur->def = *data;
-}
-
-void add_option_combo(OptionList *list, const char *name, char **data, const char *const *comboList,
-    void (*callback)(void *))
-{
-    Option *cur = insert_option(list, name);
-
-    cur->type = OptionCombo;
-    cur->data = data;
-    cur->callback = callback;
-    cur->def = strdup(*data ? *data : "");
-
-    if (cur->def == NULL) option_allocation_failure();
-
-    size_t length;
-    for (length = 0; comboList[length]; ++length)
-        ;
-
-    cur->comboList = malloc(sizeof(char *) * (length + 1));
-    if (cur->comboList == NULL) option_allocation_failure();
-
-    for (size_t i = 0; i < length; ++i)
-    {
-        cur->comboList[i] = strdup(comboList[i]);
-        if (cur->comboList[i] == NULL) option_allocation_failure();
-    }
-    cur->comboList[length] = NULL;
-}
-
-void add_option_button(OptionList *list, const char *name, void (*callback)(void *))
-{
-    Option *cur = insert_option(list, name);
-
-    cur->type = OptionButton;
-    cur->callback = callback;
-}
-
-void add_option_string(OptionList *list, const char *name, char **data, void (*callback)(void *))
-{
-    Option *cur = insert_option(list, name);
-
-    cur->type = OptionString;
-    cur->data = data;
-    cur->callback = callback;
-    cur->def = strdup(*data ? *data : "");
-
-    if (cur->def == NULL) option_allocation_failure();
-}
-
-bool try_set_option_spin_int(Option *option, const char *value)
-{
-    char *endptr;
-    long ivalue = strtol(value, &endptr, 10);
-
-    if (endptr == value)
-    {
-        debug_printf(
-            "info error Failed to parse value '%s' for option '%s'\n", value, option->name);
-        return false;
-    }
-
-    if (ivalue < *(long *)option->min || ivalue > *(long *)option->max)
-    {
-        debug_printf("info error Value '%s' falls outside of the supported range for option '%s'\n",
-            value, option->name);
-        return false;
-    }
-
-    *(long *)option->data = ivalue;
-    debug_printf("info string Setting option '%s' to %ld\n", option->name, ivalue);
-    return true;
-}
-
-bool try_set_option_spin_flt(Option *option, const char *value)
-{
-    char *endptr;
-    double fvalue = strtod(value, &endptr);
-
-    if (endptr == value)
-    {
-        debug_printf(
-            "info error Failed to parse value '%s' for option '%s'\n", value, option->name);
-        return false;
-    }
-
-    if (fvalue < *(double *)option->min || fvalue > *(double *)option->max)
-    {
-        debug_printf("info error Value '%s' falls outside of the supported range for option '%s'\n",
-            value, option->name);
-        return false;
-    }
-
-    *(double *)option->data = fvalue;
-    debug_printf("info string Setting option '%s' to %lg\n", option->name, fvalue);
-    return true;
-}
-
-bool try_set_option_score(Option *option, const char *value)
-{
-    char *endptr;
-    long ivalue = strtol(value, &endptr, 10);
-
-    if (endptr == value)
-    {
-        debug_printf(
-            "info error Failed to parse value '%s' for option '%s'\n", value, option->name);
-        return false;
-    }
-
-    if (ivalue < (long)*(score_t *)option->min || ivalue > (long)*(score_t *)option->max)
-    {
-        debug_printf("info error Value '%s' falls outside of the supported range for option '%s'\n",
-            value, option->name);
-        return false;
-    }
-
-    *(score_t *)option->data = (score_t)ivalue;
-    debug_printf("info string Setting option '%s' to %ld\n", option->name, ivalue);
-    return true;
-}
-
-bool try_set_option_scorepair(Option *option, const char *value)
-{
-    char *endptr;
-    long ivalue = strtol(value, &endptr, 10);
-
-    if (endptr == value)
-    {
-        debug_printf(
-            "info error Failed to parse value '%s' for option '%s'\n", value, option->name);
-        return false;
-    }
-
-    if (ivalue < (long)*(score_t *)option->min || ivalue > (long)*(score_t *)option->max)
-    {
-        debug_printf("info error Value '%s' falls outside of the supported range for option '%s'\n",
-            value, option->name);
-        return false;
-    }
-
-    {
-        scorepair_t *spair = (scorepair_t *)option->data;
-
-        if (option->type == OptionSpairMG)
-            *spair = create_scorepair((score_t)ivalue, endgame_score(*spair));
-        else
-            *spair = create_scorepair(midgame_score(*spair), (score_t)ivalue);
-    }
-
-    debug_printf("info string Setting option '%s' to %ld\n", option->name, ivalue);
-    return true;
-}
-
-bool try_set_option_check(Option *option, const char *value)
-{
-    if (strcasecmp(value, "true") == 0)
-    {
-        *(bool *)option->data = true;
-        debug_printf("info string Setting option '%s' to true\n", option->name);
-    }
-    else if (strcasecmp(value, "false") == 0)
-    {
-        *(bool *)option->data = false;
-        debug_printf("info string Setting option '%s' to false\n", option->name);
-    }
-    else
-    {
-        debug_printf(
-            "info error Value '%s' for option '%s' is not a boolean\n", value, option->name);
-        return false;
-    }
-
-    return true;
-}
-
-bool try_set_option_string(Option *option, const char *value)
-{
-    char *vcopy = strdup(value);
-
-    if (vcopy == NULL)
-    {
-        debug_printf("info error Unable to set value '%s' for option '%s': %s\n", value,
-            option->name, strerror(errno));
-        return false;
-    }
-
-    free(*(char **)option->data);
-    *(char **)option->data = vcopy;
-    debug_printf("info string Setting option '%s' to '%s'\n", option->name, value);
-    return true;
-}
-
-bool try_set_option_combo(Option *option, const char *value)
-{
-    for (size_t i = 0; option->comboList[i]; ++i)
-        if (strcasecmp(option->comboList[i], value) == 0)
-            return try_set_option_string(option, option->comboList[i]);
-
-    debug_printf("info error value '%s' is not in the list of supported values for option '%s'\n",
-        value, option->name);
+    sync_lock_stdout();
+    fwrite_strview(stdout, STATIC_STRVIEW("info string error: the value '"));
+    fwrite_strview(stdout, value);
+    fwrite_strview(
+        stdout,
+        STATIC_STRVIEW("' does not match any of the allowed values in the combo list\n")
+    );
+    sync_unlock_stdout();
     return false;
 }
 
-bool try_set_option_button(Option *option, const char *value)
-{
-    (void)value;
-    debug_printf("info string Setting option '%s'\n", option->name);
+bool option_score_try_set(OptionParams *params, StringView value) {
+    OptScoreParams *score_params = &params->score;
+    i64 v;
+
+    if (!strview_parse_i64(value, &v)) {
+        sync_lock_stdout();
+        fwrite_strview(stdout, STATIC_STRVIEW("info string error: failed to parse '"));
+        fwrite_strview(stdout, value);
+        fwrite_strview(stdout, STATIC_STRVIEW("' as an integer\n"));
+        sync_unlock_stdout();
+        return false;
+    }
+
+    if (v < (i64)score_params->min_value || v > (i64)score_params->max_value) {
+        fprintf(
+            stdout,
+            "info string error: %" PRIi64 " is outside the expected range (%" PRIi16
+            " <= x <= %" PRIi16 ")\n",
+            v,
+            score_params->min_value,
+            score_params->max_value
+        );
+        return false;
+    }
+
+    *score_params->current_value = v;
     return true;
 }
 
-void set_option(OptionList *list, const char *name, const char *value)
-{
-    size_t left = 0;
-    size_t right = list->size;
+bool option_half_scorepair_try_set(OptionParams *params, StringView value) {
+    OptHalfScorepairParams *half_scorepair_params = &params->half_scorepair;
+    i64 v;
 
-    // Search the option by doing a binary search on the option's name.
-    while (left < right)
+    if (!strview_parse_i64(value, &v)) {
+        sync_lock_stdout();
+        fwrite_strview(stdout, STATIC_STRVIEW("info string error: failed to parse '"));
+        fwrite_strview(stdout, value);
+        fwrite_strview(stdout, STATIC_STRVIEW("' as an integer\n"));
+        sync_unlock_stdout();
+        return false;
+    }
+
+    if (v < (i64)half_scorepair_params->min_value || v > (i64)half_scorepair_params->max_value) {
+        fprintf(
+            stdout,
+            "info string error: %" PRIi64 " is outside the expected range (%" PRIi16
+            " <= x <= %" PRIi16 ")\n",
+            v,
+            half_scorepair_params->min_value,
+            half_scorepair_params->max_value
+        );
+        return false;
+    }
+
+    Score midgame, endgame;
+
+    if (half_scorepair_params->phase == MIDGAME) {
+        midgame = v;
+        endgame = scorepair_endgame(*half_scorepair_params->current_value);
+    } else {
+        midgame = scorepair_midgame(*half_scorepair_params->current_value);
+        endgame = v;
+    }
+
+    *half_scorepair_params->current_value = create_scorepair(midgame, endgame);
+    return true;
+}
+
+void option_default_dtor(__attribute__((unused)) OptionParams *params) {
+}
+
+void option_string_dtor(OptionParams *params) {
+    OptStringParams *string_params = &params->string;
+
+    // Note: we cannot destroy current_value here, as it don't have its exclusive ownership.
+    string_destroy(&string_params->default_value);
+}
+
+void option_combo_dtor(OptionParams *params) {
+    OptComboParams *combo_params = &params->combo;
+
+    // Note: we cannot destroy current_value here, as it don't have its exclusive ownership.
+    string_destroy(&combo_params->default_value);
+
+    for (usize i = 0; i < combo_params->allowed_count; ++i) {
+        string_destroy(&combo_params->allowed_values[i]);
+    }
+
+    free(combo_params->allowed_values);
+}
+
+// clang-format off
+const OptionVtable OptionTypeVtables[OPTION_TYPE_COUNT] = {
     {
-        size_t i = (left + right) / 2;
+        option_button_show,
+        option_default_show_tune,
+        option_button_try_set,
+        option_default_dtor,
+    },
+    {
+        option_spin_integer_show,
+        option_spin_integer_show_tune,
+        option_spin_integer_try_set,
+        option_default_dtor
+    },
+    {
+        option_spin_float_show,
+        option_spin_float_show_tune,
+        option_spin_float_try_set,
+        option_default_dtor
+    },
+    {
+        option_check_show,
+        option_default_show_tune,
+        option_check_try_set,
+        option_default_dtor
+    },
+    {
+        option_string_show,
+        option_default_show_tune,
+        option_string_try_set,
+        option_string_dtor
+    },
+    {
+        option_combo_show,
+        option_default_show_tune,
+        option_combo_try_set,
+        option_combo_dtor
+    },
+    {
+        option_score_show,
+        option_score_show_tune,
+        option_score_try_set,
+        option_default_dtor
+    },
+    {
+        option_half_scorepair_show,
+        option_half_scorepair_show_tune,
+        option_half_scorepair_try_set,
+        option_default_dtor
+    }
+};
+// clang-format on
 
-        int result = strcasecmp(name, list->options[i].name);
+// Helper function for initializing struct fields common to all option types.
+static void option_init_common(
+    Option *option,
+    StringView name,
+    OptionType option_type,
+    void (*setoption_callback)(const OptionParams *)
+) {
+    string_init_from_strview(&option->option_name, name);
+    option->option_type = option_type;
+    option->option_vtable = &OptionTypeVtables[option_type];
+    option->setoption_callback = setoption_callback;
+}
 
-        if (result < 0)
-            right = i;
-        else if (result > 0)
-            left = i + 1;
-        else
-        {
-            Option *cur = &list->options[i];
+static void optlist_maybe_extend_capacity(OptionList *optlist) {
+    if (optlist->size < optlist->capacity) {
+        return;
+    }
 
-            // Perform a check to see if the passed value can be assigned to the
-            // option. That means falling in the accepted range for integers and
-            // floats, being "true/false" for booleans, and being one of the
-            // accepted names for combo lists.
-            bool set_success = TrySetOptionList[cur->type](cur, value);
+    usize new_capacity = optlist->capacity * 3 / 2 + 1;
 
-            // Only call bound functions if the option setting was successful.
-            if (set_success && cur->callback) cur->callback(cur->data);
+    optlist->options = wrap_realloc(optlist->options, new_capacity * sizeof(Option));
+    optlist->capacity = new_capacity;
+}
+
+void optlist_init(OptionList *optlist) {
+    optlist->options = NULL;
+    optlist->size = 0;
+    optlist->capacity = 0;
+}
+
+void optlist_destroy(OptionList *optlist) {
+    for (usize i = 0; i < optlist->size; ++i) {
+        Option *cur_option = &optlist->options[i];
+
+        string_destroy(&cur_option->option_name);
+        cur_option->option_vtable->option_dtor(&cur_option->option_params);
+    }
+
+    free(optlist->options);
+    optlist_init(optlist);
+}
+
+void optlist_show_options(const OptionList *optlist) {
+    for (usize i = 0; i < optlist->size; ++i) {
+        const Option *cur_option = &optlist->options[i];
+
+        cur_option->option_vtable->option_show(
+            strview_from_string(&cur_option->option_name),
+            &cur_option->option_params
+        );
+    }
+}
+
+void optlist_show_tunable_options(const OptionList *optlist) {
+    for (usize i = 0; i < optlist->size; ++i) {
+        const Option *cur_option = &optlist->options[i];
+
+        cur_option->option_vtable->option_show_tune(
+            strview_from_string(&cur_option->option_name),
+            &cur_option->option_params
+        );
+    }
+}
+
+void optlist_set_option(OptionList *optlist, StringView name, StringView value) {
+    // TODO: this is far from optimal, and has a runtime of O(n). What we want to do later is keep a
+    // hashmap of all options so that finding the correct option has a runtime of O(log n), to avoid
+    // large initialization delays when running SPSA tests with a lot of tweakable parameters.
+    for (usize i = 0; i < optlist->size; ++i) {
+        Option *cur_option = &optlist->options[i];
+
+        if (strview_equals_strview_nocase(strview_from_string(&cur_option->option_name), name)) {
+            if (!cur_option->option_vtable->option_try_set(&cur_option->option_params, value)) {
+                sync_lock_stdout();
+                fwrite_strview(stdout, STATIC_STRVIEW("info string error: Unable to set option '"));
+                fwrite_string(stdout, &cur_option->option_name);
+                fwrite_strview(stdout, STATIC_STRVIEW("'\n"));
+                sync_unlock_stdout();
+                return;
+            }
+
+            // info_debug()
+
+            if (cur_option->setoption_callback != NULL) {
+                cur_option->setoption_callback(&cur_option->option_params);
+            }
 
             return;
         }
     }
 
-    debug_printf("info error Unknown option '%s'\n", name);
+    sync_lock_stdout();
+    fwrite_strview(stdout, STATIC_STRVIEW("info string error: option '"));
+    fwrite_strview(stdout, name);
+    fwrite_strview(stdout, STATIC_STRVIEW("' does not exist\n"));
+    sync_unlock_stdout();
 }
 
-void show_options(const OptionList *list)
-{
-    for (size_t i = 0; i < list->size; ++i)
-    {
-        const Option *cur = &list->options[i];
+void optlist_add_button(
+    OptionList *optlist,
+    StringView name,
+    void (*setoption_callback)(const OptionParams *)
+) {
+    optlist_maybe_extend_capacity(optlist);
 
-        switch (cur->type)
-        {
-            case OptionSpinInt:
-                printf("option name %s type spin default %ld min %ld max %ld\n", cur->name,
-                    *(long *)cur->def, *(long *)cur->min, *(long *)cur->max);
-                break;
+    Option *new_option = &optlist->options[optlist->size];
 
-            case OptionSpinFlt:
-                // Tricky case: spins can't be floats, so we show them as strings and
-                // handle them internally.
-                printf("option name %s type string default %lf\n", cur->name, *(double *)cur->def);
-                break;
+    new_option->option_params = (OptionParams) {.button = {}};
+    option_init_common(new_option, name, OptionButton, setoption_callback);
+    optlist->size++;
+}
 
-            case OptionScore:
-            case OptionSpairMG:
-            case OptionSpairEG:
-                printf("option name %s type spin default %" PRId16 " min %" PRId16 " max %" PRId16
-                       "\n",
-                    cur->name, *(score_t *)cur->def, *(score_t *)cur->min, *(score_t *)cur->max);
-                break;
+void optlist_add_spin_integer(
+    OptionList *optlist,
+    StringView name,
+    i64 *value,
+    i64 minval,
+    i64 maxval,
+    bool is_tunable,
+    void (*setoption_callback)(const OptionParams *)
+) {
+    optlist_maybe_extend_capacity(optlist);
 
-            case OptionCheck:
-                printf("option name %s type check default %s\n", cur->name,
-                    *(bool *)cur->def ? "true" : "false");
-                break;
+    Option *new_option = &optlist->options[optlist->size];
 
-            case OptionCombo:
-                printf("option name %s type combo default %s", cur->name, (char *)cur->def);
+    // clang-format off
+    new_option->option_params = (OptionParams) {
+        .spin_integer = (OptSpinIntegerParams) {
+           .current_value = value,
+           .default_value = *value,
+           .min_value = minval,
+           .max_value = maxval,
+           .is_tunable = is_tunable,
+       }
+    };
+    // clang-format on
+    option_init_common(new_option, name, OptionSpinInteger, setoption_callback);
+    optlist->size++;
+}
 
-                for (size_t k = 0; cur->comboList[k]; ++k) printf(" var %s", cur->comboList[k]);
-                puts("");
-                break;
+void optlist_add_spin_float(
+    OptionList *optlist,
+    StringView name,
+    f64 *value,
+    f64 minval,
+    f64 maxval,
+    i64 resolution,
+    bool is_tunable,
+    void (*setoption_callback)(const OptionParams *)
+) {
+    optlist_maybe_extend_capacity(optlist);
 
-            case OptionButton: printf("option name %s type button\n", cur->name); break;
+    Option *new_option = &optlist->options[optlist->size];
 
-            case OptionString:
-                printf("option name %s type string default %s\n", cur->name, (char *)cur->def);
-                break;
-
-            // Safeguard
-            default: break;
+    // clang-format off
+    new_option->option_params = (OptionParams) {
+        .spin_float = (OptSpinFloatParams) {
+            .current_value = value,
+            .default_value = *value,
+            .min_value = minval,
+            .max_value = maxval,
+            .resolution = resolution,
+            .is_tunable = is_tunable,
         }
+    };
+    // clang-format on
+    option_init_common(new_option, name, OptionSpinFloat, setoption_callback);
+    optlist->size++;
+}
+
+void optlist_add_check(
+    OptionList *optlist,
+    StringView name,
+    bool *value,
+    void (*setoption_callback)(const OptionParams *)
+) {
+    optlist_maybe_extend_capacity(optlist);
+
+    Option *new_option = &optlist->options[optlist->size];
+
+    // clang-format off
+    new_option->option_params = (OptionParams) {
+        .check = (OptCheckParams) {
+            .current_value = value,
+            .default_value = *value,
+        }
+    };
+    // clang-format on
+    option_init_common(new_option, name, OptionCheck, setoption_callback);
+    optlist->size++;
+}
+
+void optlist_add_string(
+    OptionList *optlist,
+    StringView name,
+    String *value,
+    void (*setoption_callback)(const OptionParams *)
+) {
+    optlist_maybe_extend_capacity(optlist);
+
+    Option *new_option = &optlist->options[optlist->size];
+
+    new_option->option_params.string.current_value = value;
+    string_init_from_strview(
+        &new_option->option_params.string.default_value,
+        strview_from_string(value)
+    );
+    option_init_common(new_option, name, OptionString, setoption_callback);
+    optlist->size++;
+}
+
+void optlist_add_combo(
+    OptionList *optlist,
+    StringView name,
+    String *value,
+    void (*setoption_callback)(const OptionParams *),
+    usize allowed_count,
+    ...
+) {
+    optlist_maybe_extend_capacity(optlist);
+
+    Option *new_option = &optlist->options[optlist->size];
+    OptComboParams *params = &new_option->option_params.combo;
+    va_list ap;
+
+    params->current_value = value;
+    string_init_from_strview(&params->default_value, strview_from_string(value));
+    params->allowed_count = allowed_count;
+    params->allowed_values = wrap_malloc(allowed_count * sizeof(String));
+    va_start(ap, allowed_count);
+
+    for (usize i = 0; i < allowed_count; ++i) {
+        string_init_from_strview(&params->allowed_values[i], va_arg(ap, StringView));
     }
-    fflush(stdout);
+
+    va_end(ap);
+    option_init_common(new_option, name, OptionCombo, setoption_callback);
+    optlist->size++;
+}
+
+void optlist_add_score(
+    OptionList *optlist,
+    StringView name,
+    Score *value,
+    Score minval,
+    Score maxval,
+    bool is_tunable,
+    void (*setoption_callback)(const OptionParams *)
+) {
+    optlist_maybe_extend_capacity(optlist);
+
+    Option *new_option = &optlist->options[optlist->size];
+
+    // clang-format off
+    new_option->option_params = (OptionParams) {
+        .score = (OptScoreParams) {
+            .current_value = value,
+            .default_value = *value,
+            .min_value = minval,
+            .max_value = maxval,
+            .is_tunable = is_tunable,
+        }
+    };
+    // clang-format on
+    option_init_common(new_option, name, OptionScore, setoption_callback);
+    optlist->size++;
+}
+
+static void optlist_add_half_scorepair(
+    OptionList *optlist,
+    StringView name,
+    Scorepair *value,
+    Score minval,
+    Score maxval,
+    bool is_tunable,
+    Phase phase,
+    void (*setoption_callback)(const OptionParams *)
+) {
+    optlist_maybe_extend_capacity(optlist);
+
+    Option *new_option = &optlist->options[optlist->size];
+    String ext_name;
+    const Score defval = (phase == MIDGAME) ? scorepair_midgame(*value) : scorepair_endgame(*value);
+
+    // clang-format off
+    new_option->option_params = (OptionParams) {
+        .half_scorepair = (OptHalfScorepairParams) {
+            .current_value = value,
+            .default_value = defval,
+            .min_value = minval,
+            .max_value = maxval,
+            .is_tunable = is_tunable,
+        }
+    };
+    // clang-format on
+    string_init_from_strview(&ext_name, name);
+    string_push_back_strview(&ext_name, strview_from_cstr(phase == MIDGAME ? "Mg" : "Eg"));
+    option_init_common(
+        new_option,
+        strview_from_string(&ext_name),
+        OptionHalfScorepair,
+        setoption_callback
+    );
+    string_destroy(&ext_name);
+    optlist->size++;
+}
+
+void optlist_add_scorepair(
+    OptionList *optlist,
+    StringView name,
+    Scorepair *value,
+    Score minval,
+    Score maxval,
+    bool is_tunable,
+    void (*setoption_callback)(const OptionParams *)
+) {
+    optlist_add_half_scorepair(
+        optlist,
+        name,
+        value,
+        minval,
+        maxval,
+        is_tunable,
+        MIDGAME,
+        setoption_callback
+    );
+    optlist_add_half_scorepair(
+        optlist,
+        name,
+        value,
+        minval,
+        maxval,
+        is_tunable,
+        ENDGAME,
+        setoption_callback
+    );
 }
