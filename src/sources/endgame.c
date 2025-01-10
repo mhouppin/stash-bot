@@ -64,6 +64,7 @@ static EndgameEntry *
     }
 
     *material_key = stack.material_key;
+    string_destroy(&fen);
     return &EndgameTable[*material_key % ENDGAME_TABLE_SIZE];
 }
 
