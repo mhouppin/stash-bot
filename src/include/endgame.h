@@ -21,89 +21,75 @@
 
 #include "board.h"
 
-enum
-{
-    EGTB_SIZE = 2048
+enum {
+    ENDGAME_TABLE_SIZE = 2048
 };
 
-// Maps a square relative to the given color.
-INLINED square_t normalize_square(const Board *board, color_t winning, square_t sq)
-{
-    if (sq_file(bb_first_sq(piece_bb(board, winning, PAWN))) >= FILE_E) sq ^= FILE_H;
-
-    return (relative_sq(sq, winning));
+INLINED Square normalize_square(Color strong_side, Square square, bool flip_file) {
+    return square_relative(square, strong_side) ^ (flip_file * 0b111u);
 }
 
-// Bonus for pieces on the edge of the board.
-INLINED score_t edge_bonus(square_t sq)
-{
-    int rank = sq_rank(sq);
-    int file = sq_file(sq);
+// Bonus for pieces close to the corner.
+INLINED Score corner_bonus(Square square) {
+    const Rank rank = square_rank(square);
+    const File file = square_file(square);
+    const i16 rdist = i16_min(rank, rank ^ 0b111u);
+    const i16 fdist = i16_min(file, file ^ 0b111u);
 
-    if (rank > 3) rank ^= 7;
-    if (file > 3) file ^= 7;
-
-    return (50 - 2 * (file * file + rank * rank));
+    return 50 - 2 * (fdist * fdist + rdist * rdist);
 }
 
 // Bonus for pieces close to each other.
-INLINED score_t close_bonus(square_t sq1, square_t sq2)
-{
-    return (70 - 10 * SquareDistance[sq1][sq2]);
+INLINED Score close_bonus(Square square1, Square square2) {
+    return 70 - 10 * square_distance(square1, square2);
 }
 
 // Bonus for pieces far from each other.
-INLINED score_t away_bonus(square_t sq1, square_t sq2)
-{
-    return (10 + 10 * SquareDistance[sq1][sq2]);
+INLINED Score away_bonus(Square square1, Square square2) {
+    return 10 + 10 * square_distance(square1, square2);
 }
 
 // Typedef for specialized endgame scoring functions
-typedef score_t (*endgame_score_func_t)(const Board *, color_t);
+typedef Score (*EndgameScoreFn)(const Board *, Color);
 
 // Typedef for specialized endgame scaling functions
-typedef int (*endgame_scale_func_t)(const Board *, color_t);
+typedef Scalefactor (*EndgameScaleFn)(const Board *, Color);
 
 // Struct holding a specialized endgame
-typedef struct _EndgameEntry
-{
-    hashkey_t key;
-    endgame_score_func_t scoreFunc;
-    endgame_scale_func_t scaleFunc;
-    color_t winningSide;
+typedef struct _EndgameEntry {
+    Key key;
+    EndgameScoreFn score_fn;
+    EndgameScaleFn scale_fn;
+    Color strong_side;
 } EndgameEntry;
 
-// Global table for hasing endgames
-extern EndgameEntry EndgameTable[EGTB_SIZE];
+// Initializes the endgame table
+void endgame_table_init(void);
 
-// Initializes the endgame table.
-void init_endgame_table(void);
+// Generic function for all drawn endgames
+Score eval_draw(const Board *board, Color strong_side);
 
-// Initializes the KPK bitbase.
-void init_kpk_bitbase(void);
+// Specialized scoring endgames
+Score eval_kpk(const Board *board, Color strong_side);
+Score eval_kbnk(const Board *board, Color strong_side);
+Score eval_krkp(const Board *board, Color strong_side);
+Score eval_krkn(const Board *board, Color strong_side);
+Score eval_krkb(const Board *board, Color strong_side);
+Score eval_kqkp(const Board *board, Color strong_side);
+Score eval_kqkr(const Board *board, Color strong_side);
+Score eval_knnkp(const Board *board, Color strong_side);
+Score eval_kmpkn(const Board *board, Color strong_side);
+Score eval_kmpkb(const Board *board, Color strong_side);
+Score eval_krpkr(const Board *board, Color strong_side);
 
-// Checks if the given KPK endgame is winning.
-bool kpk_is_winning(color_t stm, square_t bksq, square_t wksq, square_t psq);
+Scalefactor scale_kpsk(const Board *board, Color strong_side);
+Scalefactor scale_kbpsk(const Board *board, Color strong_side);
 
-// Generic function for all drawn endgames.
-score_t eval_draw(const Board *board, color_t winningSide);
+// Probes the endgame table for the given board. Returns a pointer to the corresponding endgame if
+// found, NULL otherwise.
+const EndgameEntry *endgame_probe_score(const Board *board);
 
-// A list of all specialized endgames.
-score_t eval_krkn(const Board *board, color_t winningSide);
-score_t eval_krkp(const Board *board, color_t winningSide);
-score_t eval_krkb(const Board *board, color_t winningSide);
-score_t eval_kbnk(const Board *board, color_t winningSide);
-score_t eval_kqkr(const Board *board, color_t winningSide);
-score_t eval_kqkp(const Board *board, color_t winningSide);
-score_t eval_kpk(const Board *board, color_t winningSide);
-score_t eval_knnkp(const Board *board, color_t winningSide);
-
-int scale_kpsk(const Board *board, color_t winningSide);
-int scale_kbpsk(const Board *board, color_t winningSide);
-
-// Probes the endgame table for the given board.
-const EndgameEntry *endgame_probe(const Board *board);
-
-const EndgameEntry *endgame_probe_scalefactor(const Board *board);
+// Same as above, except that this one probes for a scaling function rather than a scoring one.
+const EndgameEntry *endgame_probe_scale(const Board *board);
 
 #endif

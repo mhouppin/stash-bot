@@ -17,644 +17,378 @@
 */
 
 #include "uci.h"
+
 #include "evaluate.h"
-#include "movelist.h"
-#include "option.h"
-#include "timeman.h"
-#include "tt.h"
-#include "types.h"
-#include <ctype.h>
-#include <errno.h>
-#include <math.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include "search_params.h"
+#include "strmanip.h"
+#include "syncio.h"
+#include "wdl.h"
+#include "wmalloc.h"
 
-#define UCI_VERSION "v36.3"
+#define UCI_VERSION "v36.4"
 
-// clang-format off
-
-static const CommandMap UciCommands[] =
-{
-    {"bench", &uci_bench},
-    {"d", &uci_d},
-    {"debug", &uci_debug},
-    {"go", &uci_go},
-    {"isready", &uci_isready},
-    {"ponderhit", &uci_ponderhit},
-    {"position", &uci_position},
-    {"quit", &uci_quit},
-    {"setoption", &uci_setoption},
-    {"stop", &uci_stop},
-    {"uci", &uci_uci},
-    {"ucinewgame", &uci_ucinewgame},
-    {NULL, NULL}
+static const Command UciCommands[] = {
+    {STATIC_STRVIEW("bench"), uci_bench},
+    {STATIC_STRVIEW("d"), uci_d},
+    {STATIC_STRVIEW("debug"), uci_debug},
+    {STATIC_STRVIEW("go"), uci_go},
+    {STATIC_STRVIEW("isready"), uci_isready},
+    {STATIC_STRVIEW("ponderhit"), uci_ponderhit},
+    {STATIC_STRVIEW("position"), uci_position},
+    {STATIC_STRVIEW("quit"), uci_quit},
+    {STATIC_STRVIEW("setoption"), uci_setoption},
+    {STATIC_STRVIEW("stop"), uci_stop},
+    {STATIC_STRVIEW("t"), uci_t},
+    {STATIC_STRVIEW("uci"), uci_uci},
+    {STATIC_STRVIEW("ucinewgame"), uci_ucinewgame},
 };
 
-// clang-format on
+// TODO: pass a pointer to the UCI object during option initialization to make this function
+// obsolete.
+static Uci *get_uci_handler(void) {
+    static Uci uci;
 
-static int uci_perr(const char *str) { return write(STDERR_FILENO, str, strlen(str)); }
-
-__attribute__((noreturn)) static void uci_allocation_failure(const char *str)
-{
-    // Since we're OOM, all printf() like calls will likely fail.
-    uci_perr("Unable to allocate ");
-    uci_perr(str);
-    uci_perr(": out of memory\n");
-    exit(ENOMEM);
+    return &uci;
 }
 
-// Finds the next token in the given string, writes a nullbyte to its end,
-// and returns it (after incrementing the string pointer).
-// This is mainly used as a replacement to strtok_r(), which isn't available
-// on MinGW.
-char *get_next_token(char **str)
-{
-    while (isspace((unsigned char)**str) && **str != '\0') ++(*str);
-
-    if (**str == '\0') return NULL;
-
-    char *retval = *str;
-
-    while (!isspace((unsigned char)**str) && **str != '\0') ++(*str);
-
-    if (**str == '\0') return retval;
-
-    **str = '\0';
-    ++(*str);
-    return retval;
+void on_threads_change(__attribute__((unused)) const OptionParams *params) {
+    Uci *uci = get_uci_handler();
+    wpool_resize(&uci->worker_pool, (u64)uci->option_values.threads);
 }
 
-const char *move_to_str(move_t move, bool isChess960)
-{
-    static char buf[6];
-
-    // Handle side-cases early.
-    if (move == NO_MOVE) return "none";
-
-    if (move == NULL_MOVE) return "0000";
-
-    square_t from = from_sq(move), to = to_sq(move);
-
-    // We encode castling as "King takes Rook", so we have to fix the arrival
-    // square for standard chess.
-    if (move_type(move) == CASTLING && !isChess960)
-        to = create_sq(to > from ? FILE_G : FILE_C, sq_rank(from));
-
-    buf[0] = sq_file(from) + 'a';
-    buf[1] = sq_rank(from) + '1';
-    buf[2] = sq_file(to) + 'a';
-    buf[3] = sq_rank(to) + '1';
-
-    if (move_type(move) == PROMOTION)
-    {
-        buf[4] = " pnbrqk"[promotion_type(move)];
-        buf[5] = '\0';
-    }
-    else
-        buf[4] = '\0';
-
-    return buf;
+void on_hash_change(__attribute__((unused)) const OptionParams *params) {
+    Uci *uci = get_uci_handler();
+    tt_resize(&uci->worker_pool.tt, (u64)uci->option_values.hash, (u64)uci->option_values.threads);
 }
 
-move_t str_to_move(const Board *board, const char *str)
-{
-    Movelist movelist;
-
-    list_all(&movelist, board);
-
-    // Try to find a legal move whose move string matches the given one.
-    for (const ExtendedMove *m = movelist_begin(&movelist); m < movelist_end(&movelist); ++m)
-    {
-        const char *s = move_to_str(m->move, board->chess960);
-
-        if (!strcmp(str, s)) return m->move;
-    }
-
-    return NO_MOVE;
+void on_clear_hash(__attribute__((unused)) const OptionParams *params) {
+    uci_ucinewgame(get_uci_handler(), EmptyStrview);
 }
 
-void get_winrate_params(const Board *board, double params[2])
-{
-    // clang-format off
-    static const double as[4] = {-115.80269028,  326.13955902, -411.17611305,  342.29869813};
-    static const double bs[4] = { -35.81090243,   83.17183837,  -52.14133486,   81.73401953};
-    // clang-format on
+static void uci_init_options(Uci *uci) {
+    uci->option_values = (OptionValues) {
+        .threads = 1,
+        .hash = 1,
+        .move_overhead = 30,
+        .multi_pv = 1,
+        .chess960 = false,
+        .ponder = false,
+        .show_wdl = false,
+        .normalize_score = true,
+    };
 
-    int material =
-        9 * popcount(piecetype_bb(board, QUEEN)) + 5 * popcount(piecetype_bb(board, ROOK))
-        + 3 * popcount(piecetypes_bb(board, KNIGHT, BISHOP)) + popcount(piecetype_bb(board, PAWN));
-
-    // The fitted model only uses data for material counts in [17, 78], and is
-    // anchored at count 58.
-    double m = iclamp(material, 17, 78) / 58.0;
-
-    // Return a = p_a(material) and b = p_b(material), see
-    // https://github.com/official-stockfish/WDL_model
-    params[0] = (((as[0] * m + as[1]) * m + as[2]) * m) + as[3];
-    params[1] = (((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3];
+    optlist_init(&uci->option_list);
+    optlist_add_spin_integer(
+        &uci->option_list,
+        strview_from_cstr("Threads"),
+        &uci->option_values.threads,
+        1,
+        256,
+        false,
+        on_threads_change
+    );
+    optlist_add_spin_integer(
+        &uci->option_list,
+        strview_from_cstr("Hash"),
+        &uci->option_values.hash,
+        1,
+        33554432,
+        false,
+        on_hash_change
+    );
+    optlist_add_spin_integer(
+        &uci->option_list,
+        strview_from_cstr("MoveOverhead"),
+        &uci->option_values.move_overhead,
+        1,
+        5000,
+        false,
+        NULL
+    );
+    optlist_add_spin_integer(
+        &uci->option_list,
+        strview_from_cstr("MultiPV"),
+        &uci->option_values.multi_pv,
+        1,
+        500,
+        false,
+        NULL
+    );
+    optlist_add_check(
+        &uci->option_list,
+        strview_from_cstr("UCI_Chess960"),
+        &uci->option_values.chess960,
+        NULL
+    );
+    optlist_add_check(
+        &uci->option_list,
+        strview_from_cstr("UCI_ShowWDL"),
+        &uci->option_values.show_wdl,
+        NULL
+    );
+    optlist_add_check(
+        &uci->option_list,
+        strview_from_cstr("NormalizeScore"),
+        &uci->option_values.normalize_score,
+        NULL
+    );
+    optlist_add_check(
+        &uci->option_list,
+        strview_from_cstr("Ponder"),
+        &uci->option_values.ponder,
+        NULL
+    );
+    optlist_add_button(&uci->option_list, strview_from_cstr("Clear Hash"), &on_clear_hash);
 }
 
-int winrate_model(score_t score, const Board *board)
-{
-    double params[2];
+void uci_init(Uci *uci) {
+    Boardstack *stack = wrap_malloc(sizeof(Boardstack));
 
-    get_winrate_params(board, params);
-
-    // Return the winrate in per mille units.
-    return (int)(0.5 + 1000.0 / (1.0 + exp((params[0] - score) / params[1])));
+    uci_init_options(uci);
+    board_try_init(&uci->root_board, StartposStr, false, stack);
+    wpool_init(&uci->worker_pool);
+    atomic_store_explicit(&uci->debug_mode, false, memory_order_relaxed);
 }
 
-const char *score_to_wdl(score_t score, const Board *board)
-{
-    static char buf[17];
-
-    if (!UciOptionFields.showWDL)
-        buf[0] = '\0';
-
-    else
-    {
-        int wdlWin = winrate_model(score, board);
-        int wdlLose = winrate_model(-score, board);
-        int wdlDraw = 1000 - wdlWin - wdlLose;
-
-        sprintf(buf, " wdl %d %d %d", wdlWin, wdlDraw, wdlLose);
-    }
-
-    return buf;
+void uci_destroy(Uci *uci) {
+    wpool_destroy(&uci->worker_pool);
+    optlist_destroy(&uci->option_list);
+    boardstack_destroy(uci->root_board.stack);
 }
 
-const char *score_to_str(score_t score)
-{
-    static const score_t NormalizeScore = 141;
-    static char buf[12];
+void uci_d(Uci *uci, __attribute__((unused)) StringView args) {
+    StringView grid = STATIC_STRVIEW("+---+---+---+---+---+---+---+---+\n");
 
-    if (abs(score) >= MATE_FOUND)
-        sprintf(buf, "mate %d", (score > 0 ? MATE - score + 1 : -MATE - score) / 2);
+    sync_lock_stdout();
+    fwrite_strview(stdout, grid);
 
-    else
-    {
-        if (UciOptionFields.normalizeScore) score = (int32_t)score * 100 / NormalizeScore;
+    for (Rank rank = RANK_8; rank_is_valid(rank); --rank) {
+        for (File file = FILE_A; file <= FILE_H; ++file) {
+            fwrite_strview(stdout, STATIC_STRVIEW("| "));
+            fputc(
+                PieceIndexes.data[board_piece_on(&uci->root_board, create_square(file, rank))],
+                stdout
+            );
+            fputc(' ', stdout);
+        }
 
-        sprintf(buf, "cp %d", score);
+        fwrite_strview(stdout, STATIC_STRVIEW("|\n"));
+        fwrite_strview(stdout, grid);
     }
 
-    return buf;
-}
+    Score eval = evaluate(&uci->root_board);
 
-static uint64_t get_nps(uint64_t nodes, clock_t time)
-{
-    // Avoid division by zero
-    time = timemax(time, 1);
-
-    uint64_t nodesPerMillisecond = nodes / time;
-    nodes -= nodesPerMillisecond * time;
-    return (nodesPerMillisecond * 1000 + (nodes * 1000 / time));
-}
-
-void print_pv(
-    const Board *board, RootMove *rootMove, int multiPv, int depth, clock_t time, int bound)
-{
-    static const char *BoundStr[] = {"", " upperbound", " lowerbound", ""};
-
-    uint64_t nodes = wpool_get_total_nodes(&SearchWorkerPool);
-    uint64_t nps = get_nps(nodes, time);
-    bool searchedMove = (rootMove->score != -INF_SCORE);
-    score_t rootScore = (searchedMove) ? rootMove->score : rootMove->prevScore;
-
-    // At most 256 moves stored in (each taking 5 bytes) + 16 more bytes for
-    // potential promotions + 1 byte for the final nullbyte.
-    char pvBuffer[256 * 5 + 16 + 1];
-
-    pvBuffer[0] = '\0';
-
-    // Fill the PV buffer.
-    for (size_t i = 0; rootMove->pv[i]; ++i)
-    {
-        strcat(pvBuffer, " ");
-        strcat(pvBuffer, move_to_str(rootMove->pv[i], board->chess960));
+    if (uci->option_values.normalize_score) {
+        eval = normalized_score(eval);
     }
 
-    // clang-format off
-    printf("info"
-        " depth %d"
-        " seldepth %d"
-        " multipv %d"
-        " score %s%s%s"
-        " nodes %" FMT_INFO
-        " nps %" FMT_INFO
-        " hashfull %d"
-        " time %" FMT_INFO
-        " pv%s\n",
-        imax(depth - !searchedMove, 1),
-        rootMove->seldepth,
-        multiPv,
-        score_to_str(rootScore), BoundStr[bound], score_to_wdl(rootScore, board),
-        (info_t)nodes,
-        (info_t)nps,
-        tt_hashfull(),
-        (info_t)time,
-        pvBuffer);
-    // clang-format on
+    fwrite_strview(stdout, STATIC_STRVIEW("\nFEN: "));
+    fwrite_strview(stdout, board_get_fen(&uci->root_board));
+    fprintf(
+        stdout,
+        "\nKey: 0x%" PRIx64 "\nEval (from %s's POV): %+.2lf\n\n",
+        uci->root_board.stack->board_key,
+        uci->root_board.side_to_move == WHITE ? "White" : "Black",
+        (double)eval / 100.0
+    );
     fflush(stdout);
+    sync_unlock_stdout();
 }
 
-int debug_printf(const char *fmt, ...)
-{
-    // Only print in debug mode.
-    if (!UciOptionFields.debug) return 0;
+void uci_debug(Uci *uci, StringView args) {
+    StringView token = strview_next_word(&args);
+    bool debug_state = strview_equals_strview(token, STATIC_STRVIEW("on"));
 
-    va_list ap;
-    va_start(ap, fmt);
-
-    int result = vprintf(fmt, ap);
-
-    fflush(stdout);
-    va_end(ap);
-    return result;
+    atomic_store_explicit(&uci->debug_mode, debug_state, memory_order_relaxed);
 }
 
-void uci_isready(const char *args __attribute__((unused)))
-{
+void uci_go(Uci *uci, StringView args) {
+    SearchParams search_params;
+
+    search_params_init(
+        &search_params,
+        uci->option_values.move_overhead,
+        uci->option_values.multi_pv,
+        uci->option_values.show_wdl,
+        uci->option_values.normalize_score
+    );
+    search_params_set_from_uci(&search_params, &uci->root_board, args);
+    // info_debug()
+    wpool_start_search(&uci->worker_pool, &uci->root_board, &search_params);
+}
+
+void uci_isready(__attribute__((unused)) Uci *uci, __attribute__((unused)) StringView args) {
     puts("readyok");
     fflush(stdout);
 }
 
-void uci_quit(const char *args __attribute__((unused))) { wpool_stop(&SearchWorkerPool); }
+void uci_ponderhit(Uci *uci, __attribute__((unused)) StringView args) {
+    wpool_ponderhit(&uci->worker_pool);
+}
 
-void uci_stop(const char *args __attribute__((unused))) { wpool_stop(&SearchWorkerPool); }
+void uci_position(Uci *uci, StringView args) {
+    StringView token = strview_next_word(&args);
+    StringView fen;
+    Boardstack *stack;
 
-void uci_ponderhit(const char *args __attribute__((unused))) { wpool_ponderhit(&SearchWorkerPool); }
+    if (strview_equals_strview(token, STATIC_STRVIEW("startpos"))) {
+        fen = StartposStr;
+    } else if (strview_equals_strview(token, STATIC_STRVIEW("fen"))) {
+        usize moves_idx = strview_find_strview(args, STATIC_STRVIEW("moves"));
 
-void uci_uci(const char *args __attribute__((unused)))
-{
+        if (moves_idx == NPOS) {
+            moves_idx = args.size;
+        }
+
+        fen = strview_subview(args, 0, moves_idx);
+        args = strview_subview(args, moves_idx, args.size);
+    } else {
+        // info_debug()
+        return;
+    }
+
+    boardstack_destroy(uci->root_board.stack);
+    stack = wrap_malloc(sizeof(Boardstack));
+
+    if (!board_try_init(&uci->root_board, fen, uci->option_values.chess960, stack)) {
+        board_try_init(&uci->root_board, StartposStr, uci->option_values.chess960, stack);
+        return;
+    }
+
+    token = strview_next_word(&args);
+
+    if (token.size == 0) {
+        return;
+    }
+
+    if (!strview_equals_strview(token, STATIC_STRVIEW("moves"))) {
+        // info_debug()
+        return;
+    }
+
+    while (true) {
+        token = strview_next_word(&args);
+
+        if (token.size == 0) {
+            break;
+        }
+
+        Move move = board_uci_to_move(&uci->root_board, token);
+
+        if (move == NO_MOVE) {
+            // info_debug()
+            break;
+        }
+
+        stack = wrap_malloc(sizeof(Boardstack));
+        board_do_move(&uci->root_board, move, stack);
+    }
+
+    // info_debug()
+}
+
+void uci_quit(Uci *uci, __attribute__((unused)) StringView args) {
+    wpool_stop(&uci->worker_pool);
+}
+
+void uci_setoption(Uci *uci, StringView args) {
+    wpool_wait_search_completion(&uci->worker_pool);
+
+    StringView token = strview_next_word(&args);
+    String name;
+
+    if (!strview_equals_strview(token, STATIC_STRVIEW("name"))) {
+        // info_debug()
+        return;
+    }
+
+    // There must be at least one word in an option name. If we get the "value" field here already,
+    // the `setoption` command is badly formatted.
+    string_init_from_strview(&name, strview_next_word(&args));
+
+    while (true) {
+        token = strview_next_word(&args);
+
+        if (token.size == 0 || strview_equals_strview(token, STATIC_STRVIEW("value"))) {
+            break;
+        }
+
+        string_push_back(&name, ' ');
+        string_push_back_strview(&name, token);
+    }
+
+    optlist_set_option(
+        &uci->option_list,
+        strview_from_string(&name),
+        strview_trim_whitespaces(args)
+    );
+    string_destroy(&name);
+}
+
+void uci_stop(Uci *uci, __attribute__((unused)) StringView args) {
+    wpool_stop(&uci->worker_pool);
+}
+
+void uci_t(Uci *uci, __attribute__((unused)) StringView args) {
+    optlist_show_tunable_options(&uci->option_list);
+}
+
+void uci_uci(Uci *uci, __attribute__((unused)) StringView args) {
     puts("id name Stash " UCI_VERSION);
     puts("id author Morgan Houppin et al. (see AUTHORS file)");
-    show_options(&UciOptionList);
+    optlist_show_options(&uci->option_list);
     puts("uciok");
     fflush(stdout);
 }
 
-void uci_ucinewgame(const char *args)
-{
-    (void)args;
-
-    // Wait for any unfinished search to complete.
-    worker_wait_search_end(wpool_main_worker(&SearchWorkerPool));
-
-    // Reset the TT contents.
-    tt_bzero((size_t)UciOptionFields.threads);
-
-    // Reset the histories for each worker.
-    wpool_reset(&SearchWorkerPool);
+void uci_ucinewgame(Uci *uci, __attribute__((unused)) StringView args) {
+    wpool_wait_search_completion(&uci->worker_pool);
+    wpool_init_new_game(&uci->worker_pool);
 }
 
-void uci_debug(const char *args)
-{
-    char *copy = strdup(args ? args : "");
+bool uci_exec_command(Uci *uci, StringView command) {
+    StringView command_name = strview_next_word(&command);
+    bool found = false;
 
-    if (copy == NULL) uci_allocation_failure("command copy");
-
-    char *token = strtok(copy, Delimiters);
-
-    UciOptionFields.debug = (strcmp(token, "on") == 0);
-    free(copy);
-}
-
-// Pretty prints the board, along with the hash key and the eval.
-void uci_d(const char *args __attribute__((unused)))
-{
-    const char *grid = "+---+---+---+---+---+---+---+---+";
-    extern const char PieceIndexes[PIECE_NB];
-
-    puts(grid);
-
-    for (file_t rank = RANK_8; rank >= RANK_1; --rank)
-    {
-        for (file_t file = FILE_A; file <= FILE_H; ++file)
-            printf("| %c ", PieceIndexes[piece_on(&UciBoard, create_sq(file, rank))]);
-
-        puts("|");
-        puts(grid);
-    }
-
-    printf("\nFEN: %s\nKey: 0x%" KEY_INFO "\n", board_fen(&UciBoard),
-        (info_t)UciBoard.stack->boardKey);
-
-    double eval = (double)evaluate(&UciBoard) / 100.0;
-
-    printf(
-        "Eval (from %s's POV): %+.2lf\n\n", UciBoard.sideToMove == WHITE ? "White" : "Black", eval);
-    fflush(stdout);
-}
-
-void uci_position(const char *args)
-{
-    const char *StartPosFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
-    char *copy = strdup(args);
-
-    if (copy == NULL) uci_allocation_failure("command copy");
-
-    char *fen;
-    char *ptr = copy;
-    char *token = get_next_token(&ptr);
-
-    if (!strcmp(token, "startpos"))
-    {
-        fen = strdup(StartPosFEN);
-
-        if (fen == NULL) uci_allocation_failure("FEN string");
-
-        token = get_next_token(&ptr);
-    }
-    else if (!strcmp(token, "fen"))
-    {
-        fen = strdup("");
-
-        if (fen == NULL) uci_allocation_failure("FEN string");
-
-        token = get_next_token(&ptr);
-
-        while (token && strcmp(token, "moves"))
-        {
-            char *tmp = malloc(strlen(fen) + strlen(token) + 2);
-
-            if (tmp == NULL) uci_allocation_failure("FEN string");
-
-            strcpy(tmp, fen);
-            strcat(tmp, " ");
-            strcat(tmp, token);
-            free(fen);
-            fen = tmp;
-            token = get_next_token(&ptr);
+    for (usize i = 0; i < sizeof(UciCommands) / sizeof(UciCommands[0]); ++i) {
+        if (strview_equals_strview(command_name, UciCommands[i].cmd_name)) {
+            UciCommands[i].cmd_exec(uci, command);
+            found = true;
+            break;
         }
     }
-    else
-    {
-        free(copy);
-        return;
+
+    if (!found) {
+        // info_debug()
     }
 
-    free_boardstack(UciBoard.stack);
-
-    Boardstack *firstStack = malloc(sizeof(Boardstack));
-
-    if (firstStack == NULL) uci_allocation_failure("board stack");
-
-    const int result = board_from_fen(&UciBoard, fen, UciOptionFields.chess960, firstStack);
-
-    if (result < 0) board_from_fen(&UciBoard, StartPosFEN, UciOptionFields.chess960, firstStack);
-
-    UciBoard.worker = wpool_main_worker(&SearchWorkerPool);
-    free(fen);
-
-    if (result >= 0)
-    {
-        token = get_next_token(&ptr);
-
-        move_t move;
-        size_t i = 1;
-
-        while (token && (move = str_to_move(&UciBoard, token)) != NO_MOVE)
-        {
-            Boardstack *nextStack = malloc(sizeof(Boardstack));
-
-            if (nextStack == NULL) uci_allocation_failure("board stack");
-
-            do_move(&UciBoard, move, nextStack);
-            token = get_next_token(&ptr);
-            ++i;
-        }
-
-        if (token)
-            debug_printf(
-                "info string Failed to parse move token #%lu ('%s')\n", (unsigned long)i, token);
-        debug_printf("info string Final board state: %s\n", board_fen(&UciBoard));
-    }
-
-    free(copy);
+    return !strview_equals_strview(command_name, STATIC_STRVIEW("quit"));
 }
 
-void uci_go(const char *args)
-{
-    worker_wait_search_end(wpool_main_worker(&SearchWorkerPool));
+void uci_loop(int argc, char **argv) {
+    Uci *uci = get_uci_handler();
 
-    memset(&UciSearchParams, 0, sizeof(SearchParams));
-    list_all(&UciSearchMoves, &UciBoard);
+    uci_init(uci);
 
-    char *copy = strdup(args ? args : "");
+    if (argc > 1) {
+        for (int i = 1; i < argc; ++i) {
+            uci_exec_command(uci, strview_from_cstr(argv[i]));
+        }
+    } else {
+        String line;
 
-    if (copy == NULL) uci_allocation_failure("command copy");
+        string_init(&line);
 
-    char *token = strtok(copy, Delimiters);
-
-    while (token)
-    {
-        if (strcmp(token, "searchmoves") == 0)
-        {
-            token = strtok(NULL, Delimiters);
-
-            ExtendedMove *m = UciSearchMoves.moves;
-
-            while (token)
-            {
-                (m++)->move = str_to_move(&UciBoard, token);
-                token = strtok(NULL, Delimiters);
+        while (string_getline(stdin, &line)) {
+            if (!uci_exec_command(uci, strview_from_string(&line))) {
+                break;
             }
-            UciSearchMoves.last = m;
-            break;
         }
-        else if (strcmp(token, "wtime") == 0)
-        {
-            token = strtok(NULL, Delimiters);
-            if (token) UciSearchParams.wtime = (clock_t)atoll(token);
-        }
-        else if (strcmp(token, "btime") == 0)
-        {
-            token = strtok(NULL, Delimiters);
-            if (token) UciSearchParams.btime = (clock_t)atoll(token);
-        }
-        else if (strcmp(token, "winc") == 0)
-        {
-            token = strtok(NULL, Delimiters);
-            if (token) UciSearchParams.winc = (clock_t)atoll(token);
-        }
-        else if (strcmp(token, "binc") == 0)
-        {
-            token = strtok(NULL, Delimiters);
-            if (token) UciSearchParams.binc = (clock_t)atoll(token);
-        }
-        else if (strcmp(token, "movestogo") == 0)
-        {
-            token = strtok(NULL, Delimiters);
-            if (token) UciSearchParams.movestogo = atoi(token);
-        }
-        else if (strcmp(token, "depth") == 0)
-        {
-            token = strtok(NULL, Delimiters);
-            if (token) UciSearchParams.depth = atoi(token);
-        }
-        else if (strcmp(token, "nodes") == 0)
-        {
-            token = strtok(NULL, Delimiters);
-            if (token) UciSearchParams.nodes = (uint64_t)atoll(token);
-        }
-        else if (strcmp(token, "mate") == 0)
-        {
-            token = strtok(NULL, Delimiters);
-            if (token) UciSearchParams.mate = atoi(token);
-        }
-        else if (strcmp(token, "perft") == 0)
-        {
-            token = strtok(NULL, Delimiters);
-            if (token) UciSearchParams.perft = atoi(token);
-        }
-        else if (strcmp(token, "movetime") == 0)
-        {
-            token = strtok(NULL, Delimiters);
-            if (token) UciSearchParams.movetime = (clock_t)atoll(token);
-        }
-        else if (strcmp(token, "infinite") == 0)
-            UciSearchParams.infinite = 1;
 
-        else if (strcmp(token, "ponder") == 0)
-            UciSearchParams.ponder = 1;
-
-        token = strtok(NULL, Delimiters);
+        string_destroy(&line);
     }
 
-    wpool_start_search(&SearchWorkerPool, &UciBoard, &UciSearchParams);
-    free(copy);
-}
-
-void uci_setoption(const char *args)
-{
-    if (!args) return;
-
-    char *copy = strdup(args);
-
-    if (copy == NULL) uci_allocation_failure("command copy");
-
-    char *nameToken = strstr(copy, "name");
-    char *valueToken = strstr(copy, "value");
-
-    if (!nameToken)
-    {
-        free(copy);
-        return;
-    }
-
-    char nameBuf[1024] = {0};
-    char valueBuf[1024];
-
-    if (valueToken)
-    {
-        *(valueToken - 1) = '\0';
-        strcpy(valueBuf, valueToken + 6);
-
-        // Remove the final newline to valueBuf.
-        char *maybeNewline = &valueBuf[strlen(valueBuf) - 1];
-        if (*maybeNewline == '\n') *maybeNewline = '\0';
-    }
-    else
-        valueBuf[0] = '\0';
-
-    char *token;
-
-    token = strtok(nameToken + 4, Delimiters);
-    while (token)
-    {
-        strcat(nameBuf, token);
-        token = strtok(NULL, Delimiters);
-        if (token) strcat(nameBuf, " ");
-    }
-
-    set_option(&UciOptionList, nameBuf, valueBuf);
-    free(copy);
-}
-
-int execute_uci_cmd(const char *command)
-{
-    char *dup = strdup(command);
-
-    if (dup == NULL) uci_allocation_failure("command string");
-
-    char *cmd = strtok(dup, Delimiters);
-
-    if (cmd == NULL)
-    {
-        free(dup);
-        return 1;
-    }
-
-    for (size_t i = 0; UciCommands[i].commandName != NULL; ++i)
-    {
-        if (strcmp(UciCommands[i].commandName, cmd) == 0)
-        {
-            UciCommands[i].call(strtok(NULL, ""));
-            break;
-        }
-    }
-
-    int keepLooping = !!strcmp(cmd, "quit");
-
-    free(dup);
-    return keepLooping;
-}
-
-void on_hash_set(void *data)
-{
-    // Wait for any unfinished search to complete.
-    worker_wait_search_end(wpool_main_worker(&SearchWorkerPool));
-    tt_resize((size_t) * (long *)data);
-}
-
-void on_clear_hash(void *unused)
-{
-    (void)unused;
-    // The "Clear Hash" option does exactly the same thing as the "ucinewgame" command.
-    uci_ucinewgame(NULL);
-}
-
-void on_thread_set(void *data)
-{
-    // Wait for any unfinished search to complete.
-    worker_wait_search_end(wpool_main_worker(&SearchWorkerPool));
-    wpool_init(&SearchWorkerPool, (unsigned long)*(long *)data);
-}
-
-void uci_loop(int argc, char **argv)
-{
-    init_option_list(&UciOptionList);
-    add_option_spin_int(
-        &UciOptionList, "Threads", &UciOptionFields.threads, 1, 256, &on_thread_set);
-    add_option_spin_int(&UciOptionList, "Hash", &UciOptionFields.hash, 1, MAX_HASH, &on_hash_set);
-    add_option_spin_int(
-        &UciOptionList, "Move Overhead", &UciOptionFields.moveOverhead, 0, 30000, NULL);
-    add_option_spin_int(&UciOptionList, "MultiPV", &UciOptionFields.multiPv, 1, 500, NULL);
-    add_option_check(&UciOptionList, "UCI_Chess960", &UciOptionFields.chess960, NULL);
-    add_option_check(&UciOptionList, "UCI_ShowWDL", &UciOptionFields.showWDL, NULL);
-    add_option_check(&UciOptionList, "NormalizeScore", &UciOptionFields.normalizeScore, NULL);
-    add_option_check(&UciOptionList, "Ponder", &UciOptionFields.ponder, NULL);
-    add_option_button(&UciOptionList, "Clear Hash", &on_clear_hash);
-
-    uci_position("startpos");
-
-    if (argc > 1)
-        for (int i = 1; i < argc; ++i) execute_uci_cmd(argv[i]);
-    else
-    {
-        char *line = malloc(16384);
-
-        while (fgets(line, 16384, stdin) != NULL)
-            if (execute_uci_cmd(line) == 0) break;
-
-        free(line);
-    }
-
-    uci_quit(NULL);
-    quit_option_list(&UciOptionList);
+    uci_quit(uci, EmptyStrview);
+    wpool_wait_search_completion(&uci->worker_pool);
+    uci_destroy(uci);
 }

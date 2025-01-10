@@ -19,120 +19,86 @@
 #ifndef EVALUATE_H
 #define EVALUATE_H
 
-#include "board.h"
-#include "pawns.h"
+#include <string.h>
 
-enum
-{
+#include "board.h"
+
+enum {
     MIDGAME_COUNT = 24,
     ENDGAME_COUNT = 4
 };
 
-#ifdef TUNE
-
-typedef enum tune_idx_e
-{
+typedef enum _TuneIndex {
     IDX_PIECE,
     IDX_PSQT = IDX_PIECE + 5,
     IDX_INITIATIVE = IDX_PSQT + 48 + 32 * 5,
-    IDX_KNIGHT_CLOSED_POS,
-    IDX_KNIGHT_SHIELDED = IDX_KNIGHT_CLOSED_POS + 5,
-    IDX_KNIGHT_OUTPOST,
-    IDX_BISHOP_PAWNS_COLOR,
-    IDX_BISHOP_PAIR = IDX_BISHOP_PAWNS_COLOR + 7,
-    IDX_BISHOP_SHIELDED,
-    IDX_BISHOP_OUTPOST,
-    IDX_BISHOP_LONG_DIAG,
-    IDX_ROOK_SEMIOPEN,
-    IDX_ROOK_OPEN,
-    IDX_ROOK_BLOCKED,
-    IDX_ROOK_XRAY_QUEEN,
-    IDX_ROOK_TRAPPED,
-    IDX_ROOK_BURIED,
-    IDX_MOBILITY_KNIGHT,
-    IDX_MOBILITY_BISHOP = IDX_MOBILITY_KNIGHT + 9,
-    IDX_MOBILITY_ROOK = IDX_MOBILITY_BISHOP + 14,
-    IDX_MOBILITY_QUEEN = IDX_MOBILITY_ROOK + 15,
-    IDX_BACKWARD = IDX_MOBILITY_QUEEN + 28,
-    IDX_STRAGGLER,
-    IDX_DOUBLED,
-    IDX_ISOLATED,
-    IDX_PASSER,
-    IDX_PHALANX = IDX_PASSER + 6,
-    IDX_DEFENDER = IDX_PHALANX + 6,
-    IDX_PP_OUR_KING_PROX = IDX_DEFENDER + 5,
-    IDX_PP_THEIR_KING_PROX = IDX_PP_OUR_KING_PROX + 24,
-    IDX_PAWN_ATK_MINOR = IDX_PP_THEIR_KING_PROX + 24,
-    IDX_PAWN_ATK_ROOK,
-    IDX_PAWN_ATK_QUEEN,
-    IDX_MINOR_ATK_ROOK,
-    IDX_MINOR_ATK_QUEEN,
-    IDX_ROOK_ATK_QUEEN,
-    IDX_HANGING_PAWN,
-
-    // All King Safety terms should go under this enum value. This is done to
-    // facilitate gradient calculations in the internal tuner.
     IDX_KING_SAFETY,
-    IDX_KS_KNIGHT,
-    IDX_KS_BISHOP,
-    IDX_KS_ROOK,
-    IDX_KS_QUEEN,
-    IDX_KS_ATTACK,
-    IDX_KS_WEAK_Z,
-    IDX_KS_CHECK_N,
-    IDX_KS_CHECK_B,
-    IDX_KS_CHECK_R,
-    IDX_KS_CHECK_Q,
-    IDX_KS_UNSAFE_CHECK,
-    IDX_KS_QUEENLESS,
-    IDX_KS_STORM,
-    IDX_KS_SHELTER = IDX_KS_STORM + 24,
-    IDX_KS_OFFSET = IDX_KS_SHELTER + 24,
-    IDX_COUNT
-} tune_idx_t;
+    IDX_COUNT,
+    // TODO: almost all constants are missing here.
+} TuneIndex;
 
-typedef struct evaltrace_s
-{
-    int phase;
-    scorepair_t eval;
-    scorepair_t safety[COLOR_NB];
-    int scaleFactor;
-    int8_t coeffs[IDX_COUNT][COLOR_NB];
-} evaltrace_t;
+typedef struct _EvalTrace {
+    i16 phase;
+    Scorepair tapered_eval;
+    Scorepair safety_eval[COLOR_NB];
+    Scalefactor eg_scalefactor;
+    i8 coeffs[IDX_COUNT][COLOR_NB];
+} EvalTrace;
 
-extern evaltrace_t Trace;
+typedef struct _EvaluationData {
+    Bitboard king_zone[COLOR_NB];
+    Bitboard mobility_zone[COLOR_NB];
+    Bitboard attacked[COLOR_NB];
+    Bitboard attacked2[COLOR_NB];
+    Bitboard attacked_by[COLOR_NB][PIECETYPE_NB];
+    i32 safety_attackers[COLOR_NB];
+    i32 safety_attacks[COLOR_NB];
+    Scorepair safety_value[COLOR_NB];
+    i32 position_closed;
+} EvaluationData;
 
-#define TRACE_INIT memset(&Trace, 0, sizeof(Trace))
-#define TRACE_ADD(idx, color, n) Trace.coeffs[idx][color] += n
-#define TRACE_PHASE(p) Trace.phase = p
-#define TRACE_SAFETY(c, v) Trace.safety[c] = v
-#define TRACE_EVAL(e) Trace.eval = e
-#define TRACE_FACTOR(f) Trace.scaleFactor = f
-#define TRACE_CLEAR_SAFETY(color)               \
-    do {                                        \
-        Trace.coeffs[IDX_KS_KNIGHT][color] = 0; \
-        Trace.coeffs[IDX_KS_BISHOP][color] = 0; \
-        Trace.coeffs[IDX_KS_ROOK][color] = 0;   \
-        Trace.coeffs[IDX_KS_QUEEN][color] = 0;  \
-        Trace.coeffs[IDX_KS_ATTACK][color] = 0; \
-    } while (0);
+extern EvalTrace Trace;
 
+#ifdef TUNE
+INLINED void trace_init(void) {
+    memset(&Trace, 0, sizeof(Trace));
+}
+
+INLINED void trace_add(u16 index, Color us, i8 coeff) {
+    Trace.coeffs[index][us] += coeff;
+}
+
+INLINED void trace_set_phase(i16 phase) {
+    Trace.phase = phase;
+}
+
+INLINED void trace_set_safety(Color us, Scorepair safety) {
+    Trace.safety_eval[us] = safety;
+}
+
+INLINED void trace_set_eval(Scorepair eval) {
+    Trace.tapered_eval = eval;
+}
+
+INLINED void trace_set_scalefactor(Scalefactor scalefactor) {
+    Trace.eg_scalefactor = scalefactor;
+}
+
+INLINED void trace_clear_safety(Color us) {
+    (void)us;
+    // TODO: code missing for now
+}
 #else
-
-#define TRACE_INIT
-#define TRACE_ADD(x, c, n)
-#define TRACE_PHASE(p)
-#define TRACE_SAFETY(c, v)
-#define TRACE_EVAL(e)
-#define TRACE_FACTOR(f)
-#define TRACE_CLEAR_SAFETY(color)
-
+// TODO: replace these by functions that do nothing
+#define trace_init()
+#define trace_add(index, us, coeff)
+#define trace_set_phase(phase)
+#define trace_set_safety(us, safety)
+#define trace_set_eval(eval)
+#define trace_set_scalefactor(scalefactor)
+#define trace_clear_safety(us)
 #endif
 
-// Evaluates the position.
-score_t evaluate(const Board *board);
-
-// Returns the scaled value of the endgame score.
-score_t scale_endgame(const Board *board, const KingPawnEntry *kpe, score_t eg);
+Score evaluate(const Board *board);
 
 #endif

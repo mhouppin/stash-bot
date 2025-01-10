@@ -16,52 +16,56 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MOVEPICK_H
-#define MOVEPICK_H
+#ifndef MOVEPICKER_H
+#define MOVEPICKER_H
 
-#include "movelist.h"
 #include "search.h"
 #include "worker.h"
 
-// Enum for various stages of the move picker
-typedef enum mp_stage_e
-{
+// Enum for the various stages of the move picker
+typedef enum _MovepickerStage {
     PICK_TT,
-    GEN_INSTABLE,
-    PICK_GOOD_INSTABLE,
+    GEN_NOISY,
+    PICK_GOOD_NOISY,
     PICK_KILLER1,
     PICK_KILLER2,
     PICK_COUNTER,
-    GEN_QUIET,
-    PICK_QUIET,
-    PICK_BAD_INSTABLE,
+    GEN_QUIETS,
+    PICK_QUIETS,
+    PICK_BAD_NOISY,
 
     CHECK_PICK_TT,
     CHECK_GEN_ALL,
     CHECK_PICK_ALL
-} mp_stage_t;
+} MovepickerStage;
 
 // Struct for the move picker
-typedef struct _Movepicker
-{
+typedef struct _Movepicker {
     Movelist list;
-    ExtendedMove *cur, *badCaptures;
-    bool inQsearch;
-    mp_stage_t stage;
-    move_t ttMove;
-    move_t killer1;
-    move_t killer2;
-    move_t counter;
+    ExtendedMove *current;
+    ExtendedMove *bad_captures;
+    bool in_qsearch;
+    MovepickerStage stage;
+    Move tt_move;
+    Move killer1;
+    Move killer2;
+    Move counter;
     const Board *board;
     const Worker *worker;
-    piece_history_t *pieceHistory[2];
+    PieceHistory *piece_history[2];
 } Movepicker;
 
-// Initializes the move picker.
-void movepicker_init(Movepicker *mp, bool inQsearch, const Board *board, const Worker *worker,
-    move_t ttMove, Searchstack *ss);
+// Initializes the move picker
+void movepicker_init(
+    Movepicker *mp,
+    bool in_qsearch,
+    const Board *board,
+    const Worker *worker,
+    Move tt_move,
+    Searchstack *ss
+);
 
-// Returns the next move in the move picker, with the option to skip quiet moves.
-move_t movepicker_next_move(Movepicker *mp, bool skipQuiets, int see_threshold);
+// Returns the next best move according to the move picker, with the option to skip quiet moves
+Move movepicker_next_move(Movepicker *mp, bool skip_quiets, Score see_threshold);
 
 #endif

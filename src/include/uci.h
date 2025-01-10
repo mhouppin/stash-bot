@@ -19,69 +19,59 @@
 #ifndef UCI_H
 #define UCI_H
 
+#include "board.h"
+#include "core.h"
+#include "option.h"
+#include "strview.h"
 #include "worker.h"
-#include <inttypes.h>
-#include <pthread.h>
-#include <stdbool.h>
-#include <stddef.h>
 
-// Small trick to detect if the system is 64-bit or 32-bit.
-#if (SIZE_MAX == UINT64_MAX)
-#define FMT_INFO PRIu64
-#define KEY_INFO PRIx64
-typedef uint64_t info_t;
-#define MAX_HASH 33554432
-#else
-#define FMT_INFO PRIu32
-#define KEY_INFO PRIx32
-typedef uint32_t info_t;
-#define MAX_HASH 2048
-#endif
-
-typedef struct _OptionFields
-{
-    long threads;
-    long hash;
-    long moveOverhead;
-    long multiPv;
+typedef struct _OptionValues {
+    i64 threads;
+    i64 hash;
+    i64 move_overhead;
+    i64 multi_pv;
     bool chess960;
     bool ponder;
-    bool debug;
-    bool showWDL;
-    bool normalizeScore;
-} OptionFields;
+    bool show_wdl;
+    bool normalize_score;
+} OptionValues;
 
-extern pthread_attr_t WorkerSettings;
-extern OptionFields UciOptionFields;
-extern const char *Delimiters;
+typedef struct _Uci {
+    OptionValues option_values;
+    OptionList option_list;
+    Board root_board;
+    WorkerPool worker_pool;
+    atomic_bool debug_mode;
+} Uci;
 
-typedef struct _CommandMap
-{
-    const char *commandName;
-    void (*call)(const char *);
-} CommandMap;
+typedef struct _Command {
+    StringView cmd_name;
+    void (*cmd_exec)(Uci *, StringView);
+} Command;
 
-char *get_next_token(char **str);
+void uci_init(Uci *uci);
+void uci_destroy(Uci *uci);
 
-const char *move_to_str(move_t move, bool isChess960);
-move_t str_to_move(const Board *board, const char *str);
+// The list of supported commands by the engine
+void uci_bench(Uci *uci, StringView args);
+void uci_d(Uci *uci, StringView args);
+void uci_debug(Uci *uci, StringView args);
+void uci_go(Uci *uci, StringView args);
+void uci_isready(Uci *uci, StringView args);
+void uci_ponderhit(Uci *uci, StringView args);
+void uci_position(Uci *uci, StringView args);
+void uci_quit(Uci *uci, StringView args);
+void uci_setoption(Uci *uci, StringView args);
+void uci_stop(Uci *uci, StringView args);
+void uci_t(Uci *uci, StringView args);
+void uci_uci(Uci *uci, StringView args);
+void uci_ucinewgame(Uci *uci, StringView args);
 
-// Displays the formatted content while in debug mode.
-int debug_printf(const char *fmt, ...);
+// A nice API entry point to directly execute some commands, that returns true if the UCI thread
+// should keep parsing commands
+bool uci_exec_command(Uci *uci, StringView command);
 
-// The list of supported commands by the engine.
-void uci_bench(const char *args);
-void uci_d(const char *args);
-void uci_debug(const char *args);
-void uci_go(const char *args);
-void uci_isready(const char *args);
-void uci_ponderhit(const char *args);
-void uci_position(const char *args);
-void uci_quit(const char *args);
-void uci_setoption(const char *args);
-void uci_stop(const char *args);
-void uci_uci(const char *args);
-void uci_ucinewgame(const char *args);
+// Main entry point for the UCI handler
 void uci_loop(int argc, char **argv);
 
 #endif

@@ -16,14 +16,13 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PSQ_SCORE_H
-#define PSQ_SCORE_H
+#ifndef PSQ_TABLE_H
+#define PSQ_TABLE_H
 
-#include "types.h"
+#include "chess_types.h"
 
-// Enum for all pieces' midgame and endgame scores
-enum
-{
+// Enum for all pieces' midgame, endgame and SEE scores
+enum {
     PAWN_MG_SCORE = 104,
     KNIGHT_MG_SCORE = 386,
     BISHOP_MG_SCORE = 411,
@@ -44,12 +43,16 @@ enum
 };
 
 // Global for the piece values indexed by phase and piece
-extern const score_t PieceScores[PHASE_NB][PIECE_NB];
+extern const Score PieceScores[PHASE_NB][PIECE_NB];
 
-// Global for the PSQT
-extern scorepair_t PsqScore[PIECE_NB][SQUARE_NB];
+// Returns a score pair from the PSQT
+INLINED Scorepair psq_table(Piece piece, Square square) {
+    extern Scorepair PsqTable[PIECE_NB][SQUARE_NB];
 
-// Initializes the PSQT.
-void psq_score_init(void);
+    return PsqTable[piece][square];
+}
 
-#endif // PSQ_SCORE_H
+// Initializes the PSQT
+void psq_table_init(void);
+
+#endif

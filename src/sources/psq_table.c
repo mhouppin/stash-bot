@@ -16,13 +16,13 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "psq_score.h"
-#include "types.h"
+#include "psq_table.h"
+
+Scorepair PsqTable[PIECE_NB][SQUARE_NB];
 
 // clang-format off
 
-scorepair_t PsqScore[PIECE_NB][SQUARE_NB];
-const score_t PieceScores[PHASE_NB][PIECE_NB] = {
+const Score PieceScores[PHASE_NB][PIECE_NB] = {
     {
         0, PAWN_MG_SCORE, KNIGHT_MG_SCORE, BISHOP_MG_SCORE, ROOK_MG_SCORE, QUEEN_MG_SCORE, 0, 0,
         0, PAWN_MG_SCORE, KNIGHT_MG_SCORE, BISHOP_MG_SCORE, ROOK_MG_SCORE, QUEEN_MG_SCORE, 0, 0
@@ -36,7 +36,7 @@ const score_t PieceScores[PHASE_NB][PIECE_NB] = {
 #define S SPAIR
 
 // Square-based Pawn scoring for evaluation
-const scorepair_t PawnSQT[48] = {
+const Scorepair PawnSQT[48] = {
     S(-40,  8), S(-22,  9), S(-38,  9), S(-25, -3), S(-29, 20), S( 10, 20), S( 20, 10), S(-26,-20),
     S(-36, -3), S(-42,  4), S(-18, -3), S(-21, -5), S(-12,  3), S(-26,  9), S(  3,-12), S(-21,-16),
     S(-33, 11), S(-33,  3), S(-17,-20), S( -1,-30), S(  2,-25), S( -3,-13), S(-13, -9), S(-26,-15),
@@ -46,7 +46,7 @@ const scorepair_t PawnSQT[48] = {
 };
 
 // Square-based piece scoring for evaluation, using a file symmetry
-const scorepair_t KnightSQT[32] = {
+const Scorepair KnightSQT[32] = {
     S( -53, -44), S(  -8, -44), S(  -5, -22), S(   9,  -2),
     S(  -5, -26), S(  -0,  -6), S(  10, -23), S(  16,  -4),
     S(   2, -41), S(  15, -12), S(  26,  -9), S(  30,  20),
@@ -57,7 +57,7 @@ const scorepair_t KnightSQT[32] = {
     S(-177, -72), S(-109,   6), S(-117,  13), S(  27,   4)
 };
 
-const scorepair_t BishopSQT[32] = {
+const Scorepair BishopSQT[32] = {
     S(  29, -48), S(  26, -23), S(  -3, -11), S(   5, -11),
     S(  34, -42), S(  40, -31), S(  33, -12), S(  14,   5),
     S(  25, -10), S(  35,  -2), S(  22,  -8), S(  19,  32),
@@ -68,7 +68,7 @@ const scorepair_t BishopSQT[32] = {
     S( -60, -21), S( -48,  11), S(-143,  14), S(-109,   8)
 };
 
-const scorepair_t RookSQT[32] = {
+const Scorepair RookSQT[32] = {
     S( -10, -36), S(  -7, -29), S(  -6, -17), S(   2, -28),
     S( -37, -31), S( -21, -34), S(  -6, -20), S(  -6, -22),
     S( -32, -22), S(  -8, -19), S( -25,  -7), S( -16,  -9),
@@ -79,7 +79,7 @@ const scorepair_t RookSQT[32] = {
     S(  25,  32), S(  28,  34), S(  16,  36), S(  22,  31)
 };
 
-const scorepair_t QueenSQT[32] = {
+const Scorepair QueenSQT[32] = {
     S(  13, -76), S(   1, -85), S(  19,-103), S(  31, -87),
     S(  18, -68), S(  24, -74), S(  38, -69), S(  26, -27),
     S(  15, -45), S(  27, -23), S(  17,  15), S(  16,   7),
@@ -90,7 +90,7 @@ const scorepair_t QueenSQT[32] = {
     S( -33,  24), S( -19,  40), S( -14,  59), S( -16,  66)
 };
 
-const scorepair_t KingSQT[32] = {
+const Scorepair KingSQT[32] = {
     S(  39,-120), S(  44, -57), S( -36, -43), S( -29, -62),
     S(  34, -52), S(   3, -20), S( -19,  -6), S( -49,  -1),
     S( -71, -46), S(   4, -17), S( -19,   8), S( -18,  20),
@@ -105,48 +105,40 @@ const scorepair_t KingSQT[32] = {
 
 // clang-format on
 
-static void psq_score_init_piece(const scorepair_t *table, piece_t piece)
-{
-    const scorepair_t pieceValue =
+static void psq_table_init_piece(const Scorepair *table, Piece piece) {
+    const Scorepair piece_base =
         create_scorepair(PieceScores[MIDGAME][piece], PieceScores[ENDGAME][piece]);
 
-    for (square_t square = SQ_A1; square <= SQ_H8; ++square)
-    {
-        file_t queensideFile = imin(sq_file(square), sq_file(square) ^ 7);
-        scorepair_t psqEntry = pieceValue + table[sq_rank(square) * 4 + queensideFile];
+    for (Square square = SQ_A1; square <= SQ_H8; ++square) {
+        File qsfile = file_to_queenside(square_file(square));
+        Scorepair psqt_entry = piece_base + table[square_rank(square) * 4 + qsfile];
 
-        PsqScore[piece][square] = psqEntry;
-        PsqScore[opposite_piece(piece)][opposite_sq(square)] = -psqEntry;
+        PsqTable[piece][square] = psqt_entry;
+        PsqTable[opposite_piece(piece)][square_flip(square)] = -psqt_entry;
     }
 }
 
-static void psq_score_init_pawn(void)
-{
-    const scorepair_t pieceValue = create_scorepair(PAWN_MG_SCORE, PAWN_EG_SCORE);
+static void psq_table_init_pawn(void) {
+    const Scorepair pawn_base = create_scorepair(PAWN_MG_SCORE, PAWN_EG_SCORE);
 
-    for (square_t square = SQ_A1; square <= SQ_H8; ++square)
-    {
-        if (sq_rank(square) == RANK_1 || sq_rank(square) == RANK_8)
-        {
-            PsqScore[WHITE_PAWN][square] = 0;
-            PsqScore[BLACK_PAWN][opposite_sq(square)] = 0;
-        }
-        else
-        {
-            scorepair_t psqEntry = pieceValue + PawnSQT[square - SQ_A2];
+    for (Square square = SQ_A1; square <= SQ_H8; ++square) {
+        if (square_rank(square) == RANK_1 || square_rank(square) == RANK_8) {
+            PsqTable[WHITE_PAWN][square] = 0;
+            PsqTable[BLACK_PAWN][square_flip(square)] = 0;
+        } else {
+            Scorepair psqt_entry = pawn_base + PawnSQT[square - SQ_A2];
 
-            PsqScore[WHITE_PAWN][square] = psqEntry;
-            PsqScore[BLACK_PAWN][opposite_sq(square)] = -psqEntry;
+            PsqTable[WHITE_PAWN][square] = psqt_entry;
+            PsqTable[BLACK_PAWN][square_flip(square)] = -psqt_entry;
         }
     }
 }
 
-void psq_score_init(void)
-{
-    psq_score_init_pawn();
-    psq_score_init_piece(KnightSQT, KNIGHT);
-    psq_score_init_piece(BishopSQT, BISHOP);
-    psq_score_init_piece(RookSQT, ROOK);
-    psq_score_init_piece(QueenSQT, QUEEN);
-    psq_score_init_piece(KingSQT, KING);
+void psq_table_init(void) {
+    psq_table_init_pawn();
+    psq_table_init_piece(KnightSQT, KNIGHT);
+    psq_table_init_piece(BishopSQT, BISHOP);
+    psq_table_init_piece(RookSQT, ROOK);
+    psq_table_init_piece(QueenSQT, QUEEN);
+    psq_table_init_piece(KingSQT, KING);
 }

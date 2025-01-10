@@ -19,147 +19,190 @@
 #ifndef OPTION_H
 #define OPTION_H
 
-#include "types.h"
-#include <stdlib.h>
-#include <string.h>
+#include "chess_types.h"
+#include "core.h"
+#include "strmanip.h"
 
 // Enum for supported option types
-typedef enum option_type_e
-{
-    OptionSpinInt,
-    OptionSpinFlt,
+typedef enum _OptionType {
+    OptionButton,
+    OptionSpinInteger,
+    OptionSpinFloat,
     OptionCheck,
     OptionString,
     OptionCombo,
-    OptionButton,
     OptionScore,
-    OptionSpairMG,
-    OptionSpairEG,
-    OPTION_TYPE_COUNT
-} option_type_t;
+    OptionHalfScorepair,
 
-// Some helper macros for tuning stuff
+    OPTION_TYPE_COUNT,
+} OptionType;
 
-#define TUNE_SCORE(x, minval, maxval)                                   \
-    do {                                                                \
-        extern score_t x;                                               \
-        add_option_score(&UciOptionList, #x, &x, minval, maxval, NULL); \
-    } while (0);
+typedef struct _OptButtonParams {
+} OptButtonParams;
 
-#define TUNE_SP(x, minval, maxval)                                                       \
-    do {                                                                                 \
-        extern scorepair_t x;                                                            \
-        add_option_scorepair(                                                            \
-            &UciOptionList, #x, &x, SPAIR(minval, minval), SPAIR(maxval, maxval), NULL); \
-    } while (0);
+typedef struct _OptSpinIntegerParams {
+    i64 *current_value;
+    i64 default_value;
+    i64 min_value;
+    i64 max_value;
+    bool is_tunable;
+} OptSpinIntegerParams;
 
-#define TUNE_SP_ARRAY(x, len, start, end, minval, maxval)                               \
-    do {                                                                                \
-        extern scorepair_t x[len];                                                      \
-        char __buf[128];                                                                \
-        for (int __i = start; __i < end; ++__i)                                         \
-        {                                                                               \
-            snprintf(__buf, 128, #x "_%02d", __i);                                      \
-            add_option_scorepair(&UciOptionList, __buf, &x[__i], SPAIR(minval, minval), \
-                SPAIR(maxval, maxval), NULL);                                           \
-        }                                                                               \
-    } while (0);
+typedef struct _OptSpinFloatParams {
+    f64 *current_value;
+    f64 default_value;
+    f64 min_value;
+    f64 max_value;
+    i64 resolution;
+    bool is_tunable;
+} OptSpinFloatParams;
 
-#define TUNE_LONG(x, minval, maxval)                                       \
-    do {                                                                   \
-        extern long x;                                                     \
-        add_option_spin_int(&UciOptionList, #x, &x, minval, maxval, NULL); \
-    } while (0);
+typedef struct _OptCheckParams {
+    bool *current_value;
+    bool default_value;
+} OptCheckParams;
 
-#define TUNE_BOOL(x)                                    \
-    do {                                                \
-        extern bool x;                                  \
-        add_option_check(&UciOptionList, #x, &x, NULL); \
-    } while (0);
+typedef struct _OptStringParams {
+    String *current_value;
+    String default_value;
+} OptStringParams;
 
-#define TUNE_DOUBLE(x, minval, maxval)                                     \
-    do {                                                                   \
-        extern double x;                                                   \
-        add_option_spin_flt(&UciOptionList, #x, &x, minval, maxval, NULL); \
-    } while (0);
+typedef struct _OptComboParams {
+    String *current_value;
+    String default_value;
+    String *allowed_values;
+    usize allowed_count;
+} OptComboParams;
 
-// Warning: int spins are always treated as long
-// and flt spins are always treated as double.
+typedef struct _OptScoreParams {
+    Score *current_value;
+    Score default_value;
+    Score min_value;
+    Score max_value;
+    bool is_tunable;
+} OptScoreParams;
 
-// Struct for an option
-typedef struct _Option
-{
-    char *name;
-    option_type_t type;
-    void *data;
-    void (*callback)(void *);
-    void *def;
-    void *min;
-    void *max;
-    char **comboList;
+typedef struct _OptHalfScorepairParams {
+    Scorepair *current_value;
+    Score default_value;
+    Score min_value;
+    Score max_value;
+    Phase phase;
+    bool is_tunable;
+} OptHalfScorepairParams;
+
+typedef union _OptionParams {
+    OptButtonParams button;
+    OptSpinIntegerParams spin_integer;
+    OptSpinFloatParams spin_float;
+    OptCheckParams check;
+    OptStringParams string;
+    OptComboParams combo;
+    OptScoreParams score;
+    OptHalfScorepairParams half_scorepair;
+} OptionParams;
+
+typedef struct _OptionVtable {
+    void (*option_show)(StringView, const OptionParams *);
+    void (*option_show_tune)(StringView, const OptionParams *);
+    bool (*option_try_set)(OptionParams *, StringView);
+    void (*option_dtor)(OptionParams *);
+} OptionVtable;
+
+typedef struct _Option {
+    String option_name;
+    OptionType option_type;
+    const OptionVtable *option_vtable;
+    void (*setoption_callback)(const OptionParams *);
+    OptionParams option_params;
 } Option;
 
-// Struct for a list of options
-typedef struct _OptionList
-{
+typedef struct _OptionList {
     Option *options;
-    size_t size;
-    size_t maxSize;
+    usize size;
+    usize capacity;
 } OptionList;
 
-// Global option list
-extern OptionList UciOptionList;
+// TODO: tuning macros are missing.
 
-// Initializes the option list.
-void init_option_list(OptionList *list);
+void optlist_init(OptionList *optlist);
 
-// Frees all memory associated with the option list.
-void quit_option_list(OptionList *list);
+void optlist_destroy(OptionList *optlist);
 
-// Creates a new option of type `spin` holding a long and adds it to the option list.
-void add_option_spin_int(
-    OptionList *list, const char *name, long *data, long min, long max, void (*callback)(void *));
+void optlist_show_options(const OptionList *optlist);
 
-// Creates a new option of type `string` holding a double and adds it to the option list.
-void add_option_spin_flt(OptionList *list, const char *name, double *data, double min, double max,
-    void (*callback)(void *));
+void optlist_show_tunable_options(const OptionList *optlist);
 
-// Creates a new option of type `check` and adds it to the option list.
-void add_option_check(OptionList *list, const char *name, bool *data, void (*callback)(void *));
+void optlist_set_option(OptionList *optlist, StringView name, StringView value);
 
-// Creates a new option of type `combo` and adds it to the option list.
-void add_option_combo(OptionList *list, const char *name, char **data, const char *const *comboList,
-    void (*callback)(void *));
+void optlist_add_button(
+    OptionList *optlist,
+    StringView name,
+    void (*setoption_callback)(const OptionParams *)
+);
 
-// Creates a new option of type `button` and adds it to the option list.
-void add_option_button(OptionList *list, const char *name, void (*callback)(void *));
+void optlist_add_spin_integer(
+    OptionList *optlist,
+    StringView name,
+    i64 *value,
+    i64 minval,
+    i64 maxval,
+    bool is_tunable,
+    void (*setoption_callback)(const OptionParams *)
+);
 
-// Creates a new option of type `string` and adds it to the option list.
-void add_option_string(OptionList *list, const char *name, char **data, void (*callback)(void *));
+void optlist_add_spin_float(
+    OptionList *optlist,
+    StringView name,
+    f64 *value,
+    f64 minval,
+    f64 maxval,
+    i64 resolution,
+    bool is_tunable,
+    void (*setoption_callback)(const OptionParams *)
+);
 
-// Creates a new option of type `spin` holding a score and adds it to the option list.
-void add_option_score(OptionList *list, const char *name, score_t *data, score_t min, score_t max,
-    void (*callback)(void *));
+void optlist_add_check(
+    OptionList *optlist,
+    StringView name,
+    bool *value,
+    void (*setoption_callback)(const OptionParams *)
+);
 
-// Creates two new options of type `spin` holding a scorepair and adds them to the option list.
-void add_option_scorepair(OptionList *list, const char *name, scorepair_t *data, scorepair_t min,
-    scorepair_t max, void (*callback)(void *));
+void optlist_add_string(
+    OptionList *optlist,
+    StringView name,
+    String *value,
+    void (*setoption_callback)(const OptionParams *)
+);
 
-// Displays the option list as specified by the UCI protocol.
-void show_options(const OptionList *list);
+void optlist_add_combo(
+    OptionList *optlist,
+    StringView name,
+    String *value,
+    void (*setoption_callback)(const OptionParams *),
+    usize allowed_count,
+    ...
+);
 
-// Sets the value of an option.
-void set_option(OptionList *list, const char *name, const char *value);
+void optlist_add_score(
+    OptionList *optlist,
+    StringView name,
+    Score *value,
+    Score minval,
+    Score maxval,
+    bool is_tunable,
+    void (*setoption_callback)(const OptionParams *)
+);
 
-// All functions that try to parse a value for a specific option type, and return whether the
-// operation succeeded or not.
-bool try_set_option_spin_int(Option *option, const char *value);
-bool try_set_option_spin_flt(Option *option, const char *value);
-bool try_set_option_check(Option *option, const char *value);
-bool try_set_option_string(Option *option, const char *value);
-bool try_set_option_combo(Option *option, const char *value);
-bool try_set_option_button(Option *option, const char *value);
-bool try_set_option_score(Option *option, const char *value);
-bool try_set_option_scorepair(Option *option, const char *value);
+void optlist_add_scorepair(
+    OptionList *optlist,
+    StringView name,
+    Scorepair *value,
+    Score minval,
+    Score maxval,
+    bool is_tunable,
+    void (*setoption_callback)(const OptionParams *)
+);
 
-#endif // OPTION_H
+#endif

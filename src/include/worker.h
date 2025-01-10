@@ -19,138 +19,178 @@
 #ifndef WORKER_H
 #define WORKER_H
 
-#include "board.h"
-#include "history.h"
-#include "pawns.h"
-#include "uci.h"
 #include <pthread.h>
 #include <stdatomic.h>
-#include <time.h>
 
-// Struct for search params.
+#include "board.h"
+#include "history.h"
+#include "kp_eval.h"
+#include "search_params.h"
+#include "timeman.h"
+#include "tt.h"
 
-typedef struct _SearchParams
-{
-    clock_t wtime;
-    clock_t btime;
-    clock_t winc;
-    clock_t binc;
-    int movestogo;
-    int depth;
-    uint64_t nodes;
-    int mate;
-    int infinite;
-    int perft;
-    int ponder;
-    clock_t movetime;
-} SearchParams;
+// Early declaration required for the worker struct
+struct _WorkerPool;
 
-extern SearchParams UciSearchParams;
+// Struct for PV lines
+typedef struct _PvLine {
+    Move moves[MAX_MOVES];
+    u16 length;
+} PvLine;
 
-// Struct for root moves.
+// Initializes the PV line struct
+void pv_line_init(PvLine *pv_line);
 
-typedef struct _RootMove
-{
-    move_t move;
-    int seldepth;
-    score_t prevScore;
-    score_t score;
-    move_t pv[512];
+// Initializes the PV line struct with the given move
+void pv_line_init_move(PvLine *pv_line, Move move);
+
+// Updates the PV line by concatenating a move and another PV line
+void pv_line_update(PvLine *restrict pv_line, Move bestmove, const PvLine *restrict next);
+
+// Struct for root moves
+typedef struct _RootMove {
+    Move move;
+    u16 seldepth;
+    Score previous_score;
+    Score score;
+    PvLine pv;
 } RootMove;
 
-void sort_root_moves(RootMove *begin, RootMove *end);
-RootMove *find_root_move(RootMove *begin, RootMove *end, move_t move);
-void print_pv(
-    const Board *board, RootMove *rootMove, int multiPv, int depth, clock_t time, int bound);
+// Initializes the root move struct
+void root_move_init(RootMove *root_move, Move move);
 
-// Struct for worker thread data.
+// Locates a move in the root move array
+RootMove *find_root_move(RootMove *root_moves, usize root_count, Move move);
 
-typedef struct _Worker
-{
+// Sorts root moves based on their score
+void sort_root_moves(RootMove *root_moves, usize root_count);
+
+// Struct for worker thread data
+typedef struct _Worker {
     Board board;
-    Boardstack *stack;
-    butterfly_history_t bfHistory;
-    continuation_history_t ctHistory;
-    countermove_history_t cmHistory;
-    capture_history_t capHistory;
-    correction_history_t corrHistory;
-    KingPawnEntry *kingPawnTable;
+    struct _WorkerPool *pool;
+    ButterflyHistory *butterfly_hist;
+    ContinuationHistory *continuation_hist;
+    CountermoveHistory *counter_hist;
+    CaptureHistory *capture_hist;
+    CorrectionHistory *correction_hist;
+    KingPawnTable *king_pawn_table;
 
-    int seldepth;
-    int rootDepth;
-    int verifPlies;
-    _Atomic uint64_t nodes;
+    u16 seldepth;
+    u16 root_depth;
+    i16 nmp_verif_plies;
+    _Atomic u64 nodes;
 
-    RootMove *rootMoves;
-    size_t rootCount;
-    int pvLine;
+    RootMove *root_moves;
+    usize root_move_count;
+    u16 pv_line;
 
-    size_t idx;
+    usize thread_index;
     pthread_t thread;
     pthread_mutex_t mutex;
-    pthread_cond_t condVar;
-    bool exit;
-    bool searching;
+    pthread_cond_t condvar;
+    bool must_exit;
+    bool is_searching;
 } Worker;
 
-INLINED Worker *get_worker(const Board *board) { return board->worker; }
-
-INLINED score_t draw_score(const Worker *worker)
-{
-    return (atomic_load_explicit(&worker->nodes, memory_order_relaxed) & 2) - 1;
+// Returns the worker struct associated with the given board
+INLINED Worker *board_get_worker(const Board *board) {
+    assert(board->has_worker);
+    return (Worker *)((uintptr_t)board - offsetof(Worker, board));
 }
 
-void worker_init(Worker *worker, size_t idx);
+// Tells the board that it has a worker associated to it
+INLINED void board_enable_worker(Board *board) {
+    board->has_worker = true;
+}
+
+// Returns a pseudo-random draw score using the current node count
+INLINED Score worker_draw_score(const Worker *worker) {
+    return (Score)(atomic_load_explicit(&worker->nodes, memory_order_relaxed) & 2) - 1;
+}
+
+INLINED void worker_increment_nodes(Worker *worker) {
+    atomic_fetch_add_explicit(&worker->nodes, 1, memory_order_relaxed);
+}
+
+// Initializes the worker
+void worker_init(Worker *worker, usize thread_index, struct _WorkerPool *wpool);
+
+// Frees all memory associated with the worker
 void worker_destroy(Worker *worker);
-void worker_search(Worker *worker);
-void main_worker_search(Worker *worker);
-void worker_reset(Worker *worker);
-void worker_start_search(Worker *worker);
-void worker_wait_search_end(Worker *worker);
-void *worker_entry(void *worker);
 
-typedef struct _WorkerPool
-{
-    size_t size;
-    int checks;
+// Resets the worker at the start of a new game
+void worker_init_new_game(Worker *worker);
 
+// Asks the worker to start searching
+void worker_start_searching(Worker *worker);
+
+// Helper for the worker to set up its own search state
+void worker_init_search_data(Worker *worker);
+
+// Waits for the worker to complete its search
+void worker_wait_search_completion(Worker *worker);
+
+// Entry point for the worker thread main loop
+void *worker_entry_point(void *worker_ptr);
+
+typedef struct _WorkerPool {
+    pthread_attr_t worker_pthread_attr;
+    usize worker_count;
+    Worker **worker_list;
+
+    Board root_board;
+    SearchParams search_params;
+    TranspositionTable tt;
+    Timeman timeman;
+
+    u64 check_nodes;
     atomic_bool ponder;
     atomic_bool stop;
-
-    Worker **workerList;
 } WorkerPool;
 
-extern WorkerPool SearchWorkerPool;
+INLINED Worker *wpool_main_worker(WorkerPool *wpool) {
+    return wpool->worker_list[0];
+}
 
-INLINED Worker *wpool_main_worker(WorkerPool *wpool) { return wpool->workerList[0]; }
-
-INLINED void wpool_ponderhit(WorkerPool *wpool)
-{
+INLINED void wpool_ponderhit(WorkerPool *wpool) {
     atomic_store_explicit(&wpool->ponder, false, memory_order_relaxed);
 }
 
-INLINED bool wpool_is_pondering(const WorkerPool *wpool)
-{
+INLINED bool wpool_is_pondering(const WorkerPool *wpool) {
     return atomic_load_explicit(&wpool->ponder, memory_order_relaxed);
 }
 
-INLINED void wpool_stop(WorkerPool *wpool)
-{
+INLINED void wpool_stop(WorkerPool *wpool) {
     atomic_store_explicit(&wpool->stop, true, memory_order_relaxed);
 }
 
-INLINED bool wpool_is_stopped(const WorkerPool *wpool)
-{
+INLINED bool wpool_is_stopped(const WorkerPool *wpool) {
     return atomic_load_explicit(&wpool->stop, memory_order_relaxed);
 }
 
-void wpool_init(WorkerPool *wpool, size_t threads);
-void wpool_new_search(WorkerPool *wpool);
-void wpool_reset(WorkerPool *wpool);
+// These functions can be called from the UCI thread.
+
+void wpool_init(WorkerPool *wpool);
+void wpool_resize(WorkerPool *wpool, usize worker_count);
+void wpool_destroy(WorkerPool *wpool);
+void wpool_init_new_game(WorkerPool *wpool);
 void wpool_start_search(
-    WorkerPool *wpool, const Board *rootBoard, const SearchParams *searchParams);
-void wpool_start_workers(WorkerPool *wpool);
-void wpool_wait_search_end(WorkerPool *wpool);
-uint64_t wpool_get_total_nodes(WorkerPool *wpool);
+    WorkerPool *wpool,
+    const Board *root_board,
+    const SearchParams *search_params
+);
+void wpool_wait_search_completion(WorkerPool *wpool);
+
+// These functions can be called from the main thread.
+
+void wpool_init_new_search(WorkerPool *wpool);
+void wpool_start_aux_workers(WorkerPool *wpool);
+void wpool_wait_aux_workers(WorkerPool *wpool);
+void wpool_check_time(WorkerPool *wpool);
+
+// These functions can be called from any thread.
+
+u64 wpool_get_total_nodes(WorkerPool *wpool);
 
 #endif

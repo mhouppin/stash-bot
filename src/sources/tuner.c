@@ -17,781 +17,864 @@
 */
 
 #include "tuner.h"
-#include "types.h"
+
 #include <math.h>
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #ifdef TUNE
+#include <omp.h>
+#endif
 
-static void reset_tp_vector(TpVector *vec)
-{
-    for (size_t i = 0; i < IDX_COUNT; ++i) vec->v[i][0] = vec->v[i][1] = 0.0;
+#include "psq_table.h"
+#include "syncio.h"
+#include "wmalloc.h"
+
+f64 sigmoid(f64 k, f64 eval) {
+    return 1.0 / (1.0 + exp(-eval * k));
 }
 
-static void adam_init(AdamOptimizer *adam)
-{
-    reset_tp_vector(&adam->gradient);
-    reset_tp_vector(&adam->momentum);
-    reset_tp_vector(&adam->velocity);
+f64 lerp(f64 lo, f64 hi, f64 rate) {
+    return (hi * rate) + lo * (1.0 - rate);
 }
 
-static void init_base_values(TpVector *base)
-{
-#define INIT_BASE_SP(idx, val)                      \
-    do {                                            \
-        extern const scorepair_t val;               \
-        base->v[idx][MIDGAME] = midgame_score(val); \
-        base->v[idx][ENDGAME] = endgame_score(val); \
-    } while (0)
+void tuner_config_set_default_values(TunerConfig *tuner_config) {
+    *tuner_config = (TunerConfig) {
+        .threads = 1,
+        .iterations = 10000,
+        .display_every = 50,
+        .batch_size = 4096,
+        .lambda = 1.0,
+        .learning_rate = 0.001,
+        .gamma = 1.0,
+        .gamma_iterations = 1000,
+        .beta_1 = 0.9,
+        .beta_2 = 0.999,
+    };
+}
 
-#define INIT_BASE_SPA(idx, val, size)                          \
-    do {                                                       \
-        extern const scorepair_t val[size];                    \
-        for (int i = 0; i < size; ++i)                         \
-        {                                                      \
-            base->v[idx + i][MIDGAME] = midgame_score(val[i]); \
-            base->v[idx + i][ENDGAME] = endgame_score(val[i]); \
-        }                                                      \
-    } while (0)
+void tp_vector_reset(TupleVector *tp_vector) {
+    for (usize i = 0; i < IDX_COUNT; ++i) {
+        tp_vector->values[i][0] = 0.0;
+        tp_vector->values[i][1] = 0.0;
+    }
+}
 
-    base->v[IDX_PIECE + 0][MIDGAME] = PAWN_MG_SCORE;
-    base->v[IDX_PIECE + 0][ENDGAME] = PAWN_EG_SCORE;
-    base->v[IDX_PIECE + 1][MIDGAME] = KNIGHT_MG_SCORE;
-    base->v[IDX_PIECE + 1][ENDGAME] = KNIGHT_EG_SCORE;
-    base->v[IDX_PIECE + 2][MIDGAME] = BISHOP_MG_SCORE;
-    base->v[IDX_PIECE + 2][ENDGAME] = BISHOP_EG_SCORE;
-    base->v[IDX_PIECE + 3][MIDGAME] = ROOK_MG_SCORE;
-    base->v[IDX_PIECE + 3][ENDGAME] = ROOK_EG_SCORE;
-    base->v[IDX_PIECE + 4][MIDGAME] = QUEEN_MG_SCORE;
-    base->v[IDX_PIECE + 4][ENDGAME] = QUEEN_EG_SCORE;
+bool tuner_entry_init(TunerEntry *restrict entry, const Board *restrict board) {
+    entry->static_eval = evaluate(board);
 
-    INIT_BASE_SPA(IDX_PSQT, PawnSQT, 48);
-    INIT_BASE_SPA(IDX_PSQT + 48, KnightSQT, 32);
-    INIT_BASE_SPA(IDX_PSQT + 80, BishopSQT, 32);
-    INIT_BASE_SPA(IDX_PSQT + 112, RookSQT, 32);
-    INIT_BASE_SPA(IDX_PSQT + 144, QueenSQT, 32);
-    INIT_BASE_SPA(IDX_PSQT + 176, KingSQT, 32);
+    // Don't set up entries for drawn endgames or endgame specializations.
+    if (Trace.eg_scalefactor == 0) {
+        return false;
+    }
 
-    INIT_BASE_SP(IDX_INITIATIVE, Initiative);
+    if (board->side_to_move == BLACK) {
+        entry->static_eval = -entry->static_eval;
+    }
 
-    INIT_BASE_SP(IDX_KS_KNIGHT, KnightWeight);
-    INIT_BASE_SP(IDX_KS_BISHOP, BishopWeight);
-    INIT_BASE_SP(IDX_KS_ROOK, RookWeight);
-    INIT_BASE_SP(IDX_KS_QUEEN, QueenWeight);
-    INIT_BASE_SP(IDX_KS_ATTACK, AttackWeight);
-    INIT_BASE_SP(IDX_KS_WEAK_Z, WeakKingZone);
-    INIT_BASE_SP(IDX_KS_CHECK_N, SafeKnightCheck);
-    INIT_BASE_SP(IDX_KS_CHECK_B, SafeBishopCheck);
-    INIT_BASE_SP(IDX_KS_CHECK_R, SafeRookCheck);
-    INIT_BASE_SP(IDX_KS_CHECK_Q, SafeQueenCheck);
-    INIT_BASE_SP(IDX_KS_UNSAFE_CHECK, UnsafeCheck);
-    INIT_BASE_SP(IDX_KS_QUEENLESS, QueenlessAttack);
-    INIT_BASE_SPA(IDX_KS_STORM, KingStorm, 24);
-    INIT_BASE_SPA(IDX_KS_SHELTER, KingShelter, 24);
-    INIT_BASE_SP(IDX_KS_OFFSET, SafetyOffset);
+    entry->phase = Trace.phase;
+    entry->mg_factor = (entry->phase - ENDGAME_COUNT) / (f64)(MIDGAME_COUNT - ENDGAME_COUNT);
+    entry->tapered_eval = Trace.tapered_eval;
+    entry->king_safety[WHITE] = Trace.safety_eval[WHITE];
+    entry->king_safety[BLACK] = Trace.safety_eval[BLACK];
+    entry->eg_scalefactor = Trace.eg_scalefactor / (f64)SCALE_RESOLUTION;
+    tuner_entry_set_tuples_from_evaltrace(entry);
+    return true;
+}
 
-    INIT_BASE_SPA(IDX_KNIGHT_CLOSED_POS, ClosedPosKnight, 5);
-    INIT_BASE_SP(IDX_KNIGHT_SHIELDED, KnightShielded);
-    INIT_BASE_SP(IDX_KNIGHT_OUTPOST, KnightOutpost);
+void tuner_entry_destroy(TunerEntry *entry) {
+    free(entry->tuples);
+}
 
-    INIT_BASE_SPA(IDX_BISHOP_PAWNS_COLOR, BishopPawnsSameColor, 7);
-    INIT_BASE_SP(IDX_BISHOP_PAIR, BishopPairBonus);
-    INIT_BASE_SP(IDX_BISHOP_SHIELDED, BishopShielded);
-    INIT_BASE_SP(IDX_BISHOP_OUTPOST, BishopOutpost);
-    INIT_BASE_SP(IDX_BISHOP_LONG_DIAG, BishopLongDiagonal);
+void tuner_entry_set_tuples_from_evaltrace(TunerEntry *entry) {
+    usize length = 0;
+    usize tuple_index = 0;
 
-    INIT_BASE_SP(IDX_ROOK_SEMIOPEN, RookOnSemiOpenFile);
-    INIT_BASE_SP(IDX_ROOK_OPEN, RookOnOpenFile);
-    INIT_BASE_SP(IDX_ROOK_BLOCKED, RookOnBlockedFile);
-    INIT_BASE_SP(IDX_ROOK_XRAY_QUEEN, RookXrayQueen);
-    INIT_BASE_SP(IDX_ROOK_TRAPPED, RookTrapped);
-    INIT_BASE_SP(IDX_ROOK_BURIED, RookBuried);
+    // Skip parameters which will not influcence gradients during backpropagation to reduce
+    // computations (that is, parameters which are inactive for both sides, and additionally linear
+    // parameters which have identical activation coefficients for White and Black).
+    for (u16 i = 0; i < IDX_COUNT; ++i) {
+        length += evaltrace_is_active_param(i);
+    }
 
-    INIT_BASE_SPA(IDX_MOBILITY_KNIGHT, MobilityN, 9);
-    INIT_BASE_SPA(IDX_MOBILITY_BISHOP, MobilityB, 14);
-    INIT_BASE_SPA(IDX_MOBILITY_ROOK, MobilityR, 15);
-    INIT_BASE_SPA(IDX_MOBILITY_QUEEN, MobilityQ, 28);
+    entry->tuple_count = length;
+    entry->tuples = wrap_malloc(sizeof(TunerTuple) * length);
 
-    INIT_BASE_SP(IDX_BACKWARD, BackwardPenalty);
-    INIT_BASE_SP(IDX_STRAGGLER, StragglerPenalty);
-    INIT_BASE_SP(IDX_DOUBLED, DoubledPenalty);
-    INIT_BASE_SP(IDX_ISOLATED, IsolatedPenalty);
-
-    INIT_BASE_SPA(IDX_PP_OUR_KING_PROX, PP_OurKingProximity, 24);
-    INIT_BASE_SPA(IDX_PP_THEIR_KING_PROX, PP_TheirKingProximity, 24);
-
-    INIT_BASE_SP(IDX_PAWN_ATK_MINOR, PawnAttacksMinor);
-    INIT_BASE_SP(IDX_PAWN_ATK_ROOK, PawnAttacksRook);
-    INIT_BASE_SP(IDX_PAWN_ATK_QUEEN, PawnAttacksQueen);
-    INIT_BASE_SP(IDX_MINOR_ATK_ROOK, MinorAttacksRook);
-    INIT_BASE_SP(IDX_MINOR_ATK_QUEEN, MinorAttacksQueen);
-    INIT_BASE_SP(IDX_ROOK_ATK_QUEEN, RookAttacksQueen);
-    INIT_BASE_SP(IDX_HANGING_PAWN, HangingPawn);
-
-    extern const scorepair_t PassedBonus[RANK_NB], PhalanxBonus[RANK_NB], DefenderBonus[RANK_NB];
-
-    for (rank_t r = RANK_2; r <= RANK_7; ++r)
-    {
-        base->v[IDX_PASSER + r - RANK_2][MIDGAME] = midgame_score(PassedBonus[r]);
-        base->v[IDX_PASSER + r - RANK_2][ENDGAME] = endgame_score(PassedBonus[r]);
-
-        base->v[IDX_PHALANX + r - RANK_2][MIDGAME] = midgame_score(PhalanxBonus[r]);
-        base->v[IDX_PHALANX + r - RANK_2][ENDGAME] = endgame_score(PhalanxBonus[r]);
-
-        // No pawns can be defenders on the 7th rank.
-        if (r != RANK_7)
-        {
-            base->v[IDX_DEFENDER + r - RANK_2][MIDGAME] = midgame_score(DefenderBonus[r]);
-            base->v[IDX_DEFENDER + r - RANK_2][ENDGAME] = endgame_score(DefenderBonus[r]);
+    for (u16 i = 0; i < IDX_COUNT; ++i) {
+        if (evaltrace_is_active_param(i)) {
+            entry->tuples[tuple_index++] = (TunerTuple) {
+                .index = i,
+                .wcoeff = Trace.coeffs[i][WHITE],
+                .bcoeff = Trace.coeffs[i][BLACK],
+            };
         }
     }
 }
 
-bool is_safety_term(int i) { return i > IDX_KING_SAFETY; }
+f64 tuner_entry_adjusted_eval(
+    const TunerEntry *restrict entry,
+    const TupleVector *restrict delta,
+    TupleSafetyEval *restrict safety_eval
+) {
+    // These variables will hold the value differences of the eval components coming from the delta
+    // vector.
+    f64 linear_delta[PHASE_NB] = {0.0, 0.0};
+    f64 wsafety_delta[PHASE_NB] = {0.0, 0.0};
+    f64 bsafety_delta[PHASE_NB] = {0.0, 0.0};
 
-bool is_active(int i)
-{
-    if (Trace.coeffs[i][WHITE] != Trace.coeffs[i][BLACK]) return true;
-    return is_safety_term(i) && (Trace.coeffs[i][WHITE] || Trace.coeffs[i][BLACK]);
-}
+    for (usize i = 0; i < entry->tuple_count; ++i) {
+        const u16 index = entry->tuples[i].index;
+        const i8 wcoeff = entry->tuples[i].wcoeff;
+        const i8 bcoeff = entry->tuples[i].bcoeff;
 
-void init_tuner_tuples(TuneEntry *entry)
-{
-    int length = 0;
-    int tidx = 0;
-
-    for (int i = 0; i < IDX_COUNT; ++i) length += is_active(i);
-
-    entry->tupleCount = length;
-    entry->tuples = malloc(sizeof(TuneTuple) * length);
-
-    if (entry->tuples == NULL)
-    {
-        perror("Unable to allocate entry tuples");
-        exit(EXIT_FAILURE);
+        if (!is_param_safety_term(index)) {
+            linear_delta[MIDGAME] += (wcoeff - bcoeff) * delta->values[index][MIDGAME];
+            linear_delta[ENDGAME] += (wcoeff - bcoeff) * delta->values[index][ENDGAME];
+        } else {
+            wsafety_delta[MIDGAME] += wcoeff * delta->values[index][MIDGAME];
+            wsafety_delta[ENDGAME] += wcoeff * delta->values[index][ENDGAME];
+            bsafety_delta[MIDGAME] += bcoeff * delta->values[index][MIDGAME];
+            bsafety_delta[ENDGAME] += bcoeff * delta->values[index][ENDGAME];
+        }
     }
 
-    for (int i = 0; i < IDX_COUNT; ++i)
-        if (is_active(i))
-            entry->tuples[tidx++] = (TuneTuple){i, Trace.coeffs[i][WHITE], Trace.coeffs[i][BLACK]};
+    // These variables will hold the adjusted values of the eval components.
+    f64 linear_adj[PHASE_NB];
+    f64 wsafety_adj[PHASE_NB];
+    f64 bsafety_adj[PHASE_NB];
+    f64 safety_adj[PHASE_NB];
+
+    linear_adj[MIDGAME] = (f64)scorepair_midgame(entry->tapered_eval) + linear_delta[MIDGAME];
+    linear_adj[ENDGAME] = (f64)scorepair_endgame(entry->tapered_eval) + linear_delta[ENDGAME];
+
+    // Grab the original safety evaluations and add the modified parameters.
+    wsafety_adj[MIDGAME] =
+        (f64)scorepair_midgame(entry->king_safety[WHITE]) + wsafety_delta[MIDGAME];
+    wsafety_adj[ENDGAME] =
+        (f64)scorepair_endgame(entry->king_safety[WHITE]) + wsafety_delta[ENDGAME];
+    bsafety_adj[MIDGAME] =
+        (f64)scorepair_midgame(entry->king_safety[BLACK]) + bsafety_delta[MIDGAME];
+    bsafety_adj[ENDGAME] =
+        (f64)scorepair_endgame(entry->king_safety[BLACK]) + bsafety_delta[ENDGAME];
+
+    // Remove the original safety evaluation from the linear eval.
+    linear_adj[MIDGAME] -= i16_max(0, scorepair_midgame(entry->king_safety[WHITE]))
+            * scorepair_midgame(entry->king_safety[WHITE]) / 256
+        - i16_max(0, scorepair_midgame(entry->king_safety[BLACK]))
+            * scorepair_midgame(entry->king_safety[BLACK]) / 256;
+    linear_adj[ENDGAME] -= i16_max(0, scorepair_endgame(entry->king_safety[WHITE])) / 16
+        - i16_max(0, scorepair_endgame(entry->king_safety[BLACK])) / 16;
+
+    // Compute the new safety evaluations for each side.
+    safety_adj[MIDGAME] = fmax(0.0, wsafety_adj[MIDGAME]) * wsafety_adj[MIDGAME] / 256.0
+        - fmax(0.0, bsafety_adj[MIDGAME]) * bsafety_adj[MIDGAME] / 256.0;
+    safety_adj[ENDGAME] =
+        fmax(0.0, wsafety_adj[ENDGAME]) / 16.0 - fmax(0.0, bsafety_adj[ENDGAME]) / 16.0;
+
+    // Save the safety scores for computing gradients later.
+    safety_eval->values[WHITE][MIDGAME] = wsafety_adj[MIDGAME];
+    safety_eval->values[WHITE][ENDGAME] = wsafety_adj[ENDGAME];
+    safety_eval->values[BLACK][MIDGAME] = bsafety_adj[MIDGAME];
+    safety_eval->values[BLACK][ENDGAME] = bsafety_adj[ENDGAME];
+
+    const f64 midgame_adj = linear_adj[MIDGAME] + safety_adj[MIDGAME];
+    const f64 endgame_adj = linear_adj[ENDGAME] + safety_adj[ENDGAME];
+
+    return midgame_adj * entry->mg_factor
+        + endgame_adj * (1.0 - entry->mg_factor) * entry->eg_scalefactor;
 }
 
-bool init_tuner_entry(TuneEntry *entry, const Board *board)
-{
-    entry->staticEval = evaluate(board);
-    if (Trace.scaleFactor == 0) return false;
-    if (board->sideToMove == BLACK) entry->staticEval = -entry->staticEval;
+void tuner_entry_update_gradient(
+    const TunerEntry *restrict entry,
+    const TupleVector *restrict delta,
+    TupleVector *restrict gradient,
+    f64 sigmoid_k
+) {
+    TupleSafetyEval safety_eval;
+    const f64 adjusted_eval = tuner_entry_adjusted_eval(entry, delta, &safety_eval);
+    const f64 predict = sigmoid(sigmoid_k, adjusted_eval);
+    const f64 error = (entry->game_result - predict) * predict * (1.0 - predict);
+    const f64 mg_error = error * entry->mg_factor;
+    const f64 eg_error = error * (1.0 - entry->mg_factor);
 
-    entry->phase = Trace.phase;
-    entry->phaseFactors[MIDGAME] =
-        (entry->phase - ENDGAME_COUNT) / (double)(MIDGAME_COUNT - ENDGAME_COUNT);
-    entry->phaseFactors[ENDGAME] = 1 - entry->phaseFactors[MIDGAME];
+    const f64 wsafety_mg = fmax(safety_eval.values[WHITE][MIDGAME], 0);
+    const f64 bsafety_mg = fmax(safety_eval.values[BLACK][MIDGAME], 0);
+    const f64 wsafety_eg = safety_eval.values[WHITE][ENDGAME] > 0.0 ? 1.0 : 0.0;
+    const f64 bsafety_eg = safety_eval.values[BLACK][ENDGAME] > 0.0 ? 1.0 : 0.0;
 
-    init_tuner_tuples(entry);
+    for (usize i = 0; i < entry->tuple_count; ++i) {
+        const u16 index = entry->tuples[i].index;
+        const i8 wcoeff = entry->tuples[i].wcoeff;
+        const i8 bcoeff = entry->tuples[i].bcoeff;
 
-    entry->eval = Trace.eval;
-    entry->safety[WHITE] = Trace.safety[WHITE];
-    entry->safety[BLACK] = Trace.safety[BLACK];
-    entry->scaleFactor = Trace.scaleFactor / 256.0;
-    entry->sideToMove = board->sideToMove;
-    return true;
+        if (!is_param_safety_term(index)) {
+            gradient->values[index][MIDGAME] += mg_error * (wcoeff - bcoeff);
+            gradient->values[index][ENDGAME] +=
+                eg_error * (wcoeff - bcoeff) * entry->eg_scalefactor;
+        } else {
+            gradient->values[index][MIDGAME] +=
+                mg_error / 128.0 * (wsafety_mg * wcoeff - bsafety_mg * bcoeff);
+            gradient->values[index][ENDGAME] += eg_error / 16.0
+                * (wsafety_eg * wcoeff - bsafety_eg * bcoeff) * entry->eg_scalefactor;
+        }
+    }
 }
 
-void init_tuner_entries(TuneDataset *data, const char *filename)
-{
+void tuner_dataset_init(TunerDataset *tuner_dataset) {
+    tuner_dataset->entries = NULL;
+    tuner_dataset->size = 0;
+    tuner_dataset->capacity = 0;
+}
+
+void tuner_dataset_destroy(TunerDataset *tuner_dataset) {
+    for (usize i = 0; i < tuner_dataset->size; ++i) {
+        tuner_entry_destroy(&tuner_dataset->entries[i]);
+    }
+
+    free(tuner_dataset->entries);
+}
+
+void tuner_dataset_add_file(TunerDataset *tuner_dataset, const char *filename) {
     FILE *f = fopen(filename, "r");
+    const usize old_size = tuner_dataset->size;
 
-    if (f == NULL)
-    {
+    if (f == NULL) {
         perror("Unable to open dataset");
         exit(EXIT_FAILURE);
     }
 
-    Board board = {};
-    Boardstack stack = {};
-    char linebuf[1024];
+    Board board;
+    Boardstack stack;
+    String line;
+    usize skipped = 0;
 
-    while (fgets(linebuf, sizeof(linebuf), f) != NULL)
-    {
-        if (data->maxSize == data->size)
-        {
-            data->maxSize += !data->maxSize ? 16 : data->maxSize / 2;
-            data->entries = realloc(data->entries, sizeof(TuneEntry) * data->maxSize);
+    string_init(&line);
 
-            if (data->entries == NULL)
-            {
-                perror("Unable to allocate dataset entries");
-                exit(EXIT_FAILURE);
-            }
+    for (usize lineno = 0; string_getline(f, &line) != 0; ++lineno) {
+        StringView line_view = strview_from_string(&line);
+
+        if (tuner_dataset->size == tuner_dataset->capacity) {
+            tuner_dataset->capacity += !tuner_dataset->capacity ? 16 : tuner_dataset->capacity / 4;
+            tuner_dataset->entries =
+                wrap_realloc(tuner_dataset->entries, sizeof(TunerEntry) * tuner_dataset->capacity);
         }
 
-        TuneEntry *cur = &data->entries[data->size];
+        TunerEntry *entry = &tuner_dataset->entries[tuner_dataset->size];
 
-        char *ptr = strrchr(linebuf, ' ');
+        usize space_index = strview_rfind(line_view, ' ');
 
-        *ptr = '\0';
-
-        if (sscanf(ptr + 1, "%hd", &cur->gameScore) == 0)
-        {
-            fputs("Unable to read game score\n", stdout);
+        if (space_index == NPOS) {
+            fprintf(stderr, "%s:%u: Invalid dataset format\n", filename, (u32)lineno);
             exit(EXIT_FAILURE);
         }
 
-        ptr = strrchr(linebuf, ' ');
+        StringView token =
+            strview_trim_whitespaces(strview_subview(line_view, space_index + 1, line_view.size));
+        i64 value;
 
-        *ptr = '\0';
-        if (sscanf(ptr + 1, "%lf", &cur->gameResult) == 0)
-        {
-            fputs("Unable to read game result\n", stdout);
+        if (!strview_parse_i64(token, &value)) {
+            fprintf(
+                stderr,
+                "%s:%u:%u: Failed to parse search score\n",
+                filename,
+                (u32)lineno,
+                (u32)space_index + 1
+            );
             exit(EXIT_FAILURE);
         }
 
-        if (board_from_fen(&board, linebuf, false, &stack) < 0)
-        {
-            printf("Invalid FEN in dataset: '%s'\n", linebuf);
+        entry->search_score = value;
+        line_view = strview_subview(line_view, 0, space_index);
+        space_index = strview_find_last_not_of_strview(line_view, STATIC_STRVIEW(" "));
+
+        if (space_index == NPOS) {
+            fprintf(
+                stderr,
+                "%s:" FORMAT_LARGE_INT ": Invalid dataset format\n",
+                filename,
+                (LargeInt)lineno
+            );
             exit(EXIT_FAILURE);
         }
 
-        if (init_tuner_entry(cur, &board))
-        {
-            data->size++;
+        line_view = strview_subview(line_view, 0, space_index + 1);
+        space_index = strview_rfind(line_view, ' ');
 
-            if (data->size && data->size % 100000 == 0)
-            {
-                printf("%u positions loaded\n", (unsigned int)data->size);
-                fflush(stdout);
-            }
+        if (space_index == NPOS) {
+            fprintf(stderr, "%s:%u: Invalid dataset format\n", filename, (u32)lineno);
+            exit(EXIT_FAILURE);
+        }
+
+        token =
+            strview_trim_whitespaces(strview_subview(line_view, space_index + 1, line_view.size));
+
+        if (strview_equals_strview(token, STATIC_STRVIEW("0.0"))) {
+            entry->game_result = 0.0;
+        } else if (strview_equals_strview(token, STATIC_STRVIEW("0.5"))) {
+            entry->game_result = 0.5;
+        } else if (strview_equals_strview(token, STATIC_STRVIEW("1.0"))) {
+            entry->game_result = 1.0;
+        } else {
+            fprintf(
+                stderr,
+                "%s:%u:%u: Failed to parse game result\n",
+                filename,
+                (u32)lineno,
+                (u32)space_index + 1
+            );
+            exit(EXIT_FAILURE);
+        }
+
+        line_view = strview_subview(line_view, 0, space_index);
+
+        if (!board_try_init(&board, line_view, true, &stack)) {
+            fprintf(stderr, "%s:%u: Failed to parse FEN\n", filename, (u32)lineno);
+            exit(EXIT_FAILURE);
+        }
+
+        if (tuner_entry_init(entry, &board)) {
+            ++tuner_dataset->size;
+        } else {
+            ++skipped;
         }
     }
 
-    printf("%u positions loaded\n\n", (unsigned int)data->size);
+    printf(
+        "Loaded %u positions from '%s', skipped %u\n",
+        (u32)(tuner_dataset->size - old_size),
+        filename,
+        (u32)skipped
+    );
+    fflush(stdout);
 }
 
-double sigmoid(double k, double eval) { return 1.0 / (1.0 + exp(-eval * k)); }
+void tuner_dataset_start_session(TunerDataset *tuner_dataset, const TunerConfig *tuner_config) {
+    AdamOptimizer adam;
+    TupleVector delta;
+    TupleVector base;
+    DisplaySequence disp_sequence;
+    const f64 k = tuner_dataset_compute_optimal_k(tuner_dataset, tuner_config->lambda);
 
-double static_eval_mse(const TuneDataset *data, double sigmoidK)
-{
-    double total = 0;
+#ifdef TUNE
+    omp_set_num_threads(tuner_config->threads);
+#endif
 
-#pragma omp parallel shared(total) num_threads(THREADS)
-    {
-#pragma omp for schedule(static) reduction(+ : total)
-        for (size_t i = 0; i < data->size; ++i)
-        {
-            const TuneEntry *entry = data->entries + i;
+    tuner_dataset_compute_wdl_eval_mix(tuner_dataset, k, tuner_config->lambda);
+    adam_init(&adam);
+    tp_vector_reset(&delta);
+    init_disp_sequence_and_base_values(&disp_sequence, &base);
 
-            double result =
-                entry->gameResult * (1.0 - LAMBDA) + sigmoid(sigmoidK, entry->gameScore) * LAMBDA;
-            total += pow(result - sigmoid(sigmoidK, entry->staticEval), 2);
+    for (usize iteration = 0; iteration < tuner_config->iterations; ++iteration) {
+        adam_do_one_iteration(&adam, tuner_dataset, &delta, tuner_config, k);
+
+        const f64 loss = tuner_dataset_adjusted_eval_mse(tuner_dataset, &delta, k);
+
+        printf("Iteration [" FORMAT_LARGE_INT "], Loss [%.7lf]\n", (LargeInt)iteration, loss);
+
+        if ((iteration + 1) % 50 == 0 || iteration + 1 == tuner_config->iterations) {
+            disp_sequence_show(&disp_sequence, &base, &delta);
         }
+
+        fflush(stdout);
     }
-    return total / data->size;
 }
 
-double compute_optimal_k(const TuneDataset *data)
-{
-    double start = 0;
-    double end = 10;
-    double step = 1;
-    double cur = start;
-    double error;
-    double best = static_eval_mse(data, cur);
-    double bestK = cur;
+f64 tuner_dataset_static_eval_mse(const TunerDataset *tuner_dataset, f64 sigmoid_k, f64 lambda) {
+    f64 total = 0.0;
+
+#ifdef TUNE
+#pragma omp parallel for schedule(static) reduction(+ : total)
+#endif
+    for (usize i = 0; i < tuner_dataset->size; ++i) {
+        const TunerEntry *entry = &tuner_dataset->entries[i];
+        const f64 lerp_result =
+            entry->game_result * lambda + sigmoid(sigmoid_k, entry->search_score) * (1.0 - lambda);
+
+        total += pow(lerp_result - sigmoid(sigmoid_k, entry->static_eval), 2);
+    }
+
+    return total / tuner_dataset->size;
+}
+
+static f64 golden_split(f64 a, f64 b) {
+    const f64 invphi = 0.6180339887498949;
+    return a + invphi * (b - a);
+}
+
+f64 tuner_dataset_compute_optimal_k(const TunerDataset *tuner_dataset, f64 lambda) {
+    const f64 epsilon = 1e-10;
+    f64 bound1 = 0.0;
+    f64 bound2 = 1.0;
+    f64 middle = golden_split(bound1, bound2);
+    f64 best = tuner_dataset_static_eval_mse(tuner_dataset, middle, lambda);
 
     printf("Computing optimal K...\n");
     fflush(stdout);
 
-    for (int i = 0; i < 10; ++i)
-    {
-        cur = start - step;
-        while (cur < end)
-        {
-            cur += step;
-            error = static_eval_mse(data, cur);
-            if (error < best)
-            {
-                best = error;
-                bestK = cur;
-            }
+    for (u32 i = 0; fabs(bound1 - bound2) > epsilon; ++i) {
+        const f32 x = golden_split(bound1, middle);
+        const f32 v = tuner_dataset_static_eval_mse(tuner_dataset, x, lambda);
+
+        if (v < best) {
+            best = v;
+            bound2 = middle;
+            middle = x;
+        } else {
+            bound1 = bound2;
+            bound2 = x;
         }
-        printf("Iteration %d/10, K %lf, MSE %lf\n", i + 1, bestK, best);
+
+        printf("Iteration %u, K %lf, MSE %lf\n", i, middle, best);
         fflush(stdout);
-        end = bestK + step;
-        start = bestK - step;
-        step /= 10;
     }
+
     putchar('\n');
-    return bestK;
+    return middle;
 }
 
-size_t first_safety_term(const TuneEntry *entry)
-{
-    size_t left = 0;
-    size_t right = entry->tupleCount;
+void tuner_dataset_compute_wdl_eval_mix(TunerDataset *tuner_dataset, f64 sigmoid_k, f64 lambda) {
+    for (usize i = 0; i < tuner_dataset->size; ++i) {
+        TunerEntry *entry = &tuner_dataset->entries[i];
 
-    while (left < right)
-    {
-        size_t middle = (left + right) / 2;
-
-        if (is_safety_term(entry->tuples[middle].index))
-            right = middle;
-        else
-            left = middle + 1;
-    }
-
-    return left;
-}
-
-double adjusted_eval(const TuneEntry *restrict entry, const TpVector *restrict delta,
-    TpSplitEval *restrict safetyValues, size_t safetyStart)
-{
-    double mixed;
-    double midgame, endgame, wsafety[PHASE_NB], bsafety[PHASE_NB];
-    double linear[PHASE_NB], safety[PHASE_NB];
-    double mgLinear = 0.0, egLinear = 0.0;
-    double mgSafety[COLOR_NB] = {0.0}, egSafety[COLOR_NB] = {0.0};
-
-    // Save any modifications for MG or EG for each evaluation type.
-    for (size_t i = 0; i < safetyStart; ++i)
-    {
-        const size_t index = entry->tuples[i].index;
-        const int8_t diff = entry->tuples[i].wcoeff - entry->tuples[i].bcoeff;
-
-        mgLinear += diff * delta->v[index][MIDGAME];
-        egLinear += diff * delta->v[index][ENDGAME];
-    }
-
-    for (size_t i = safetyStart; i < entry->tupleCount; ++i)
-    {
-        const size_t index = entry->tuples[i].index;
-        const int8_t wcoeff = entry->tuples[i].wcoeff;
-        const int8_t bcoeff = entry->tuples[i].bcoeff;
-
-        mgSafety[WHITE] += wcoeff * delta->v[index][MIDGAME];
-        mgSafety[BLACK] += bcoeff * delta->v[index][MIDGAME];
-        egSafety[WHITE] += wcoeff * delta->v[index][ENDGAME];
-        egSafety[BLACK] += bcoeff * delta->v[index][ENDGAME];
-    }
-
-    // Grab the original non-safety evaluations and add the modified parameters.
-    linear[MIDGAME] = (double)midgame_score(entry->eval) + mgLinear;
-    linear[ENDGAME] = (double)endgame_score(entry->eval) + egLinear;
-
-    // Grab the original safety evaluations and add the modified parameters.
-    wsafety[MIDGAME] = (double)midgame_score(entry->safety[WHITE]) + mgSafety[WHITE];
-    wsafety[ENDGAME] = (double)endgame_score(entry->safety[WHITE]) + egSafety[WHITE];
-    bsafety[MIDGAME] = (double)midgame_score(entry->safety[BLACK]) + mgSafety[BLACK];
-    bsafety[ENDGAME] = (double)endgame_score(entry->safety[BLACK]) + egSafety[BLACK];
-
-    // Remove the original safety evaluations from the normal evaluations.
-    linear[MIDGAME] -=
-        imax(0, midgame_score(entry->safety[WHITE])) * midgame_score(entry->safety[WHITE]) / 256
-        - imax(0, midgame_score(entry->safety[BLACK])) * midgame_score(entry->safety[BLACK]) / 256;
-
-    linear[ENDGAME] -= imax(0, endgame_score(entry->safety[WHITE])) / 16
-                       - imax(0, endgame_score(entry->safety[BLACK])) / 16;
-
-    // Compute the new safety evaluations for each side.
-    safety[MIDGAME] = fmax(0, wsafety[MIDGAME]) * wsafety[MIDGAME] / 256.0
-                      - fmax(0, bsafety[MIDGAME]) * bsafety[MIDGAME] / 256.0;
-    safety[ENDGAME] = fmax(0, wsafety[ENDGAME]) / 16.0 - fmax(0, bsafety[ENDGAME]) / 16.0;
-
-    // Save the safety scores for computing gradients later.
-    safetyValues->v[WHITE][MIDGAME] = wsafety[MIDGAME];
-    safetyValues->v[WHITE][ENDGAME] = wsafety[ENDGAME];
-    safetyValues->v[BLACK][MIDGAME] = bsafety[MIDGAME];
-    safetyValues->v[BLACK][ENDGAME] = bsafety[ENDGAME];
-
-    midgame = linear[MIDGAME] + safety[MIDGAME];
-    endgame = linear[ENDGAME] + safety[ENDGAME];
-
-    mixed = midgame * entry->phaseFactors[MIDGAME]
-            + endgame * entry->phaseFactors[ENDGAME] * entry->scaleFactor;
-
-    return mixed;
-}
-
-double adjusted_eval_mse(
-    const TuneDataset *restrict data, const TpVector *restrict delta, double sigmoidK)
-{
-    TpSplitEval safetyValues;
-    double result = 0.0;
-
-    for (size_t i = 0; i < data->size; ++i)
-    {
-        const TuneEntry *entry = data->entries + i;
-        result += pow(entry->gameResult
-                          - sigmoid(sigmoidK,
-                              adjusted_eval(entry, delta, &safetyValues, first_safety_term(entry))),
-            2);
-    }
-
-    return result / data->size;
-}
-
-void adam_update_gradient(const TuneEntry *entry, TpVector *restrict gradient,
-    const TpVector *restrict delta, double sigmoidK)
-{
-    TpSplitEval safetyValues;
-    const size_t safetyStart = first_safety_term(entry);
-    const double eval = adjusted_eval(entry, delta, &safetyValues, safetyStart);
-    const double sigm = sigmoid(sigmoidK, eval);
-    const double error = (entry->gameResult - sigm) * sigm * (1 - sigm);
-    const double mgBase = error * entry->phaseFactors[MIDGAME];
-    const double egBase = error * entry->phaseFactors[ENDGAME];
-
-    for (size_t i = 0; i < safetyStart; ++i)
-    {
-        const size_t index = entry->tuples[i].index;
-        const int8_t wcoeff = entry->tuples[i].wcoeff;
-        const int8_t bcoeff = entry->tuples[i].bcoeff;
-
-        gradient->v[index][MIDGAME] += mgBase * (wcoeff - bcoeff);
-        gradient->v[index][ENDGAME] += egBase * (wcoeff - bcoeff) * entry->scaleFactor;
-    }
-
-    const double wsafetyMg = fmax(safetyValues.v[WHITE][MIDGAME], 0);
-    const double bsafetyMg = fmax(safetyValues.v[BLACK][MIDGAME], 0);
-    const double wsafetyEg = safetyValues.v[WHITE][ENDGAME] > 0.0 ? 1.0 : 0.0;
-    const double bsafetyEg = safetyValues.v[BLACK][ENDGAME] > 0.0 ? 1.0 : 0.0;
-
-    for (size_t i = safetyStart; i < entry->tupleCount; ++i)
-    {
-        const size_t index = entry->tuples[i].index;
-        const int8_t wcoeff = entry->tuples[i].wcoeff;
-        const int8_t bcoeff = entry->tuples[i].bcoeff;
-
-        gradient->v[index][MIDGAME] += mgBase / 128.0 * (wsafetyMg * wcoeff - bsafetyMg * bcoeff);
-        gradient->v[index][ENDGAME] +=
-            egBase / 16.0 * entry->scaleFactor * (wsafetyEg * wcoeff - bsafetyEg * bcoeff);
+        entry->game_result =
+            entry->game_result * lambda + sigmoid(sigmoid_k, entry->search_score) * (1.0 - lambda);
     }
 }
 
-void adam_compute_gradient(const TuneDataset *restrict dataset, TpVector *restrict gradient,
-    const TpVector *restrict delta, double sigmoidK, size_t batchIdx)
-{
-    const size_t batchOffset = batchIdx * BATCH_SIZE;
-    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+f64 tuner_dataset_adjusted_eval_mse(
+    const TunerDataset *restrict tuner_dataset,
+    const TupleVector *restrict delta,
+    f64 sigmoid_k
+) {
+    TupleSafetyEval safety_eval;
+    f64 total = 0.0;
 
-#pragma omp parallel shared(gradient, mutex) num_threads(THREADS)
-    {
-        TpVector local;
-
-        reset_tp_vector(&local);
-
-#pragma omp for schedule(static)
-        for (int i = 0; i < BATCH_SIZE; ++i)
-            adam_update_gradient(dataset->entries + batchOffset + i, &local, delta, sigmoidK);
-
-        pthread_mutex_lock(&mutex);
-
-        for (int i = 0; i < IDX_COUNT; ++i)
-        {
-            gradient->v[i][MIDGAME] += local.v[i][MIDGAME];
-            gradient->v[i][ENDGAME] += local.v[i][ENDGAME];
-        }
-
-        pthread_mutex_unlock(&mutex);
-    }
-}
-
-void print_parameters(const TpVector *base, const TpVector *delta)
-{
-    printf("\n Parameters:\n");
-
-#define PRINT_SP(idx, val)                                          \
-    do {                                                            \
-        printf("const scorepair_t %s = SPAIR(%.lf, %.lf);\n", #val, \
-            base->v[idx][MIDGAME] + delta->v[idx][MIDGAME],         \
-            base->v[idx][ENDGAME] + delta->v[idx][ENDGAME]);        \
-    } while (0)
-
-#define PRINT_SP_NICE(idx, val, pad, nameAlign)                                        \
-    do {                                                                               \
-        printf("const scorepair_t %-*s = SPAIR(%*.lf,%*.lf);\n", nameAlign, #val, pad, \
-            base->v[idx][MIDGAME] + delta->v[idx][MIDGAME], pad,                       \
-            base->v[idx][ENDGAME] + delta->v[idx][ENDGAME]);                           \
-    } while (0)
-
-#define PRINT_SPA(idx, val, size, pad, lineSplit, prefix)                    \
-    do {                                                                     \
-        printf("const scorepair_t %s[%d] = {\n    ", #val, size);            \
-        for (int i = 0; i < size; ++i)                                       \
-            printf(prefix "(%*.lf,%*.lf)%s", pad,                            \
-                base->v[idx + i][MIDGAME] + delta->v[idx + i][MIDGAME], pad, \
-                base->v[idx + i][ENDGAME] + delta->v[idx + i][ENDGAME],      \
-                (i == size - 1)                    ? "\n"                    \
-                : (i % lineSplit == lineSplit - 1) ? ",\n    "               \
-                                                   : ", ");                  \
-        puts("};");                                                          \
-    } while (0)
-
-#define PRINT_SPA_PARTIAL(idx, val, size, start, end, pad, prefix)                               \
-    do {                                                                                         \
-        printf("const scorepair_t %s[%d] = {\n    ", #val, size);                                \
-        for (int i = 0; i < size; ++i)                                                           \
-        {                                                                                        \
-            if (i >= start && i < end)                                                           \
-                printf(prefix "(%*.lf,%*.lf)%s", pad,                                            \
-                    base->v[idx + i - start][MIDGAME] + delta->v[idx + i - start][MIDGAME], pad, \
-                    base->v[idx + i - start][ENDGAME] + delta->v[idx + i - start][ENDGAME],      \
-                    (i == size - 1) ? "\n" : ",\n    ");                                         \
-            else                                                                                 \
-                printf("0%s", (i == size - 1) ? "\n" : ",\n    ");                               \
-        }                                                                                        \
-        puts("};");                                                                              \
-    } while (0)
-
-    // psq_score.h start
-    printf("| psq_score.h |\n\n");
-
-    static const char *pieceNames[5] = {"PAWN", "KNIGHT", "BISHOP", "ROOK", "QUEEN"};
-
-    printf("// Enum for all pieces' midgame and endgame scores\nenum\n{\n");
-
-    for (int phase = MIDGAME; phase <= ENDGAME; ++phase)
-        for (piece_t piece = PAWN; piece <= QUEEN; ++piece)
-        {
-            printf("    %s_%s_SCORE = %.lf,\n", pieceNames[piece - PAWN],
-                phase == MIDGAME ? "MG" : "EG",
-                base->v[IDX_PIECE + piece - PAWN][phase]
-                    + delta->v[IDX_PIECE + piece - PAWN][phase]);
-
-            if (phase == MIDGAME && piece == QUEEN) putchar('\n');
-        }
-
-    printf("};\n\n");
-
-    // psq_score.h end
-    // psq_score.c start
-    printf("| psq_score.c |\n\n");
-
-    printf("// Square-based Pawn scoring for evaluation\n");
-    PRINT_SPA(IDX_PSQT, PawnSQT, 48, 3, 8, "S");
-    putchar('\n');
-
-    printf("// Square-based piece scoring for evaluation, using a file symmetry\n");
-    PRINT_SPA(IDX_PSQT + 48 + 32 * 0, KnightSQT, 32, 4, 4, "S");
-    putchar('\n');
-    PRINT_SPA(IDX_PSQT + 48 + 32 * 1, BishopSQT, 32, 4, 4, "S");
-    putchar('\n');
-    PRINT_SPA(IDX_PSQT + 48 + 32 * 2, RookSQT, 32, 4, 4, "S");
-    putchar('\n');
-    PRINT_SPA(IDX_PSQT + 48 + 32 * 3, QueenSQT, 32, 4, 4, "S");
-    putchar('\n');
-    PRINT_SPA(IDX_PSQT + 48 + 32 * 4, KingSQT, 32, 4, 4, "S");
-    printf("\n\n");
-
-    // psq_score.c end
-    // evaluate.c start
-    printf("| evaluate.c |\n\n");
-
-    printf("// Special eval terms\n");
-    PRINT_SP(IDX_INITIATIVE, Initiative);
-    putchar('\n');
-
-    printf("// King Safety eval terms\n");
-    PRINT_SP_NICE(IDX_KS_KNIGHT, KnightWeight, 4, 15);
-    PRINT_SP_NICE(IDX_KS_BISHOP, BishopWeight, 4, 15);
-    PRINT_SP_NICE(IDX_KS_ROOK, RookWeight, 4, 15);
-    PRINT_SP_NICE(IDX_KS_QUEEN, QueenWeight, 4, 15);
-    PRINT_SP_NICE(IDX_KS_ATTACK, AttackWeight, 4, 15);
-    PRINT_SP_NICE(IDX_KS_WEAK_Z, WeakKingZone, 4, 15);
-    PRINT_SP_NICE(IDX_KS_CHECK_N, SafeKnightCheck, 4, 15);
-    PRINT_SP_NICE(IDX_KS_CHECK_B, SafeBishopCheck, 4, 15);
-    PRINT_SP_NICE(IDX_KS_CHECK_R, SafeRookCheck, 4, 15);
-    PRINT_SP_NICE(IDX_KS_CHECK_Q, SafeQueenCheck, 4, 15);
-    PRINT_SP_NICE(IDX_KS_UNSAFE_CHECK, UnsafeCheck, 4, 15);
-    PRINT_SP_NICE(IDX_KS_QUEENLESS, QueenlessAttack, 4, 15);
-    PRINT_SP_NICE(IDX_KS_OFFSET, SafetyOffset, 4, 15);
-    putchar('\n');
-    printf("// Storm/Shelter indexes:\n");
-    printf("// 0-7 - Side\n// 9-15 - Front\n// 16-23 - Center\n");
-    PRINT_SPA(IDX_KS_STORM, KingStorm, 24, 4, 4, "SPAIR");
-    putchar('\n');
-    PRINT_SPA(IDX_KS_SHELTER, KingShelter, 24, 4, 4, "SPAIR");
-    putchar('\n');
-
-    printf("// Knight eval terms\n");
-    PRINT_SP_NICE(IDX_KNIGHT_SHIELDED, KnightShielded, 3, 19);
-    PRINT_SP_NICE(IDX_KNIGHT_OUTPOST, KnightOutpost, 3, 19);
-    putchar('\n');
-    PRINT_SPA(IDX_KNIGHT_CLOSED_POS, ClosedPosKnight, 5, 4, 4, "SPAIR");
-    putchar('\n');
-
-    printf("// Bishop eval terms\n");
-    PRINT_SP_NICE(IDX_BISHOP_PAIR, BishopPairBonus, 3, 18);
-    PRINT_SP_NICE(IDX_BISHOP_SHIELDED, BishopShielded, 3, 18);
-    PRINT_SP_NICE(IDX_BISHOP_OUTPOST, BishopOutpost, 3, 18);
-    PRINT_SP_NICE(IDX_BISHOP_LONG_DIAG, BishopLongDiagonal, 3, 18);
-    putchar('\n');
-    PRINT_SPA(IDX_BISHOP_PAWNS_COLOR, BishopPawnsSameColor, 7, 4, 4, "SPAIR");
-    putchar('\n');
-
-    printf("// Rook eval terms\n");
-    PRINT_SP_NICE(IDX_ROOK_SEMIOPEN, RookOnSemiOpenFile, 3, 18);
-    PRINT_SP_NICE(IDX_ROOK_OPEN, RookOnOpenFile, 3, 18);
-    PRINT_SP_NICE(IDX_ROOK_BLOCKED, RookOnBlockedFile, 3, 18);
-    PRINT_SP_NICE(IDX_ROOK_XRAY_QUEEN, RookXrayQueen, 3, 18);
-    PRINT_SP_NICE(IDX_ROOK_TRAPPED, RookTrapped, 3, 18);
-    PRINT_SP_NICE(IDX_ROOK_BURIED, RookBuried, 3, 18);
-    putchar('\n');
-
-    printf("// Mobility eval terms\n");
-    PRINT_SPA(IDX_MOBILITY_KNIGHT, MobilityN, 9, 4, 4, "SPAIR");
-    putchar('\n');
-    PRINT_SPA(IDX_MOBILITY_BISHOP, MobilityB, 14, 4, 4, "SPAIR");
-    putchar('\n');
-    PRINT_SPA(IDX_MOBILITY_ROOK, MobilityR, 15, 4, 4, "SPAIR");
-    putchar('\n');
-    PRINT_SPA(IDX_MOBILITY_QUEEN, MobilityQ, 28, 4, 4, "SPAIR");
-    putchar('\n');
-
-    printf("// Threat eval terms\n");
-    PRINT_SP_NICE(IDX_PAWN_ATK_MINOR, PawnAttacksMinor, 3, 17);
-    PRINT_SP_NICE(IDX_PAWN_ATK_ROOK, PawnAttacksRook, 3, 17);
-    PRINT_SP_NICE(IDX_PAWN_ATK_QUEEN, PawnAttacksQueen, 3, 17);
-    PRINT_SP_NICE(IDX_MINOR_ATK_ROOK, MinorAttacksRook, 3, 17);
-    PRINT_SP_NICE(IDX_MINOR_ATK_QUEEN, MinorAttacksQueen, 3, 17);
-    PRINT_SP_NICE(IDX_ROOK_ATK_QUEEN, RookAttacksQueen, 3, 17);
-    PRINT_SP_NICE(IDX_HANGING_PAWN, HangingPawn, 3, 17);
-    putchar('\n');
-
-    // evaluate.c end
-    // pawns.c start
-    printf("| pawns.c |\n\n");
-
-    printf("// Miscellanous bonus for Pawn structures\n");
-    PRINT_SP_NICE(IDX_BACKWARD, BackwardPenalty, 3, 16);
-    PRINT_SP_NICE(IDX_STRAGGLER, StragglerPenalty, 3, 16);
-    PRINT_SP_NICE(IDX_DOUBLED, DoubledPenalty, 3, 16);
-    PRINT_SP_NICE(IDX_ISOLATED, IsolatedPenalty, 3, 16);
-    putchar('\n');
-
-    printf("// Rank-based bonus for passed Pawns\n");
-    PRINT_SPA_PARTIAL(IDX_PASSER, PassedBonus, 8, 1, 7, 3, "SPAIR");
-    putchar('\n');
-    printf("// Passed Pawn eval terms\n");
-    PRINT_SPA(IDX_PP_OUR_KING_PROX, PP_OurKingProximity, 24, 4, 3, "SPAIR");
-    putchar('\n');
-    PRINT_SPA(IDX_PP_THEIR_KING_PROX, PP_TheirKingProximity, 24, 4, 3, "SPAIR");
-    putchar('\n');
-    printf("// Rank-based bonus for phalanx structures\n");
-    PRINT_SPA_PARTIAL(IDX_PHALANX, PhalanxBonus, 8, 1, 7, 3, "SPAIR");
-    putchar('\n');
-    printf("// Rank-based bonus for defenders\n");
-    PRINT_SPA_PARTIAL(IDX_DEFENDER, DefenderBonus, 8, 1, 6, 3, "SPAIR");
-    putchar('\n');
-}
-
-static void compute_wdl_eval_mix(TuneDataset *dataset, double sigmoidK)
-{
-    for (size_t i = 0; i < dataset->size; ++i)
-    {
-        TuneEntry *entry = dataset->entries + i;
-
-        entry->gameResult =
-            entry->gameResult * (1.0 - LAMBDA) + sigmoid(sigmoidK, entry->gameScore) * LAMBDA;
-    }
-}
-
-static void adam_update_momentum(double *momentum, double gradient)
-{
-    *momentum = *momentum * 0.9 + gradient * 0.1;
-}
-
-static void adam_update_velocity(double *velocity, double gradient)
-{
-    *velocity = *velocity * 0.999 + gradient * gradient * 0.001;
-}
-
-static void adam_update_delta(double *delta, double momentum, double velocity, double lr)
-{
-    *delta += momentum * lr / sqrt(1e-8 + velocity);
-}
-
-static void adam_update_values(
-    AdamOptimizer *restrict adam, TpVector *restrict delta, double sigmoidK, double learningRate)
-{
-    const double scale = (sigmoidK * 2.0 / BATCH_SIZE);
-
-    for (size_t i = 0; i < IDX_COUNT; ++i)
-    {
-        double mgGrad = adam->gradient.v[i][MIDGAME] * scale;
-        double egGrad = adam->gradient.v[i][ENDGAME] * scale;
-
-        adam_update_momentum(&adam->momentum.v[i][MIDGAME], mgGrad);
-        adam_update_momentum(&adam->momentum.v[i][ENDGAME], egGrad);
-
-        adam_update_velocity(&adam->velocity.v[i][MIDGAME], mgGrad);
-        adam_update_velocity(&adam->velocity.v[i][ENDGAME], egGrad);
-    }
-
-    for (size_t i = 0; i < IDX_COUNT; ++i)
-    {
-        adam_update_delta(&delta->v[i][MIDGAME], adam->momentum.v[i][MIDGAME],
-            adam->velocity.v[i][MIDGAME], learningRate);
-        adam_update_delta(&delta->v[i][ENDGAME], adam->momentum.v[i][ENDGAME],
-            adam->velocity.v[i][ENDGAME], learningRate);
-    }
-
-    reset_tp_vector(&adam->gradient);
-}
-
-static void adam_next_epoch(AdamOptimizer *restrict adam, const TuneDataset *restrict dataset,
-    TpVector *restrict delta, double sigmoidK, double learningRate)
-{
-    const size_t batchCount = dataset->size / BATCH_SIZE;
-
-    for (size_t batchIdx = 0; batchIdx < batchCount; ++batchIdx)
-    {
-        adam_compute_gradient(dataset, &adam->gradient, delta, sigmoidK, batchIdx);
-        adam_update_values(adam, delta, sigmoidK, learningRate);
-    }
-}
-
-#endif
-
-void start_tuning_session(const char *filename)
-{
 #ifdef TUNE
-    AdamOptimizer adam;
-    TpVector delta, base;
-    TuneDataset dataset = {};
+#pragma omp parallel for schedule(static) reduction(+ : total)
+#endif
+    for (usize i = 0; i < tuner_dataset->size; ++i) {
+        const TunerEntry *entry = &tuner_dataset->entries[i];
 
-    reset_tp_vector(&delta);
-    reset_tp_vector(&base);
-    adam_init(&adam);
-
-    init_base_values(&base);
-    init_tuner_entries(&dataset, filename);
-
-    const double sigmoidK = compute_optimal_k(&dataset);
-    double learningRate = LEARNING_RATE;
-
-    compute_wdl_eval_mix(&dataset, sigmoidK);
-
-    for (size_t iter = 0; iter < ITERS; ++iter)
-    {
-        adam_next_epoch(&adam, &dataset, &delta, sigmoidK, learningRate);
-
-        const double currentLoss = adjusted_eval_mse(&dataset, &delta, sigmoidK);
-
-        printf("Iteration [%u], Loss [%.7lf]\n", (unsigned int)iter, currentLoss);
-
-        if (iter % LR_DROP_ITERS == LR_DROP_ITERS - 1) learningRate /= LR_DROP_VALUE;
-
-        if (iter % 50 == 49 || iter == ITERS - 1) print_parameters(&base, &delta);
-
-        fflush(stdout);
+        total +=
+            pow(entry->game_result
+                    - sigmoid(sigmoid_k, tuner_entry_adjusted_eval(entry, delta, &safety_eval)),
+                2);
     }
 
-    for (size_t i = 0; i < dataset.size; ++i) free(dataset.entries[i].tuples);
-    free(dataset.entries);
-#else
-    (void)filename;
+    return total / tuner_dataset->size;
+}
+
+void tuner_dataset_compute_gradient(
+    const TunerDataset *tuner_dataset,
+    const TupleVector *restrict delta,
+    TupleVector *restrict gradient,
+    const TunerConfig *restrict tuner_config,
+    f64 sigmoid_k,
+    usize batch_index
+) {
+    const usize batch_offset = batch_index * tuner_config->batch_size;
+    const usize real_batch_size =
+        usize_min(tuner_dataset->size - batch_offset, tuner_config->batch_size);
+
+#ifdef TUNE
+#pragma omp parallel shared(gradient)
 #endif
+    {
+        TupleVector local;
+
+        tp_vector_reset(&local);
+
+#ifdef TUNE
+#pragma omp for schedule(static)
+#endif
+        for (usize i = 0; i < real_batch_size; ++i) {
+            tuner_entry_update_gradient(
+                &tuner_dataset->entries[batch_offset + i],
+                delta,
+                gradient,
+                sigmoid_k
+            );
+        }
+
+#ifdef TUNE
+#pragma omp critical
+#endif
+        for (usize i = 0; i < IDX_COUNT; ++i) {
+            gradient->values[i][MIDGAME] += local.values[i][MIDGAME];
+            gradient->values[i][ENDGAME] += local.values[i][ENDGAME];
+        }
+    }
+}
+
+void adam_init(AdamOptimizer *adam) {
+    tp_vector_reset(&adam->gradient);
+    tp_vector_reset(&adam->momentum);
+    tp_vector_reset(&adam->velocity);
+}
+
+void adam_update_delta(
+    AdamOptimizer *restrict adam,
+    TupleVector *restrict delta,
+    const TunerConfig *restrict tuner_config,
+    f64 sigmoid_k
+) {
+    const f64 scale = sigmoid_k * 2.0 / tuner_config->batch_size;
+
+    for (usize i = 0; i < IDX_COUNT; ++i) {
+        for (Phase p = MIDGAME; p <= ENDGAME; ++p) {
+            const f64 grad = adam->gradient.values[i][p] * scale;
+
+            adam->momentum.values[i][p] =
+                lerp(grad, adam->momentum.values[i][p], tuner_config->beta_1);
+            adam->velocity.values[i][p] =
+                lerp(grad * grad, adam->velocity.values[i][p], tuner_config->beta_2);
+        }
+    }
+
+    for (usize i = 0; i < IDX_COUNT; ++i) {
+        for (Phase p = MIDGAME; p <= ENDGAME; ++p) {
+            delta->values[i][p] += adam->momentum.values[i][p] * tuner_config->learning_rate
+                / sqrt(1e-8 + adam->velocity.values[i][p]);
+        }
+    }
+
+    tp_vector_reset(&adam->gradient);
+}
+
+void adam_do_one_iteration(
+    AdamOptimizer *restrict adam,
+    const TunerDataset *restrict tuner_dataset,
+    TupleVector *restrict delta,
+    const TunerConfig *tuner_config,
+    f64 sigmoid_k
+) {
+    const usize batch_count = usize_div_ceil(tuner_dataset->size, tuner_config->batch_size);
+
+    for (usize batch_index = 0; batch_index < batch_count; ++batch_index) {
+        tuner_dataset_compute_gradient(
+            tuner_dataset,
+            delta,
+            &adam->gradient,
+            tuner_config,
+            sigmoid_k,
+            batch_index
+        );
+        adam_update_delta(adam, delta, tuner_config, sigmoid_k);
+    }
+}
+
+void disp_scorepair_show(
+    const DisplayScorepair *disp_scorepair,
+    const TupleVector *base,
+    const TupleVector *delta
+) {
+    const u16 vecindex = disp_scorepair->index;
+    const Score mg = round(base->values[vecindex][MIDGAME] + delta->values[vecindex][MIDGAME]);
+    const Score eg = round(base->values[vecindex][ENDGAME] + delta->values[vecindex][ENDGAME]);
+
+    fwrite_strview(stdout, STATIC_STRVIEW("const Scorepair "));
+    fwrite_string(stdout, &disp_scorepair->name);
+
+    for (usize i = disp_scorepair->name.size; i < disp_scorepair->name_alignment; ++i) {
+        putchar(' ');
+    }
+
+    printf(
+        " = SPAIR(%*d, %*d);\n",
+        disp_scorepair->value_padding,
+        mg,
+        disp_scorepair->value_padding,
+        eg
+    );
+}
+
+void disp_sp_array_show(
+    const DisplayScorepairArray *disp_sp_array,
+    const TupleVector *base,
+    const TupleVector *delta
+) {
+    fwrite_strview(stdout, STATIC_STRVIEW("const Scorepair "));
+    fwrite_string(stdout, &disp_sp_array->name);
+    printf("[%d] = {\n", disp_sp_array->array_size);
+
+    for (u16 i = 0; i < disp_sp_array->array_size; ++i) {
+        if (disp_sp_array->values_per_line == 0 || i % disp_sp_array->values_per_line == 0) {
+            fwrite_strview(stdout, STATIC_STRVIEW("    "));
+        }
+
+        if (i < disp_sp_array->value_start || i >= disp_sp_array->value_end) {
+            // Compute the bytes required for printing the values in the scorepair.
+            // The calculation is as follows:
+            // - 1 or 5 bytes for the prefix ("S" or "SPAIR");
+            // - 4 bytes for the "(, )" part;
+            // - (2 * value_padding) bytes for the mg/eg integers.
+            const u16 value_bytes = (disp_sp_array->long_prefix ? 5u : 1u) + 4
+                + u16_max(disp_sp_array->value_padding, 1) * 2;
+
+            printf("%*s", value_bytes, "0");
+        } else {
+            const u16 vecindex = disp_sp_array->index + i - disp_sp_array->value_start;
+            const Score mg =
+                round(base->values[vecindex][MIDGAME] + delta->values[vecindex][MIDGAME]);
+            const Score eg =
+                round(base->values[vecindex][ENDGAME] + delta->values[vecindex][ENDGAME]);
+
+            printf(
+                "%s(%*d, %*d)",
+                disp_sp_array->long_prefix ? "SPAIR" : "S",
+                disp_sp_array->value_padding,
+                mg,
+                disp_sp_array->value_padding,
+                eg
+            );
+        }
+
+        const bool last_value = (i + 1 == disp_sp_array->array_size);
+        const bool last_line_value =
+            (disp_sp_array->values_per_line == 0 || (i + 1) % disp_sp_array->values_per_line == 0);
+
+        if (!last_value) {
+            putchar(',');
+        }
+
+        putchar(!last_value && !last_line_value ? ' ' : '\n');
+    }
+
+    fwrite_strview(stdout, STATIC_STRVIEW("};\n\n"));
+}
+
+void disp_sequence_init(DisplaySequence *disp_sequence) {
+    disp_sequence->blocks = NULL;
+    disp_sequence->size = 0;
+    disp_sequence->capacity = 0;
+}
+
+void disp_sequence_destroy(DisplaySequence *disp_sequence) {
+    for (usize i = 0; i < disp_sequence->size; ++i) {
+        DisplayBlock *block = &disp_sequence->blocks[i];
+
+        switch (block->block_type) {
+            case TypeScorepair: string_destroy(&block->data_union.scorepair.name); break;
+            case TypeScorepairArray: string_destroy(&block->data_union.scorepair_array.name); break;
+            case TypeRawString: string_destroy(&block->data_union.raw_string.str); break;
+            case TypeNewline: break;
+            case TypeCustom: break;
+        }
+    }
+
+    free(disp_sequence->blocks);
+    disp_sequence_init(disp_sequence);
+}
+
+void disp_sequence_maybe_extend_allocation(DisplaySequence *disp_sequence) {
+    if (disp_sequence->size == disp_sequence->capacity) {
+        disp_sequence->capacity += !disp_sequence->capacity ? 16 : disp_sequence->capacity / 4;
+        disp_sequence->blocks =
+            wrap_realloc(disp_sequence->blocks, sizeof(DisplayBlock) * disp_sequence->capacity);
+    }
+}
+
+void disp_sequence_add_scorepair(
+    DisplaySequence *disp_sequence,
+    StringView name,
+    u16 index,
+    u16 name_alignment,
+    u16 value_padding
+) {
+    disp_sequence_maybe_extend_allocation(disp_sequence);
+
+    DisplayBlock *current = &disp_sequence->blocks[disp_sequence->size];
+    DisplayScorepair *scorepair = &current->data_union.scorepair;
+
+    current->block_type = TypeScorepair;
+    string_init_from_strview(&scorepair->name, name);
+    scorepair->index = index;
+    scorepair->name_alignment = name_alignment;
+    scorepair->value_padding = value_padding;
+    ++disp_sequence->size;
+}
+
+void disp_sequence_add_scorepair_array(
+    DisplaySequence *disp_sequence,
+    StringView name,
+    u16 index,
+    u16 array_size,
+    u16 value_start,
+    u16 value_end,
+    u16 value_padding,
+    u16 values_per_line,
+    bool long_prefix
+) {
+    disp_sequence_maybe_extend_allocation(disp_sequence);
+
+    DisplayBlock *current = &disp_sequence->blocks[disp_sequence->size];
+    DisplayScorepairArray *sp_array = &current->data_union.scorepair_array;
+
+    current->block_type = TypeScorepairArray;
+    string_init_from_strview(&sp_array->name, name);
+    sp_array->index = index;
+    sp_array->array_size = array_size;
+    sp_array->value_start = value_start;
+    sp_array->value_end = value_end;
+    sp_array->value_padding = value_padding;
+    sp_array->values_per_line = values_per_line;
+    sp_array->long_prefix = long_prefix;
+    ++disp_sequence->size;
+}
+
+void disp_sequence_add_raw_string(DisplaySequence *disp_sequence, StringView str) {
+    disp_sequence_maybe_extend_allocation(disp_sequence);
+
+    DisplayBlock *current = &disp_sequence->blocks[disp_sequence->size];
+    DisplayRawString *raw_string = &current->data_union.raw_string;
+
+    current->block_type = TypeRawString;
+    string_init_from_strview(&raw_string->str, str);
+    ++disp_sequence->size;
+}
+
+void disp_sequence_add_newline(DisplaySequence *disp_sequence) {
+    disp_sequence_maybe_extend_allocation(disp_sequence);
+
+    DisplayBlock *current = &disp_sequence->blocks[disp_sequence->size];
+
+    current->block_type = TypeNewline;
+    ++disp_sequence->size;
+}
+
+void disp_sequence_add_custom(
+    DisplaySequence *disp_sequence,
+    void (*custom_display)(const TupleVector *, const TupleVector *)
+) {
+    disp_sequence_maybe_extend_allocation(disp_sequence);
+
+    DisplayBlock *current = &disp_sequence->blocks[disp_sequence->size];
+    DisplayCustomData *custom = &current->data_union.custom;
+
+    current->block_type = TypeCustom;
+    custom->custom_display = custom_display;
+    ++disp_sequence->size;
+}
+
+void disp_sequence_show(
+    const DisplaySequence *restrict disp_sequence,
+    const TupleVector *restrict base,
+    const TupleVector *restrict delta
+) {
+    for (usize i = 0; i < disp_sequence->size; ++i) {
+        const DisplayBlock *block = &disp_sequence->blocks[i];
+
+        switch (block->block_type) {
+            case TypeScorepair:
+                disp_scorepair_show(&block->data_union.scorepair, base, delta);
+                break;
+
+            case TypeScorepairArray:
+                disp_sp_array_show(&block->data_union.scorepair_array, base, delta);
+                break;
+
+            case TypeRawString: fwrite_string(stdout, &block->data_union.raw_string.str); break;
+
+            case TypeNewline: putchar('\n'); break;
+
+            case TypeCustom: block->data_union.custom.custom_display(base, delta); break;
+        }
+    }
+}
+
+void base_values_set_scorepair(TupleVector *base, Scorepair value, u16 index) {
+    base->values[index][MIDGAME] = scorepair_midgame(value);
+    base->values[index][ENDGAME] = scorepair_endgame(value);
+}
+
+void base_values_set_sp_array(
+    TupleVector *restrict base,
+    const Scorepair *restrict sp_array,
+    u16 index,
+    u16 value_start,
+    u16 value_end
+) {
+    for (u16 i = value_start; i < value_end; ++i) {
+        const u16 vecindex = index + i - value_start;
+
+        base->values[vecindex][MIDGAME] = scorepair_midgame(sp_array[i]);
+        base->values[vecindex][ENDGAME] = scorepair_endgame(sp_array[i]);
+    }
+}
+
+// Custom function for displaying piece values, as they are stored in an enum
+static void display_piece_values(const TupleVector *base, const TupleVector *delta) {
+    static const char *PieceNames[5] = {"PAWN", "KNIGHT", "BISHOP", "ROOK", "QUEEN"};
+
+    fwrite_strview(
+        stdout,
+        STATIC_STRVIEW("// Enum for all pieces' midgame, endgame and SEE scores\nenum {\n")
+    );
+
+    for (Phase p = MIDGAME; p <= ENDGAME; ++p) {
+        for (Piecetype pt = PAWN; pt <= QUEEN; ++pt) {
+            const u16 vecindex = IDX_PIECE + pt - PAWN;
+
+            printf(
+                "    %s_%cG_SCORE = %.lf,\n",
+                PieceNames[pt - PAWN],
+                p == MIDGAME ? 'M' : 'E',
+                base->values[vecindex][p] + delta->values[vecindex][p]
+            );
+        }
+
+        putchar('\n');
+    }
+
+    printf("    PAWN_SEE_SCORE = %d,\n", PAWN_SEE_SCORE);
+    printf("    KNIGHT_SEE_SCORE = %d,\n", KNIGHT_SEE_SCORE);
+    printf("    BISHOP_SEE_SCORE = %d,\n", BISHOP_SEE_SCORE);
+    printf("    ROOK_SEE_SCORE = %d,\n", ROOK_SEE_SCORE);
+    printf("    QUEEN_SEE_SCORE = %d,\n", QUEEN_SEE_SCORE);
+    fwrite_strview(stdout, STATIC_STRVIEW("};\n"));
+}
+
+void init_disp_sequence_and_base_values(
+    DisplaySequence *restrict disp_sequence,
+    TupleVector *restrict base
+) {
+    disp_sequence_init(disp_sequence);
+    tp_vector_reset(base);
+
+    // psq_table.h values
+    disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("\n[psq_table.h]\n\n"));
+    disp_sequence_add_custom(disp_sequence, display_piece_values);
+
+    // Record the piece values manually.
+    for (Phase p = MIDGAME; p <= ENDGAME; ++p) {
+        for (Piecetype pt = PAWN; pt <= QUEEN; ++pt) {
+            base->values[IDX_PIECE][p] = PieceScores[p][create_piece(WHITE, pt)];
+        }
+    }
+
+    // psq_table.c values
+    disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("\n[psq_table.c]\n\n"));
+
+    disp_sequence_add_raw_string(
+        disp_sequence,
+        STATIC_STRVIEW("// Square-based Pawn scoring for evaluation\n")
+    );
+    TUNE_ADD_SP_ARRAY(PawnSQT, IDX_PSQT, 48, 0, 48, 3, 8, false);
+
+    disp_sequence_add_raw_string(
+        disp_sequence,
+        STATIC_STRVIEW("// Square-based piece scoring for evaluation, using a file symmetry\n")
+    );
+    TUNE_ADD_SP_ARRAY(KnightSQT, IDX_PSQT + 48, 32, 0, 32, 4, 4, false);
+    TUNE_ADD_SP_ARRAY(BishopSQT, IDX_PSQT + 80, 32, 0, 32, 4, 4, false);
+    TUNE_ADD_SP_ARRAY(RookSQT, IDX_PSQT + 112, 32, 0, 32, 4, 4, false);
+    TUNE_ADD_SP_ARRAY(QueenSQT, IDX_PSQT + 144, 32, 0, 32, 4, 4, false);
+    TUNE_ADD_SP_ARRAY(KingSQT, IDX_PSQT + 176, 32, 0, 32, 4, 4, false);
+
+    // evaluate.c values
+    disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("\n[evaluate.c]\n\n"));
+    TUNE_ADD_SCOREPAIR(Initiative, IDX_INITIATIVE, 0, 2);
+    disp_sequence_add_newline(disp_sequence);
+
+    // TODO: a lot of the display code is missing. We will need to add it later.
 }

@@ -16,33 +16,36 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PAWNS_H
-#define PAWNS_H
+#ifndef KP_EVAL_H
+#define KP_EVAL_H
 
 #include "board.h"
 
-// Struct for pawn eval data
-typedef struct _KingPawnEntry
-{
-    hashkey_t key;
-    bitboard_t attackSpan[COLOR_NB];
-    bitboard_t passed[COLOR_NB];
-    scorepair_t value;
-} KingPawnEntry;
-
-// Struct for local pawn eval data
-typedef struct _PawnLocalData
-{
-    bitboard_t attacks[COLOR_NB];
-    bitboard_t attacks2[COLOR_NB];
-} PawnLocalData;
-
-enum
-{
-    KingPawnTableSize = 1 << 15
+enum {
+    KING_PAWN_ENTRY_NB = 32768,
 };
 
+// Struct for pawn eval data
+typedef struct _KingPawnEntry {
+    Key key;
+    Bitboard attack_span[COLOR_NB];
+    Bitboard passed[COLOR_NB];
+    Scorepair value;
+} KingPawnEntry;
+
+typedef struct _KingPawnTable {
+    KingPawnEntry entry[KING_PAWN_ENTRY_NB];
+} KingPawnTable;
+
+// Struct for local pawn eval data
+typedef struct _PawnLocalData {
+    Bitboard attacks[COLOR_NB];
+    Bitboard attacks2[COLOR_NB];
+} PawnLocalData;
+
+static_assert(sizeof(KingPawnTable) % 64 == 0, "Misaligned King-Pawn table");
+
 // Probes the King-Pawn hash table for the given position.
-KingPawnEntry *kp_probe(const Board *board);
+KingPawnEntry *king_pawn_probe(const Board *board);
 
 #endif

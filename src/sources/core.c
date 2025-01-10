@@ -16,20 +16,24 @@
 **    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef RANDOM_H
-#define RANDOM_H
-
 #include "core.h"
 
-// Generates a random 64-bit unsigned integer
-INLINED u64 u64_random(u64 *seed) {
-    u64 x = *seed;
-
-    x ^= x >> 12;
-    x ^= x << 25;
-    x ^= x >> 27;
-    *seed = x;
-    return x * U64(0x2545F4914F6CDD1D);
-}
-
+#if defined(_WIN32) || defined(_WIN64)
+#include <sys/timeb.h>
+#else
+#include <time.h>
 #endif
+
+Timepoint timepoint_now(void) {
+#if defined(_WIN32) || defined(_WIN64)
+    struct timeb tp;
+
+    ftime(&tp);
+    return (Timepoint)tp.time * 1000 + (Timepoint)tp.millitm;
+#else
+    struct timespec tp;
+
+    clock_gettime(CLOCK_REALTIME, &tp);
+    return (Timepoint)tp.tv_sec * 1000 + (Timepoint)tp.tv_nsec / 1000000;
+#endif
+}
