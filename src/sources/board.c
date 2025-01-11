@@ -29,6 +29,7 @@
 #include "hashkey.h"
 #include "movelist.h"
 #include "psq_table.h"
+#include "syncio.h"
 #include "wmalloc.h"
 
 const StringView PieceIndexes = STATIC_STRVIEW(" PNBRQK  pnbrqk ");
@@ -326,17 +327,17 @@ static bool board_parse_fen_pieces(Board *board, StringView piece_field) {
             file += c - '0';
 
             if (file > FILE_NB) {
-                // info_debug()
+                info_debug("info string Invalid FEN: too many squares in a single rank\n");
                 return false;
             }
         } else if (c == '/') {
             if (file != FILE_NB) {
-                // info_debug()
+                info_debug("info string Invalid FEN: not enough squares in a single rank\n");
                 return false;
             }
 
             if (rank == RANK_1) {
-                // info_debug()
+                info_debug("info string Invalid FEN: too many ranks\n");
                 return false;
             }
 
@@ -344,45 +345,50 @@ static bool board_parse_fen_pieces(Board *board, StringView piece_field) {
             file = FILE_A;
         } else if (piece_index = strview_find(PieceIndexes, c), piece_index != NPOS) {
             if (!file_is_valid(file)) {
-                // info_debug()
+                info_debug("info string Invalid FEN: too many squares in a single rank\n");
                 return false;
             }
 
             board_put_piece(board, (Piece)piece_index, create_square(file, rank));
             ++file;
         } else {
-            // info_debug()
+            info_debug(
+                "info string Invalid FEN: encountered '%c' (0x%02hhx) while parsing the piece "
+                "section\n",
+                c,
+                c
+            );
             return false;
         }
     }
 
     if (rank != RANK_1) {
-        // info_debug()
+        info_debug("info string Invalid FEN: not enough ranks\n");
         return false;
     }
 
     if (file != FILE_NB) {
-        // info_debug()
+        info_debug("info string Invalid FEN: not enough squares in a single rank\n");
         return false;
     }
 
     if (board_piece_count(board, WHITE_KING) != 1 || board_piece_count(board, BLACK_KING) != 1) {
-        // info_debug()
+        info_debug("info string Invalid FEN: invalid number of kings\n");
         return false;
     }
 
     if (square_distance(board_king_square(board, WHITE), board_king_square(board, BLACK)) == 1) {
-        // info_debug()
+        info_debug("info string Invalid FEN: kings are next to each other\n");
         return false;
     }
 
     if (board_piecetype_bb(board, PAWN) & (RANK_1_BB | RANK_8_BB)) {
-        // info_debug()
+        info_debug("info string Invalid FEN: pawns on first/lask ranks\n");
         return false;
     }
 
     if (board_has_invalid_material(board, WHITE) || board_has_invalid_material(board, BLACK)) {
-        // info_debug()
+        info_debug("info string Invalid FEN: illegal material distribution\n");
         return false;
     }
 
@@ -391,7 +397,7 @@ static bool board_parse_fen_pieces(Board *board, StringView piece_field) {
 
 static bool board_parse_stm(Board *board, StringView stm_field) {
     if (stm_field.size > 1) {
-        // info_debug()
+        info_debug("info string Invalid FEN: the STM field cannot be more than one character\n");
         return false;
     }
 
@@ -400,7 +406,11 @@ static bool board_parse_stm(Board *board, StringView stm_field) {
     } else if (stm_field.data[0] == 'b') {
         board->side_to_move = BLACK;
     } else {
-        // info_debug()
+        info_debug(
+            "info string Invalid FEN: '%c' (0x%02hhx) is not a valid STM field\n",
+            stm_field.data[0],
+            stm_field.data[0]
+        );
         return false;
     }
 
@@ -413,7 +423,7 @@ static bool board_set_castling(Board *board, Color color, Square rook_square) {
         relative_cr(color) & (king_square < rook_square ? KINGSIDE_CASTLING : QUEENSIDE_CASTLING);
 
     if (square_rank_relative(king_square, color) != RANK_1) {
-        // info_debug()
+        info_debug("info string Invalid FEN: castling rights with the King not on its back rank\n");
         return false;
     }
 
@@ -444,7 +454,11 @@ static bool board_parse_castling(Board *board, StringView castling_field) {
     for (usize i = 0; i < castling_field.size; ++i) {
         if (castling_field.data[i] == '-') {
             if (castling_field.size > 1) {
-                // info_debug()
+                info_debug(
+                    "info string Invalid FEN: '%.*s' is not a valid castling description\n",
+                    (int)castling_field.size,
+                    (const char *)castling_field.data
+                );
                 return false;
             }
 
@@ -473,7 +487,11 @@ static bool board_parse_castling(Board *board, StringView castling_field) {
         } else if (castling_char >= 'A' && castling_char <= 'H') {
             rook_square = create_square(castling_char - 'A', rank_relative(RANK_1, side));
         } else {
-            // info_debug()
+            info_debug(
+                "info string Invalid FEN: '%c' (0x%02hhx) is not a valid castling character\n",
+                castling_char,
+                castling_char
+            );
             return false;
         }
 
@@ -489,10 +507,15 @@ static bool board_parse_en_passant(Board *board, StringView ep_field) {
     board->stack->ep_square = SQ_NONE;
 
     if (ep_field.size == 1 && ep_field.data[0] != '-') {
-        // info_debug()
+        info_debug(
+            "info string Invalid FEN: '%c' is not a valid en passant description\n",
+            ep_field.data[0]
+        );
         return false;
     } else if (ep_field.size > 2) {
-        // info_debug()
+        info_debug(
+            "info string Invalid FEN: the en passant field cannot have more than 2 characters\n"
+        );
         return false;
     } else if (ep_field.size <= 1) {
         return true;
@@ -503,7 +526,14 @@ static bool board_parse_en_passant(Board *board, StringView ep_field) {
 
     if (file_char < 'a' || file_char > 'h'
         || rank_char != (board->side_to_move == WHITE ? '6' : '3')) {
-        // info_debug()
+        info_debug(
+            "info string Invalid FEN: '%c%c' (0x%02hhx 0x%02hhx) is not a valid en passant "
+            "square\n",
+            file_char,
+            rank_char,
+            file_char,
+            rank_char
+        );
         return false;
     }
 
@@ -512,7 +542,9 @@ static bool board_parse_en_passant(Board *board, StringView ep_field) {
     const Color them = color_flip(us);
 
     if (!bb_square_is_set(board_piece_bb(board, them, PAWN), ep_square + pawn_direction(them))) {
-        // info_debug()
+        info_debug(
+            "info string Invalid FEN: en passant square defined with no enemy pawn occupying it\n"
+        );
         return false;
     }
 
@@ -532,12 +564,18 @@ static bool board_parse_rule50(Board *board, StringView rule50_field) {
     }
 
     if (!strview_parse_u64(rule50_field, &value)) {
-        // info_debug()
+        info_debug(
+            "info string Invalid FEN: '%.*s' is not a valid halfmove-clock value\n",
+            (int)rule50_field.size,
+            (const char *)rule50_field.data
+        );
         return false;
     }
 
     if (value > 150) {
-        // info_debug()
+        info_debug(
+            "info string Invalid FEN: the halfmove-clock cannot exceed 150 plies (75 moves)\n"
+        );
         return false;
     }
 
@@ -554,12 +592,16 @@ static bool board_parse_movenumber(Board *board, StringView movenumber_field) {
     }
 
     if (!strview_parse_u64(movenumber_field, &value)) {
-        // info_debug()
+        info_debug(
+            "info string Invalid FEN: '%.*s' is not a valid fullmove-number value\n",
+            (int)movenumber_field.size,
+            (const char *)movenumber_field.data
+        );
         return false;
     }
 
     if (value > 8848) {
-        // info_debug()
+        info_debug("info string Invalid FEN: fullmove-number too large\n");
         return false;
     }
 
@@ -582,7 +624,7 @@ bool board_try_init(Board *board, StringView fen, bool is_chess960, Boardstack *
 
     if (board_attackers_to(board, board_king_square(board, color_flip(board->side_to_move)))
         & board_color_bb(board, board->side_to_move)) {
-        // info_debug()
+        info_debug("info string Invalid FEN: the opponent's King is in check\n");
         return false;
     }
 
@@ -591,7 +633,7 @@ bool board_try_init(Board *board, StringView fen, bool is_chess960, Boardstack *
     }
 
     if (!is_chess960 && board->chess960) {
-        // info_debug()
+        info_debug("info string Warning: FRC position emitted with the UCI_Chess960 flag unset\n");
     }
 
     board->chess960 = board->chess960 || is_chess960;
@@ -611,7 +653,7 @@ bool board_try_init(Board *board, StringView fen, bool is_chess960, Boardstack *
     boardstack_init(stack, board);
 
     if (bb_popcount(board->stack->checkers) > 2) {
-        // info_debug()
+        info_debug("info string Invalid FEN: more than 2 pieces are attacking the King\n");
         return false;
     }
 

@@ -25,7 +25,7 @@
 #include "wdl.h"
 #include "wmalloc.h"
 
-#define UCI_VERSION "v36.5"
+#define UCI_VERSION "v36.6"
 
 static const Command UciCommands[] = {
     {STATIC_STRVIEW("bench"), uci_bench},
@@ -147,7 +147,6 @@ void uci_init(Uci *uci) {
     uci_init_options(uci);
     board_try_init(&uci->root_board, StartposStr, false, stack);
     wpool_init(&uci->worker_pool);
-    atomic_store_explicit(&uci->debug_mode, false, memory_order_relaxed);
 }
 
 void uci_destroy(Uci *uci) {
@@ -195,11 +194,11 @@ void uci_d(Uci *uci, __attribute__((unused)) StringView args) {
     sync_unlock_stdout();
 }
 
-void uci_debug(Uci *uci, StringView args) {
+void uci_debug(Uci *uci __attribute__((unused)), StringView args) {
     StringView token = strview_next_word(&args);
     bool debug_state = strview_equals_strview(token, STATIC_STRVIEW("on"));
 
-    atomic_store_explicit(&uci->debug_mode, debug_state, memory_order_relaxed);
+    toggle_debug(debug_state);
 }
 
 void uci_go(Uci *uci, StringView args) {
@@ -213,7 +212,6 @@ void uci_go(Uci *uci, StringView args) {
         uci->option_values.normalize_score
     );
     search_params_set_from_uci(&search_params, &uci->root_board, args);
-    // info_debug()
     wpool_start_search(&uci->worker_pool, &uci->root_board, &search_params);
 }
 
@@ -243,7 +241,11 @@ void uci_position(Uci *uci, StringView args) {
         fen = strview_subview(args, 0, moves_idx);
         args = strview_subview(args, moves_idx, args.size);
     } else {
-        // info_debug()
+        info_debug(
+            "info string Error: unrecognized position type '%.*s'\n",
+            (int)token.size,
+            (const char *)token.data
+        );
         return;
     }
 
@@ -262,7 +264,11 @@ void uci_position(Uci *uci, StringView args) {
     }
 
     if (!strview_equals_strview(token, STATIC_STRVIEW("moves"))) {
-        // info_debug()
+        info_debug(
+            "info string Error: unrecognized token, expected 'moves', got '%.*s'\n",
+            (int)token.size,
+            (const char *)token.data
+        );
         return;
     }
 
@@ -276,7 +282,11 @@ void uci_position(Uci *uci, StringView args) {
         Move move = board_uci_to_move(&uci->root_board, token);
 
         if (move == NO_MOVE) {
-            // info_debug()
+            info_debug(
+                "info string Error: invalid/illegal move '%.*s', position parsing will stop here\n",
+                (int)token.size,
+                (const char *)token.data
+            );
             break;
         }
 
@@ -284,7 +294,13 @@ void uci_position(Uci *uci, StringView args) {
         board_do_move(&uci->root_board, move, stack);
     }
 
-    // info_debug()
+    StringView new_fen = board_get_fen(&uci->root_board);
+
+    info_debug(
+        "info string Final position state: '%.*s'\n",
+        (int)new_fen.size,
+        (const char *)new_fen.data
+    );
 }
 
 void uci_quit(Uci *uci, __attribute__((unused)) StringView args) {
@@ -298,7 +314,11 @@ void uci_setoption(Uci *uci, StringView args) {
     String name;
 
     if (!strview_equals_strview(token, STATIC_STRVIEW("name"))) {
-        // info_debug()
+        info_debug(
+            "info string Error: unrecognized setoption token, expected 'name', got '%.*s'\n",
+            (int)token.size,
+            (const char *)token.data
+        );
         return;
     }
 
@@ -359,7 +379,11 @@ bool uci_exec_command(Uci *uci, StringView command) {
     }
 
     if (!found) {
-        // info_debug()
+        info_debug(
+            "info string Error: unknown command '%.*s'\n",
+            (int)command_name.size,
+            (const char *)command_name.data
+        );
     }
 
     return !strview_equals_strview(command_name, STATIC_STRVIEW("quit"));

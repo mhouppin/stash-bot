@@ -41,7 +41,6 @@ typedef struct _Uci {
     OptionList option_list;
     Board root_board;
     WorkerPool worker_pool;
-    atomic_bool debug_mode;
 } Uci;
 
 typedef struct _Command {

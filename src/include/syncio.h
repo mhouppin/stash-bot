@@ -30,16 +30,18 @@ void sync_lock_stdout(void);
 
 void sync_unlock_stdout(void);
 
-usize string_getline(FILE *f, String *string);
-
 usize fwrite_strview(FILE *f, StringView strview);
 
 INLINED usize fwrite_string(FILE *f, const String *string) {
     return fwrite_strview(f, strview_from_string(string));
 }
 
-// TODO: implement these
-// void toggle_debug(bool state);
-// void info_debug(const char *fmt, ...);
+// Enable/disable some global debug information
+void toggle_debug(bool state);
+
+// Do a printf() with the passed parameters, but only if debugging has been enabled
+void info_debug(const char *fmt, ...);
+
+usize string_getline(FILE *f, String *string);
 
 #endif
