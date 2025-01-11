@@ -32,9 +32,60 @@ typedef enum _TuneIndex {
     IDX_PIECE,
     IDX_PSQT = IDX_PIECE + 5,
     IDX_INITIATIVE = IDX_PSQT + 48 + 32 * 5,
+    IDX_KNIGHT_CLOSED_POS,
+    IDX_KNIGHT_SHIELDED = IDX_KNIGHT_CLOSED_POS + 5,
+    IDX_KNIGHT_OUTPOST,
+    IDX_BISHOP_PAWNS_COLOR,
+    IDX_BISHOP_PAIR = IDX_BISHOP_PAWNS_COLOR + 7,
+    IDX_BISHOP_SHIELDED,
+    IDX_BISHOP_OUTPOST,
+    IDX_BISHOP_LONG_DIAG,
+    IDX_ROOK_SEMIOPEN,
+    IDX_ROOK_OPEN,
+    IDX_ROOK_BLOCKED,
+    IDX_ROOK_XRAY_QUEEN,
+    IDX_ROOK_TRAPPED,
+    IDX_ROOK_BURIED,
+    IDX_MOBILITY_KNIGHT,
+    IDX_MOBILITY_BISHOP = IDX_MOBILITY_KNIGHT + 9,
+    IDX_MOBILITY_ROOK = IDX_MOBILITY_BISHOP + 14,
+    IDX_MOBILITY_QUEEN = IDX_MOBILITY_ROOK + 15,
+    IDX_BACKWARD = IDX_MOBILITY_QUEEN + 28,
+    IDX_STRAGGLER,
+    IDX_DOUBLED,
+    IDX_ISOLATED,
+    IDX_PASSER,
+    IDX_PHALANX = IDX_PASSER + 6,
+    IDX_DEFENDER = IDX_PHALANX + 6,
+    IDX_PASSED_OUR_KING_DIST = IDX_DEFENDER + 5,
+    IDX_PASSED_THEIR_KING_DIST = IDX_PASSED_OUR_KING_DIST + 24,
+    IDX_PAWN_ATK_MINOR = IDX_PASSED_THEIR_KING_DIST + 24,
+    IDX_PAWN_ATK_ROOK,
+    IDX_PAWN_ATK_QUEEN,
+    IDX_MINOR_ATK_ROOK,
+    IDX_MINOR_ATK_QUEEN,
+    IDX_ROOK_ATK_QUEEN,
+    IDX_HANGING_PAWN,
+
+    // All King Safety terms should go under this enum value. This is done to
+    // facilitate gradient calculations in the internal tuner.
     IDX_KING_SAFETY,
-    IDX_COUNT,
-    // TODO: almost all constants are missing here.
+    IDX_KS_KNIGHT,
+    IDX_KS_BISHOP,
+    IDX_KS_ROOK,
+    IDX_KS_QUEEN,
+    IDX_KS_ATTACK,
+    IDX_KS_WEAK_Z,
+    IDX_KS_CHECK_N,
+    IDX_KS_CHECK_B,
+    IDX_KS_CHECK_R,
+    IDX_KS_CHECK_Q,
+    IDX_KS_UNSAFE_CHECK,
+    IDX_KS_QUEENLESS,
+    IDX_KS_STORM,
+    IDX_KS_SHELTER = IDX_KS_STORM + 24,
+    IDX_KS_OFFSET = IDX_KS_SHELTER + 24,
+    IDX_COUNT
 } TuneIndex;
 
 typedef struct _EvalTrace {
@@ -85,18 +136,42 @@ INLINED void trace_set_scalefactor(Scalefactor scalefactor) {
 }
 
 INLINED void trace_clear_safety(Color us) {
-    (void)us;
-    // TODO: code missing for now
+    Trace.coeffs[IDX_KS_KNIGHT][us] = 0;
+    Trace.coeffs[IDX_KS_BISHOP][us] = 0;
+    Trace.coeffs[IDX_KS_ROOK][us] = 0;
+    Trace.coeffs[IDX_KS_QUEEN][us] = 0;
+    Trace.coeffs[IDX_KS_ATTACK][us] = 0;
 }
 #else
-// TODO: replace these by functions that do nothing
-#define trace_init()
-#define trace_add(index, us, coeff)
-#define trace_set_phase(phase)
-#define trace_set_safety(us, safety)
-#define trace_set_eval(eval)
-#define trace_set_scalefactor(scalefactor)
-#define trace_clear_safety(us)
+INLINED void trace_init(void) {
+}
+
+INLINED void trace_add(u16 index, Color us, i8 coeff) {
+    (void)index;
+    (void)us;
+    (void)coeff;
+}
+
+INLINED void trace_set_phase(i16 phase) {
+    (void)phase;
+}
+
+INLINED void trace_set_safety(Color us, Scorepair safety) {
+    (void)us;
+    (void)safety;
+}
+
+INLINED void trace_set_eval(Scorepair eval) {
+    (void)eval;
+}
+
+INLINED void trace_set_scalefactor(Scalefactor scalefactor) {
+    (void)scalefactor;
+}
+
+INLINED void trace_clear_safety(Color us) {
+    (void)us;
+}
 #endif
 
 Score evaluate(const Board *board);

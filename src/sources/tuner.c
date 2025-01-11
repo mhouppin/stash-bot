@@ -602,16 +602,23 @@ void disp_sp_array_show(
             fwrite_strview(stdout, STATIC_STRVIEW("    "));
         }
 
+        const bool last_value = (i + 1 == disp_sp_array->array_size);
+        const bool last_line_value =
+            (disp_sp_array->values_per_line == 0 || (i + 1) % disp_sp_array->values_per_line == 0);
+
         if (i < disp_sp_array->value_start || i >= disp_sp_array->value_end) {
             // Compute the bytes required for printing the values in the scorepair.
             // The calculation is as follows:
             // - 1 or 5 bytes for the prefix ("S" or "SPAIR");
-            // - 4 bytes for the "(, )" part;
+            // - 5 bytes for the "(, )," part;
             // - (2 * value_padding) bytes for the mg/eg integers.
-            const u16 value_bytes = (disp_sp_array->long_prefix ? 5u : 1u) + 4
-                + u16_max(disp_sp_array->value_padding, 1) * 2;
+            // Don't right-pad the "0," if we're printing the rightmost term of a line.
+            const u16 value_bytes = last_line_value || last_value
+                ? 0
+                : (disp_sp_array->long_prefix ? 5u : 1u) + 5
+                    + u16_max(disp_sp_array->value_padding, 1) * 2;
 
-            printf("%*s", value_bytes, "0");
+            printf("%-*s", value_bytes, last_value ? "0" : "0,");
         } else {
             const u16 vecindex = disp_sp_array->index + i - disp_sp_array->value_start;
             const Score mg =
@@ -620,21 +627,14 @@ void disp_sp_array_show(
                 round(base->values[vecindex][ENDGAME] + delta->values[vecindex][ENDGAME]);
 
             printf(
-                "%s(%*d, %*d)",
+                "%s(%*d, %*d)%s",
                 disp_sp_array->long_prefix ? "SPAIR" : "S",
                 disp_sp_array->value_padding,
                 mg,
                 disp_sp_array->value_padding,
-                eg
+                eg,
+                last_value ? "" : ","
             );
-        }
-
-        const bool last_value = (i + 1 == disp_sp_array->array_size);
-        const bool last_line_value =
-            (disp_sp_array->values_per_line == 0 || (i + 1) % disp_sp_array->values_per_line == 0);
-
-        if (!last_value) {
-            putchar(',');
         }
 
         putchar(!last_value && !last_line_value ? ' ' : '\n');
@@ -873,8 +873,107 @@ void init_disp_sequence_and_base_values(
 
     // evaluate.c values
     disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("\n[evaluate.c]\n\n"));
+
+    disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("// Special eval terms\n"));
     TUNE_ADD_SCOREPAIR(Initiative, IDX_INITIATIVE, 0, 2);
     disp_sequence_add_newline(disp_sequence);
 
-    // TODO: a lot of the display code is missing. We will need to add it later.
+    disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("// Knight eval terms\n"));
+    TUNE_ADD_SCOREPAIR(KnightShielded, IDX_KNIGHT_SHIELDED, 14, 3);
+    TUNE_ADD_SCOREPAIR(KnightOutpost, IDX_KNIGHT_OUTPOST, 14, 3);
+    disp_sequence_add_newline(disp_sequence);
+
+    TUNE_ADD_SP_ARRAY(ClosedPosKnight, IDX_KNIGHT_CLOSED_POS, 5, 0, 5, 3, 4, true);
+
+    disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("// Bishop eval terms\n"));
+    TUNE_ADD_SCOREPAIR(BishopPairBonus, IDX_BISHOP_PAIR, 18, 3);
+    TUNE_ADD_SCOREPAIR(BishopShielded, IDX_BISHOP_SHIELDED, 18, 3);
+    TUNE_ADD_SCOREPAIR(BishopOutpost, IDX_BISHOP_OUTPOST, 18, 3);
+    TUNE_ADD_SCOREPAIR(BishopLongDiagonal, IDX_BISHOP_LONG_DIAG, 18, 3);
+    disp_sequence_add_newline(disp_sequence);
+
+    TUNE_ADD_SP_ARRAY(BishopPawnsSameColor, IDX_BISHOP_PAWNS_COLOR, 7, 0, 7, 3, 4, true);
+
+    disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("// Rook eval terms\n"));
+    TUNE_ADD_SCOREPAIR(RookOnSemiOpenFile, IDX_ROOK_SEMIOPEN, 18, 3);
+    TUNE_ADD_SCOREPAIR(RookOnOpenFile, IDX_ROOK_OPEN, 18, 3);
+    TUNE_ADD_SCOREPAIR(RookOnBlockedFile, IDX_ROOK_BLOCKED, 18, 3);
+    TUNE_ADD_SCOREPAIR(RookXrayQueen, IDX_ROOK_XRAY_QUEEN, 18, 3);
+    TUNE_ADD_SCOREPAIR(RookTrapped, IDX_ROOK_TRAPPED, 18, 3);
+    TUNE_ADD_SCOREPAIR(RookBuried, IDX_ROOK_BURIED, 18, 3);
+    disp_sequence_add_newline(disp_sequence);
+
+    disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("// Mobility eval terms\n"));
+    TUNE_ADD_SP_ARRAY(KnightMobility, IDX_MOBILITY_KNIGHT, 9, 0, 9, 4, 4, true);
+    TUNE_ADD_SP_ARRAY(BishopMobility, IDX_MOBILITY_BISHOP, 14, 0, 14, 4, 4, true);
+    TUNE_ADD_SP_ARRAY(RookMobility, IDX_MOBILITY_ROOK, 15, 0, 15, 4, 4, true);
+    TUNE_ADD_SP_ARRAY(QueenMobility, IDX_MOBILITY_QUEEN, 28, 0, 28, 4, 4, true);
+
+    disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("// King Safety eval terms\n"));
+    TUNE_ADD_SCOREPAIR(KnightWeight, IDX_KS_KNIGHT, 15, 4);
+    TUNE_ADD_SCOREPAIR(BishopWeight, IDX_KS_BISHOP, 15, 4);
+    TUNE_ADD_SCOREPAIR(RookWeight, IDX_KS_ROOK, 15, 4);
+    TUNE_ADD_SCOREPAIR(QueenWeight, IDX_KS_QUEEN, 15, 4);
+    TUNE_ADD_SCOREPAIR(AttackWeight, IDX_KS_ATTACK, 15, 4);
+    TUNE_ADD_SCOREPAIR(WeakKingZone, IDX_KS_WEAK_Z, 15, 4);
+    TUNE_ADD_SCOREPAIR(SafeKnightCheck, IDX_KS_CHECK_N, 15, 4);
+    TUNE_ADD_SCOREPAIR(SafeBishopCheck, IDX_KS_CHECK_B, 15, 4);
+    TUNE_ADD_SCOREPAIR(SafeRookCheck, IDX_KS_CHECK_R, 15, 4);
+    TUNE_ADD_SCOREPAIR(SafeQueenCheck, IDX_KS_CHECK_Q, 15, 4);
+    TUNE_ADD_SCOREPAIR(UnsafeCheck, IDX_KS_UNSAFE_CHECK, 15, 4);
+    TUNE_ADD_SCOREPAIR(QueenlessAttack, IDX_KS_QUEENLESS, 15, 4);
+    TUNE_ADD_SCOREPAIR(SafetyOffset, IDX_KS_OFFSET, 15, 4);
+    disp_sequence_add_newline(disp_sequence);
+
+    disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("// Storm/Shelter indexes:\n"));
+    disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("// 0-7 - Side\n"));
+    disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("// 9-15 - Front\n"));
+    disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("// 16-23 - Center\n"));
+    TUNE_ADD_SP_ARRAY(KingStorm, IDX_KS_STORM, 24, 0, 24, 4, 4, true);
+    TUNE_ADD_SP_ARRAY(KingShelter, IDX_KS_SHELTER, 24, 0, 24, 4, 4, true);
+
+    disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("// Threat eval terms\n"));
+    TUNE_ADD_SCOREPAIR(PawnAttacksMinor, IDX_PAWN_ATK_MINOR, 17, 3);
+    TUNE_ADD_SCOREPAIR(PawnAttacksRook, IDX_PAWN_ATK_ROOK, 17, 3);
+    TUNE_ADD_SCOREPAIR(PawnAttacksQueen, IDX_PAWN_ATK_QUEEN, 17, 3);
+    TUNE_ADD_SCOREPAIR(MinorAttacksRook, IDX_MINOR_ATK_ROOK, 17, 3);
+    TUNE_ADD_SCOREPAIR(MinorAttacksQueen, IDX_MINOR_ATK_QUEEN, 17, 3);
+    TUNE_ADD_SCOREPAIR(RookAttacksQueen, IDX_ROOK_ATK_QUEEN, 17, 3);
+    TUNE_ADD_SCOREPAIR(HangingPawn, IDX_HANGING_PAWN, 17, 3);
+    disp_sequence_add_newline(disp_sequence);
+
+    // kp_eval.c values
+    disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("\n[kp_eval.c]\n\n"));
+
+    disp_sequence_add_raw_string(
+        disp_sequence,
+        STATIC_STRVIEW("// Miscellanous bonus for Pawn structures\n")
+    );
+    TUNE_ADD_SCOREPAIR(BackwardPenalty, IDX_BACKWARD, 16, 3);
+    TUNE_ADD_SCOREPAIR(StragglerPenalty, IDX_STRAGGLER, 16, 3);
+    TUNE_ADD_SCOREPAIR(DoubledPenalty, IDX_DOUBLED, 16, 3);
+    TUNE_ADD_SCOREPAIR(IsolatedPenalty, IDX_ISOLATED, 16, 3);
+    disp_sequence_add_newline(disp_sequence);
+
+    disp_sequence_add_raw_string(
+        disp_sequence,
+        STATIC_STRVIEW("// Rank-based bonus for pased Pawns\n")
+    );
+    TUNE_ADD_SP_ARRAY(PassedBonus, IDX_PASSER, 8, 1, 7, 3, 1, true);
+
+    disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("// Passed Pawn eval terms\n"));
+    TUNE_ADD_SP_ARRAY(PassedOurKingDistance, IDX_PASSED_OUR_KING_DIST, 24, 0, 24, 4, 3, true);
+    TUNE_ADD_SP_ARRAY(PassedTheirKingDistance, IDX_PASSED_THEIR_KING_DIST, 24, 0, 24, 4, 3, true);
+
+    disp_sequence_add_raw_string(
+        disp_sequence,
+        STATIC_STRVIEW("// Rank-based bonus for phalanx structures\n")
+    );
+    TUNE_ADD_SP_ARRAY(PhalanxBonus, IDX_PHALANX, 8, 1, 7, 3, 1, true);
+
+    disp_sequence_add_raw_string(
+        disp_sequence,
+        STATIC_STRVIEW("// Rank-based bonus for defenders\n")
+    );
+    TUNE_ADD_SP_ARRAY(DefenderBonus, IDX_DEFENDER, 8, 1, 6, 3, 1, true);
 }
