@@ -1078,6 +1078,7 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
     if (tt_found) {
         tt_score = score_from_tt(tt_entry->score, ss->plies);
         tt_bound = tt_entry_bound(tt_entry);
+        tt_move = tt_entry->bestmove;
 
         // Check if we can directly return a score for non-PV nodes.
         if (!pv_node
@@ -1086,10 +1087,6 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
             return tt_score;
         }
     }
-
-    // TODO: this is silly. The tt_move should be set in the (tt_found) condition above. Test this
-    // as a potential gainer later.
-    tt_move = tt_entry->bestmove;
 
     const bool in_check = !!board->stack->checkers;
     Score raw_eval;
