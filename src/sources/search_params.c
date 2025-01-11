@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "chess_types.h"
+#include "syncio.h"
 
 void search_params_init(
     SearchParams *search_params,
@@ -64,7 +65,14 @@ static bool
     token = strview_next_word(command_args);
 
     if (!strview_parse_i64(token, &value)) {
-        // info_debug()
+        info_debug(
+            "info string Warning: unable to parse '%.*s' as a value for '%.*s', so this parameter "
+            "will be ignored\n",
+            (int)token.size,
+            (const char *)token.data,
+            (int)name.size,
+            (const char *)name.data
+        );
     } else {
         *field = (Duration)value;
     }
@@ -89,9 +97,24 @@ static bool try_set_u16(
     token = strview_next_word(command_args);
 
     if (!strview_parse_u64(token, &value)) {
-        // info_debug()
+        info_debug(
+            "info string Warning: unable to parse '%.*s' as a value for '%.*s', so this parameter "
+            "will be ignored\n",
+            (int)token.size,
+            (const char *)token.data,
+            (int)name.size,
+            (const char *)name.data
+        );
     } else if (value < (u64)min_value || value > (u64)max_value) {
-        // info_debug()
+        info_debug(
+            "info string Warning: " FORMAT_LARGE_INT
+            " is outside the supported range (%u, %u) for '%.*s', so we will clamp the value\n",
+            (LargeInt)value,
+            min_value,
+            max_value,
+            (int)name.size,
+            (const char *)name.data
+        );
         *field = (u16)u64_clamp(value, min_value, max_value);
     } else {
         *field = (u16)value;
@@ -117,9 +140,25 @@ static bool try_set_u64(
     token = strview_next_word(command_args);
 
     if (!strview_parse_u64(token, &value)) {
-        // info_debug()
+        info_debug(
+            "info string Warning: unable to parse '%.*s' as a value for '%.*s', so this parameter "
+            "will be ignored\n",
+            (int)token.size,
+            (const char *)token.data,
+            (int)name.size,
+            (const char *)name.data
+        );
     } else if (value < min_value || value > max_value) {
-        // info_debug()
+        info_debug(
+            "info string Warning: " FORMAT_LARGE_INT
+            " is outside the supported range (" FORMAT_LARGE_INT ", " FORMAT_LARGE_INT
+            ") for '%.*s', so we will clamp the value\n",
+            (LargeInt)value,
+            (LargeInt)min_value,
+            (LargeInt)max_value,
+            (int)name.size,
+            (const char *)name.data
+        );
         *field = u64_clamp(value, min_value, max_value);
     } else {
         *field = value;
@@ -159,9 +198,18 @@ static bool try_set_searchmoves(
         if (move != NO_MOVE && !movelist_contains(movelist, move)) {
             (movelist->end++)->move = move;
         } else if (move == NO_MOVE) {
-            // info_debug()
+            info_debug(
+                "info string Warning: '%.*s' is not a valid/legal UCI move for the given position, "
+                "so we will ignore it\n",
+                (int)token.size,
+                (const char *)token.data
+            );
         } else {
-            // info_debug()
+            info_debug(
+                "info string Warning: '%.*s' has been specified twice\n",
+                (int)token.size,
+                (const char *)token.data
+            );
         }
     }
 
@@ -288,7 +336,11 @@ void search_params_set_from_uci(
             break;
         }
 
-        // info_debug()
+        info_debug(
+            "info string Warning: unrecognized go parameter '%.*s', so we will ignore it\n",
+            (int)token.size,
+            (const char *)token.data
+        );
     }
 
     if (movelist_size(&search_params->searchmoves) == 0) {

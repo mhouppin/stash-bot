@@ -19,6 +19,9 @@
 #include "syncio.h"
 
 #include <pthread.h>
+#include <stdarg.h>
+#include <stdatomic.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 enum {
@@ -26,6 +29,7 @@ enum {
 };
 
 static pthread_mutex_t StdoutMutex;
+static atomic_bool UciDebug;
 
 void sync_init(void) {
     if (pthread_mutex_init(&StdoutMutex, NULL)) {
@@ -44,6 +48,23 @@ void sync_unlock_stdout(void) {
 
 usize fwrite_strview(FILE *f, StringView strview) {
     return fwrite(strview.data, sizeof(u8), strview.size, f);
+}
+
+void toggle_debug(bool state) {
+    atomic_store_explicit(&UciDebug, state, memory_order_relaxed);
+}
+
+void info_debug(const char *fmt, ...) {
+    if (!atomic_load_explicit(&UciDebug, memory_order_relaxed)) {
+        return;
+    }
+
+    va_list ap;
+
+    va_start(ap, fmt);
+    vprintf(fmt, ap);
+    fflush(stdout);
+    va_end(ap);
 }
 
 usize string_getline(FILE *f, String *string) {

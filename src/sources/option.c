@@ -348,7 +348,6 @@ bool option_check_try_set(OptionParams *params, StringView value) {
 bool option_string_try_set(OptionParams *params, StringView value) {
     OptStringParams *string_params = &params->string;
 
-    // info_debug()
     string_clear(string_params->current_value);
     string_push_back_strview(string_params->current_value, value);
     return true;
@@ -603,7 +602,13 @@ void optlist_set_option(OptionList *optlist, StringView name, StringView value) 
                 return;
             }
 
-            // info_debug()
+            info_debug(
+                "info string Setting option '%.*s' to '%.*s'\n",
+                (int)cur_option->option_name.size,
+                (const char *)cur_option->option_name.data,
+                (int)value.size,
+                (const char *)value.data
+            );
 
             if (cur_option->setoption_callback != NULL) {
                 cur_option->setoption_callback(&cur_option->option_params);

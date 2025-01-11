@@ -21,6 +21,7 @@
 #include <math.h>
 
 #include "movelist.h"
+#include "syncio.h"
 
 // Scaling table based on the number of consecutive iterations the bestmove held
 const f64 BestmoveStabilityScale[5] = {2.50, 1.20, 0.90, 0.80, 0.75};
@@ -71,14 +72,20 @@ void timeman_init(
         timeman->average_time = duration_min(time - 1, timeman->average_time);
         timeman->maximal_time = duration_min(time - 1, timeman->maximal_time);
         timeman->optimal_time = timeman->maximal_time;
-        // info_debug()
+        info_debug(
+            "info string maximal_time " FORMAT_LARGE_INT "\n",
+            (LargeInt)timeman->maximal_time
+        );
     } else if (search_params->movetime != 0) {
         timeman->mode = TmMovetime;
         timeman->maximal_time =
             duration_max(1, search_params->movetime - search_params->move_overhead);
         timeman->average_time = timeman->maximal_time;
         timeman->optimal_time = timeman->maximal_time;
-        // info_debug()
+        info_debug(
+            "info string maximal_time " FORMAT_LARGE_INT "\n",
+            (LargeInt)timeman->maximal_time
+        );
     } else {
         timeman->mode = TmNone;
     }
@@ -145,7 +152,7 @@ void timeman_update(
     // Update score + optimal time usage.
     timeman->previous_score = root_score;
     timeman->optimal_time = duration_min(timeman->maximal_time, timeman->average_time * scale);
-    // info_debug()
+    info_debug("info string optimal_time " FORMAT_LARGE_INT "\n", (LargeInt)timeman->optimal_time);
 }
 
 bool timeman_can_stop_search(const Timeman *timeman, Timepoint current_tp) {
