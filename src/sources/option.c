@@ -526,12 +526,14 @@ static void option_init_common(
     Option *option,
     StringView name,
     OptionType option_type,
-    void (*setoption_callback)(const OptionParams *)
+    void (*setoption_callback)(const OptionParams *, void *),
+    void *callback_data
 ) {
     string_init_from_strview(&option->option_name, name);
     option->option_type = option_type;
     option->option_vtable = &OptionTypeVtables[option_type];
     option->setoption_callback = setoption_callback;
+    option->callback_data = callback_data;
 }
 
 static void optlist_maybe_extend_capacity(OptionList *optlist) {
@@ -611,7 +613,10 @@ void optlist_set_option(OptionList *optlist, StringView name, StringView value) 
             );
 
             if (cur_option->setoption_callback != NULL) {
-                cur_option->setoption_callback(&cur_option->option_params);
+                cur_option->setoption_callback(
+                    &cur_option->option_params,
+                    cur_option->callback_data
+                );
             }
 
             return;
@@ -628,14 +633,15 @@ void optlist_set_option(OptionList *optlist, StringView name, StringView value) 
 void optlist_add_button(
     OptionList *optlist,
     StringView name,
-    void (*setoption_callback)(const OptionParams *)
+    void (*setoption_callback)(const OptionParams *, void *),
+    void *callback_data
 ) {
     optlist_maybe_extend_capacity(optlist);
 
     Option *new_option = &optlist->options[optlist->size];
 
     new_option->option_params = (OptionParams) {.button = {}};
-    option_init_common(new_option, name, OptionButton, setoption_callback);
+    option_init_common(new_option, name, OptionButton, setoption_callback, callback_data);
     optlist->size++;
 }
 
@@ -646,7 +652,8 @@ void optlist_add_spin_integer(
     i64 minval,
     i64 maxval,
     bool is_tunable,
-    void (*setoption_callback)(const OptionParams *)
+    void (*setoption_callback)(const OptionParams *, void *),
+    void *callback_data
 ) {
     optlist_maybe_extend_capacity(optlist);
 
@@ -663,7 +670,7 @@ void optlist_add_spin_integer(
        }
     };
     // clang-format on
-    option_init_common(new_option, name, OptionSpinInteger, setoption_callback);
+    option_init_common(new_option, name, OptionSpinInteger, setoption_callback, callback_data);
     optlist->size++;
 }
 
@@ -675,7 +682,8 @@ void optlist_add_spin_float(
     f64 maxval,
     i64 resolution,
     bool is_tunable,
-    void (*setoption_callback)(const OptionParams *)
+    void (*setoption_callback)(const OptionParams *, void *),
+    void *callback_data
 ) {
     optlist_maybe_extend_capacity(optlist);
 
@@ -693,7 +701,7 @@ void optlist_add_spin_float(
         }
     };
     // clang-format on
-    option_init_common(new_option, name, OptionSpinFloat, setoption_callback);
+    option_init_common(new_option, name, OptionSpinFloat, setoption_callback, callback_data);
     optlist->size++;
 }
 
@@ -701,7 +709,8 @@ void optlist_add_check(
     OptionList *optlist,
     StringView name,
     bool *value,
-    void (*setoption_callback)(const OptionParams *)
+    void (*setoption_callback)(const OptionParams *, void *),
+    void *callback_data
 ) {
     optlist_maybe_extend_capacity(optlist);
 
@@ -715,7 +724,7 @@ void optlist_add_check(
         }
     };
     // clang-format on
-    option_init_common(new_option, name, OptionCheck, setoption_callback);
+    option_init_common(new_option, name, OptionCheck, setoption_callback, callback_data);
     optlist->size++;
 }
 
@@ -723,7 +732,8 @@ void optlist_add_string(
     OptionList *optlist,
     StringView name,
     String *value,
-    void (*setoption_callback)(const OptionParams *)
+    void (*setoption_callback)(const OptionParams *, void *),
+    void *callback_data
 ) {
     optlist_maybe_extend_capacity(optlist);
 
@@ -734,7 +744,7 @@ void optlist_add_string(
         &new_option->option_params.string.default_value,
         strview_from_string(value)
     );
-    option_init_common(new_option, name, OptionString, setoption_callback);
+    option_init_common(new_option, name, OptionString, setoption_callback, callback_data);
     optlist->size++;
 }
 
@@ -742,7 +752,8 @@ void optlist_add_combo(
     OptionList *optlist,
     StringView name,
     String *value,
-    void (*setoption_callback)(const OptionParams *),
+    void (*setoption_callback)(const OptionParams *, void *),
+    void *callback_data,
     usize allowed_count,
     ...
 ) {
@@ -763,7 +774,7 @@ void optlist_add_combo(
     }
 
     va_end(ap);
-    option_init_common(new_option, name, OptionCombo, setoption_callback);
+    option_init_common(new_option, name, OptionCombo, setoption_callback, callback_data);
     optlist->size++;
 }
 
@@ -774,7 +785,8 @@ void optlist_add_score(
     Score minval,
     Score maxval,
     bool is_tunable,
-    void (*setoption_callback)(const OptionParams *)
+    void (*setoption_callback)(const OptionParams *, void *),
+    void *callback_data
 ) {
     optlist_maybe_extend_capacity(optlist);
 
@@ -791,7 +803,7 @@ void optlist_add_score(
         }
     };
     // clang-format on
-    option_init_common(new_option, name, OptionScore, setoption_callback);
+    option_init_common(new_option, name, OptionScore, setoption_callback, callback_data);
     optlist->size++;
 }
 
@@ -803,7 +815,8 @@ static void optlist_add_half_scorepair(
     Score maxval,
     bool is_tunable,
     Phase phase,
-    void (*setoption_callback)(const OptionParams *)
+    void (*setoption_callback)(const OptionParams *, void *),
+    void *callback_data
 ) {
     optlist_maybe_extend_capacity(optlist);
 
@@ -828,7 +841,8 @@ static void optlist_add_half_scorepair(
         new_option,
         strview_from_string(&ext_name),
         OptionHalfScorepair,
-        setoption_callback
+        setoption_callback,
+        callback_data
     );
     string_destroy(&ext_name);
     optlist->size++;
@@ -841,7 +855,8 @@ void optlist_add_scorepair(
     Score minval,
     Score maxval,
     bool is_tunable,
-    void (*setoption_callback)(const OptionParams *)
+    void (*setoption_callback)(const OptionParams *, void *),
+    void *callback_data
 ) {
     optlist_add_half_scorepair(
         optlist,
@@ -851,7 +866,8 @@ void optlist_add_scorepair(
         maxval,
         is_tunable,
         MIDGAME,
-        setoption_callback
+        setoption_callback,
+        callback_data
     );
     optlist_add_half_scorepair(
         optlist,
@@ -861,6 +877,7 @@ void optlist_add_scorepair(
         maxval,
         is_tunable,
         ENDGAME,
-        setoption_callback
+        setoption_callback,
+        callback_data
     );
 }

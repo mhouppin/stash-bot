@@ -25,7 +25,7 @@
 #include "wdl.h"
 #include "wmalloc.h"
 
-#define UCI_VERSION "v36.8"
+#define UCI_VERSION "v36.9"
 
 static const Command UciCommands[] = {
     {STATIC_STRVIEW("bench"), uci_bench},
@@ -43,26 +43,18 @@ static const Command UciCommands[] = {
     {STATIC_STRVIEW("ucinewgame"), uci_ucinewgame},
 };
 
-// TODO: pass a pointer to the UCI object during option initialization to make this function
-// obsolete.
-static Uci *get_uci_handler(void) {
-    static Uci uci;
-
-    return &uci;
-}
-
-void on_threads_change(__attribute__((unused)) const OptionParams *params) {
-    Uci *uci = get_uci_handler();
+void on_threads_change(__attribute__((unused)) const OptionParams *params, void *uci_ptr) {
+    Uci *uci = (Uci *)uci_ptr;
     wpool_resize(&uci->worker_pool, (u64)uci->option_values.threads);
 }
 
-void on_hash_change(__attribute__((unused)) const OptionParams *params) {
-    Uci *uci = get_uci_handler();
+void on_hash_change(__attribute__((unused)) const OptionParams *params, void *uci_ptr) {
+    Uci *uci = (Uci *)uci_ptr;
     tt_resize(&uci->worker_pool.tt, (u64)uci->option_values.hash, (u64)uci->option_values.threads);
 }
 
-void on_clear_hash(__attribute__((unused)) const OptionParams *params) {
-    uci_ucinewgame(get_uci_handler(), EmptyStrview);
+void on_clear_hash(__attribute__((unused)) const OptionParams *params, void *uci_ptr) {
+    uci_ucinewgame((Uci *)uci_ptr, EmptyStrview);
 }
 
 static void uci_init_options(Uci *uci) {
@@ -85,7 +77,8 @@ static void uci_init_options(Uci *uci) {
         1,
         256,
         false,
-        on_threads_change
+        on_threads_change,
+        (void *)uci
     );
     optlist_add_spin_integer(
         &uci->option_list,
@@ -94,7 +87,8 @@ static void uci_init_options(Uci *uci) {
         1,
         33554432,
         false,
-        on_hash_change
+        on_hash_change,
+        (void *)uci
     );
     optlist_add_spin_integer(
         &uci->option_list,
@@ -103,6 +97,7 @@ static void uci_init_options(Uci *uci) {
         1,
         5000,
         false,
+        NULL,
         NULL
     );
     optlist_add_spin_integer(
@@ -112,33 +107,43 @@ static void uci_init_options(Uci *uci) {
         1,
         500,
         false,
+        NULL,
         NULL
     );
     optlist_add_check(
         &uci->option_list,
         strview_from_cstr("UCI_Chess960"),
         &uci->option_values.chess960,
+        NULL,
         NULL
     );
     optlist_add_check(
         &uci->option_list,
         strview_from_cstr("UCI_ShowWDL"),
         &uci->option_values.show_wdl,
+        NULL,
         NULL
     );
     optlist_add_check(
         &uci->option_list,
         strview_from_cstr("NormalizeScore"),
         &uci->option_values.normalize_score,
+        NULL,
         NULL
     );
     optlist_add_check(
         &uci->option_list,
         strview_from_cstr("Ponder"),
         &uci->option_values.ponder,
+        NULL,
         NULL
     );
-    optlist_add_button(&uci->option_list, strview_from_cstr("Clear Hash"), &on_clear_hash);
+    optlist_add_button(
+        &uci->option_list,
+        strview_from_cstr("Clear Hash"),
+        &on_clear_hash,
+        (void *)uci
+    );
 }
 
 void uci_init(Uci *uci) {
@@ -390,13 +395,13 @@ bool uci_exec_command(Uci *uci, StringView command) {
 }
 
 void uci_loop(int argc, char **argv) {
-    Uci *uci = get_uci_handler();
+    Uci uci;
 
-    uci_init(uci);
+    uci_init(&uci);
 
     if (argc > 1) {
         for (int i = 1; i < argc; ++i) {
-            uci_exec_command(uci, strview_from_cstr(argv[i]));
+            uci_exec_command(&uci, strview_from_cstr(argv[i]));
         }
     } else {
         String line;
@@ -404,7 +409,7 @@ void uci_loop(int argc, char **argv) {
         string_init(&line);
 
         while (string_getline(stdin, &line)) {
-            if (!uci_exec_command(uci, strview_from_string(&line))) {
+            if (!uci_exec_command(&uci, strview_from_string(&line))) {
                 break;
             }
         }
@@ -412,7 +417,7 @@ void uci_loop(int argc, char **argv) {
         string_destroy(&line);
     }
 
-    uci_quit(uci, EmptyStrview);
-    wpool_wait_search_completion(&uci->worker_pool);
-    uci_destroy(uci);
+    uci_quit(&uci, EmptyStrview);
+    wpool_wait_search_completion(&uci.worker_pool);
+    uci_destroy(&uci);
 }
