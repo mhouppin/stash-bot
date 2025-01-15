@@ -1181,11 +1181,13 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
 
             // Check if the move is unlikely to improve alpha.
             if (futility_value < alpha) {
+                best_score = i16_max(best_score, futility_value);
                 continue;
             }
 
             // If static eval is far below alpha, only search moves that win material.
             if (futility_base < alpha && !board_see_above(board, currmove, 1)) {
+                best_score = i16_max(best_score, futility_base);
                 continue;
             }
         }
