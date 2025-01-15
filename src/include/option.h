@@ -113,8 +113,9 @@ typedef struct _Option {
     String option_name;
     OptionType option_type;
     const OptionVtable *option_vtable;
-    void (*setoption_callback)(const OptionParams *);
+    void (*setoption_callback)(const OptionParams *, void *);
     OptionParams option_params;
+    void *callback_data;
 } Option;
 
 typedef struct _OptionList {
@@ -138,7 +139,8 @@ void optlist_set_option(OptionList *optlist, StringView name, StringView value);
 void optlist_add_button(
     OptionList *optlist,
     StringView name,
-    void (*setoption_callback)(const OptionParams *)
+    void (*setoption_callback)(const OptionParams *, void *),
+    void *callback_data
 );
 
 void optlist_add_spin_integer(
@@ -148,7 +150,8 @@ void optlist_add_spin_integer(
     i64 minval,
     i64 maxval,
     bool is_tunable,
-    void (*setoption_callback)(const OptionParams *)
+    void (*setoption_callback)(const OptionParams *, void *),
+    void *callback_data
 );
 
 void optlist_add_spin_float(
@@ -159,28 +162,32 @@ void optlist_add_spin_float(
     f64 maxval,
     i64 resolution,
     bool is_tunable,
-    void (*setoption_callback)(const OptionParams *)
+    void (*setoption_callback)(const OptionParams *, void *),
+    void *callback_data
 );
 
 void optlist_add_check(
     OptionList *optlist,
     StringView name,
     bool *value,
-    void (*setoption_callback)(const OptionParams *)
+    void (*setoption_callback)(const OptionParams *, void *),
+    void *callback_data
 );
 
 void optlist_add_string(
     OptionList *optlist,
     StringView name,
     String *value,
-    void (*setoption_callback)(const OptionParams *)
+    void (*setoption_callback)(const OptionParams *, void *),
+    void *callback_data
 );
 
 void optlist_add_combo(
     OptionList *optlist,
     StringView name,
     String *value,
-    void (*setoption_callback)(const OptionParams *),
+    void (*setoption_callback)(const OptionParams *, void *),
+    void *callback_data,
     usize allowed_count,
     ...
 );
@@ -192,7 +199,8 @@ void optlist_add_score(
     Score minval,
     Score maxval,
     bool is_tunable,
-    void (*setoption_callback)(const OptionParams *)
+    void (*setoption_callback)(const OptionParams *, void *),
+    void *callback_data
 );
 
 void optlist_add_scorepair(
@@ -202,7 +210,8 @@ void optlist_add_scorepair(
     Score minval,
     Score maxval,
     bool is_tunable,
-    void (*setoption_callback)(const OptionParams *)
+    void (*setoption_callback)(const OptionParams *, void *),
+    void *callback_data
 );
 
 #endif
