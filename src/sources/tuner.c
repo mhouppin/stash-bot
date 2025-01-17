@@ -848,7 +848,7 @@ void init_disp_sequence_and_base_values(
     // Record the piece values manually.
     for (Phase p = MIDGAME; p <= ENDGAME; ++p) {
         for (Piecetype pt = PAWN; pt <= QUEEN; ++pt) {
-            base->values[IDX_PIECE][p] = PieceScores[p][create_piece(WHITE, pt)];
+            base->values[IDX_PIECE + pt - PAWN][p] = PieceScores[p][create_piece(WHITE, pt)];
         }
     }
 
