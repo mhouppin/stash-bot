@@ -43,9 +43,9 @@ void tuner_config_set_default_values(TunerConfig *tuner_config) {
         .threads = 1,
         .iterations = 10000,
         .display_every = 50,
-        .batch_size = 4096,
+        .batch_size = 16384,
         .lambda = 1.0,
-        .learning_rate = 0.001,
+        .learning_rate = 0.1,
         .gamma = 1.0,
         .gamma_iterations = 1000,
         .beta_1 = 0.9,
@@ -909,6 +909,13 @@ void init_disp_sequence_and_base_values(
     TUNE_ADD_SP_ARRAY(RookMobility, IDX_MOBILITY_ROOK, 15, 0, 15, 4, 4, true);
     TUNE_ADD_SP_ARRAY(QueenMobility, IDX_MOBILITY_QUEEN, 28, 0, 28, 4, 4, true);
 
+    disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("// King Safety linear eval terms\n"));
+    TUNE_ADD_SCOREPAIR(FarKnight, IDX_FAR_KNIGHT, 9, 3);
+    TUNE_ADD_SCOREPAIR(FarBishop, IDX_FAR_BISHOP, 9, 3);
+    TUNE_ADD_SCOREPAIR(FarRook, IDX_FAR_ROOK, 9, 3);
+    TUNE_ADD_SCOREPAIR(FarQueen, IDX_FAR_QUEEN, 9, 3);
+    disp_sequence_add_newline(disp_sequence);
+
     disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("// King Safety eval terms\n"));
     TUNE_ADD_SCOREPAIR(KnightWeight, IDX_KS_KNIGHT, 15, 4);
     TUNE_ADD_SCOREPAIR(BishopWeight, IDX_KS_BISHOP, 15, 4);
@@ -957,7 +964,7 @@ void init_disp_sequence_and_base_values(
 
     disp_sequence_add_raw_string(
         disp_sequence,
-        STATIC_STRVIEW("// Rank-based bonus for pased Pawns\n")
+        STATIC_STRVIEW("// Rank-based bonus for passed Pawns\n")
     );
     TUNE_ADD_SP_ARRAY(PassedBonus, IDX_PASSER, 8, 1, 7, 3, 1, true);
 
