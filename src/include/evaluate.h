@@ -66,6 +66,10 @@ typedef enum _TuneIndex {
     IDX_MINOR_ATK_QUEEN,
     IDX_ROOK_ATK_QUEEN,
     IDX_HANGING_PAWN,
+    IDX_FAR_KNIGHT,
+    IDX_FAR_BISHOP,
+    IDX_FAR_ROOK,
+    IDX_FAR_QUEEN,
 
     // All King Safety terms should go under this enum value. This is done to
     // facilitate gradient calculations in the internal tuner.
