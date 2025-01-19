@@ -758,6 +758,8 @@ main_loop:
         const bool is_quiet = !board_move_is_noisy(board, currmove);
 
         if (!root_node && best_score > -MATE_FOUND) {
+            const i16 lmr_depth = i16_max(0, depth - lmr_base_value(depth, move_count, improving, is_quiet));
+
             // Late Move Pruning. For low-depth nodes, stop searching quiets after a certain
             // movecount has been reached.
             if (depth <= 10 && move_count >= lmp_threshold(depth, improving)) {
@@ -766,7 +768,7 @@ main_loop:
 
             // Futility Pruning. For low-depth nodes, stop searching quiets if the eval suggests
             // that only captures will save the day.
-            if (depth <= 5 && !in_check && is_quiet && eval + 186 + 66 * depth <= alpha) {
+            if (lmr_depth <= 5 && !in_check && is_quiet && eval + 186 + 66 * lmr_depth <= alpha) {
                 skip_quiets = true;
             }
 
