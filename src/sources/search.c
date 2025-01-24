@@ -149,7 +149,7 @@ static void print_pv(
     string_init(&info_str);
     string_reserve(&info_str, 2048);
     string_push_back_strview(&info_str, STATIC_STRVIEW("info depth "));
-    string_push_back_u64(&info_str, depth);
+    string_push_back_u64(&info_str, u16_max(depth - !searched, 1));
     string_push_back_strview(&info_str, STATIC_STRVIEW(" seldepth "));
     string_push_back_u64(&info_str, root_move->seldepth);
     string_push_back_strview(&info_str, STATIC_STRVIEW(" multipv "));
