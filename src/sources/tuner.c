@@ -958,9 +958,20 @@ void init_disp_sequence_and_base_values(
     );
     TUNE_ADD_SCOREPAIR(BackwardPenalty, IDX_BACKWARD, 16, 3);
     TUNE_ADD_SCOREPAIR(StragglerPenalty, IDX_STRAGGLER, 16, 3);
-    TUNE_ADD_SCOREPAIR(DoubledPenalty, IDX_DOUBLED, 16, 3);
-    TUNE_ADD_SCOREPAIR(IsolatedPenalty, IDX_ISOLATED, 16, 3);
     disp_sequence_add_newline(disp_sequence);
+
+    disp_sequence_add_raw_string(
+        disp_sequence,
+        STATIC_STRVIEW("// File-based penalty for doubled Pawns\n")
+    );
+    TUNE_ADD_SP_ARRAY(DoubledPenalty, IDX_DOUBLED, 8, 0, 8, 3, 4, true);
+
+    disp_sequence_add_raw_string(
+        disp_sequence,
+        STATIC_STRVIEW("// File-based penalty for isolated Pawns\n")
+    );
+    TUNE_ADD_SP_ARRAY(IsolatedPenalty, IDX_ISOLATED, 8, 0, 8, 3, 4, true);
+
 
     disp_sequence_add_raw_string(
         disp_sequence,

@@ -27,8 +27,18 @@
 // Miscellanous bonus for Pawn structures
 const Scorepair BackwardPenalty  = SPAIR( -4,  -8);
 const Scorepair StragglerPenalty = SPAIR(-15, -21);
-const Scorepair DoubledPenalty   = SPAIR(-14, -47);
-const Scorepair IsolatedPenalty  = SPAIR( -7, -10);
+
+// File-based penalty for doubled Pawns
+const Scorepair DoubledPenalty[8] = {
+    SPAIR(-14, -47), SPAIR(-14, -47), SPAIR(-14, -47), SPAIR(-14, -47),
+    SPAIR(-14, -47), SPAIR(-14, -47), SPAIR(-14, -47), SPAIR(-14, -47)
+};
+
+// File-based penalty for isolated Pawns
+const Scorepair IsolatedPenalty[8] = {
+    SPAIR( -7, -10), SPAIR( -7, -10), SPAIR( -7, -10), SPAIR( -7, -10),
+    SPAIR( -7, -10), SPAIR( -7, -10), SPAIR( -7, -10), SPAIR( -7, -10)
+};
 
 // Rank-based bonus for passed Pawns
 const Scorepair PassedBonus[8] = {
@@ -246,14 +256,14 @@ static Scorepair evaluate_doubled_isolated(Bitboard our_pawns, Color us __attrib
         if (file_pawns) {
             // Penalize pawns being on the same file.
             if (bb_more_than_one(file_pawns)) {
-                ret += DoubledPenalty;
-                trace_add(IDX_DOUBLED, us, 1);
+                ret += DoubledPenalty[f];
+                trace_add(IDX_DOUBLED + f, us, 1);
             }
 
             // Penalize pawns with no friendly pawn on adjacent files.
             if (!((bb_shift_left(fbb) | bb_shift_right(fbb)) & our_pawns)) {
-                ret += IsolatedPenalty;
-                trace_add(IDX_ISOLATED, us, 1);
+                ret += IsolatedPenalty[f];
+                trace_add(IDX_ISOLATED + f, us, 1);
             }
         }
     }
