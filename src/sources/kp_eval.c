@@ -25,65 +25,65 @@
 // clang-format off
 
 // Miscellanous bonus for Pawn structures
-const Scorepair BackwardPenalty  = SPAIR( -4,  -8);
-const Scorepair StragglerPenalty = SPAIR(-15, -21);
+const Scorepair BackwardPenalty  = SPAIR( -3,  -7);
+const Scorepair StragglerPenalty = SPAIR(-16, -21);
 
 // File-based penalty for doubled Pawns
 const Scorepair DoubledPenalty[8] = {
-    SPAIR(-14, -47), SPAIR(-14, -47), SPAIR(-14, -47), SPAIR(-14, -47),
-    SPAIR(-14, -47), SPAIR(-14, -47), SPAIR(-14, -47), SPAIR(-14, -47)
+    SPAIR(-21, -76), SPAIR( -6, -60), SPAIR( -4, -52), SPAIR(-17, -42),
+    SPAIR(-23, -31), SPAIR(-21, -41), SPAIR(-16, -53), SPAIR(-13, -63)
 };
 
 // File-based penalty for isolated Pawns
 const Scorepair IsolatedPenalty[8] = {
-    SPAIR( -7, -10), SPAIR( -7, -10), SPAIR( -7, -10), SPAIR( -7, -10),
-    SPAIR( -7, -10), SPAIR( -7, -10), SPAIR( -7, -10), SPAIR( -7, -10)
+    SPAIR(  9,   4), SPAIR( -7, -14), SPAIR( -8, -17), SPAIR(-12, -20),
+    SPAIR(-21, -21), SPAIR( -9, -15), SPAIR(-15,  -7), SPAIR(  0,   8)
 };
 
 // Rank-based bonus for passed Pawns
 const Scorepair PassedBonus[8] = {
     0,
-    SPAIR( -9,   7),
-    SPAIR(-12,  15),
-    SPAIR(-23,  52),
-    SPAIR( 13, 112),
-    SPAIR( 43, 206),
-    SPAIR( 73, 345),
+    SPAIR(-12,   5),
+    SPAIR(-14,  13),
+    SPAIR(-25,  51),
+    SPAIR( 12, 110),
+    SPAIR( 44, 204),
+    SPAIR( 74, 345),
     0
 };
 
 // Passed Pawn eval terms
 const Scorepair PassedOurKingDistance[24] = {
-    SPAIR(   7,   89), SPAIR(   9,   15), SPAIR( -23,  -95),
+    SPAIR(   8,   92), SPAIR(  11,   14), SPAIR( -25,  -97),
     SPAIR(   0,    0), SPAIR(   0,    0), SPAIR(   0,    0),
-    SPAIR(  11,   77), SPAIR(  11,   27), SPAIR(   9,  -31),
-    SPAIR( -35,  -62), SPAIR(   0,    0), SPAIR(   0,    0),
-    SPAIR(   4,   74), SPAIR( -22,   40), SPAIR( -21,   -8),
-    SPAIR(  -4,  -43), SPAIR(  37,  -49), SPAIR(   0,    0),
-    SPAIR( -28,   54), SPAIR( -31,   33), SPAIR( -12,   -9),
-    SPAIR(   1,  -14), SPAIR(  25,  -21), SPAIR(  42,  -26)
+    SPAIR(  12,   78), SPAIR(  13,   27), SPAIR(  10,  -32),
+    SPAIR( -37,  -63), SPAIR(   0,    0), SPAIR(   0,    0),
+    SPAIR(   3,   75), SPAIR( -25,   40), SPAIR( -20,   -8),
+    SPAIR(  -2,  -43), SPAIR(  37,  -52), SPAIR(   0,    0),
+    SPAIR( -32,   56), SPAIR( -30,   33), SPAIR( -11,   -8),
+    SPAIR(   2,  -14), SPAIR(  26,  -22), SPAIR(  39,  -29)
 };
 
 const Scorepair PassedTheirKingDistance[24] = {
-    SPAIR( -16, -171), SPAIR(   5,    9), SPAIR(   2,  172),
+    SPAIR( -14, -172), SPAIR(   5,   10), SPAIR(   0,  172),
     SPAIR(   0,    0), SPAIR(   0,    0), SPAIR(   0,    0),
-    SPAIR( -25, -147), SPAIR(  17,  -35), SPAIR(   4,   62),
-    SPAIR(   2,  134), SPAIR(   0,    0), SPAIR(   0,    0),
-    SPAIR( -10,  -97), SPAIR(  24,  -32), SPAIR(  14,    0),
-    SPAIR(  -4,   56), SPAIR( -30,   87), SPAIR(   0,    0),
-    SPAIR( -13,  -48), SPAIR( -11,  -10), SPAIR(   6,   -4),
-    SPAIR(  23,   -2), SPAIR(  -9,   40), SPAIR(  -6,   38)
+    SPAIR( -26, -147), SPAIR(  19,  -35), SPAIR(   5,   62),
+    SPAIR(   1,  133), SPAIR(   0,    0), SPAIR(   0,    0),
+    SPAIR( -11,  -96), SPAIR(  26,  -32), SPAIR(  14,    0),
+    SPAIR(  -4,   55), SPAIR( -33,   85), SPAIR(   0,    0),
+    SPAIR( -15,  -47), SPAIR( -12,   -9), SPAIR(   9,   -4),
+    SPAIR(  25,   -2), SPAIR( -10,   39), SPAIR(  -9,   36)
 };
 
 // Rank-based bonus for phalanx structures
 const Scorepair PhalanxBonus[8] = {
     0,
     SPAIR(  5,  -2),
-    SPAIR( 16,   8),
-    SPAIR( 22,  30),
-    SPAIR( 45,  66),
-    SPAIR(171, 252),
-    SPAIR(183, 242),
+    SPAIR( 16,   7),
+    SPAIR( 22,  29),
+    SPAIR( 45,  64),
+    SPAIR(172, 256),
+    SPAIR(183, 245),
     0
 };
 
@@ -91,10 +91,10 @@ const Scorepair PhalanxBonus[8] = {
 const Scorepair DefenderBonus[8] = {
     0,
     SPAIR( 17,  20),
-    SPAIR( 14,  22),
-    SPAIR( 25,  34),
-    SPAIR( 60,  99),
-    SPAIR(173, 156),
+    SPAIR( 14,  21),
+    SPAIR( 24,  32),
+    SPAIR( 60,  97),
+    SPAIR(175, 161),
     0,
     0
 };
