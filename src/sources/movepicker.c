@@ -54,6 +54,7 @@ void movepicker_init(
 
     mp->piece_history[0] = (ss - 1)->piece_history;
     mp->piece_history[1] = (ss - 2)->piece_history;
+    mp->piece_history[2] = (ss - 4)->piece_history;
     mp->board = board;
     mp->worker = worker;
 }
@@ -104,6 +105,10 @@ static void movepicker_score_quiets(Movepicker *mp, ExtendedMove *begin, Extende
             begin->score += piece_hist_score(mp->piece_history[1], moved_piece, to);
         }
 
+        if (mp->piece_history[2] != NULL) {
+            begin->score += piece_hist_score(mp->piece_history[2], moved_piece, to);
+        }
+
         ++begin;
     }
 }
@@ -130,6 +135,10 @@ static void movepicker_score_evasions(Movepicker *mp, ExtendedMove *begin, Exten
 
             if (mp->piece_history[1] != NULL) {
                 begin->score += piece_hist_score(mp->piece_history[1], moved_piece, to);
+            }
+
+            if (mp->piece_history[2] != NULL) {
+                begin->score += piece_hist_score(mp->piece_history[2], moved_piece, to);
             }
         }
 
