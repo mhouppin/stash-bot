@@ -93,7 +93,7 @@ static void movepicker_score_quiets(Movepicker *mp, ExtendedMove *begin, Extende
         const Square to = move_to(move);
 
         // Start by using the butterfly history for ranking quiet moves.
-        begin->score = butterfly_hist_score(mp->worker->butterfly_hist, moved_piece, move) / 2;
+        begin->score = butterfly_hist_score(mp->worker->butterfly_hist, moved_piece, move);
 
         // Try using the countermove and followup histories if they exist.
         if (mp->piece_history[0] != NULL) {
