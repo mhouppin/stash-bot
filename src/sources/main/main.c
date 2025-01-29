@@ -36,6 +36,9 @@ int		main(int argc, char **argv)
 		perror("Failed to boot engine thread");
 		return (1);
 	}
+
+	wait_search_end();
+
 	uci_loop(argc, argv);
 
 	return (0);
