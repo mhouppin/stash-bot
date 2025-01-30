@@ -164,7 +164,7 @@ void option_spin_integer_show_tune(StringView name, const OptionParams *params) 
     fwrite_strview(stdout, name);
     fprintf(
         stdout,
-        ", int, %" PRIi64 ", %" PRIi64 ", %" PRIi64 ", %" PRIi64 ", 0.002",
+        ", int, %" PRIi64 ", %" PRIi64 ", %" PRIi64 ", %" PRIi64 ", 0.002\n",
         spin_integer_params->default_value,
         spin_integer_params->min_value,
         spin_integer_params->max_value,
@@ -190,7 +190,7 @@ void option_spin_float_show_tune(StringView name, const OptionParams *params) {
     fwrite_strview(stdout, name);
     fprintf(
         stdout,
-        ", int, %" PRIi64 ", %" PRIi64 ", %" PRIi64 ", %" PRIi64 ", 0.002",
+        ", int, %" PRIi64 ", %" PRIi64 ", %" PRIi64 ", %" PRIi64 ", 0.002\n",
         default_qvalue,
         min_qvalue,
         max_qvalue,
@@ -212,7 +212,7 @@ void option_score_show_tune(StringView name, const OptionParams *params) {
     fwrite_strview(stdout, name);
     fprintf(
         stdout,
-        ", int, %" PRIi16 ", %" PRIi16 ", %" PRIi16 ", %" PRIi64 ", 0.002",
+        ", int, %" PRIi16 ", %" PRIi16 ", %" PRIi16 ", %" PRIi64 ", 0.002\n",
         score_params->default_value,
         score_params->min_value,
         score_params->max_value,
@@ -237,7 +237,7 @@ void option_half_scorepair_show_tune(StringView name, const OptionParams *params
     fwrite_strview(stdout, name);
     fprintf(
         stdout,
-        ", int, %" PRIi16 ", %" PRIi16 ", %" PRIi16 ", %" PRIi64 ", 0.002",
+        ", int, %" PRIi16 ", %" PRIi16 ", %" PRIi16 ", %" PRIi64 ", 0.002\n",
         half_scorepair_params->default_value,
         half_scorepair_params->min_value,
         half_scorepair_params->max_value,
