@@ -1263,7 +1263,7 @@ void update_continuation_histories(
     Square to,
     bool fail_high
 ) {
-    i16 bonus = history_bonus(depth);
+    i16 bonus = conthist_bonus(depth);
 
     if (!fail_high) {
         bonus = -bonus;
@@ -1291,7 +1291,7 @@ void update_quiet_history(
     Searchstack *ss
 ) {
     Worker *worker = board_get_worker(board);
-    const i16 bonus = history_bonus(depth);
+    const i16 bonus = butterfly_hist_bonus(depth);
     const Move previous_move = (ss - 1)->current_move;
     Piece moved_piece = board_moved_piece(board, bestmove);
     Square to = move_to(bestmove);
@@ -1342,7 +1342,7 @@ void update_capture_history(
     __attribute__((unused)) Searchstack *ss
 ) {
     CaptureHistory *capture_hist = board_get_worker(board)->capture_hist;
-    const i16 bonus = history_bonus(depth);
+    const i16 bonus = capture_hist_bonus(depth);
 
     // Apply history bonuses to the bestmove.
     if (board_move_is_noisy(board, bestmove)) {

@@ -31,11 +31,11 @@ enum {
     CORRECTION_HISTORY_MAX = CORRECTION_HISTORY_GRAIN * 32,
 };
 
-INLINED i16 history_bonus(u16 depth) {
-    const i32 d = (i32)depth;
+i16 butterfly_hist_bonus(u16 depth);
 
-    return (i16)i32_min(27 * d * d - 32 * d - 34, 2461);
-}
+i16 conthist_bonus(u16 depth);
+
+i16 capture_hist_bonus(u16 depth);
 
 INLINED void update_hist_entry(i16 *entry, i16 bonus) {
     *entry += bonus - (i32)*entry * (i32)i32_abs(bonus) / HISTORY_MAX;
