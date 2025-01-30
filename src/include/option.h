@@ -126,6 +126,67 @@ typedef struct _OptionList {
 
 // TODO: tuning macros are missing.
 
+#define TUNE_INT(name, minval, maxval) \
+    do { \
+        extern i64 name; \
+        optlist_add_spin_integer( \
+            &uci->option_list, \
+            STATIC_STRVIEW(#name), \
+            &name, \
+            minval, \
+            maxval, \
+            true, \
+            NULL, \
+            NULL \
+        ); \
+    } while (false);
+
+#define TUNE_FLOAT(name, minval, maxval, resolution) \
+    do { \
+        extern f64 name; \
+        optlist_add_spin_float( \
+            &uci->option_list, \
+            STATIC_STRVIEW(#name), \
+            &name, \
+            minval, \
+            maxval, \
+            resolution, \
+            true, \
+            NULL, \
+            NULL \
+        ); \
+    } while (false);
+
+#define TUNE_SCORE(name, minval, maxval) \
+    do { \
+        extern Score name; \
+        optlist_add_score( \
+            &uci->option_list, \
+            STATIC_STRVIEW(#name), \
+            &name, \
+            minval, \
+            maxval, \
+            true, \
+            NULL, \
+            NULL \
+        ); \
+    } while (false);
+
+#define TUNE_SCOREPAIR(name, minval, maxval) \
+    do { \
+        extern Scorepair name; \
+        optlist_add_scorepair( \
+            &uci->option_list, \
+            STATIC_STRVIEW(#name), \
+            &name, \
+            minval, \
+            maxval, \
+            true, \
+            NULL, \
+            NULL \
+        ); \
+    } while (false);
+
 void optlist_init(OptionList *optlist);
 
 void optlist_destroy(OptionList *optlist);
