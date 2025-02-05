@@ -18,39 +18,18 @@
 
 #include "history.h"
 
-INLINED i16 history_bonus(u16 depth) {
-    const i32 d = (i32)depth;
-
-    return (i16)i32_min(27 * d * d - 32 * d - 34, 2461);
-}
-
 static i64 saturating_trinomial(i64 x, i64 a, i64 b, i64 c, i64 maxval) {
     return i64_min(a * x * x + b * x + c, maxval);
 }
 
-i64 BtflHistX0 = -34;
-i64 BtflHistX1 = -32;
-i64 BtflHistX2 = 27;
-i64 BtflHistMax = 2461;
-
 i16 butterfly_hist_bonus(u16 depth) {
-    return saturating_trinomial(depth, BtflHistX2, BtflHistX1, BtflHistX0, BtflHistMax);
+    return saturating_trinomial(depth, 26, -25, -31, 2567);
 }
-
-i64 ContHistX0 = -34;
-i64 ContHistX1 = -32;
-i64 ContHistX2 = 27;
-i64 ContHistMax = 2461;
 
 i16 conthist_bonus(u16 depth) {
-    return saturating_trinomial(depth, ContHistX2, ContHistX1, ContHistX0, ContHistMax);
+    return saturating_trinomial(depth, 32, -10, -41, 2330);
 }
 
-i64 CaptHistX0 = -34;
-i64 CaptHistX1 = -32;
-i64 CaptHistX2 = 27;
-i64 CaptHistMax = 2461;
-
 i16 capture_hist_bonus(u16 depth) {
-    return saturating_trinomial(depth, CaptHistX2, CaptHistX1, CaptHistX0, CaptHistMax);
+    return saturating_trinomial(depth, 25, -9, 4, 2402);
 }

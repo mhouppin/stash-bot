@@ -25,7 +25,7 @@
 #include "wdl.h"
 #include "wmalloc.h"
 
-#define UCI_VERSION "v36.13"
+#define UCI_VERSION "v36.14"
 
 static const Command UciCommands[] = {
     {STATIC_STRVIEW("bench"), uci_bench},
@@ -144,19 +144,6 @@ static void uci_init_options(Uci *uci) {
         &on_clear_hash,
         (void *)uci
     );
-
-    TUNE_INT(BtflHistX0, -200, 200);
-    TUNE_INT(BtflHistX1, -200, 200);
-    TUNE_INT(BtflHistX2, 0, 60);
-    TUNE_INT(BtflHistMax, 0, 5000);
-    TUNE_INT(ContHistX0, -200, 200);
-    TUNE_INT(ContHistX1, -200, 200);
-    TUNE_INT(ContHistX2, 0, 60);
-    TUNE_INT(ContHistMax, 0, 5000);
-    TUNE_INT(CaptHistX0, -200, 200);
-    TUNE_INT(CaptHistX1, -200, 200);
-    TUNE_INT(CaptHistX2, 0, 60);
-    TUNE_INT(CaptHistMax, 0, 5000);
 }
 
 void uci_init(Uci *uci) {
