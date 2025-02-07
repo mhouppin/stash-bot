@@ -23,13 +23,13 @@ static i64 saturating_trinomial(i64 x, i64 a, i64 b, i64 c, i64 maxval) {
 }
 
 i16 butterfly_hist_bonus(u16 depth) {
-    return saturating_trinomial(depth, 26, -25, -31, 2567);
+    return saturating_trinomial(depth, 30, -16, -22, 2618);
 }
 
 i16 conthist_bonus(u16 depth) {
-    return saturating_trinomial(depth, 32, -10, -41, 2330);
+    return saturating_trinomial(depth, 31, -9, -67, 2447);
 }
 
 i16 capture_hist_bonus(u16 depth) {
-    return saturating_trinomial(depth, 25, -9, 4, 2402);
+    return saturating_trinomial(depth, 26, -7, 16, 2587);
 }
