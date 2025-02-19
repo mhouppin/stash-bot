@@ -757,7 +757,7 @@ main_loop:
 
         const bool is_quiet = !board_move_is_noisy(board, currmove);
 
-        if (!root_node && best_score > -MATE_FOUND) {
+        if (!root_node && best_score > -MATE_FOUND && board->stack->material[board->side_to_move]) {
             // Late Move Pruning. For low-depth nodes, stop searching quiets after a certain
             // movecount has been reached.
             if (depth <= 10 && move_count >= lmp_threshold(depth, improving)) {
@@ -1155,7 +1155,7 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
     Boardstack stack;
 
     // Check if Futility Pruning is possible in the moves loop.
-    const bool futility_ok = !in_check && board_total_piece_count(board) >= 5;
+    const bool futility_ok = !in_check && board->stack->material[board->side_to_move];
     const Score futility_base = best_score + 98;
 
     while ((currmove = movepicker_next_move(&mp, false, 0)) != NO_MOVE) {
