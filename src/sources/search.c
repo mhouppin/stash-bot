@@ -1179,6 +1179,11 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
             const Score futility_value =
                 futility_base + PieceScores[ENDGAME][board_piece_on(board, move_to(currmove))];
 
+            // Late Move Pruning for qsearch.
+            if (move_count > 2) {
+                continue;
+            }
+
             // Check if the move is unlikely to improve alpha.
             if (futility_value < alpha) {
                 continue;
