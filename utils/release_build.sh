@@ -20,7 +20,7 @@ do
 
     ARCH="$arch" CFLAGS="-fprofile-generate -O3 -flto" LDFLAGS="-lgcov" make re
 
-    ./stash-bot bench
+    ./stash bench
 
     ARCH="$arch" CFLAGS="-fprofile-use -fno-peel-loops -fno-tracer -O3 -flto" \
         LDFLAGS="-lgcov -static" make re EXE="stash-$version-linux-$ext_arch" \
@@ -35,4 +35,4 @@ CFLAGS="-m32 -O3 -flto" make re EXE="stash-$version-linux-i386" ARCH=i386 LDFLAG
 
 make clean
 
-rm stash-bot
+rm stash
