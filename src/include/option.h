@@ -24,7 +24,7 @@
 #include "strmanip.h"
 
 // Enum for supported option types
-typedef enum _OptionType {
+typedef enum {
     OptionButton,
     OptionSpinInteger,
     OptionSpinFloat,
@@ -37,10 +37,10 @@ typedef enum _OptionType {
     OPTION_TYPE_COUNT,
 } OptionType;
 
-typedef struct _OptButtonParams {
+typedef struct {
 } OptButtonParams;
 
-typedef struct _OptSpinIntegerParams {
+typedef struct {
     i64 *current_value;
     i64 default_value;
     i64 min_value;
@@ -48,7 +48,7 @@ typedef struct _OptSpinIntegerParams {
     bool is_tunable;
 } OptSpinIntegerParams;
 
-typedef struct _OptSpinFloatParams {
+typedef struct {
     f64 *current_value;
     f64 default_value;
     f64 min_value;
@@ -57,24 +57,24 @@ typedef struct _OptSpinFloatParams {
     bool is_tunable;
 } OptSpinFloatParams;
 
-typedef struct _OptCheckParams {
+typedef struct {
     bool *current_value;
     bool default_value;
 } OptCheckParams;
 
-typedef struct _OptStringParams {
+typedef struct {
     String *current_value;
     String default_value;
 } OptStringParams;
 
-typedef struct _OptComboParams {
+typedef struct {
     String *current_value;
     String default_value;
     String *allowed_values;
     usize allowed_count;
 } OptComboParams;
 
-typedef struct _OptScoreParams {
+typedef struct {
     Score *current_value;
     Score default_value;
     Score min_value;
@@ -82,7 +82,7 @@ typedef struct _OptScoreParams {
     bool is_tunable;
 } OptScoreParams;
 
-typedef struct _OptHalfScorepairParams {
+typedef struct {
     Scorepair *current_value;
     Score default_value;
     Score min_value;
@@ -91,7 +91,7 @@ typedef struct _OptHalfScorepairParams {
     bool is_tunable;
 } OptHalfScorepairParams;
 
-typedef union _OptionParams {
+typedef union {
     OptButtonParams button;
     OptSpinIntegerParams spin_integer;
     OptSpinFloatParams spin_float;
@@ -102,14 +102,14 @@ typedef union _OptionParams {
     OptHalfScorepairParams half_scorepair;
 } OptionParams;
 
-typedef struct _OptionVtable {
+typedef struct {
     void (*option_show)(StringView, const OptionParams *);
     void (*option_show_tune)(StringView, const OptionParams *);
     bool (*option_try_set)(OptionParams *, StringView);
     void (*option_dtor)(OptionParams *);
 } OptionVtable;
 
-typedef struct _Option {
+typedef struct {
     String option_name;
     OptionType option_type;
     const OptionVtable *option_vtable;
@@ -118,13 +118,11 @@ typedef struct _Option {
     void *callback_data;
 } Option;
 
-typedef struct _OptionList {
+typedef struct {
     Option *options;
     usize size;
     usize capacity;
 } OptionList;
-
-// TODO: tuning macros are missing.
 
 #define TUNE_INT(name, minval, maxval) \
     do { \

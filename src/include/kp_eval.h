@@ -26,19 +26,19 @@ enum {
 };
 
 // Struct for pawn eval data
-typedef struct _KingPawnEntry {
+typedef struct {
     Key key;
     Bitboard attack_span[COLOR_NB];
     Bitboard passed[COLOR_NB];
     Scorepair value;
 } KingPawnEntry;
 
-typedef struct _KingPawnTable {
+typedef struct {
     KingPawnEntry entry[KING_PAWN_ENTRY_NB];
 } KingPawnTable;
 
 // Struct for local pawn eval data
-typedef struct _PawnLocalData {
+typedef struct {
     Bitboard attacks[COLOR_NB];
     Bitboard attacks2[COLOR_NB];
 } PawnLocalData;

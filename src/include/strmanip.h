@@ -24,7 +24,7 @@
 
 static const usize STRING_MIN_ALLOC = 16;
 
-typedef struct _String {
+typedef struct {
     u8 *data;
     usize size;
     usize capacity;

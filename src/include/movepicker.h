@@ -23,7 +23,7 @@
 #include "worker.h"
 
 // Enum for the various stages of the move picker
-typedef enum _MovepickerStage {
+typedef enum {
     PICK_TT,
     GEN_NOISY,
     PICK_GOOD_NOISY,
@@ -40,7 +40,7 @@ typedef enum _MovepickerStage {
 } MovepickerStage;
 
 // Struct for the move picker
-typedef struct _Movepicker {
+typedef struct {
     Movelist list;
     ExtendedMove *current;
     ExtendedMove *bad_captures;

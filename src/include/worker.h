@@ -30,10 +30,10 @@
 #include "tt.h"
 
 // Early declaration required for the worker struct
-struct _WorkerPool;
+struct WorkerPool;
 
 // Struct for PV lines
-typedef struct _PvLine {
+typedef struct {
     Move moves[MAX_MOVES];
     u16 length;
 } PvLine;
@@ -48,7 +48,7 @@ void pv_line_init_move(PvLine *pv_line, Move move);
 void pv_line_update(PvLine *restrict pv_line, Move bestmove, const PvLine *restrict next);
 
 // Struct for root moves
-typedef struct _RootMove {
+typedef struct {
     Move move;
     u16 seldepth;
     Score previous_score;
@@ -66,9 +66,9 @@ RootMove *find_root_move(RootMove *root_moves, usize root_count, Move move);
 void sort_root_moves(RootMove *root_moves, usize root_count);
 
 // Struct for worker thread data
-typedef struct _Worker {
+typedef struct {
     Board board;
-    struct _WorkerPool *pool;
+    struct WorkerPool *pool;
     ButterflyHistory *butterfly_hist;
     ContinuationHistory *continuation_hist;
     CountermoveHistory *counter_hist;
@@ -114,7 +114,7 @@ INLINED void worker_increment_nodes(Worker *worker) {
 }
 
 // Initializes the worker
-void worker_init(Worker *worker, usize thread_index, struct _WorkerPool *wpool);
+void worker_init(Worker *worker, usize thread_index, struct WorkerPool *wpool);
 
 // Frees all memory associated with the worker
 void worker_destroy(Worker *worker);
@@ -134,7 +134,7 @@ void worker_wait_search_completion(Worker *worker);
 // Entry point for the worker thread main loop
 void *worker_entry_point(void *worker_ptr);
 
-typedef struct _WorkerPool {
+typedef struct WorkerPool {
     pthread_attr_t worker_pthread_attr;
     usize worker_count;
     Worker **worker_list;

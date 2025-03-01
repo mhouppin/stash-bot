@@ -37,7 +37,7 @@ f64 sigmoid(f64 k, f64 eval);
 
 f64 lerp(f64 lo, f64 hi, f64 rate);
 
-typedef struct _TunerConfig {
+typedef struct {
     usize threads;
     usize iterations;
     usize display_every;
@@ -52,23 +52,23 @@ typedef struct _TunerConfig {
 
 void tuner_config_set_default_values(TunerConfig *tuner_config);
 
-typedef struct _TupleVector {
+typedef struct {
     f64 values[IDX_COUNT][2];
 } TupleVector;
 
 void tp_vector_reset(TupleVector *tp_vector);
 
-typedef struct _TupleSafetyEval {
+typedef struct {
     f64 values[COLOR_NB][PHASE_NB];
 } TupleSafetyEval;
 
-typedef struct _TunerTuple {
+typedef struct {
     u16 index;
     i8 wcoeff;
     i8 bcoeff;
 } TunerTuple;
 
-typedef struct _TunerEntry {
+typedef struct {
     Score static_eval;
     Score search_score;
     Scorepair tapered_eval;
@@ -100,7 +100,7 @@ void tuner_entry_update_gradient(
     f64 sigmoid_k
 );
 
-typedef struct _TunerDataset {
+typedef struct {
     TunerEntry *entries;
     usize size;
     usize capacity;
@@ -135,7 +135,7 @@ void tuner_dataset_compute_gradient(
     usize batch_index
 );
 
-typedef struct _AdamOptimizer {
+typedef struct {
     TupleVector gradient;
     TupleVector momentum;
     TupleVector velocity;
@@ -158,7 +158,7 @@ void adam_do_one_iteration(
     f64 sigmoid_k
 );
 
-typedef enum _DisplayType {
+typedef enum {
     TypeScorepair,
     TypeScorepairArray,
     TypeRawString,
@@ -166,7 +166,7 @@ typedef enum _DisplayType {
     TypeCustom,
 } DisplayType;
 
-typedef struct _DisplayScorepair {
+typedef struct {
     String name;
     u16 index;
     u16 name_alignment;
@@ -179,7 +179,7 @@ void disp_scorepair_show(
     const TupleVector *delta
 );
 
-typedef struct _DisplayScorepairArray {
+typedef struct {
     String name;
     u16 index;
     u16 array_size;
@@ -196,27 +196,27 @@ void disp_sp_array_show(
     const TupleVector *delta
 );
 
-typedef struct _DisplayRawString {
+typedef struct {
     String str;
 } DisplayRawString;
 
-typedef struct _DisplayCustomData {
+typedef struct {
     void (*custom_display)(const TupleVector *, const TupleVector *);
 } DisplayCustomData;
 
-typedef union _DisplayUnion {
+typedef union {
     DisplayScorepair scorepair;
     DisplayScorepairArray scorepair_array;
     DisplayRawString raw_string;
     DisplayCustomData custom;
 } DisplayUnion;
 
-typedef struct _DisplayBlock {
+typedef struct {
     DisplayType block_type;
     DisplayUnion data_union;
 } DisplayBlock;
 
-typedef struct _DisplaySequence {
+typedef struct {
     DisplayBlock *blocks;
     usize size;
     usize capacity;

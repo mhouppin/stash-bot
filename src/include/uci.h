@@ -25,7 +25,7 @@
 #include "strview.h"
 #include "worker.h"
 
-typedef struct _OptionValues {
+typedef struct {
     i64 threads;
     i64 hash;
     i64 move_overhead;
@@ -36,14 +36,14 @@ typedef struct _OptionValues {
     bool normalize_score;
 } OptionValues;
 
-typedef struct _Uci {
+typedef struct {
     OptionValues option_values;
     OptionList option_list;
     Board root_board;
     WorkerPool worker_pool;
 } Uci;
 
-typedef struct _Command {
+typedef struct {
     StringView cmd_name;
     void (*cmd_exec)(Uci *, StringView);
 } Command;

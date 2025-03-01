@@ -53,7 +53,7 @@ static const Bitboard CENTER_FILES_BB = U64(0x3C3C3C3C3C3C3C3C);
 static const Bitboard CENTER_BB = U64(0x0000001818000000);
 
 // The structure used for magic bitboards
-typedef struct _Magic {
+typedef struct {
     Bitboard mask;
     Bitboard magic;
     Bitboard *moves;

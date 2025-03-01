@@ -34,7 +34,7 @@ enum {
     KPK_WIN = 4
 };
 
-typedef struct _KpkPosition {
+typedef struct {
     Square ksq[COLOR_NB];
     Square psq;
     Color stm;

@@ -347,7 +347,7 @@ void worker_search(Worker *worker) {
 
             // If we went over optimal time usage, we just finished our iteration, so we can safely
             // stop search.
-            if (timeman_can_stop_search(&worker->pool->timeman, timepoint_now())) {
+            if (timeman_can_stop_search(&worker->pool->timeman, worker->pool, timepoint_now())) {
                 break;
             }
         }

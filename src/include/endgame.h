@@ -56,7 +56,7 @@ typedef Score (*EndgameScoreFn)(const Board *, Color);
 typedef Scalefactor (*EndgameScaleFn)(const Board *, Color);
 
 // Struct holding a specialized endgame
-typedef struct _EndgameEntry {
+typedef struct {
     Key key;
     EndgameScoreFn score_fn;
     EndgameScaleFn scale_fn;

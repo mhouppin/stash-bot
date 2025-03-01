@@ -25,13 +25,13 @@
 #include "hashkey.h"
 
 // Structure for holding moves along with their score
-typedef struct _ExtendedMove {
+typedef struct {
     Move move;
     i32 score;
 } ExtendedMove;
 
 // Structure for holding a list of moves
-typedef struct _Movelist {
+typedef struct {
     ExtendedMove moves[MAX_MOVES];
     ExtendedMove *end;
 } Movelist;

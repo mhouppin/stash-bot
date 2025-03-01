@@ -33,7 +33,7 @@ INLINED usize cstr_length(const char *cstr) {
     return i;
 }
 
-typedef struct _StringView {
+typedef struct {
     const u8 *data;
     usize size;
 } StringView;
