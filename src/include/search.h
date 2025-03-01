@@ -24,7 +24,7 @@
 void search_init(void);
 
 // Struct for holding search data
-typedef struct _Searchstack {
+typedef struct {
     i16 plies;
     i16 double_extensions;
     Score static_eval;

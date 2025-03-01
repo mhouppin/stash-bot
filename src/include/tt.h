@@ -30,7 +30,7 @@ enum {
     GENERATION_CYCLE = 256 + GENERATION_SHIFT - 1,
 };
 
-typedef struct _TranspositionEntry {
+typedef struct {
     Key key;
     Score score;
     Score eval;
@@ -48,7 +48,7 @@ INLINED Bound tt_entry_bound(const TranspositionEntry *tt_entry) {
     return (Bound)(tt_entry->genbound & ~GENERATION_MASK);
 }
 
-typedef struct _TranspositionCluster {
+typedef struct {
     TranspositionEntry cluster_entry[ENTRY_CLUSTER_SIZE];
 } TranspositionCluster;
 
@@ -58,7 +58,7 @@ static_assert(
     "Clusters are not aligned to cache boundaries"
 );
 
-typedef struct _TranspositionTable {
+typedef struct {
     usize cluster_count;
     TranspositionCluster *table;
     u8 generation;

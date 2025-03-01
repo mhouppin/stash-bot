@@ -85,7 +85,7 @@ void sort_root_moves(RootMove *root_moves, usize root_count) {
     }
 }
 
-void worker_init(Worker *worker, usize thread_index, struct _WorkerPool *pool) {
+void worker_init(Worker *worker, usize thread_index, struct WorkerPool *pool) {
     worker->thread_index = thread_index;
     worker->butterfly_hist = wrap_aligned_alloc(64, sizeof(ButterflyHistory));
     worker->continuation_hist = wrap_aligned_alloc(64, sizeof(ContinuationHistory));
@@ -113,6 +113,7 @@ void worker_init(Worker *worker, usize thread_index, struct _WorkerPool *pool) {
         exit(EXIT_FAILURE);
     }
 
+    atomic_init(&worker->nodes, 0);
     worker_init_new_game(worker);
 }
 
@@ -228,8 +229,8 @@ void wpool_init(WorkerPool *wpool) {
     tt_resize(&wpool->tt, 16, 1);
     memset(&wpool->root_board, 0, sizeof(Board));
     wpool->check_nodes = 0;
-    atomic_store_explicit(&wpool->ponder, false, memory_order_relaxed);
-    atomic_store_explicit(&wpool->stop, false, memory_order_relaxed);
+    atomic_init(&wpool->ponder, false);
+    atomic_init(&wpool->stop, false);
     wpool_resize(wpool, 1);
 }
 
@@ -349,7 +350,7 @@ void wpool_check_time(WorkerPool *wpool) {
     }
 
     if (wpool_get_total_nodes(wpool) >= wpool->search_params.nodes
-        || timeman_must_stop_search(&wpool->timeman, timepoint_now())) {
+        || timeman_must_stop_search(&wpool->timeman, wpool, timepoint_now())) {
         wpool_stop(wpool);
     }
 }

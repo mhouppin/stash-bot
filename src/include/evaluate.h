@@ -28,7 +28,7 @@ enum {
     ENDGAME_COUNT = 4
 };
 
-typedef enum _TuneIndex {
+typedef enum {
     IDX_PIECE,
     IDX_PSQT = IDX_PIECE + 5,
     IDX_INITIATIVE = IDX_PSQT + 48 + 32 * 5,
@@ -92,7 +92,7 @@ typedef enum _TuneIndex {
     IDX_COUNT
 } TuneIndex;
 
-typedef struct _EvalTrace {
+typedef struct {
     i16 phase;
     Scorepair tapered_eval;
     Scorepair safety_eval[COLOR_NB];
@@ -100,7 +100,7 @@ typedef struct _EvalTrace {
     i8 coeffs[IDX_COUNT][COLOR_NB];
 } EvalTrace;
 
-typedef struct _EvaluationData {
+typedef struct {
     Bitboard king_zone[COLOR_NB];
     Bitboard mobility_zone[COLOR_NB];
     Bitboard attacked[COLOR_NB];

@@ -36,6 +36,8 @@ void sync_init(void) {
         perror("Unable to initialize stdout mutex");
         exit(EXIT_FAILURE);
     }
+
+    atomic_init(&UciDebug, false);
 }
 
 void sync_lock_stdout(void) {

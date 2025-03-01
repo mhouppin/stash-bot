@@ -22,6 +22,7 @@
 
 #include "movelist.h"
 #include "syncio.h"
+#include "worker.h"
 
 // Scaling table based on the number of consecutive iterations the bestmove held
 const f64 BestmoveStabilityScale[5] = {2.50, 1.20, 0.90, 0.80, 0.75};
@@ -155,8 +156,12 @@ void timeman_update(
     info_debug("info string optimal_time " FORMAT_LARGE_INT "\n", (LargeInt)timeman->optimal_time);
 }
 
-bool timeman_can_stop_search(const Timeman *timeman, Timepoint current_tp) {
-    if (timeman->pondering && /* wpool_is_pondering(&SearchWorkerPool) */ true) {
+bool timeman_can_stop_search(
+    const Timeman *timeman,
+    const struct WorkerPool *wpool,
+    Timepoint current_tp
+) {
+    if (timeman->pondering && wpool_is_pondering(wpool)) {
         return false;
     }
 
@@ -164,8 +169,12 @@ bool timeman_can_stop_search(const Timeman *timeman, Timepoint current_tp) {
         && timepoint_diff(timeman->start, current_tp) >= timeman->optimal_time;
 }
 
-bool timeman_must_stop_search(const Timeman *timeman, Timepoint current_tp) {
-    if (timeman->pondering && /* wpool_is_pondering(&SearchWorkerPool) */ true) {
+bool timeman_must_stop_search(
+    const Timeman *timeman,
+    const struct WorkerPool *wpool,
+    Timepoint current_tp
+) {
+    if (timeman->pondering && wpool_is_pondering(wpool)) {
         return false;
     }
 

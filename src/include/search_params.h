@@ -23,7 +23,7 @@
 #include "movelist.h"
 #include "strview.h"
 
-typedef struct _SearchParams {
+typedef struct {
     i64 move_overhead;
     i64 multi_pv;
     bool show_wdl;

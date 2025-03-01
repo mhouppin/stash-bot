@@ -26,7 +26,7 @@
 #include "strview.h"
 
 // Struct representing the board stack data from past moves
-typedef struct _Boardstack {
+typedef struct Boardstack {
     Key board_key;
     Key king_pawn_key;
     Key material_key;
@@ -34,7 +34,7 @@ typedef struct _Boardstack {
     Bitboard king_blockers[COLOR_NB];
     Bitboard pinners[COLOR_NB];
     Bitboard check_squares[PIECETYPE_NB];
-    struct _Boardstack *previous;
+    struct Boardstack *previous;
     CastlingRights castlings;
     u16 rule50;
     i16 repetition;
@@ -45,7 +45,7 @@ typedef struct _Boardstack {
 } Boardstack;
 
 // Struct representing the board
-typedef struct _Board {
+typedef struct {
     Piece mailbox[SQUARE_NB];
     Bitboard piecetype_bb[PIECETYPE_NB];
     Bitboard color_bb[COLOR_NB];

@@ -24,13 +24,13 @@
 
 // The structure that holds the parameters for WDL estimation.
 // See https://github.com/official-stockfish/WDL_model
-typedef struct _WdlParams {
+typedef struct {
     f64 mean;
     f64 spread;
 } WdlParams;
 
 // The structure that holds the WDL estimation
-typedef struct _WdlValue {
+typedef struct {
     u16 win;
     u16 draw;
     u16 loss;

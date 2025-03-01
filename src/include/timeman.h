@@ -25,14 +25,14 @@
 #include "search_params.h"
 
 // Enum for the type of time management to use
-typedef enum _TimemanMode {
+typedef enum {
     TmNone,
     TmMovetime,
     TmTournament,
 } TimemanMode;
 
 // Struct for time management
-typedef struct _Timeman {
+typedef struct {
     Timepoint start;
     TimemanMode mode;
     bool pondering;
@@ -63,10 +63,21 @@ void timeman_update(
     Score root_score
 );
 
+// Forward declaration required to avoid cyclic include paths.
+struct WorkerPool;
+
 // Checks if the time manager thinks we have spent enough time in search
-bool timeman_can_stop_search(const Timeman *timeman, Timepoint current_tp);
+bool timeman_can_stop_search(
+    const Timeman *timeman,
+    const struct WorkerPool *wpool,
+    Timepoint current_tp
+);
 
 // Checks if the time manager says we must interrupt the search now
-bool timeman_must_stop_search(const Timeman *timeman, Timepoint current_tp);
+bool timeman_must_stop_search(
+    const Timeman *timeman,
+    const struct WorkerPool *wpool,
+    Timepoint current_tp
+);
 
 #endif
