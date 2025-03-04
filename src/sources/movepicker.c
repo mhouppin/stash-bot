@@ -183,6 +183,7 @@ top:
 
             // Don't play the same move twice.
             if (mp->killer1 != NO_MOVE && mp->killer1 != mp->tt_move
+                && !board_move_is_noisy(mp->board, mp->killer1)
                 && board_move_is_pseudolegal(mp->board, mp->killer1)) {
                 return mp->killer1;
             }
@@ -194,6 +195,7 @@ top:
 
             // Don't play the same move twice.
             if (mp->killer2 != NO_MOVE && mp->killer2 != mp->tt_move && mp->killer2 != mp->killer1
+                && !board_move_is_noisy(mp->board, mp->killer2)
                 && board_move_is_pseudolegal(mp->board, mp->killer2)) {
                 return mp->killer2;
             }
@@ -206,6 +208,7 @@ top:
             // Don't play the same move twice.
             if (mp->counter != NO_MOVE && mp->counter != mp->tt_move && mp->counter != mp->killer1
                 && mp->counter != mp->killer2
+                && !board_move_is_noisy(mp->board, mp->counter)
                 && board_move_is_pseudolegal(mp->board, mp->counter)) {
                 return mp->counter;
             }
