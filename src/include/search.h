@@ -28,7 +28,7 @@ typedef struct {
     i16 plies;
     i16 double_extensions;
     Score static_eval;
-    Move killers[2];
+    Move killer;
     Move excluded_move;
     Move current_move;
     PvLine pv;

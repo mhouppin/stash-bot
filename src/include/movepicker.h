@@ -27,8 +27,7 @@ typedef enum {
     PICK_TT,
     GEN_NOISY,
     PICK_GOOD_NOISY,
-    PICK_KILLER1,
-    PICK_KILLER2,
+    PICK_KILLER,
     PICK_COUNTER,
     GEN_QUIETS,
     PICK_QUIETS,
@@ -47,8 +46,7 @@ typedef struct {
     bool in_qsearch;
     MovepickerStage stage;
     Move tt_move;
-    Move killer1;
-    Move killer2;
+    Move killer;
     Move counter;
     const Board *board;
     const Worker *worker;
