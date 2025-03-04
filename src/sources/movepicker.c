@@ -78,6 +78,11 @@ static void movepicker_score_noisy(Movepicker *mp, ExtendedMove *begin, Extended
             captured = PAWN;
         } else {
             begin->score = CapturedBonus[captured];
+
+            // Add a large bonus when capturing a piece of a higher value.
+            if (piece_type(moved_piece) < captured) {
+                begin->score += 32768;
+            }
         }
 
         // In addition to the MVV ordering, rank the captures based on their history.
