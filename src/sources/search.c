@@ -629,7 +629,7 @@ Score search(
         tt_noisy = tt_move != NO_MOVE && board_move_is_noisy(board, tt_move);
     }
 
-    (ss + 2)->killers[0] = (ss + 2)->killers[1] = NO_MOVE;
+    (ss + 2)->killer = NO_MOVE;
     ss->double_extensions = (ss - 1)->double_extensions;
 
     const bool in_check = !!board->stack->checkers;
@@ -961,7 +961,7 @@ main_loop:
             r += tt_noisy;
 
             // Decrease the reduction if the move is a killer or countermove.
-            r -= (currmove == mp.killer1 || currmove == mp.killer2 || currmove == mp.counter);
+            r -= (currmove == mp.killer || currmove == mp.counter);
 
             // Decrease the reduction if the move escapes a capture.
             r -= is_quiet && !board_see_above(board, move_reverse(currmove), 0);
@@ -1366,10 +1366,7 @@ void update_quiet_history(
     update_continuation_histories(ss, depth, moved_piece, to, true);
 
     // Set the bestmove as a killer.
-    if (ss->killers[0] != bestmove) {
-        ss->killers[1] = ss->killers[0];
-        ss->killers[0] = bestmove;
-    }
+    ss->killer = bestmove;
 
     // Apply history penalties to all previous failing quiet moves.
     for (i16 i = 0; i < quiet_count; ++i) {
