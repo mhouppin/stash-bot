@@ -608,7 +608,7 @@ Score search(
         eval = ss->static_eval = raw_eval + get_corrhist_total_score(board, worker);
 
         // Save the eval in TT so that other workers won't have to recompute it.
-        tt_save(&worker->pool->tt, tt_entry, key, NO_SCORE, raw_eval, 0, NO_BOUND, NO_MOVE);
+        tt_save(&worker->pool->tt, tt_entry, key, NO_SCORE, raw_eval, 0, pv_node, NO_BOUND, NO_MOVE);
     }
 
     improving = ss->plies >= 2 && ss->static_eval > (ss - 2)->static_eval;
@@ -743,6 +743,7 @@ Score search(
                     score_to_tt(probcut_score, ss->plies),
                     raw_eval,
                     depth - 3,
+                    pv_node,
                     LOWER_BOUND,
                     currmove
                 );
@@ -1046,6 +1047,7 @@ main_loop:
             score_to_tt(best_score, ss->plies),
             raw_eval,
             depth,
+            pv_node,
             bound,
             bestmove
         );
@@ -1149,6 +1151,7 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
                     score_to_tt(best_score, ss->plies),
                     raw_eval,
                     0,
+                    pv_node,
                     LOWER_BOUND,
                     NO_MOVE
                 );
@@ -1261,6 +1264,7 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
         score_to_tt(best_score, ss->plies),
         raw_eval,
         0,
+        pv_node,
         bound,
         bestmove
     );
