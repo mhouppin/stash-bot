@@ -516,6 +516,7 @@ Score search(
     Bound tt_bound = NO_BOUND;
     bool tt_noisy = false;
     bool tt_found;
+    bool tt_pv = pv_node;
     Key key = board->stack->board_key ^ ((Key)ss->excluded_move << 16);
     Score raw_eval;
     Score eval;
@@ -541,6 +542,7 @@ Score search(
         }
 
         tt_noisy = tt_move != NO_MOVE && board_move_is_noisy(board, tt_move);
+        tt_pv |= tt_entry_pv(tt_entry);
     }
 
     (ss + 2)->killers[0] = (ss + 2)->killers[1] = NO_MOVE;
@@ -577,7 +579,7 @@ Score search(
                                     board_pawn_key(board));
 
         // Save the eval in TT so that other workers won't have to recompute it.
-        tt_save(&worker->pool->tt, tt_entry, key, NO_SCORE, raw_eval, 0, pv_node, NO_BOUND, NO_MOVE);
+        tt_save(&worker->pool->tt, tt_entry, key, NO_SCORE, raw_eval, 0, tt_pv, NO_BOUND, NO_MOVE);
     }
 
     improving = ss->plies >= 2 && ss->static_eval > (ss - 2)->static_eval;
@@ -712,7 +714,7 @@ Score search(
                     score_to_tt(probcut_score, ss->plies),
                     raw_eval,
                     depth - 3,
-                    pv_node,
+                    tt_pv,
                     LOWER_BOUND,
                     currmove
                 );
@@ -1026,7 +1028,7 @@ main_loop:
             score_to_tt(best_score, ss->plies),
             raw_eval,
             depth,
-            pv_node,
+            tt_pv,
             bound,
             bestmove
         );
@@ -1072,6 +1074,7 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
     Bound tt_bound = NO_BOUND;
     Move tt_move = NO_MOVE;
     bool tt_found;
+    bool tt_pv = pv_node;
     TranspositionEntry *tt_entry;
 
     tt_entry = tt_probe(&worker->pool->tt, board->stack->board_key, &tt_found);
@@ -1088,6 +1091,8 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
                 || ((tt_bound & UPPER_BOUND) && tt_score <= alpha))) {
             return tt_score;
         }
+
+        tt_pv |= tt_entry_pv(tt_entry);
     }
 
     const bool in_check = !!board->stack->checkers;
@@ -1140,7 +1145,7 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
                     score_to_tt(best_score, ss->plies),
                     raw_eval,
                     0,
-                    pv_node,
+                    tt_pv,
                     LOWER_BOUND,
                     NO_MOVE
                 );
@@ -1253,7 +1258,7 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
         score_to_tt(best_score, ss->plies),
         raw_eval,
         0,
-        pv_node,
+        tt_pv,
         bound,
         bestmove
     );
