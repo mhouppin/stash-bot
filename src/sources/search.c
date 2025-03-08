@@ -879,7 +879,7 @@ main_loop:
             i16 r = lmr_base_value(depth, move_count, improving, is_quiet);
 
             // Increase the reduction for non-PV nodes.
-            r += !pv_node;
+            r += !tt_pv;
 
             // Increase the reduction for cutNodes.
             r += cut_node;
