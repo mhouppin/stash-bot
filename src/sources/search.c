@@ -598,7 +598,7 @@ Score search(
 
     // Futility Pruning. If our eval is quite good and depth is low, we just assume that we won't
     // fall far behind in the next plies, and we return the eval.
-    if (!pv_node && depth <= 7 && eval - 86 * depth + 79 * improving >= beta && eval < VICTORY) {
+    if (!tt_pv && depth <= 7 && eval - 86 * depth + 79 * improving >= beta && eval < VICTORY) {
         return eval;
     }
 
