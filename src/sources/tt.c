@@ -105,8 +105,6 @@ TranspositionEntry *tt_probe(TranspositionTable *tt, Key key, bool *found) {
         TranspositionEntry *cur_entry = &cluster_start[i];
 
         if (!cur_entry->key || cur_entry->key == key) {
-            // Refresh the generation counter to prevent it from being cleared.
-            cur_entry->genbound = (u8)(tt->generation | (cur_entry->genbound & ~GENERATION_MASK));
             *found = (cur_entry->key == key);
 
             return cur_entry;
@@ -144,7 +142,9 @@ void tt_save(
     }
 
     // Do not erase entries with high depth for the same position.
-    if (bound == EXACT_BOUND || key != tt_entry->key || depth + 4 >= (i16)tt_entry->depth) {
+    // Additionally, unconditionally overwrite entries from past searches.
+    if (bound == EXACT_BOUND || key != tt_entry->key || depth + 4 >= (i16)tt_entry->depth
+        || (tt_entry->genbound & GENERATION_MASK) != tt->generation) {
         tt_entry->key = key;
         tt_entry->score = score;
         tt_entry->eval = eval;
