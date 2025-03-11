@@ -144,7 +144,9 @@ void tt_save(
     }
 
     // Do not erase entries with high depth for the same position.
-    if (bound == EXACT_BOUND || key != tt_entry->key || depth + 4 >= (i16)tt_entry->depth) {
+    // Additionally, unconditionally overwrite entries from past searches.
+    if (bound == EXACT_BOUND || key != tt_entry->key || depth + 4 >= (i16)tt_entry->depth
+        || (tt_entry->genbound & GENERATION_MASK) != tt->generation) {
         tt_entry->key = key;
         tt_entry->score = score;
         tt_entry->eval = eval;
