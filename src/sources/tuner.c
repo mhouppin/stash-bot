@@ -193,7 +193,7 @@ void tuner_entry_update_gradient(
     TupleSafetyEval safety_eval;
     const f64 adjusted_eval = tuner_entry_adjusted_eval(entry, delta, &safety_eval);
     const f64 predict = sigmoid(sigmoid_k, adjusted_eval);
-    const f64 error = (entry->game_result - predict) * predict * (1.0 - predict);
+    const f64 error = (entry->game_result - predict) * sqrt(fabs(entry->game_result - predict)) * predict * (1.0 - predict);
     const f64 mg_error = error * entry->mg_factor;
     const f64 eg_error = error * (1.0 - entry->mg_factor);
 
@@ -390,7 +390,7 @@ f64 tuner_dataset_static_eval_mse(const TunerDataset *tuner_dataset, f64 sigmoid
         const f64 lerp_result =
             entry->game_result * lambda + sigmoid(sigmoid_k, entry->search_score) * (1.0 - lambda);
 
-        total += pow(lerp_result - sigmoid(sigmoid_k, entry->static_eval), 2);
+        total += pow(fabs(lerp_result - sigmoid(sigmoid_k, entry->static_eval)), 2.5);
     }
 
     return total / tuner_dataset->size;
@@ -456,9 +456,9 @@ f64 tuner_dataset_adjusted_eval_mse(
         const TunerEntry *entry = &tuner_dataset->entries[i];
 
         total +=
-            pow(entry->game_result
-                    - sigmoid(sigmoid_k, tuner_entry_adjusted_eval(entry, delta, &safety_eval)),
-                2);
+            pow(fabs(entry->game_result
+                    - sigmoid(sigmoid_k, tuner_entry_adjusted_eval(entry, delta, &safety_eval))),
+                2.5);
     }
 
     return total / tuner_dataset->size;
@@ -518,7 +518,7 @@ void adam_update_delta(
     const TunerConfig *restrict tuner_config,
     f64 sigmoid_k
 ) {
-    const f64 scale = sigmoid_k * 2.0 / tuner_config->batch_size;
+    const f64 scale = sigmoid_k * 2.5 / tuner_config->batch_size;
 
     for (usize i = 0; i < IDX_COUNT; ++i) {
         for (Phase p = MIDGAME; p <= ENDGAME; ++p) {
