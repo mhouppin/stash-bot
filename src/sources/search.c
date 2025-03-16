@@ -737,8 +737,9 @@ main_loop:
     Move tried_noisy[64];
     i16 noisy_count = 0;
     bool skip_quiets = false;
+    const Score see_threshold = -i16_min(0, eval + 80) * PAWN_SEE_SCORE / KNIGHT_SEE_SCORE;
 
-    while ((currmove = movepicker_next_move(&mp, skip_quiets, 0)) != NO_MOVE) {
+    while ((currmove = movepicker_next_move(&mp, skip_quiets, see_threshold)) != NO_MOVE) {
         if (root_node) {
             // Exclude already searched PV lines for root nodes.
             if (find_root_move(
