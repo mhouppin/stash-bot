@@ -737,7 +737,7 @@ main_loop:
     Move tried_noisy[64];
     i16 noisy_count = 0;
     bool skip_quiets = false;
-    const Score see_threshold = -i16_min(0, eval + 80) / KNIGHT_SEE_SCORE * PAWN_SEE_SCORE;
+    const Score see_threshold = -i16_min(0, eval + 89) / 347 * 99;
 
     while ((currmove = movepicker_next_move(&mp, skip_quiets, see_threshold)) != NO_MOVE) {
         if (root_node) {
