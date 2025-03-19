@@ -885,7 +885,7 @@ main_loop:
             r += tt_noisy;
 
             // Decrease the reduction if the move is a killer or countermove.
-            r -= (currmove == mp.killer1 || currmove == mp.killer2 || currmove == mp.counter);
+            r -= is_quiet && (currmove == mp.killer1 || currmove == mp.killer2 || currmove == mp.counter);
 
             // Decrease the reduction if the move escapes a capture.
             r -= is_quiet && !board_see_above(board, move_reverse(currmove), 0);
