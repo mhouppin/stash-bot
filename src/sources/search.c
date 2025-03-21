@@ -40,7 +40,7 @@ void search_init(void) {
 }
 
 static i16 lmr_base_value(i16 depth, i16 move_count, bool improving, bool is_quiet) {
-    return (-400 + Reductions[is_quiet][depth] * Reductions[is_quiet][move_count] + !improving * 504
+    return (624 + Reductions[is_quiet][depth] * Reductions[is_quiet][move_count] + !improving * 504
            )
         / 1024;
 }
@@ -871,12 +871,12 @@ main_loop:
         // Late Move Reductions. For nodes not too close to qsearch (since we can't reduce their
         // search depth), we start reducing moves after a certain movecount has been reached, as we
         // consider them less likely to produce cutoffs in standard searches.
-        if (depth >= 3 && move_count > 1 + 3 * pv_node) {
+        if (depth >= 3 && move_count > 1 + 2 * pv_node) {
             // Set the base depth reduction value based on depth and movecount.
             i16 r = lmr_base_value(depth, move_count, improving, is_quiet);
 
-            // Increase the reduction for non-PV nodes.
-            r += !pv_node;
+            // Decrease the reduction for PV nodes.
+            r -= 2 * pv_node;
 
             // Increase the reduction for cutNodes.
             r += cut_node;
