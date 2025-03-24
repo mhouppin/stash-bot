@@ -721,8 +721,8 @@ Score search(
     }
 
     // Reduce depth if the node is absent from TT.
-    if (!root_node && !tt_found && depth >= 3) {
-        --depth;
+    if (!root_node && !tt_move && (pv_node || cut_node) && depth >= 7) {
+        depth -= 2;
     }
 
 main_loop:
