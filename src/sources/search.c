@@ -832,7 +832,7 @@ main_loop:
                 if (singular_score < singular_beta) {
                     if (!pv_node && singular_beta - singular_score > 14
                         && ss->double_extensions <= 10) {
-                        extension = 2;
+                        extension = 2 + (!tt_noisy && singular_beta - singular_score > 120);
                         ++ss->double_extensions;
                     } else {
                         extension = 1;
