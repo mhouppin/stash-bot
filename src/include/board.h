@@ -237,6 +237,12 @@ INLINED Key board_pawn_key(const Board *board) {
         ^ ZobristPsq[BLACK_KING][board_king_square(board, BLACK)];
 }
 
+// Helper function for building the key used for indexing the transposition table
+INLINED Key board_tt_key(const Board *board, Move excluded_move) {
+    extern Key ZobristRule50[10];
+    return board->stack->board_key ^ ZobristRule50[u16_min(board->stack->rule50, 99) / 10] ^ ((Key)excluded_move << 16);
+}
+
 // Helper function for grabbing a material count with standardized values: Pawn=1, Knight=Bishop=3,
 // Rook=5, Queen=9
 INLINED u32 board_material_count(const Board *board) {

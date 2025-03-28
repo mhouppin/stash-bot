@@ -889,6 +889,13 @@ Score evaluate(const Board *board) {
         score += eg * (MIDGAME_COUNT - phase) / (MIDGAME_COUNT - ENDGAME_COUNT);
     }
 
+    // Scale down the score for high rule50 counters.
+    {
+        const Scalefactor factor = SCALE_NORMAL - 16 * (u16_min(board->stack->rule50, 99) / 10);
+
+        score = (Score)((i32)score * factor / SCALE_NORMAL);
+    }
+
     // Return the score relative to the side to move.
     return board->side_to_move == WHITE ? score : -score;
 }
