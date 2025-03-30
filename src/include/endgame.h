@@ -84,6 +84,7 @@ Score eval_krpkr(const Board *board, Color strong_side);
 
 Scalefactor scale_kpsk(const Board *board, Color strong_side);
 Scalefactor scale_kbpsk(const Board *board, Color strong_side);
+Scalefactor scale_kqkrps(const Board *board, Color strong_side);
 
 // Probes the endgame table for the given board. Returns a pointer to the corresponding endgame if
 // found, NULL otherwise.
