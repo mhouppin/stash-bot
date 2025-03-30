@@ -506,22 +506,27 @@ static bool opposite_by_file(Square sq1, Square sq2, Square middle) {
 }
 
 Scalefactor scale_kqkrps(const Board *board, Color strong_side) {
+    const Color weak_side = color_flip(strong_side);
+
     // Don't apply any scaling if the side with the Queen is not the strong side.
-    if (!board_piece_bb(board, strong_side, QUEEN)) {
+    // Also avoid scaling if the weak side has no Rook (this can happen from material key
+    // conflicts).
+    if (!board_piece_bb(board, strong_side, QUEEN) || !board_piece_bb(board, weak_side, ROOK)) {
         return SCALE_NORMAL;
     }
 
-    const Color weak_side = color_flip(strong_side);
     const Square strong_king = square_relative(board_king_square(board, strong_side), strong_side);
     const Square weak_king = square_relative(board_king_square(board, weak_side), strong_side);
-    const Square weak_rook = square_relative(bb_first_square(board_piece_bb(board, weak_side, ROOK)), strong_side);
+    const Square weak_rook =
+        square_relative(bb_first_square(board_piece_bb(board, weak_side, ROOK)), strong_side);
     Bitboard weak_pawns = bb_relative(board_piece_bb(board, weak_side, PAWN), strong_side);
 
     // Adjust the scaling factor based on the number of pawns and passed pawns the strong side has.
     KingPawnEntry *kpe = king_pawn_probe(board);
     const Scalefactor base_factor = i16_min(
         SCALE_NORMAL,
-        128 + 16 * board_piece_count(board, create_piece(strong_side, PAWN)) + 32 * bb_popcount(kpe->passed[strong_side])
+        128 + 16 * board_piece_count(board, create_piece(strong_side, PAWN))
+            + 32 * bb_popcount(kpe->passed[strong_side])
     );
     Bitboard king_proximity_mask = king_attacks_bb(weak_king);
     i16 downscaling = 0;
@@ -532,10 +537,13 @@ Scalefactor scale_kqkrps(const Board *board, Color strong_side) {
     // - files a and h on ranks 3 and 7.
     weak_pawns &= U64(0x00FFE74242C3E700);
 
-    // If the King and Rook are near a defending Pawn, and the strong King cannot attack from behind, it is a draw.
+    // If the King and Rook are near a defending Pawn, and the strong King cannot attack from
+    // behind, it is a draw.
     king_proximity_mask |= bb_shift_down(king_proximity_mask);
     downscaling += !!(weak_pawns & king_proximity_mask & king_attacks_bb(weak_rook));
-    downscaling += (opposite_by_file(strong_king, weak_king, weak_rook) || square_rank(strong_king) < square_rank(weak_king));
+    downscaling +=
+        (opposite_by_file(strong_king, weak_king, weak_rook)
+         || square_rank(strong_king) < square_rank(weak_king));
     return base_factor * (2 - downscaling) / 2;
 }
 
