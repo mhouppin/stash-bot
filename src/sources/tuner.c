@@ -932,6 +932,7 @@ void init_disp_sequence_and_base_values(
     TUNE_ADD_SCOREPAIR(SafeQueenCheck, IDX_KS_CHECK_Q, 15, 4);
     TUNE_ADD_SCOREPAIR(UnsafeCheck, IDX_KS_UNSAFE_CHECK, 15, 4);
     TUNE_ADD_SCOREPAIR(QueenlessAttack, IDX_KS_QUEENLESS, 15, 4);
+    TUNE_ADD_SCOREPAIR(SafetyKingDist, IDX_KS_KING_DIST, 15, 4);
     TUNE_ADD_SCOREPAIR(SafetyOffset, IDX_KS_OFFSET, 15, 4);
     disp_sequence_add_newline(disp_sequence);
 
