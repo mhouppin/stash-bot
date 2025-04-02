@@ -41,7 +41,7 @@ f64 lerp(f64 lo, f64 hi, f64 rate) {
 void tuner_config_set_default_values(TunerConfig *tuner_config) {
     *tuner_config = (TunerConfig) {
         .threads = 1,
-        .iterations = 10000,
+        .iterations = 1000,
         .display_every = 50,
         .batch_size = 16384,
         .lambda = 1.0,
@@ -959,10 +959,9 @@ void init_disp_sequence_and_base_values(
         disp_sequence,
         STATIC_STRVIEW("// Miscellanous bonus for Pawn structures\n")
     );
-    TUNE_ADD_SCOREPAIR(BackwardPenalty, IDX_BACKWARD, 16, 3);
-    TUNE_ADD_SCOREPAIR(StragglerPenalty, IDX_STRAGGLER, 16, 3);
-    TUNE_ADD_SCOREPAIR(DoubledPenalty, IDX_DOUBLED, 16, 3);
-    TUNE_ADD_SCOREPAIR(IsolatedPenalty, IDX_ISOLATED, 16, 3);
+    TUNE_ADD_SCOREPAIR(BackwardPenalty, IDX_BACKWARD, 15, 3);
+    TUNE_ADD_SCOREPAIR(DoubledPenalty, IDX_DOUBLED, 15, 3);
+    TUNE_ADD_SCOREPAIR(IsolatedPenalty, IDX_ISOLATED, 15, 3);
     disp_sequence_add_newline(disp_sequence);
 
     disp_sequence_add_raw_string(
