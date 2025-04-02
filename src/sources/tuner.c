@@ -41,7 +41,7 @@ f64 lerp(f64 lo, f64 hi, f64 rate) {
 void tuner_config_set_default_values(TunerConfig *tuner_config) {
     *tuner_config = (TunerConfig) {
         .threads = 1,
-        .iterations = 10000,
+        .iterations = 1000,
         .display_every = 50,
         .batch_size = 16384,
         .lambda = 1.0,
@@ -943,13 +943,12 @@ void init_disp_sequence_and_base_values(
     TUNE_ADD_SP_ARRAY(KingShelter, IDX_KS_SHELTER, 24, 0, 24, 4, 4, true);
 
     disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("// Threat eval terms\n"));
-    TUNE_ADD_SCOREPAIR(PawnAttacksMinor, IDX_PAWN_ATK_MINOR, 17, 3);
-    TUNE_ADD_SCOREPAIR(PawnAttacksRook, IDX_PAWN_ATK_ROOK, 17, 3);
-    TUNE_ADD_SCOREPAIR(PawnAttacksQueen, IDX_PAWN_ATK_QUEEN, 17, 3);
-    TUNE_ADD_SCOREPAIR(MinorAttacksRook, IDX_MINOR_ATK_ROOK, 17, 3);
-    TUNE_ADD_SCOREPAIR(MinorAttacksQueen, IDX_MINOR_ATK_QUEEN, 17, 3);
-    TUNE_ADD_SCOREPAIR(RookAttacksQueen, IDX_ROOK_ATK_QUEEN, 17, 3);
-    TUNE_ADD_SCOREPAIR(HangingPawn, IDX_HANGING_PAWN, 17, 3);
+    TUNE_ADD_SP_ARRAY(PawnThreats, IDX_PAWN_THREAT, 6, 0, 5, 3, 3, true);
+    TUNE_ADD_SP_ARRAY(KnightThreats, IDX_KNIGHT_THREAT, 6, 0, 5, 3, 3, true);
+    TUNE_ADD_SP_ARRAY(BishopThreats, IDX_BISHOP_THREAT, 6, 0, 5, 3, 3, true);
+    TUNE_ADD_SP_ARRAY(RookThreats, IDX_ROOK_THREAT, 6, 0, 5, 3, 3, true);
+    TUNE_ADD_SP_ARRAY(QueenThreats, IDX_QUEEN_THREAT, 6, 0, 5, 3, 3, true);
+    TUNE_ADD_SCOREPAIR(HangingPawn, IDX_HANGING_PAWN, 11, 3);
     disp_sequence_add_newline(disp_sequence);
 
     // kp_eval.c values

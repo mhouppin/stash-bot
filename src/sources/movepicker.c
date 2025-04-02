@@ -207,8 +207,7 @@ top:
 
             // Don't play the same move twice.
             if (mp->counter != NO_MOVE && mp->counter != mp->tt_move && mp->counter != mp->killer1
-                && mp->counter != mp->killer2
-                && !board_move_is_noisy(mp->board, mp->counter)
+                && mp->counter != mp->killer2 && !board_move_is_noisy(mp->board, mp->counter)
                 && board_move_is_pseudolegal(mp->board, mp->counter)) {
                 return mp->counter;
             }
