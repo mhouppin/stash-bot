@@ -856,6 +856,11 @@ main_loop:
             else if (gives_check) {
                 extension = 1;
             }
+            // Low-depth Singular Extensions.
+            else if (depth < 7 && !in_check && currmove == tt_move && !ss->excluded_move
+                     && tt_bound == LOWER_BOUND && ss->static_eval <= alpha - 30) {
+                extension = 1;
+            }
         }
 
         // Save the piece history for the current move so that sub-nodes can use it for ordering
