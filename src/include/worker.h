@@ -71,7 +71,6 @@ typedef struct {
     struct WorkerPool *pool;
     ButterflyHistory *butterfly_hist;
     ContinuationHistory *continuation_hist;
-    CountermoveHistory *counter_hist;
     CaptureHistory *capture_hist;
     CorrectionHistory *correction_hist;
     KingPawnTable *king_pawn_table;

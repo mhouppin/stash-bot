@@ -29,7 +29,6 @@ typedef enum {
     PICK_GOOD_NOISY,
     PICK_KILLER1,
     PICK_KILLER2,
-    PICK_COUNTER,
     GEN_QUIETS,
     PICK_QUIETS,
     PICK_BAD_NOISY,
@@ -49,7 +48,6 @@ typedef struct {
     Move tt_move;
     Move killer1;
     Move killer2;
-    Move counter;
     const Board *board;
     const Worker *worker;
     PieceHistory *piece_history[2];

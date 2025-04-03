@@ -884,8 +884,8 @@ main_loop:
             // Increase the reduction if the TT move is non-quiet.
             r += tt_noisy;
 
-            // Decrease the reduction if the move is a killer or countermove.
-            r -= (currmove == mp.killer1 || currmove == mp.killer2 || currmove == mp.counter);
+            // Decrease the reduction if the move is a killer.
+            r -= (currmove == mp.killer1 || currmove == mp.killer2);
 
             // Decrease the reduction if the move escapes a capture.
             r -= is_quiet && !board_see_above(board, move_reverse(currmove), 0);
@@ -1292,18 +1292,10 @@ void update_quiet_history(
 ) {
     Worker *worker = board_get_worker(board);
     const i16 bonus = history_bonus(depth);
-    const Move previous_move = (ss - 1)->current_move;
     Piece moved_piece = board_moved_piece(board, bestmove);
     Square to = move_to(bestmove);
 
     // Apply history bonuses to the bestmove.
-    if ((ss - 1)->piece_history != NULL) {
-        const Square last_to = move_to(previous_move);
-        const Piece last_piece = board_piece_on(board, last_to);
-
-        worker->counter_hist->data[last_piece][last_to] = bestmove;
-    }
-
     butterfly_hist_update(worker->butterfly_hist, moved_piece, bestmove, bonus);
     update_continuation_histories(ss, depth, moved_piece, to, true);
 

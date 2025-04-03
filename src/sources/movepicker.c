@@ -41,17 +41,6 @@ void movepicker_init(
     mp->tt_move = tt_move;
     mp->killer1 = ss->killers[0];
     mp->killer2 = ss->killers[1];
-
-    // Set the countermove if possible.
-    if ((ss - 1)->piece_history != NULL) {
-        const Square last_to = move_to((ss - 1)->current_move);
-        const Piece last_piece = board_piece_on(board, last_to);
-
-        mp->counter = worker->counter_hist->data[last_piece][last_to];
-    } else {
-        mp->counter = NO_MOVE;
-    }
-
     mp->piece_history[0] = (ss - 1)->piece_history;
     mp->piece_history[1] = (ss - 2)->piece_history;
     mp->board = board;
@@ -202,18 +191,6 @@ top:
 
             // Fallthrough
 
-        case PICK_COUNTER:
-            ++mp->stage;
-
-            // Don't play the same move twice.
-            if (mp->counter != NO_MOVE && mp->counter != mp->tt_move && mp->counter != mp->killer1
-                && mp->counter != mp->killer2 && !board_move_is_noisy(mp->board, mp->counter)
-                && board_move_is_pseudolegal(mp->board, mp->counter)) {
-                return mp->counter;
-            }
-
-            // Fallthrough
-
         case GEN_QUIETS:
             // Generate and score all quiet moves, except if the search tells us to not do so due to
             // quiet move pruning.
@@ -235,8 +212,7 @@ top:
                     const Move move = (mp->current++)->move;
 
                     // Don't play the same move twice.
-                    if (move != mp->tt_move && move != mp->killer1 && move != mp->killer2
-                        && move != mp->counter) {
+                    if (move != mp->tt_move && move != mp->killer1 && move != mp->killer2) {
                         return move;
                     }
                 }

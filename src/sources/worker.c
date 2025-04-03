@@ -89,7 +89,6 @@ void worker_init(Worker *worker, usize thread_index, struct WorkerPool *pool) {
     worker->thread_index = thread_index;
     worker->butterfly_hist = wrap_aligned_alloc(64, sizeof(ButterflyHistory));
     worker->continuation_hist = wrap_aligned_alloc(64, sizeof(ContinuationHistory));
-    worker->counter_hist = wrap_aligned_alloc(64, sizeof(CountermoveHistory));
     worker->capture_hist = wrap_aligned_alloc(64, sizeof(CaptureHistory));
     worker->correction_hist = wrap_aligned_alloc(64, sizeof(CorrectionHistory));
     worker->king_pawn_table = wrap_aligned_alloc(64, sizeof(KingPawnTable));
@@ -132,7 +131,6 @@ void worker_destroy(Worker *worker) {
     pthread_cond_destroy(&worker->condvar);
     wrap_aligned_free(worker->butterfly_hist);
     wrap_aligned_free(worker->continuation_hist);
-    wrap_aligned_free(worker->counter_hist);
     wrap_aligned_free(worker->capture_hist);
     wrap_aligned_free(worker->correction_hist);
     wrap_aligned_free(worker->king_pawn_table);
@@ -142,7 +140,6 @@ void worker_destroy(Worker *worker) {
 void worker_init_new_game(Worker *worker) {
     memset(worker->butterfly_hist, 0, sizeof(ButterflyHistory));
     memset(worker->continuation_hist, 0, sizeof(ContinuationHistory));
-    memset(worker->counter_hist, 0, sizeof(CountermoveHistory));
     memset(worker->capture_hist, 0, sizeof(CaptureHistory));
     memset(worker->correction_hist, 0, sizeof(CorrectionHistory));
     memset(worker->king_pawn_table, 0, sizeof(KingPawnTable));
