@@ -27,6 +27,7 @@ void search_init(void);
 typedef struct {
     i16 plies;
     i16 double_extensions;
+    i16 reduction;
     Score static_eval;
     Move killers[2];
     Move excluded_move;
