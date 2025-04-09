@@ -870,9 +870,9 @@ bool board_move_is_legal(const Board *board, Move move) {
 
     // Special handling for castling moves.
     if (move_type(move) == CASTLING) {
-        const Direction direction = to > from ? WEST : EAST;
-
         to = square_relative(to > from ? SQ_G1 : SQ_C1, us);
+
+        const Direction direction = to > from ? WEST : EAST;
 
         // Check for any opponent's piece attack along the King path.
         for (Square square = to; square != from; square += direction) {
