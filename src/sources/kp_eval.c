@@ -27,7 +27,7 @@
 // Miscellanous bonus for Pawn structures
 const Scorepair BackwardPenalty  = SPAIR( -4,  -8);
 const Scorepair StragglerPenalty = SPAIR(-15, -21);
-const Scorepair DoubledPenalty   = SPAIR(-14, -48);
+const Scorepair DoubledPenalty   = SPAIR(-14, -47);
 const Scorepair IsolatedPenalty  = SPAIR( -7, -10);
 
 // Rank-based bonus for passed Pawns
@@ -35,45 +35,44 @@ const Scorepair PassedBonus[8] = {
     0,
     SPAIR( -9,   8),
     SPAIR(-13,  15),
-    SPAIR(-25,  52),
-    SPAIR( 12, 112),
-    SPAIR( 46, 206),
-    SPAIR( 74, 347),
+    SPAIR(-25,  50),
+    SPAIR( 12, 107),
+    SPAIR( 29, 197),
+    SPAIR( 57, 334),
     0
 };
 
 // Passed Pawn eval terms
-const Scorepair PassedOurKingDistance[24] = {
-    SPAIR(   9,   93), SPAIR(  12,   13), SPAIR( -27,  -95),
-    SPAIR(   0,    0), SPAIR(   0,    0), SPAIR(   0,    0),
-    SPAIR(  14,   78), SPAIR(  14,   26), SPAIR(  11,  -32),
-    SPAIR( -39,  -61), SPAIR(   0,    0), SPAIR(   0,    0),
-    SPAIR(   3,   73), SPAIR( -27,   40), SPAIR( -19,   -8),
-    SPAIR(  -3,  -43), SPAIR(  40,  -50), SPAIR(   0,    0),
-    SPAIR( -34,   55), SPAIR( -30,   33), SPAIR( -12,   -9),
-    SPAIR(   1,  -14), SPAIR(  27,  -21), SPAIR(  43,  -26)
+const Scorepair PassedOurKingDistance[20] = {
+    SPAIR(  13,  128), SPAIR(  -9,  -35), SPAIR(   0,    0), SPAIR(   0,    0), SPAIR(   0,    0),
+    SPAIR(  18,   80), SPAIR(  20,   32), SPAIR( -16,  -50), SPAIR(   0,    0), SPAIR(   0,    0),
+    SPAIR(   2,   71), SPAIR( -30,   40), SPAIR( -19,   -9), SPAIR(   1,  -45), SPAIR(   0,    0),
+    SPAIR( -37,   55), SPAIR( -32,   33), SPAIR( -13,   -8), SPAIR(  -1,  -13), SPAIR(  35,  -24)
 };
 
-const Scorepair PassedTheirKingDistance[24] = {
-    SPAIR( -13, -175), SPAIR(   5,   10), SPAIR(   0,  176),
-    SPAIR(   0,    0), SPAIR(   0,    0), SPAIR(   0,    0),
-    SPAIR( -27, -148), SPAIR(  20,  -36), SPAIR(   5,   62),
-    SPAIR(   2,  135), SPAIR(   0,    0), SPAIR(   0,    0),
-    SPAIR( -11,  -98), SPAIR(  27,  -33), SPAIR(  14,    0),
-    SPAIR(  -5,   56), SPAIR( -31,   88), SPAIR(   0,    0),
-    SPAIR( -18,  -49), SPAIR( -12,  -10), SPAIR(   9,   -4),
-    SPAIR(  24,   -2), SPAIR(  -9,   41), SPAIR(  -6,   39)
+const Scorepair PassedTheirKingDistance[20] = {
+    SPAIR( -19, -217), SPAIR(  -6,   39), SPAIR(   0,    0), SPAIR(   0,    0), SPAIR(   0,    0),
+    SPAIR( -29, -146), SPAIR(  17,  -37), SPAIR(  -7,   51), SPAIR(   0,    0), SPAIR(   0,    0),
+    SPAIR( -11,  -96), SPAIR(  29,  -30), SPAIR(  13,    4), SPAIR(  -6,   41), SPAIR(   0,    0),
+    SPAIR( -22,  -48), SPAIR( -13,   -8), SPAIR(  11,   -2), SPAIR(  27,    0), SPAIR( -10,   32)
+};
+
+const Scorepair PassedSquareRule[4] = {
+    SPAIR(  7,  73),
+    SPAIR(  5,  74),
+    SPAIR(  4,  48),
+    SPAIR(  6,  12)
 };
 
 // Rank-based bonus for phalanx structures
 const Scorepair PhalanxBonus[8] = {
     0,
-    SPAIR(  5,  -3),
+    SPAIR(  4,  -3),
     SPAIR( 16,   8),
     SPAIR( 22,  29),
-    SPAIR( 45,  64),
-    SPAIR(173, 260),
-    SPAIR(183, 247),
+    SPAIR( 45,  65),
+    SPAIR(175, 268),
+    SPAIR(183, 253),
     0
 };
 
@@ -83,8 +82,8 @@ const Scorepair DefenderBonus[8] = {
     SPAIR( 17,  20),
     SPAIR( 14,  22),
     SPAIR( 23,  34),
-    SPAIR( 59,  98),
-    SPAIR(176, 165),
+    SPAIR( 60,  99),
+    SPAIR(178, 171),
     0,
     0
 };
@@ -206,10 +205,11 @@ static Scorepair evaluate_passed(
 // Converts a (queening_distance, king_distance) pair to the corresponding index in the
 // PassedKingDistance tables.
 static u8 distance_to_pkd_index(u8 queening_distance, u8 king_distance) {
-    return (queening_distance - 1) * 6 + u8_min(queening_distance + 2, king_distance) - 1;
+    return (queening_distance - 1) * 5 + u8_min(queening_distance + 1, king_distance) - 1;
 }
 
-static Scorepair evaluate_passed_pos(const KingPawnEntry *kpe, const Board *board, Color us) {
+static Scorepair
+    evaluate_passed_pos(const KingPawnEntry *kpe, const Board *board, Color us, bool tempo) {
     Scorepair ret = 0;
     const Square our_king = board_king_square(board, us);
     const Square their_king = board_king_square(board, color_flip(us));
@@ -230,6 +230,14 @@ static Scorepair evaluate_passed_pos(const KingPawnEntry *kpe, const Board *boar
             ret += PassedTheirKingDistance[their_index];
             trace_add(IDX_PASSED_OUR_KING_DIST + our_index, us, 1);
             trace_add(IDX_PASSED_THEIR_KING_DIST + their_index, us, 1);
+
+            const u8 queening_sq = create_square(square_file(sq), rank_relative(RANK_8, us));
+
+            // Give an additional bonus if the opponent's King is out of reach of the passed pawn.
+            if (square_distance(queening_sq, their_king) > queening_distance + !tempo) {
+                ret += PassedSquareRule[queening_distance - 1];
+                trace_add(IDX_PASSED_SQUARE_RULE + queening_distance - 1, us, 1);
+            }
         }
     }
 
@@ -264,16 +272,18 @@ static Scorepair evaluate_doubled_isolated(Bitboard our_pawns, Color us __attrib
 KingPawnEntry *king_pawn_probe(const Board *board) {
     // Required if we are calling evaluate() from the UCI thread or during tuning runs.
     static KingPawnEntry nocache;
+    extern Key ZobristSideToMove;
     KingPawnEntry *kpe;
+    const Key kp_key =
+        board->stack->king_pawn_key ^ ((board->side_to_move != WHITE) ? ZobristSideToMove : 0);
 
     if (!board->has_worker) {
         kpe = &nocache;
     } else {
-        kpe = &board_get_worker(board)
-                   ->king_pawn_table->entry[board->stack->king_pawn_key % KING_PAWN_ENTRY_NB];
+        kpe = &board_get_worker(board)->king_pawn_table->entry[kp_key % KING_PAWN_ENTRY_NB];
 
         // Check if this pawn structure has already been evaluated.
-        if (kpe->key == board->stack->king_pawn_key) {
+        if (kpe->key == kp_key) {
             return kpe;
         }
     }
@@ -283,7 +293,7 @@ KingPawnEntry *king_pawn_probe(const Board *board) {
     const Bitboard bpawns = board_piece_bb(board, BLACK, PAWN);
 
     // Reset the entry contents.
-    kpe->key = board->stack->king_pawn_key;
+    kpe->key = kp_key;
     kpe->value = 0;
     kpe->attack_span[WHITE] = compute_attack_span(wpawns, WHITE);
     kpe->attack_span[BLACK] = compute_attack_span(bpawns, BLACK);
@@ -304,8 +314,8 @@ KingPawnEntry *king_pawn_probe(const Board *board) {
     kpe->value += evaluate_passed(kpe, &data, WHITE, wpawns, bpawns);
     kpe->value -= evaluate_passed(kpe, &data, BLACK, bpawns, wpawns);
 
-    kpe->value += evaluate_passed_pos(kpe, board, WHITE);
-    kpe->value -= evaluate_passed_pos(kpe, board, BLACK);
+    kpe->value += evaluate_passed_pos(kpe, board, WHITE, board->side_to_move == WHITE);
+    kpe->value -= evaluate_passed_pos(kpe, board, BLACK, board->side_to_move != WHITE);
 
     kpe->value += evaluate_doubled_isolated(wpawns, WHITE);
     kpe->value -= evaluate_doubled_isolated(bpawns, BLACK);

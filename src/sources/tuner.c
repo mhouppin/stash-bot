@@ -371,7 +371,8 @@ void tuner_dataset_start_session(TunerDataset *tuner_dataset, const TunerConfig 
 
         printf("Iteration [" FORMAT_LARGE_INT "], Loss [%.7lf]\n", (LargeInt)iteration, loss);
 
-        if ((iteration + 1) % 50 == 0 || iteration + 1 == tuner_config->iterations) {
+        if ((iteration + 1) % tuner_config->display_every == 0
+            || iteration + 1 == tuner_config->iterations) {
             disp_sequence_show(&disp_sequence, &base, &delta);
         }
 
@@ -971,8 +972,9 @@ void init_disp_sequence_and_base_values(
     TUNE_ADD_SP_ARRAY(PassedBonus, IDX_PASSER, 8, 1, 7, 3, 1, true);
 
     disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("// Passed Pawn eval terms\n"));
-    TUNE_ADD_SP_ARRAY(PassedOurKingDistance, IDX_PASSED_OUR_KING_DIST, 24, 0, 24, 4, 3, true);
-    TUNE_ADD_SP_ARRAY(PassedTheirKingDistance, IDX_PASSED_THEIR_KING_DIST, 24, 0, 24, 4, 3, true);
+    TUNE_ADD_SP_ARRAY(PassedOurKingDistance, IDX_PASSED_OUR_KING_DIST, 20, 0, 20, 4, 5, true);
+    TUNE_ADD_SP_ARRAY(PassedTheirKingDistance, IDX_PASSED_THEIR_KING_DIST, 20, 0, 20, 4, 5, true);
+    TUNE_ADD_SP_ARRAY(PassedSquareRule, IDX_PASSED_SQUARE_RULE, 4, 0, 4, 3, 1, true);
 
     disp_sequence_add_raw_string(
         disp_sequence,

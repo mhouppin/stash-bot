@@ -72,6 +72,19 @@ INLINED u8 i8_abs(i8 value) {
     return value < 0 ? -value : value;
 }
 
+INLINED i8 i8_min(i8 lhs, i8 rhs) {
+    return lhs < rhs ? lhs : rhs;
+}
+
+INLINED i8 i8_max(i8 lhs, i8 rhs) {
+    return lhs > rhs ? lhs : rhs;
+}
+
+INLINED i8 i8_clamp(i8 value, i8 lower, i8 upper) {
+    assert(lower <= upper);
+    return value < lower ? lower : value > upper ? upper : value;
+}
+
 // i16 API
 
 INLINED i16 i16_min(i16 lhs, i16 rhs) {
