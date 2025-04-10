@@ -25,7 +25,7 @@
 #include "wdl.h"
 #include "wmalloc.h"
 
-#define UCI_VERSION "v36.18"
+#define UCI_VERSION "v36.19"
 
 static const Command UciCommands[] = {
     {STATIC_STRVIEW("bench"), uci_bench},
@@ -75,7 +75,7 @@ static void uci_init_options(Uci *uci) {
         strview_from_cstr("Threads"),
         &uci->option_values.threads,
         1,
-        256,
+        512,
         false,
         on_threads_change,
         (void *)uci
