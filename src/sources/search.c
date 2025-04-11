@@ -900,7 +900,7 @@ main_loop:
             score = -search(false, board, new_depth - r, -alpha - 1, -alpha, ss + 1, true);
 
             // Perform another search at full depth if LMR failed high.
-            if (r != 0 && score > alpha) {
+            if (r > -extension && score > alpha) {
                 score = -search(
                     false,
                     board,
