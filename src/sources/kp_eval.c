@@ -25,66 +25,65 @@
 // clang-format off
 
 // Miscellanous bonus for Pawn structures
-const Scorepair BackwardPenalty  = SPAIR( -4,  -8);
-const Scorepair StragglerPenalty = SPAIR(-15, -21);
-const Scorepair DoubledPenalty   = SPAIR(-14, -48);
-const Scorepair IsolatedPenalty  = SPAIR( -7, -10);
+const Scorepair BackwardPenalty = SPAIR(-21, -26);
+const Scorepair DoubledPenalty  = SPAIR(-14, -49);
+const Scorepair IsolatedPenalty = SPAIR( -5, -10);
 
 // Rank-based bonus for passed Pawns
 const Scorepair PassedBonus[8] = {
     0,
-    SPAIR( -9,   8),
-    SPAIR(-13,  15),
-    SPAIR(-25,  52),
-    SPAIR( 12, 112),
-    SPAIR( 46, 206),
-    SPAIR( 74, 347),
+    SPAIR(-10,   5),
+    SPAIR(-14,  13),
+    SPAIR(-27,  48),
+    SPAIR(  9, 108),
+    SPAIR( 48, 202),
+    SPAIR( 76, 344),
     0
 };
 
 // Passed Pawn eval terms
 const Scorepair PassedOurKingDistance[24] = {
-    SPAIR(   9,   93), SPAIR(  12,   13), SPAIR( -27,  -95),
+    SPAIR(  11,   94), SPAIR(  15,   10), SPAIR( -31,  -96),
     SPAIR(   0,    0), SPAIR(   0,    0), SPAIR(   0,    0),
-    SPAIR(  14,   78), SPAIR(  14,   26), SPAIR(  11,  -32),
-    SPAIR( -39,  -61), SPAIR(   0,    0), SPAIR(   0,    0),
-    SPAIR(   3,   73), SPAIR( -27,   40), SPAIR( -19,   -8),
-    SPAIR(  -3,  -43), SPAIR(  40,  -50), SPAIR(   0,    0),
-    SPAIR( -34,   55), SPAIR( -30,   33), SPAIR( -12,   -9),
-    SPAIR(   1,  -14), SPAIR(  27,  -21), SPAIR(  43,  -26)
+    SPAIR(  16,   77), SPAIR(  17,   25), SPAIR(  12,  -33),
+    SPAIR( -44,  -61), SPAIR(   0,    0), SPAIR(   0,    0),
+    SPAIR(   3,   72), SPAIR( -30,   40), SPAIR( -18,   -9),
+    SPAIR(  -3,  -43), SPAIR(  40,  -51), SPAIR(   0,    0),
+    SPAIR( -37,   54), SPAIR( -30,   32), SPAIR( -12,  -10),
+    SPAIR(   1,  -14), SPAIR(  28,  -22), SPAIR(  42,  -27)
 };
 
 const Scorepair PassedTheirKingDistance[24] = {
-    SPAIR( -13, -175), SPAIR(   5,   10), SPAIR(   0,  176),
+    SPAIR( -11, -177), SPAIR(   5,   10), SPAIR(   0,  175),
     SPAIR(   0,    0), SPAIR(   0,    0), SPAIR(   0,    0),
-    SPAIR( -27, -148), SPAIR(  20,  -36), SPAIR(   5,   62),
-    SPAIR(   2,  135), SPAIR(   0,    0), SPAIR(   0,    0),
-    SPAIR( -11,  -98), SPAIR(  27,  -33), SPAIR(  14,    0),
-    SPAIR(  -5,   56), SPAIR( -31,   88), SPAIR(   0,    0),
-    SPAIR( -18,  -49), SPAIR( -12,  -10), SPAIR(   9,   -4),
-    SPAIR(  24,   -2), SPAIR(  -9,   41), SPAIR(  -6,   39)
+    SPAIR( -28, -148), SPAIR(  22,  -37), SPAIR(   6,   61),
+    SPAIR(   2,  134), SPAIR(   0,    0), SPAIR(   0,    0),
+    SPAIR( -12,  -99), SPAIR(  28,  -34), SPAIR(  14,    0),
+    SPAIR(  -6,   56), SPAIR( -32,   87), SPAIR(   0,    0),
+    SPAIR( -23,  -49), SPAIR( -13,  -11), SPAIR(  10,   -5),
+    SPAIR(  25,   -3), SPAIR(  -8,   40), SPAIR(  -7,   39)
 };
 
 // Rank-based bonus for phalanx structures
 const Scorepair PhalanxBonus[8] = {
     0,
-    SPAIR(  5,  -3),
-    SPAIR( 16,   8),
-    SPAIR( 22,  29),
-    SPAIR( 45,  64),
-    SPAIR(173, 260),
-    SPAIR(183, 247),
+    SPAIR(  5,  -2),
+    SPAIR( 18,  11),
+    SPAIR( 22,  26),
+    SPAIR( 46,  64),
+    SPAIR(175, 267),
+    SPAIR(183, 252),
     0
 };
 
 // Rank-based bonus for defenders
 const Scorepair DefenderBonus[8] = {
     0,
-    SPAIR( 17,  20),
-    SPAIR( 14,  22),
+    SPAIR( 18,  22),
+    SPAIR( 15,  22),
     SPAIR( 23,  34),
-    SPAIR( 59,  98),
-    SPAIR(176, 165),
+    SPAIR( 61, 100),
+    SPAIR(179, 171),
     0,
     0
 };
@@ -118,18 +117,6 @@ static Scorepair evaluate_backward(
         return ret;
     }
 
-    // Penalize the pawns which cannot advance due to their stop square being attacked by enemy
-    // pawns, with none of our pawns able to defend it.
-    ret += BackwardPenalty * bb_popcount(backward_pawns);
-    trace_add(IDX_BACKWARD, us, bb_popcount(backward_pawns));
-
-    // For stragglers, we only consider the relative second and third ranks.
-    backward_pawns &= (us == WHITE) ? (RANK_2_BB | RANK_3_BB) : (RANK_6_BB | RANK_7_BB);
-
-    if (!backward_pawns) {
-        return ret;
-    }
-
     Bitboard closed_files = 0;
 
     while (their_pawns) {
@@ -142,9 +129,10 @@ static Scorepair evaluate_backward(
         return ret;
     }
 
-    // Add an extra penalty for exposed backward pawns on the second or third rank.
-    ret += StragglerPenalty * bb_popcount(backward_pawns);
-    trace_add(IDX_STRAGGLER, us, bb_popcount(backward_pawns));
+    // Penalize the pawns which cannot advance due to their stop square being attacked by enemy
+    // pawns, with none of our pawns able to defend it, on an open file.
+    ret += BackwardPenalty * bb_popcount(backward_pawns);
+    trace_add(IDX_BACKWARD, us, bb_popcount(backward_pawns));
     return ret;
 }
 
