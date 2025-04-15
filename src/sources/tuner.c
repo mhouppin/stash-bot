@@ -42,7 +42,7 @@ void tuner_config_set_default_values(TunerConfig *tuner_config) {
     *tuner_config = (TunerConfig) {
         .threads = 1,
         .iterations = 1000,
-        .display_every = 50,
+        .display_every = 25,
         .batch_size = 16384,
         .lambda = 1.0,
         .learning_rate = 0.1,
@@ -371,7 +371,7 @@ void tuner_dataset_start_session(TunerDataset *tuner_dataset, const TunerConfig 
 
         printf("Iteration [" FORMAT_LARGE_INT "], Loss [%.7lf]\n", (LargeInt)iteration, loss);
 
-        if ((iteration + 1) % 50 == 0 || iteration + 1 == tuner_config->iterations) {
+        if ((iteration + 1) % tuner_config->display_every == 0 || iteration + 1 == tuner_config->iterations) {
             disp_sequence_show(&disp_sequence, &base, &delta);
         }
 
@@ -958,10 +958,9 @@ void init_disp_sequence_and_base_values(
         disp_sequence,
         STATIC_STRVIEW("// Miscellanous bonus for Pawn structures\n")
     );
-    TUNE_ADD_SCOREPAIR(BackwardPenalty, IDX_BACKWARD, 16, 3);
-    TUNE_ADD_SCOREPAIR(StragglerPenalty, IDX_STRAGGLER, 16, 3);
-    TUNE_ADD_SCOREPAIR(DoubledPenalty, IDX_DOUBLED, 16, 3);
-    TUNE_ADD_SCOREPAIR(IsolatedPenalty, IDX_ISOLATED, 16, 3);
+    TUNE_ADD_SCOREPAIR(BackwardPenalty, IDX_BACKWARD, 15, 3);
+    TUNE_ADD_SCOREPAIR(DoubledPenalty, IDX_DOUBLED, 15, 3);
+    TUNE_ADD_SCOREPAIR(IsolatedPenalty, IDX_ISOLATED, 15, 3);
     disp_sequence_add_newline(disp_sequence);
 
     disp_sequence_add_raw_string(
