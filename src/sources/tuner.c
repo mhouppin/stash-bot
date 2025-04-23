@@ -371,7 +371,8 @@ void tuner_dataset_start_session(TunerDataset *tuner_dataset, const TunerConfig 
 
         printf("Iteration [" FORMAT_LARGE_INT "], Loss [%.7lf]\n", (LargeInt)iteration, loss);
 
-        if ((iteration + 1) % tuner_config->display_every == 0 || iteration + 1 == tuner_config->iterations) {
+        if ((iteration + 1) % tuner_config->display_every == 0
+            || iteration + 1 == tuner_config->iterations) {
             disp_sequence_show(&disp_sequence, &base, &delta);
         }
 

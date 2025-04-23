@@ -73,7 +73,8 @@ typedef struct {
     ContinuationHistory *continuation_hist;
     CountermoveHistory *counter_hist;
     CaptureHistory *capture_hist;
-    CorrectionHistory *correction_hist;
+    CorrectionHistory *pawn_corrhist;
+    CorrectionHistory *nonpawn_corrhist;
     KingPawnTable *king_pawn_table;
 
     u16 seldepth;
