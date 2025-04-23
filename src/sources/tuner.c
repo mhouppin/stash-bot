@@ -44,7 +44,7 @@ void tuner_config_set_default_values(TunerConfig *tuner_config) {
         .iterations = 1000,
         .display_every = 25,
         .batch_size = 16384,
-        .lambda = 1.0,
+        .lambda = 0.5,
         .learning_rate = 0.1,
         .gamma = 1.0,
         .gamma_iterations = 1000,
@@ -70,6 +70,7 @@ bool tuner_entry_init(TunerEntry *restrict entry, const Board *restrict board) {
 
     if (board->side_to_move == BLACK) {
         entry->static_eval = -entry->static_eval;
+        entry->search_score = -entry->search_score;
     }
 
     entry->phase = Trace.phase;
