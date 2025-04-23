@@ -559,9 +559,15 @@ Score search(
     else if (tt_found) {
         raw_eval = tt_entry->eval;
         eval = ss->static_eval = raw_eval
-            + correction_hist_score(worker->correction_hist,
+            + correction_hist_score(worker->pawn_corrhist,
                                     board->side_to_move,
-                                    board_pawn_key(board));
+                                    board_pawn_key(board))
+            + correction_hist_score(&worker->nonpawn_corrhist[WHITE],
+                                    board->side_to_move,
+                                    board_nonpawn_key(board, WHITE))
+            + correction_hist_score(&worker->nonpawn_corrhist[BLACK],
+                                    board->side_to_move,
+                                    board_nonpawn_key(board, BLACK));
 
         // Try to use the TT score as a better evaluation of the position.
         if (tt_bound & (tt_score > eval ? LOWER_BOUND : UPPER_BOUND)) {
@@ -572,9 +578,15 @@ Score search(
     else {
         raw_eval = evaluate(board);
         eval = ss->static_eval = raw_eval
-            + correction_hist_score(worker->correction_hist,
+            + correction_hist_score(worker->pawn_corrhist,
                                     board->side_to_move,
-                                    board_pawn_key(board));
+                                    board_pawn_key(board))
+            + correction_hist_score(&worker->nonpawn_corrhist[WHITE],
+                                    board->side_to_move,
+                                    board_nonpawn_key(board, WHITE))
+            + correction_hist_score(&worker->nonpawn_corrhist[BLACK],
+                                    board->side_to_move,
+                                    board_nonpawn_key(board, BLACK));
 
         // Save the eval in TT so that other workers won't have to recompute it.
         tt_save(&worker->pool->tt, tt_entry, key, NO_SCORE, raw_eval, 0, NO_BOUND, NO_MOVE);
@@ -1008,9 +1020,23 @@ main_loop:
           || (bound == LOWER_BOUND && best_score <= ss->static_eval)
           || (bound == UPPER_BOUND && best_score >= ss->static_eval))) {
         correction_hist_update(
-            worker->correction_hist,
+            worker->pawn_corrhist,
             board->side_to_move,
             board_pawn_key(board),
+            i16_min(16, depth + 1),
+            (i32)best_score - (i32)ss->static_eval
+        );
+        correction_hist_update(
+            &worker->nonpawn_corrhist[WHITE],
+            board->side_to_move,
+            board_nonpawn_key(board, WHITE),
+            i16_min(16, depth + 1),
+            (i32)best_score - (i32)ss->static_eval
+        );
+        correction_hist_update(
+            &worker->nonpawn_corrhist[BLACK],
+            board->side_to_move,
+            board_nonpawn_key(board, BLACK),
             i16_min(16, depth + 1),
             (i32)best_score - (i32)ss->static_eval
         );
@@ -1103,9 +1129,19 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
             raw_eval = tt_entry->eval;
             eval = best_score = raw_eval
                 + correction_hist_score(
-                                    worker->correction_hist,
+                                    worker->pawn_corrhist,
                                     board->side_to_move,
                                     board_pawn_key(board)
+                )
+                + correction_hist_score(
+                                    &worker->nonpawn_corrhist[WHITE],
+                                    board->side_to_move,
+                                    board_nonpawn_key(board, WHITE)
+                )
+                + correction_hist_score(
+                                    &worker->nonpawn_corrhist[BLACK],
+                                    board->side_to_move,
+                                    board_nonpawn_key(board, BLACK)
                 );
 
             // Try to use the TT score as a better evaluation of the position.
@@ -1118,9 +1154,19 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
             raw_eval = evaluate(board);
             eval = best_score = raw_eval
                 + correction_hist_score(
-                                    worker->correction_hist,
+                                    worker->pawn_corrhist,
                                     board->side_to_move,
                                     board_pawn_key(board)
+                )
+                + correction_hist_score(
+                                    &worker->nonpawn_corrhist[WHITE],
+                                    board->side_to_move,
+                                    board_nonpawn_key(board, WHITE)
+                )
+                + correction_hist_score(
+                                    &worker->nonpawn_corrhist[BLACK],
+                                    board->side_to_move,
+                                    board_nonpawn_key(board, BLACK)
                 );
         }
 
