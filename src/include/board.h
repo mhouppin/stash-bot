@@ -237,6 +237,13 @@ INLINED Key board_pawn_key(const Board *board) {
         ^ ZobristPsq[BLACK_KING][board_king_square(board, BLACK)];
 }
 
+INLINED Key board_nonpawn_key(const Board *board) {
+    return board->stack->board_key
+        ^ board->stack->king_pawn_key
+        ^ ZobristCastling[board->stack->castlings]
+        ^ (board->side_to_move == BLACK ? ZobristSideToMove : 0);
+}
+
 // Helper function for grabbing a material count with standardized values: Pawn=1, Knight=Bishop=3,
 // Rook=5, Queen=9
 INLINED u32 board_material_count(const Board *board) {
