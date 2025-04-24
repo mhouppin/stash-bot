@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2024 Morgan Houppin
+**    Copyright (C) 2019-2025 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
 #include "wdl.h"
 #include "wmalloc.h"
 
-#define UCI_VERSION "v36.21"
+#define UCI_VERSION "v37.0"
 
 static const Command UciCommands[] = {
     {STATIC_STRVIEW("bench"), uci_bench},
