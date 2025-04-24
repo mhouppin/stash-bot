@@ -1,6 +1,6 @@
 /*
 **    Stash, a UCI chess playing engine developed from scratch
-**    Copyright (C) 2019-2024 Morgan Houppin
+**    Copyright (C) 2019-2025 Morgan Houppin
 **
 **    Stash is free software: you can redistribute it and/or modify
 **    it under the terms of the GNU General Public License as published by
@@ -70,6 +70,7 @@ bool tuner_entry_init(TunerEntry *restrict entry, const Board *restrict board) {
 
     if (board->side_to_move == BLACK) {
         entry->static_eval = -entry->static_eval;
+        entry->search_score = -entry->search_score;
     }
 
     entry->phase = Trace.phase;
