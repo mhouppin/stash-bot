@@ -124,6 +124,18 @@ static void info_append_score(String *info_str, Score score, bool normalize) {
     }
 }
 
+static void info_append_wdl(String *info_str, Score score, const Board *board) {
+    WdlValue wdl;
+
+    wdl_value_init(&wdl, score, board_material_count(board));
+    string_push_back_strview(info_str, STATIC_STRVIEW(" wdl "));
+    string_push_back_u64(info_str, wdl.win);
+    string_push_back(info_str, ' ');
+    string_push_back_u64(info_str, wdl.draw);
+    string_push_back(info_str, ' ');
+    string_push_back_u64(info_str, wdl.loss);
+}
+
 static void print_pv(
     Worker *worker,
     const Board *board,
@@ -156,6 +168,11 @@ static void print_pv(
     string_push_back_u64(&info_str, pv_line);
     string_push_back_strview(&info_str, STATIC_STRVIEW(" score "));
     info_append_score(&info_str, root_score, worker->pool->search_params.normalize_score);
+
+    if (worker->pool->search_params.show_wdl) {
+        info_append_wdl(&info_str, root_score, board);
+    }
+
     string_push_back_strview(&info_str, BoundStr[bound]);
     string_push_back_strview(&info_str, STATIC_STRVIEW(" nodes "));
     string_push_back_u64(&info_str, nodes);
