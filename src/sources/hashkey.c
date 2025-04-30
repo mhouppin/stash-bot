@@ -23,7 +23,7 @@
 
 Key ZobristPsq[PIECE_NB][SQUARE_NB];
 Key ZobristEnPassant[FILE_NB];
-Key ZobristCastling[CASTLING_NB];
+Key ZobristCastling[CASTLING_MASK_NB];
 Key ZobristSideToMove;
 
 void zobrist_init(void) {
@@ -39,7 +39,7 @@ void zobrist_init(void) {
         ZobristEnPassant[file] = u64_random(&seed);
     }
 
-    for (CastlingRights cr = 0; cr < CASTLING_NB; ++cr) {
+    for (CastlingMask cr = 0; cr < CASTLING_MASK_NB; ++cr) {
         ZobristCastling[cr] = 0;
         u64 b = cr;
 

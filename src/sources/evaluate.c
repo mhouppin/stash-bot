@@ -503,7 +503,7 @@ static Scorepair
 
             // Check if the King resides between the Rook and the middle of the board.
             if (king_file != rook_file && (king_file < rook_file) == (king_file >= FILE_E)) {
-                const bool can_castle = !!(board->stack->castlings & relative_cr(us));
+                const bool can_castle = !!(board->stack->castlings & relative_clmask(us));
                 ret += can_castle ? RookTrapped : RookBuried;
                 trace_add(can_castle ? IDX_ROOK_TRAPPED : IDX_ROOK_BURIED, us, 1);
             }

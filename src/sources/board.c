@@ -421,8 +421,8 @@ static bool board_parse_stm(Board *board, StringView stm_field) {
 
 static bool board_set_castling(Board *board, Color color, Square rook_square) {
     const Square king_square = board_king_square(board, color);
-    const CastlingRights castling =
-        relative_cr(color) & (king_square < rook_square ? KINGSIDE_CASTLING : QUEENSIDE_CASTLING);
+    const CastlingRight castling = relative_clright(color, king_square > rook_square);
+    const CastlingMask castling_mask = clright_to_clmask(castling);
 
     if (square_rank_relative(king_square, color) != RANK_1) {
         info_debug("info string Invalid FEN: castling rights with the King not on its back rank\n");
@@ -434,15 +434,13 @@ static bool board_set_castling(Board *board, Color color, Square rook_square) {
         board->chess960 = true;
     }
 
-    board->stack->castlings |= castling;
-    board->castling_mask[king_square] |= castling;
-    board->castling_mask[rook_square] |= castling;
+    board->stack->castlings |= castling_mask;
+    board->castling_mask[king_square] |= castling_mask;
+    board->castling_mask[rook_square] |= castling_mask;
     board->castling_rook_square[castling] = rook_square;
 
-    const Square king_after =
-        square_relative((castling & KINGSIDE_CASTLING ? SQ_G1 : SQ_C1), color);
-    const Square rook_after =
-        square_relative((castling & KINGSIDE_CASTLING ? SQ_F1 : SQ_D1), color);
+    const Square king_after = square_relative((castling_mask & OO_MASK ? SQ_G1 : SQ_C1), color);
+    const Square rook_after = square_relative((castling_mask & OO_MASK ? SQ_F1 : SQ_D1), color);
 
     board->castling_path[castling] =
         (between_squares_bb(rook_square, rook_after) | between_squares_bb(king_square, king_after)
@@ -719,22 +717,22 @@ StringView board_get_fen(const Board *board) {
     fen_buffer[size++] = (board->side_to_move == WHITE) ? 'w' : 'b';
     fen_buffer[size++] = ' ';
 
-    if (board->stack->castlings & WHITE_OO) {
+    if (board->stack->castlings & WHITE_OO_MASK) {
         fen_buffer[size++] =
             board->chess960 ? 'A' + square_file(board->castling_rook_square[WHITE_OO]) : 'K';
     }
 
-    if (board->stack->castlings & WHITE_OOO) {
+    if (board->stack->castlings & WHITE_OOO_MASK) {
         fen_buffer[size++] =
             board->chess960 ? 'A' + square_file(board->castling_rook_square[WHITE_OOO]) : 'Q';
     }
 
-    if (board->stack->castlings & BLACK_OO) {
+    if (board->stack->castlings & BLACK_OO_MASK) {
         fen_buffer[size++] =
             board->chess960 ? 'a' + square_file(board->castling_rook_square[BLACK_OO]) : 'k';
     }
 
-    if (board->stack->castlings & BLACK_OOO) {
+    if (board->stack->castlings & BLACK_OOO_MASK) {
         fen_buffer[size++] =
             board->chess960 ? 'a' + square_file(board->castling_rook_square[BLACK_OOO]) : 'q';
     }
@@ -1084,7 +1082,7 @@ void board_do_move_gc(
     // If our move modified castling rights, update the board key and the list of available
     // castlings.
     if (new_stack->castlings && (board->castling_mask[from] | board->castling_mask[to])) {
-        const CastlingRights lost_castlings = board->castling_mask[from] | board->castling_mask[to];
+        const CastlingMask lost_castlings = board->castling_mask[from] | board->castling_mask[to];
 
         key ^= ZobristCastling[new_stack->castlings & lost_castlings];
         new_stack->castlings &= ~lost_castlings;
@@ -1128,9 +1126,6 @@ void board_do_move_gc(
     new_stack->captured_piece = captured_piece;
     new_stack->board_key = key;
 
-    // Prefetch the TT entry as early as possible.
-    // prefetch(tt_entry_at(key));
-
     // Save the list of checking pieces if the move gives check.
     new_stack->checkers = gives_check
         ? board_attackers_to(board, board_king_square(board, them)) & board_color_bb(board, us)
@@ -1169,9 +1164,6 @@ void board_do_null_move(Board *restrict board, Boardstack *restrict new_stack) {
     memcpy(new_stack, board->stack, sizeof(Boardstack));
 
     new_stack->board_key ^= ZobristSideToMove;
-
-    // Prefetch the TT entry as early as possible.
-    // prefetch(tt_entry_at(new_stack->board_key));
 
     // Update the ply-related counters.
     new_stack->rule50 += 1;

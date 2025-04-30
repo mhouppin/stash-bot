@@ -36,7 +36,7 @@ typedef struct Boardstack {
     Bitboard pinners[COLOR_NB];
     Bitboard check_squares[PIECETYPE_NB];
     struct Boardstack *previous;
-    CastlingRights castlings;
+    CastlingMask castlings;
     u16 rule50;
     i16 repetition;
     u16 plies_since_nullmove;
@@ -51,7 +51,7 @@ typedef struct {
     Bitboard piecetype_bb[PIECETYPE_NB];
     Bitboard color_bb[COLOR_NB];
     u8 piece_count[PIECE_NB];
-    CastlingRights castling_mask[SQUARE_NB];
+    CastlingMask castling_mask[SQUARE_NB];
     Square castling_rook_square[CASTLING_NB];
     Bitboard castling_path[CASTLING_NB];
     Boardstack *stack;
@@ -222,7 +222,7 @@ INLINED Bitboard board_king_square(const Board *board, Color color) {
 }
 
 // Checks if the given castling has an obstructed path
-INLINED bool board_castling_is_blocked(const Board *board, CastlingRights castling) {
+INLINED bool board_castling_is_blocked(const Board *board, CastlingRight castling) {
     return !!(board_occupancy_bb(board) & board->castling_path[castling]);
 }
 

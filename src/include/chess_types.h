@@ -273,31 +273,58 @@ INLINED Direction pawn_direction(Color color)
     return color == WHITE ? NORTH : SOUTH;
 }
 
-typedef u8 CastlingRights;
+typedef u8 CastlingRight;
+typedef u8 CastlingMask;
 
 enum
 {
-    WHITE_OO = 1,
-    WHITE_OOO = 2,
-    WHITE_CASTLING = 3,
-    BLACK_OO = 4,
-    KINGSIDE_CASTLING = 5,
-    BLACK_OOO = 8,
-    QUEENSIDE_CASTLING = 10,
-    BLACK_CASTLING = 12,
-    ANY_CASTLING = 15,
-    CASTLING_NB = 16
+    WHITE_OO = 0,
+    WHITE_OOO = 1,
+    BLACK_OO = 2,
+    BLACK_OOO = 3,
+    CASTLING_NB = 4
 };
 
-INLINED bool cr_is_valid(CastlingRights cr)
+enum
 {
-    return cr < CASTLING_NB;
+    WHITE_OO_MASK = 1,
+    WHITE_OOO_MASK = 2,
+    WHITE_CASTLING_MASK = 3,
+    BLACK_OO_MASK = 4,
+    OO_MASK = 5,
+    BLACK_OOO_MASK = 8,
+    OOO_MASK = 10,
+    BLACK_CASTLING_MASK = 12,
+    ANY_CASTLING_MASK = 15,
+    CASTLING_MASK_NB = 16
+};
+
+INLINED bool clright_is_valid(CastlingRight clright) {
+    return clright < CASTLING_NB;
 }
 
-INLINED CastlingRights relative_cr(Color color)
-{
+INLINED CastlingRight relative_clright(Color color, bool queenside) {
     assert(color_is_valid(color));
-    return color == WHITE ? WHITE_CASTLING : BLACK_CASTLING;
+    return (color == WHITE ? WHITE_OO : BLACK_OO) + queenside;
+}
+
+INLINED CastlingMask clright_to_clmask(CastlingRight clright) {
+    assert(clright_is_valid(clright));
+    return (CastlingMask)(1 << clright);
+}
+
+INLINED bool clmask_is_valid(CastlingMask clmask) {
+    return clmask < CASTLING_MASK_NB;
+}
+
+INLINED CastlingMask relative_clmask(Color color) {
+    assert(color_is_valid(color));
+    return color == WHITE ? WHITE_CASTLING_MASK : BLACK_CASTLING_MASK;
+}
+
+INLINED CastlingRight clmask_to_clright(CastlingMask clmask) {
+    assert(clmask != 0 && !(clmask & (clmask - 1)) && clmask_is_valid(clmask));
+    return (CastlingRight)u64_first_one(clmask);
 }
 
 // API for the move type.
