@@ -363,14 +363,16 @@ ExtendedMove *
         movelist = extmove_generate_piece_moves(movelist, board, us, piecetype, target_squares);
     }
 
-    CastlingRights kingside = us == WHITE ? WHITE_OO : BLACK_OO;
-    CastlingRights queenside = us == WHITE ? WHITE_OOO : BLACK_OOO;
+    CastlingRight kingside = relative_clright(us, false);
+    CastlingRight queenside = relative_clright(us, true);
 
-    if ((board->stack->castlings & kingside) && !board_castling_is_blocked(board, kingside)) {
+    if ((board->stack->castlings & clright_to_clmask(kingside))
+        && !board_castling_is_blocked(board, kingside)) {
         (movelist++)->move = create_castling_move(our_king, board->castling_rook_square[kingside]);
     }
 
-    if ((board->stack->castlings & queenside) && !board_castling_is_blocked(board, queenside)) {
+    if ((board->stack->castlings & clright_to_clmask(queenside))
+        && !board_castling_is_blocked(board, queenside)) {
         (movelist++)->move = create_castling_move(our_king, board->castling_rook_square[queenside]);
     }
 
@@ -439,14 +441,16 @@ ExtendedMove *extmove_generate_quiet(ExtendedMove *restrict movelist, const Boar
         movelist = extmove_generate_piece_moves(movelist, board, us, piecetype, empty_squares);
     }
 
-    CastlingRights kingside = us == WHITE ? WHITE_OO : BLACK_OO;
-    CastlingRights queenside = us == WHITE ? WHITE_OOO : BLACK_OOO;
+    CastlingRight kingside = relative_clright(us, false);
+    CastlingRight queenside = relative_clright(us, true);
 
-    if ((board->stack->castlings & kingside) && !board_castling_is_blocked(board, kingside)) {
+    if ((board->stack->castlings & clright_to_clmask(kingside))
+        && !board_castling_is_blocked(board, kingside)) {
         (movelist++)->move = create_castling_move(our_king, board->castling_rook_square[kingside]);
     }
 
-    if ((board->stack->castlings & queenside) && !board_castling_is_blocked(board, queenside)) {
+    if ((board->stack->castlings & clright_to_clmask(queenside))
+        && !board_castling_is_blocked(board, queenside)) {
         (movelist++)->move = create_castling_move(our_king, board->castling_rook_square[queenside]);
     }
 

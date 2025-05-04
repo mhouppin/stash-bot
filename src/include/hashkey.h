@@ -49,7 +49,7 @@ extern Key ZobristPsq[PIECE_NB][SQUARE_NB];
 extern Key ZobristEnPassant[FILE_NB];
 
 // Global table for Zobrist castling hashes
-extern Key ZobristCastling[CASTLING_NB];
+extern Key ZobristCastling[CASTLING_MASK_NB];
 
 // Global value for Zobrist STM hash
 extern Key ZobristSideToMove;
