@@ -750,7 +750,7 @@ Score search(
     }
 
     // Reduce depth if the node is absent from TT.
-    if (!root_node && !tt_found && depth >= 3) {
+    if ((pv_node || cut_node) && !tt_move && depth >= 5) {
         --depth;
     }
 
@@ -908,7 +908,8 @@ main_loop:
             r += !pv_node;
 
             // Increase the reduction for cutNodes.
-            r += cut_node;
+            if (cut_node)
+                r += 1 + !tt_move;
 
             // Increase the reduction if the TT move is non-quiet.
             r += tt_noisy;
