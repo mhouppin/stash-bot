@@ -750,9 +750,9 @@ Score search(
     }
 
     // Reduce depth if the node is absent from TT.
-    if (!root_node && !tt_found && depth >= 3) {
-        --depth;
-    }
+    // if (!root_node && !tt_found && depth >= 3) {
+    //     --depth;
+    // }
 
 main_loop:
     movepicker_init(&mp, false, board, worker, tt_move, ss);
