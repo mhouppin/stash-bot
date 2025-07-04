@@ -401,7 +401,7 @@ static Scorepair evaluate_bishops(
         ret += BishopMobility[bb_popcount(b & evaldata->mobility_zone[us])];
         trace_add(IDX_MOBILITY_BISHOP + bb_popcount(b & evaldata->mobility_zone[us]), us, 1);
 
-        // Give a bonus for a Knight with a Pawn above it.
+        // Give a bonus for a Bishop with a Pawn above it.
         if (bb_square_is_set(bb_shift_down_relative(our_pawns, us), sq)) {
             ret += BishopShielded;
             trace_add(IDX_BISHOP_SHIELDED, us, 1);
