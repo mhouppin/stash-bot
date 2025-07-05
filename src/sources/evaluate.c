@@ -602,6 +602,7 @@ static Scorepair evaluate_passed(const Board *board, const KingPawnEntry *kpe, C
             continue;
         }
 
+        // Give a penalty for a blocked passed pawn
         if (bb_square_is_set(bb_shift_down_relative(occ, us), sq)) {
             ret += PassedBlocked[rank - RANK_4];
             trace_add(IDX_PASSED_BLOCKED + rank - RANK_4, us, 1);
