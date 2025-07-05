@@ -911,6 +911,9 @@ void init_disp_sequence_and_base_values(
     TUNE_ADD_SP_ARRAY(RookMobility, IDX_MOBILITY_ROOK, 15, 0, 15, 4, 4, true);
     TUNE_ADD_SP_ARRAY(QueenMobility, IDX_MOBILITY_QUEEN, 28, 0, 28, 4, 4, true);
 
+    disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("// Passed Pawn eval terms\n"));
+    TUNE_ADD_SP_ARRAY(PassedBlocked, IDX_PASSED_BLOCKED, 4, 0, 4, 4, 1, true);
+
     disp_sequence_add_raw_string(
         disp_sequence,
         STATIC_STRVIEW("// King Safety linear eval terms\n")
