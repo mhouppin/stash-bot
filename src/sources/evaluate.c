@@ -100,6 +100,13 @@ const Scorepair PassedBlocked[4] = {
     SPAIR( -34, -103)
 };
 
+const Scorepair PassedSafeAdvance[4] = {
+    SPAIR(   0,    0),
+    SPAIR(   0,    0),
+    SPAIR(   0,    0),
+    SPAIR(   0,    0)
+};
+
 // King Safety linear eval terms
 const Scorepair FarKnight = SPAIR(-22, -13);
 const Scorepair FarBishop = SPAIR( -7, -10);
@@ -588,7 +595,13 @@ static Scorepair
     return ret;
 }
 
-static Scorepair evaluate_passed(const Board *board, const KingPawnEntry *kpe, Color us) {
+static Scorepair evaluate_passed(
+    const Board *board,
+    const EvaluationData *restrict evaldata,
+    const KingPawnEntry *kpe,
+    Color us
+) {
+    const Color them = color_flip(us);
     const Bitboard occ = board_occupancy_bb(board);
     Bitboard passed = kpe->passed[us];
     Scorepair ret = 0;
@@ -606,6 +619,12 @@ static Scorepair evaluate_passed(const Board *board, const KingPawnEntry *kpe, C
         if (bb_square_is_set(bb_shift_down_relative(occ, us), sq)) {
             ret += PassedBlocked[rank - RANK_4];
             trace_add(IDX_PASSED_BLOCKED + rank - RANK_4, us, 1);
+        }
+
+        // Give a bonus for a passed pawn that can safely advance
+        if (!bb_square_is_set(bb_shift_down_relative(evaldata->attacked[them], us), sq)) {
+            ret += PassedSafeAdvance[rank - RANK_4];
+            trace_add(IDX_PASSED_SAFE_ADVANCE + rank - RANK_4, us, 1);
         }
     }
 
@@ -910,8 +929,8 @@ Score evaluate(const Board *board) {
     tapered -= evaluate_queens(board, &evaldata, BLACK);
 
     // Add the passed pawn evaluation
-    tapered += evaluate_passed(board, kpe, WHITE);
-    tapered -= evaluate_passed(board, kpe, BLACK);
+    tapered += evaluate_passed(board, &evaldata, kpe, WHITE);
+    tapered -= evaluate_passed(board, &evaldata, kpe, BLACK);
 
     // Add the threats' evaluation.
     tapered += evaluate_threats(board, &evaldata, WHITE);
