@@ -913,6 +913,7 @@ void init_disp_sequence_and_base_values(
 
     disp_sequence_add_raw_string(disp_sequence, STATIC_STRVIEW("// Passed Pawn eval terms\n"));
     TUNE_ADD_SP_ARRAY(PassedBlocked, IDX_PASSED_BLOCKED, 4, 0, 4, 4, 1, true);
+    TUNE_ADD_SP_ARRAY(PassedSafeAdvance, IDX_PASSED_SAFE_ADVANCE, 4, 0, 4, 4, 1, true);
 
     disp_sequence_add_raw_string(
         disp_sequence,
