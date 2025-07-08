@@ -31,6 +31,7 @@ typedef struct Boardstack {
     Key king_pawn_key;
     Key material_key;
     Key nonpawn_key[COLOR_NB];
+    Key minor_key;
     Bitboard checkers;
     Bitboard king_blockers[COLOR_NB];
     Bitboard pinners[COLOR_NB];
@@ -240,6 +241,11 @@ INLINED Key board_pawn_key(const Board *board) {
 
 INLINED Key board_nonpawn_key(const Board *board, Color color) {
     return board->stack->nonpawn_key[color];
+}
+
+INLINED Key board_minor_key(const Board *board) {
+    return board->stack->minor_key ^ ZobristPsq[WHITE_KING][board_king_square(board, WHITE)]
+        ^ ZobristPsq[BLACK_KING][board_king_square(board, BLACK)];
 }
 
 // Helper function for grabbing a material count with standardized values: Pawn=1, Knight=Bishop=3,
