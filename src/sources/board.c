@@ -126,6 +126,7 @@ static void boardstack_set_check_info(Boardstack *restrict stack, const Board *r
 void boardstack_init(Boardstack *restrict stack, const Board *restrict board) {
     stack->board_key = stack->king_pawn_key = stack->material_key = 0;
     stack->nonpawn_key[WHITE] = stack->nonpawn_key[BLACK] = 0;
+    stack->minor_key = 0;
     stack->material[WHITE] = stack->material[BLACK] = 0;
     stack->checkers = board_attackers_to(board, board_king_square(board, board->side_to_move))
         & board_color_bb(board, color_flip(board->side_to_move));
@@ -145,6 +146,9 @@ void boardstack_init(Boardstack *restrict stack, const Board *restrict board) {
         } else {
             stack->material[piece_color(piece)] += PieceScores[MIDGAME][piece];
             stack->nonpawn_key[piece_color(piece)] ^= ZobristPsq[piece][square];
+            if (piece_type(piece) == KNIGHT || piece_type(piece) == BISHOP) {
+                stack->minor_key ^= ZobristPsq[piece][square];
+            }
         }
     }
 
@@ -1025,6 +1029,7 @@ void board_do_move_gc(
     new_stack->material_key = board->stack->material_key;
     new_stack->nonpawn_key[WHITE] = board->stack->nonpawn_key[WHITE];
     new_stack->nonpawn_key[BLACK] = board->stack->nonpawn_key[BLACK];
+    new_stack->minor_key = board->stack->minor_key;
     new_stack->material[WHITE] = board->stack->material[WHITE];
     new_stack->material[BLACK] = board->stack->material[BLACK];
 
@@ -1061,6 +1066,9 @@ void board_do_move_gc(
         } else {
             new_stack->material[them] -= PieceScores[MIDGAME][captured_piece];
             new_stack->nonpawn_key[them] ^= ZobristPsq[captured_piece][capture_square];
+            if (piece_type(captured_piece) == KNIGHT || piece_type(captured_piece) == BISHOP) {
+                new_stack->minor_key ^= ZobristPsq[captured_piece][capture_square];
+            }
         }
 
         board_remove_piece(board, capture_square);
@@ -1121,6 +1129,9 @@ void board_do_move_gc(
         new_stack->king_pawn_key ^= ZobristPsq[piece][from] ^ ZobristPsq[piece][to];
     } else {
         new_stack->nonpawn_key[us] ^= ZobristPsq[piece][from] ^ ZobristPsq[piece][to];
+        if (piece_type(piece) == KNIGHT || piece_type(piece) == BISHOP) {
+            new_stack->minor_key ^= ZobristPsq[piece][from] ^ ZobristPsq[piece][to];
+        }
     }
 
     new_stack->captured_piece = captured_piece;
