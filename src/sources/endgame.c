@@ -438,9 +438,7 @@ Score eval_krpkr(const Board *board, Color strong_side) {
 }
 
 Score eval_kqpkq(const Board *board, Color strong_side) {
-    static const Scalefactor FileFactor[4] = {
-        32, 64, 128, 96
-    };
+    static const Scalefactor FileFactor[4] = {32, 64, 128, 96};
 
     KingPawnEntry *kpe = king_pawn_probe(board);
     Score score = scorepair_endgame(kpe->value + board->psq_scorepair);
@@ -477,7 +475,9 @@ Score eval_kqpkq(const Board *board, Color strong_side) {
     }
 
     // Adjust the factor based on queen centralization.
-    factor = factor * (2 + bb_square_is_set(CENTER_BB, strong_queen) - bb_square_is_set(CENTER_BB, weak_queen)) / 2;
+    factor = factor
+        * (2 + bb_square_is_set(CENTER_BB, strong_queen) - bb_square_is_set(CENTER_BB, weak_queen))
+        / 2;
 
     // Keep the factor in the correct range.
     factor = (Scalefactor)i16_clamp(factor, SCALE_DRAW, SCALE_NORMAL);
@@ -564,7 +564,8 @@ Scalefactor scale_kqvkrps(const Board *board, Color strong_side) {
     const Color weak_side = color_flip(strong_side);
     const Square strong_king = square_relative(board_king_square(board, strong_side), strong_side);
     const Square weak_king = square_relative(board_king_square(board, weak_side), strong_side);
-    const Square weak_rook = square_relative(bb_first_square(board_piecetype_bb(board, ROOK)), strong_side);
+    const Square weak_rook =
+        square_relative(bb_first_square(board_piecetype_bb(board, ROOK)), strong_side);
     Bitboard weak_pawns = bb_relative(board_piecetype_bb(board, PAWN), strong_side);
 
     // Draws can only happen with pawns on:
@@ -579,7 +580,8 @@ Scalefactor scale_kqvkrps(const Board *board, Color strong_side) {
     // If the weak King and Rook are near a correctly placed Pawn, and the strong King cannot attack
     // from behind, it is a draw.
     if (!!(weak_pawns & king_proximity_mask & pawn_attacks_bb(weak_rook, WHITE))
-        && (opposite_by_file(strong_king, weak_king, weak_rook) || square_rank(strong_king) < square_rank(weak_king))) {
+        && (opposite_by_file(strong_king, weak_king, weak_rook)
+            || square_rank(strong_king) < square_rank(weak_king))) {
         return SCALE_DRAW;
     }
 
