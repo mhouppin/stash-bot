@@ -603,7 +603,10 @@ Score search(
                                     board_nonpawn_key(board, WHITE))
             + correction_hist_score(&worker->nonpawn_corrhist[BLACK],
                                     board->side_to_move,
-                                    board_nonpawn_key(board, BLACK));
+                                    board_nonpawn_key(board, BLACK))
+            + correction_hist_score(worker->minor_corrhist,
+                                    board->side_to_move,
+                                    board_minor_key(board));
 
         // Save the eval in TT so that other workers won't have to recompute it.
         tt_save(&worker->pool->tt, tt_entry, key, NO_SCORE, raw_eval, 0, NO_BOUND, NO_MOVE);
@@ -1057,6 +1060,13 @@ main_loop:
             i16_min(16, depth + 1),
             (i32)best_score - (i32)ss->static_eval
         );
+        correction_hist_update(
+            worker->minor_corrhist,
+            board->side_to_move,
+            board_minor_key(board),
+            i16_min(16, depth + 1),
+            (i32)best_score - (i32)ss->static_eval
+        );
     }
 
     // Only save TT for the first MultiPV move in root nodes.
@@ -1159,6 +1169,11 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
                                     &worker->nonpawn_corrhist[BLACK],
                                     board->side_to_move,
                                     board_nonpawn_key(board, BLACK)
+                )
+                + correction_hist_score(
+                                    worker->minor_corrhist,
+                                    board->side_to_move,
+                                    board_minor_key(board)
                 );
 
             // Try to use the TT score as a better evaluation of the position.
@@ -1184,6 +1199,11 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
                                     &worker->nonpawn_corrhist[BLACK],
                                     board->side_to_move,
                                     board_nonpawn_key(board, BLACK)
+                )
+                + correction_hist_score(
+                                    worker->minor_corrhist,
+                                    board->side_to_move,
+                                    board_minor_key(board)
                 );
         }
 

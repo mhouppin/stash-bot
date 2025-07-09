@@ -93,6 +93,7 @@ void worker_init(Worker *worker, usize thread_index, struct WorkerPool *pool) {
     worker->capture_hist = wrap_aligned_alloc(64, sizeof(CaptureHistory));
     worker->pawn_corrhist = wrap_aligned_alloc(64, sizeof(CorrectionHistory));
     worker->nonpawn_corrhist = wrap_aligned_alloc(64, sizeof(CorrectionHistory) * COLOR_NB);
+    worker->minor_corrhist = wrap_aligned_alloc(64, sizeof(CorrectionHistory));
     worker->king_pawn_table = wrap_aligned_alloc(64, sizeof(KingPawnTable));
     worker->root_moves = wrap_malloc(sizeof(RootMove) * MAX_MOVES);
     worker->must_exit = false;
@@ -137,6 +138,7 @@ void worker_destroy(Worker *worker) {
     wrap_aligned_free(worker->capture_hist);
     wrap_aligned_free(worker->pawn_corrhist);
     wrap_aligned_free(worker->nonpawn_corrhist);
+    wrap_aligned_free(worker->minor_corrhist);
     wrap_aligned_free(worker->king_pawn_table);
     free(worker->root_moves);
 }
@@ -148,6 +150,7 @@ void worker_init_new_game(Worker *worker) {
     memset(worker->capture_hist, 0, sizeof(CaptureHistory));
     memset(worker->pawn_corrhist, 0, sizeof(CorrectionHistory));
     memset(worker->nonpawn_corrhist, 0, sizeof(CorrectionHistory) * COLOR_NB);
+    memset(worker->minor_corrhist, 0, sizeof(CorrectionHistory));
     memset(worker->king_pawn_table, 0, sizeof(KingPawnTable));
 }
 
