@@ -177,10 +177,12 @@ void endgame_table_init(void) {
     add_scoring_entry(STATIC_STRVIEW("KBPvKN"), &eval_kmpkn);
     add_scoring_entry(STATIC_STRVIEW("KBPvKB"), &eval_kmpkb);
     add_scoring_entry(STATIC_STRVIEW("KRPvKR"), &eval_krpkr);
+    add_scoring_entry(STATIC_STRVIEW("KQPvKQ"), &eval_kqpkq);
 
     // Scaled endgames
     add_scaling_entry(STATIC_STRVIEW("KvK"), &scale_kpsk);
     add_scaling_entry(STATIC_STRVIEW("KBvK"), &scale_kbpsk);
+    add_scaling_entry(STATIC_STRVIEW("KQvKR"), &scale_kqvkrps);
 }
 
 Score eval_draw(
@@ -435,6 +437,54 @@ Score eval_krpkr(const Board *board, Color strong_side) {
     return score;
 }
 
+Score eval_kqpkq(const Board *board, Color strong_side) {
+    static const Scalefactor FileFactor[4] = {32, 64, 128, 96};
+
+    KingPawnEntry *kpe = king_pawn_probe(board);
+    Score score = scorepair_endgame(kpe->value + board->psq_scorepair);
+    const Color weak_side = color_flip(strong_side);
+    Square strong_king = board_king_square(board, strong_side);
+    Square weak_king = board_king_square(board, weak_side);
+    Square strong_pawn = bb_first_square(board_piecetype_bb(board, PAWN));
+    Square strong_queen = bb_first_square(board_piece_bb(board, strong_side, QUEEN));
+    Square weak_queen = bb_first_square(board_piece_bb(board, weak_side, QUEEN));
+    const bool flip_file = square_file(strong_pawn) >= FILE_E;
+    Scalefactor factor;
+
+    if (board->side_to_move == BLACK) {
+        score = -score;
+    }
+
+    strong_king = normalize_square(strong_side, strong_king, flip_file);
+    weak_king = normalize_square(strong_side, weak_king, flip_file);
+    strong_pawn = normalize_square(strong_side, strong_pawn, flip_file);
+    strong_queen = normalize_square(strong_side, strong_queen, flip_file);
+    weak_queen = normalize_square(strong_side, weak_queen, flip_file);
+
+    factor = FileFactor[square_file(strong_pawn)];
+
+    // Adjust the factor based on the pawn's rank.
+    factor = factor * (4 + square_rank(strong_pawn) - RANK_5) / 4;
+
+    // Adjust the factor based on the weak King's placement. It should ideally be either in front
+    // of the pawn or on the corner opposite to promotion for Knight/Rook pawns to draw.
+    if (bb_square_is_set(passed_pawn_span_bb(strong_pawn, WHITE), weak_king)) {
+        factor /= 2;
+    } else if (square_file(strong_pawn) <= FILE_B && square_distance(weak_king, SQ_H1) <= 2) {
+        factor = factor * (square_file(strong_pawn) == FILE_A ? 1 : 3) / 4;
+    }
+
+    // Adjust the factor based on queen centralization.
+    factor = factor
+        * (2 + bb_square_is_set(CENTER_BB, strong_queen) - bb_square_is_set(CENTER_BB, weak_queen))
+        / 2;
+
+    // Keep the factor in the correct range.
+    factor = (Scalefactor)i16_clamp(factor, SCALE_DRAW, SCALE_NORMAL);
+
+    return (Score)((i32)score * factor / SCALE_NORMAL);
+}
+
 Scalefactor scale_kpsk(const Board *board, Color strong_side) {
     const Bitboard strong_pawns = board_piece_bb(board, strong_side, PAWN);
 
@@ -495,6 +545,44 @@ Scalefactor scale_kbpsk(const Board *board, Color strong_side) {
         }
 
         return SCALE_NORMAL * (i32)(queening_distance - 1) / (i32)queening_distance;
+    }
+
+    return SCALE_NORMAL;
+}
+
+static bool opposite_by_file(Square sq1, Square sq2, Square middle) {
+    return (square_file(sq1) - square_file(middle)) * (square_file(sq2) - square_file(middle)) < 0;
+}
+
+Scalefactor scale_kqvkrps(const Board *board, Color strong_side) {
+    // If the strong side does not have the queen, or the strong side has pawns, don't try to scale
+    // down the endgame.
+    if (board_piece_bb(board, strong_side, PAWN) || !board_piece_bb(board, strong_side, QUEEN)) {
+        return SCALE_NORMAL;
+    }
+
+    const Color weak_side = color_flip(strong_side);
+    const Square strong_king = square_relative(board_king_square(board, strong_side), strong_side);
+    const Square weak_king = square_relative(board_king_square(board, weak_side), strong_side);
+    const Square weak_rook =
+        square_relative(bb_first_square(board_piecetype_bb(board, ROOK)), strong_side);
+    Bitboard weak_pawns = bb_relative(board_piecetype_bb(board, PAWN), strong_side);
+
+    // Draws can only happen with pawns on:
+    // - Files c to f and ranks 2, 6, 7;
+    // - Files b and g on all ranks;
+    // - Files a and h on ranks 3 and 7.
+    weak_pawns &= UINT64_C(0x00FFE74242C3E700);
+
+    Bitboard king_proximity_mask = king_attacks_bb(weak_king);
+    king_proximity_mask |= bb_shift_down(king_proximity_mask);
+
+    // If the weak King and Rook are near a correctly placed Pawn, and the strong King cannot attack
+    // from behind, it is a draw.
+    if (!!(weak_pawns & king_proximity_mask & pawn_attacks_bb(weak_rook, WHITE))
+        && (opposite_by_file(strong_king, weak_king, weak_rook)
+            || square_rank(strong_king) < square_rank(weak_king))) {
+        return SCALE_DRAW;
     }
 
     return SCALE_NORMAL;
