@@ -76,6 +76,7 @@ typedef struct {
     CorrectionHistory *pawn_corrhist;
     CorrectionHistory *nonpawn_corrhist;
     CorrectionHistory *minor_corrhist;
+    CorrectionHistory *major_corrhist;
     KingPawnTable *king_pawn_table;
 
     u16 seldepth;
