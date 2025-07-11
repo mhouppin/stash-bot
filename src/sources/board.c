@@ -150,7 +150,7 @@ void boardstack_init(Boardstack *restrict stack, const Board *restrict board) {
             if (piece_type(piece) == KNIGHT || piece_type(piece) == BISHOP) {
                 stack->minor_key ^= ZobristPsq[piece][square];
             }
-            if (piece_type(piece) == ROOK || piece_type(piece) == KING) {
+            if (piece_type(piece) == ROOK || piece_type(piece) == QUEEN) {
                 stack->major_key ^= ZobristPsq[piece][square];
             }
         }
