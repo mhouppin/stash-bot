@@ -584,7 +584,10 @@ Score search(
                                     board_nonpawn_key(board, WHITE))
             + correction_hist_score(&worker->nonpawn_corrhist[BLACK],
                                     board->side_to_move,
-                                    board_nonpawn_key(board, BLACK));
+                                    board_nonpawn_key(board, BLACK))
+            + correction_hist_score(worker->minor_corrhist,
+                                    board->side_to_move,
+                                    board_minor_key(board));
 
         // Try to use the TT score as a better evaluation of the position.
         if (tt_bound & (tt_score > eval ? LOWER_BOUND : UPPER_BOUND)) {
