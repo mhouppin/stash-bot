@@ -818,7 +818,7 @@ main_loop:
                 && !board_see_above(
                     board,
                     currmove,
-                    (is_quiet ? -48 * depth : -23 * depth * depth)
+                    (is_quiet ? -48 * depth : -60 * depth)
                 )) {
                 continue;
             }
