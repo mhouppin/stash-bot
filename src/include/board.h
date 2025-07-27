@@ -32,6 +32,7 @@ typedef struct Boardstack {
     Key material_key;
     Key nonpawn_key[COLOR_NB];
     Key minor_key;
+    Key major_key;
     Bitboard checkers;
     Bitboard king_blockers[COLOR_NB];
     Bitboard pinners[COLOR_NB];
@@ -245,6 +246,11 @@ INLINED Key board_nonpawn_key(const Board *board, Color color) {
 
 INLINED Key board_minor_key(const Board *board) {
     return board->stack->minor_key ^ ZobristPsq[WHITE_KING][board_king_square(board, WHITE)]
+        ^ ZobristPsq[BLACK_KING][board_king_square(board, BLACK)];
+}
+
+INLINED Key board_major_key(const Board *board) {
+    return board->stack->major_key ^ ZobristPsq[WHITE_KING][board_king_square(board, WHITE)]
         ^ ZobristPsq[BLACK_KING][board_king_square(board, BLACK)];
 }
 
