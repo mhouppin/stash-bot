@@ -194,6 +194,6 @@ void wpool_check_time(WorkerPool *wpool);
 
 // These functions can be called from any thread.
 
-u64 wpool_get_total_nodes(WorkerPool *wpool);
+u64 wpool_get_total_nodes(const WorkerPool *wpool);
 
 #endif

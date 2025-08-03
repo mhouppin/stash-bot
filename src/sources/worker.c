@@ -358,13 +358,14 @@ void wpool_check_time(WorkerPool *wpool) {
         return;
     }
 
-    if (wpool_get_total_nodes(wpool) >= wpool->search_params.nodes
+    if ((!wpool->search_params.tm_for_nodes
+         && wpool_get_total_nodes(wpool) >= wpool->search_params.nodes)
         || timeman_must_stop_search(&wpool->timeman, wpool, timepoint_now())) {
         wpool_stop(wpool);
     }
 }
 
-u64 wpool_get_total_nodes(WorkerPool *wpool) {
+u64 wpool_get_total_nodes(const WorkerPool *wpool) {
     u64 total = 0;
 
     for (usize i = 0; i < wpool->worker_count; ++i) {

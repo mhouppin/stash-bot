@@ -25,7 +25,7 @@
 #include "wdl.h"
 #include "wmalloc.h"
 
-#define UCI_VERSION "v37.10"
+#define UCI_VERSION "v37.11"
 
 static const Command UciCommands[] = {
     {STATIC_STRVIEW("bench"), uci_bench},
@@ -67,6 +67,7 @@ static void uci_init_options(Uci *uci) {
         .ponder = false,
         .show_wdl = false,
         .normalize_score = true,
+        .tm_for_nodes = false,
     };
 
     optlist_init(&uci->option_list);
@@ -128,6 +129,13 @@ static void uci_init_options(Uci *uci) {
         &uci->option_list,
         strview_from_cstr("NormalizeScore"),
         &uci->option_values.normalize_score,
+        NULL,
+        NULL
+    );
+    optlist_add_check(
+        &uci->option_list,
+        strview_from_cstr("TimemanForNodes"),
+        &uci->option_values.tm_for_nodes,
         NULL,
         NULL
     );
@@ -214,7 +222,8 @@ void uci_go(Uci *uci, StringView args) {
         uci->option_values.move_overhead,
         uci->option_values.multi_pv,
         uci->option_values.show_wdl,
-        uci->option_values.normalize_score
+        uci->option_values.normalize_score,
+        uci->option_values.tm_for_nodes
     );
     search_params_set_from_uci(&search_params, &uci->root_board, args);
     wpool_start_search(&uci->worker_pool, &uci->root_board, &search_params);

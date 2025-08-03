@@ -28,6 +28,7 @@ typedef struct {
     i64 multi_pv;
     bool show_wdl;
     bool normalize_score;
+    bool tm_for_nodes;
 
     Duration wtime;
     Duration btime;
@@ -52,7 +53,8 @@ void search_params_init(
     i64 move_overhead,
     i64 multi_pv,
     bool show_wdl,
-    bool normalize_score
+    bool normalize_score,
+    bool tm_for_nodes
 );
 
 // Sets the search params according to the given UCI command

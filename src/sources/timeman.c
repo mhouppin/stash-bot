@@ -44,26 +44,31 @@ void timeman_init(
     }
 
     if (search_params->tc_is_set) {
+        const bool tm_for_nodes = search_params->tm_for_nodes && search_params->nodes != 0;
         const u16 mtg =
             (search_params->movestogo != 0) ? u16_min(search_params->movestogo, 100) : 40;
-        Duration time =
-            (root_board->side_to_move == WHITE) ? search_params->wtime : search_params->btime;
-        Duration inc =
-            (root_board->side_to_move == WHITE) ? search_params->winc : search_params->binc;
+        Duration time = tm_for_nodes              ? (Duration)search_params->nodes * 25
+            : (root_board->side_to_move == WHITE) ? search_params->wtime
+                                                  : search_params->btime;
+        Duration inc = tm_for_nodes               ? 0
+            : (root_board->side_to_move == WHITE) ? search_params->winc
+                                                  : search_params->binc;
 
         timeman->mode = TmTournament;
 
-        // Don't let time go to or under zero here. This also fixes a problem with some GUIs issuing
-        // a negative remaining time.
-        time = duration_max(1, time - overhead);
-        inc = duration_max(0, inc);
+        if (!tm_for_nodes) {
+            // Don't let time go to or under zero here. This also fixes a problem with some GUIs
+            // issuing a negative remaining time.
+            time = duration_max(1, time - overhead);
+            inc = duration_max(0, inc);
+        }
 
         timeman->average_time = time / (i64)mtg + inc;
         timeman->maximal_time = (Duration)(time / pow(mtg, 0.4)) + inc;
 
         // Allow for more time usage when we're pondering, since we're not using
         // our clock as long as the opponent thinks.
-        if (search_params->ponder) {
+        if (!tm_for_nodes && search_params->ponder) {
             timeman->pondering = true;
             timeman->average_time += timeman->average_time / 4;
         }
@@ -73,6 +78,7 @@ void timeman_init(
         timeman->average_time = duration_min(time - 1, timeman->average_time);
         timeman->maximal_time = duration_min(time - 1, timeman->maximal_time);
         timeman->optimal_time = timeman->maximal_time;
+        timeman->node_clock = tm_for_nodes;
         info_debug(
             "info string maximal_time " FORMAT_LARGE_INT "\n",
             (LargeInt)timeman->maximal_time
@@ -165,8 +171,10 @@ bool timeman_can_stop_search(
         return false;
     }
 
-    return timeman->mode != TmNone
-        && timepoint_diff(timeman->start, current_tp) >= timeman->optimal_time;
+    const Duration elapsed = timeman->node_clock ? (Duration)wpool_get_total_nodes(wpool)
+                                                 : timepoint_diff(timeman->start, current_tp);
+
+    return timeman->mode != TmNone && elapsed >= timeman->optimal_time;
 }
 
 bool timeman_must_stop_search(
@@ -178,6 +186,8 @@ bool timeman_must_stop_search(
         return false;
     }
 
-    return timeman->mode != TmNone
-        && timepoint_diff(timeman->start, current_tp) >= timeman->maximal_time;
+    const Duration elapsed = timeman->node_clock ? (Duration)wpool_get_total_nodes(wpool)
+                                                 : timepoint_diff(timeman->start, current_tp);
+
+    return timeman->mode != TmNone && elapsed >= timeman->maximal_time;
 }

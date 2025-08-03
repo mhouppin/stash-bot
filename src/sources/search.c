@@ -821,11 +821,7 @@ main_loop:
             // SEE Pruning. For low-depth nodes, don't search moves which seem to lose too much
             // material to be interesting.
             if (depth <= 12
-                && !board_see_above(
-                    board,
-                    currmove,
-                    (is_quiet ? -48 * depth : -60 * depth)
-                )) {
+                && !board_see_above(board, currmove, (is_quiet ? -48 * depth : -60 * depth))) {
                 continue;
             }
         }
