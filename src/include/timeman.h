@@ -36,6 +36,7 @@ typedef struct {
     Timepoint start;
     TimemanMode mode;
     bool pondering;
+    bool node_clock;
     u64 delay_check_nodes;
 
     Duration average_time;

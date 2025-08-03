@@ -28,13 +28,15 @@ void search_params_init(
     i64 move_overhead,
     i64 multi_pv,
     bool show_wdl,
-    bool normalize_score
+    bool normalize_score,
+    bool tm_for_nodes
 ) {
     *search_params = (SearchParams) {
         .move_overhead = move_overhead,
         .multi_pv = multi_pv,
         .show_wdl = show_wdl,
         .normalize_score = normalize_score,
+        .tm_for_nodes = tm_for_nodes,
 
         .wtime = 0,
         .btime = 0,
@@ -289,6 +291,7 @@ void search_params_set_from_uci(
                 UINT64_MAX,
                 STATIC_STRVIEW("nodes")
             )) {
+            search_params->tc_is_set |= search_params->tm_for_nodes;
             continue;
         }
 

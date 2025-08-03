@@ -34,6 +34,7 @@ typedef struct {
     bool ponder;
     bool show_wdl;
     bool normalize_score;
+    bool tm_for_nodes;
 } OptionValues;
 
 typedef struct {
