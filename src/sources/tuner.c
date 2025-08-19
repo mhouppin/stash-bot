@@ -41,11 +41,11 @@ f64 lerp(f64 lo, f64 hi, f64 rate) {
 void tuner_config_set_default_values(TunerConfig *tuner_config) {
     *tuner_config = (TunerConfig) {
         .threads = 1,
-        .iterations = 1000,
+        .iterations = 100,
         .display_every = 25,
         .batch_size = 16384,
         .lambda = 1.0,
-        .learning_rate = 0.1,
+        .learning_rate = 0.001,
         .gamma = 1.0,
         .gamma_iterations = 1000,
         .beta_1 = 0.9,
@@ -520,7 +520,10 @@ void adam_update_delta(
     const TunerConfig *restrict tuner_config,
     f64 sigmoid_k
 ) {
-    const f64 scale = sigmoid_k * 2.0 / tuner_config->batch_size;
+    // Since we're multiplying our score by K during inference for downscaling the eval output
+    // (as 0 < K < 1), we need to divide the gradient values by K to get them back to a normal scale
+    // for tuning.
+    const f64 scale = 2.0 / tuner_config->batch_size / sigmoid_k;
 
     for (usize i = 0; i < IDX_COUNT; ++i) {
         for (Phase p = MIDGAME; p <= ENDGAME; ++p) {

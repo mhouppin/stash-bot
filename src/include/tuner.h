@@ -36,7 +36,7 @@ INLINED bool evaltrace_is_active_param(u16 index) {
                                        : Trace.coeffs[index][WHITE] != Trace.coeffs[index][BLACK];
 }
 
-// Returns the sigmoid of the eval using k as the scaling divisor.
+// Returns the sigmoid of the eval using k as the scaling multiplier.
 f64 sigmoid(f64 k, f64 eval);
 
 // Interpolates between lo and hi.
