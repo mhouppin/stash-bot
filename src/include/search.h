@@ -83,4 +83,11 @@ void update_capture_history(
     Searchstack *ss
 );
 
+void update_correction_histories(
+    Worker *worker,
+    const Board *board,
+    i16 depth,
+    i32 static_eval_diff
+);
+
 #endif
