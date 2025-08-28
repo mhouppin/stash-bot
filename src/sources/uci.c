@@ -25,7 +25,7 @@
 #include "wdl.h"
 #include "wmalloc.h"
 
-#define UCI_VERSION "v37.12"
+#define UCI_VERSION "v37.13"
 
 static const Command UciCommands[] = {
     {STATIC_STRVIEW("bench"), uci_bench},

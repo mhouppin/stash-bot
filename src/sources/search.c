@@ -83,6 +83,26 @@ static i32 get_move_history_score(
         + get_conthist_move_score(board, ss, move);
 }
 
+static i16 get_corrhist_total_score(const Board *board, const Worker *worker) {
+    return correction_hist_score(worker->pawn_corrhist, board->side_to_move, board_pawn_key(board))
+        + correction_hist_score(
+               &worker->nonpawn_corrhist[WHITE],
+               board->side_to_move,
+               board_nonpawn_key(board, WHITE)
+        )
+        + correction_hist_score(
+               &worker->nonpawn_corrhist[BLACK],
+               board->side_to_move,
+               board_nonpawn_key(board, BLACK)
+        )
+        + correction_hist_score(worker->minor_corrhist, board->side_to_move, board_minor_key(board))
+        + correction_hist_score(
+               worker->major_corrhist,
+               board->side_to_move,
+               board_major_key(board)
+        );
+}
+
 static u64 perft(Board *board, u16 depth) {
     Movelist list;
     Boardstack stack;
@@ -575,22 +595,7 @@ Score search(
     // Use the TT stored information for getting an eval.
     else if (tt_found) {
         raw_eval = tt_entry->eval;
-        eval = ss->static_eval = raw_eval
-            + correction_hist_score(worker->pawn_corrhist,
-                                    board->side_to_move,
-                                    board_pawn_key(board))
-            + correction_hist_score(&worker->nonpawn_corrhist[WHITE],
-                                    board->side_to_move,
-                                    board_nonpawn_key(board, WHITE))
-            + correction_hist_score(&worker->nonpawn_corrhist[BLACK],
-                                    board->side_to_move,
-                                    board_nonpawn_key(board, BLACK))
-            + correction_hist_score(worker->minor_corrhist,
-                                    board->side_to_move,
-                                    board_minor_key(board))
-            + correction_hist_score(worker->major_corrhist,
-                                    board->side_to_move,
-                                    board_major_key(board));
+        eval = ss->static_eval = raw_eval + get_corrhist_total_score(board, worker);
 
         // Try to use the TT score as a better evaluation of the position.
         if (tt_bound & (tt_score > eval ? LOWER_BOUND : UPPER_BOUND)) {
@@ -600,22 +605,7 @@ Score search(
     // Call the evaluation function otherwise.
     else {
         raw_eval = evaluate(board);
-        eval = ss->static_eval = raw_eval
-            + correction_hist_score(worker->pawn_corrhist,
-                                    board->side_to_move,
-                                    board_pawn_key(board))
-            + correction_hist_score(&worker->nonpawn_corrhist[WHITE],
-                                    board->side_to_move,
-                                    board_nonpawn_key(board, WHITE))
-            + correction_hist_score(&worker->nonpawn_corrhist[BLACK],
-                                    board->side_to_move,
-                                    board_nonpawn_key(board, BLACK))
-            + correction_hist_score(worker->minor_corrhist,
-                                    board->side_to_move,
-                                    board_minor_key(board))
-            + correction_hist_score(worker->major_corrhist,
-                                    board->side_to_move,
-                                    board_major_key(board));
+        eval = ss->static_eval = raw_eval + get_corrhist_total_score(board, worker);
 
         // Save the eval in TT so that other workers won't have to recompute it.
         tt_save(&worker->pool->tt, tt_entry, key, NO_SCORE, raw_eval, 0, NO_BOUND, NO_MOVE);
@@ -1044,41 +1034,7 @@ main_loop:
     if (!(in_check || (bestmove && board_move_is_noisy(board, bestmove))
           || (bound == LOWER_BOUND && best_score <= ss->static_eval)
           || (bound == UPPER_BOUND && best_score >= ss->static_eval))) {
-        correction_hist_update(
-            worker->pawn_corrhist,
-            board->side_to_move,
-            board_pawn_key(board),
-            i16_min(16, depth + 1),
-            (i32)best_score - (i32)ss->static_eval
-        );
-        correction_hist_update(
-            &worker->nonpawn_corrhist[WHITE],
-            board->side_to_move,
-            board_nonpawn_key(board, WHITE),
-            i16_min(16, depth + 1),
-            (i32)best_score - (i32)ss->static_eval
-        );
-        correction_hist_update(
-            &worker->nonpawn_corrhist[BLACK],
-            board->side_to_move,
-            board_nonpawn_key(board, BLACK),
-            i16_min(16, depth + 1),
-            (i32)best_score - (i32)ss->static_eval
-        );
-        correction_hist_update(
-            worker->minor_corrhist,
-            board->side_to_move,
-            board_minor_key(board),
-            i16_min(16, depth + 1),
-            (i32)best_score - (i32)ss->static_eval
-        );
-        correction_hist_update(
-            worker->major_corrhist,
-            board->side_to_move,
-            board_major_key(board),
-            i16_min(16, depth + 1),
-            (i32)best_score - (i32)ss->static_eval
-        );
+        update_correction_histories(worker, board, depth, (i32)best_score - (i32)ss->static_eval);
     }
 
     // Only save TT for the first MultiPV move in root nodes.
@@ -1166,32 +1122,7 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
         // Use the TT stored information for getting an eval.
         if (tt_found) {
             raw_eval = tt_entry->eval;
-            eval = best_score = raw_eval
-                + correction_hist_score(
-                                    worker->pawn_corrhist,
-                                    board->side_to_move,
-                                    board_pawn_key(board)
-                )
-                + correction_hist_score(
-                                    &worker->nonpawn_corrhist[WHITE],
-                                    board->side_to_move,
-                                    board_nonpawn_key(board, WHITE)
-                )
-                + correction_hist_score(
-                                    &worker->nonpawn_corrhist[BLACK],
-                                    board->side_to_move,
-                                    board_nonpawn_key(board, BLACK)
-                )
-                + correction_hist_score(
-                                    worker->minor_corrhist,
-                                    board->side_to_move,
-                                    board_minor_key(board)
-                )
-                + correction_hist_score(
-                                    worker->major_corrhist,
-                                    board->side_to_move,
-                                    board_major_key(board)
-                );
+            eval = best_score = raw_eval + get_corrhist_total_score(board, worker);
 
             // Try to use the TT score as a better evaluation of the position.
             if (tt_bound & (tt_score > best_score ? LOWER_BOUND : UPPER_BOUND)) {
@@ -1201,32 +1132,7 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
         // Call the evaluation function otherwise.
         else {
             raw_eval = evaluate(board);
-            eval = best_score = raw_eval
-                + correction_hist_score(
-                                    worker->pawn_corrhist,
-                                    board->side_to_move,
-                                    board_pawn_key(board)
-                )
-                + correction_hist_score(
-                                    &worker->nonpawn_corrhist[WHITE],
-                                    board->side_to_move,
-                                    board_nonpawn_key(board, WHITE)
-                )
-                + correction_hist_score(
-                                    &worker->nonpawn_corrhist[BLACK],
-                                    board->side_to_move,
-                                    board_nonpawn_key(board, BLACK)
-                )
-                + correction_hist_score(
-                                    worker->minor_corrhist,
-                                    board->side_to_move,
-                                    board_minor_key(board)
-                )
-                + correction_hist_score(
-                                    worker->major_corrhist,
-                                    board->side_to_move,
-                                    board_major_key(board)
-                );
+            eval = best_score = raw_eval + get_corrhist_total_score(board, worker);
         }
 
         // Stand Pat. If not playing a capture is better because of better quiet moves, allow for a
@@ -1458,4 +1364,49 @@ void update_capture_history(
     for (i16 i = 0; i < noisy_count; ++i) {
         update_single_capture(capture_hist, board, tried_noisy[i], -bonus);
     }
+}
+
+void update_correction_histories(
+    Worker *worker,
+    const Board *board,
+    i16 depth,
+    i32 static_eval_diff
+) {
+    const i16 weight = i16_min(16, depth + 1);
+
+    correction_hist_update(
+        worker->pawn_corrhist,
+        board->side_to_move,
+        board_pawn_key(board),
+        weight,
+        static_eval_diff
+    );
+    correction_hist_update(
+        &worker->nonpawn_corrhist[WHITE],
+        board->side_to_move,
+        board_nonpawn_key(board, WHITE),
+        weight,
+        static_eval_diff
+    );
+    correction_hist_update(
+        &worker->nonpawn_corrhist[BLACK],
+        board->side_to_move,
+        board_nonpawn_key(board, BLACK),
+        weight,
+        static_eval_diff
+    );
+    correction_hist_update(
+        worker->minor_corrhist,
+        board->side_to_move,
+        board_minor_key(board),
+        weight,
+        static_eval_diff
+    );
+    correction_hist_update(
+        worker->major_corrhist,
+        board->side_to_move,
+        board_major_key(board),
+        weight,
+        static_eval_diff
+    );
 }
