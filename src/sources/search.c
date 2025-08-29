@@ -40,7 +40,7 @@ void search_init(void) {
 }
 
 static i16 lmr_base_value(i16 depth, i16 move_count, bool improving, bool is_quiet) {
-    return (-400 + Reductions[is_quiet][depth] * Reductions[is_quiet][move_count] + !improving * 504
+    return (624 + Reductions[is_quiet][depth] * Reductions[is_quiet][move_count] + !improving * 504
            )
         / 1024;
 }
@@ -902,8 +902,8 @@ main_loop:
             // Set the base depth reduction value based on depth and movecount.
             i16 r = lmr_base_value(depth, move_count, improving, is_quiet);
 
-            // Increase the reduction for non-PV nodes.
-            r += !pv_node;
+            // Decrease the reduction for PV nodes.
+            r -= pv_node;
 
             // Increase the reduction for cutNodes.
             r += cut_node;
