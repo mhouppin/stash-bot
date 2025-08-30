@@ -40,7 +40,7 @@ void search_init(void) {
 }
 
 static i16 lmr_base_value(i16 depth, i16 move_count, bool improving, bool is_quiet) {
-    return (624 + Reductions[is_quiet][depth] * Reductions[is_quiet][move_count] + !improving * 504
+    return (880 + Reductions[is_quiet][depth] * Reductions[is_quiet][move_count] + !improving * 504
            )
         / 1024;
 }
