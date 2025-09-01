@@ -553,6 +553,7 @@ Score search(
     Bound tt_bound = NO_BOUND;
     bool tt_noisy = false;
     bool tt_found;
+    bool tt_pv = pv_node;
     Key key = board->stack->board_key ^ ((Key)ss->excluded_move << 16);
     Score raw_eval;
     Score eval;
@@ -565,6 +566,7 @@ Score search(
         tt_move = tt_entry->bestmove;
         tt_depth = tt_entry->depth;
         tt_bound = tt_entry_bound(tt_entry);
+        tt_pv |= tt_entry_pv(tt_entry);
 
         // Check if we can directly return a score for non-PV nodes.
         if (tt_depth >= depth && !pv_node
@@ -608,7 +610,7 @@ Score search(
         eval = ss->static_eval = raw_eval + get_corrhist_total_score(board, worker);
 
         // Save the eval in TT so that other workers won't have to recompute it.
-        tt_save(&worker->pool->tt, tt_entry, key, NO_SCORE, raw_eval, 0, NO_BOUND, NO_MOVE);
+        tt_save(&worker->pool->tt, tt_entry, key, NO_SCORE, raw_eval, 0, pv_node, NO_BOUND, NO_MOVE);
     }
 
     improving = ss->plies >= 2 && ss->static_eval > (ss - 2)->static_eval;
@@ -743,6 +745,7 @@ Score search(
                     score_to_tt(probcut_score, ss->plies),
                     raw_eval,
                     depth - 3,
+                    pv_node,
                     LOWER_BOUND,
                     currmove
                 );
@@ -903,7 +906,7 @@ main_loop:
             i16 r = lmr_base_value(depth, move_count, improving, is_quiet);
 
             // Increase the reduction for non-PV nodes.
-            r += !pv_node;
+            r += !tt_pv;
 
             // Increase the reduction for cutNodes.
             r += cut_node;
@@ -1046,6 +1049,7 @@ main_loop:
             score_to_tt(best_score, ss->plies),
             raw_eval,
             depth,
+            pv_node,
             bound,
             bestmove
         );
@@ -1149,6 +1153,7 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
                     score_to_tt(best_score, ss->plies),
                     raw_eval,
                     0,
+                    pv_node,
                     LOWER_BOUND,
                     NO_MOVE
                 );
@@ -1261,6 +1266,7 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
         score_to_tt(best_score, ss->plies),
         raw_eval,
         0,
+        pv_node,
         bound,
         bestmove
     );

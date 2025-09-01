@@ -136,6 +136,7 @@ void tt_save(
     Score score,
     Score eval,
     i16 depth,
+    bool pv,
     Bound bound,
     Move bestmove
 ) {
@@ -144,12 +145,12 @@ void tt_save(
     }
 
     // Do not erase entries with high depth for the same position.
-    if (bound == EXACT_BOUND || key != tt_entry->key || depth + 4 >= (i16)tt_entry->depth) {
+    if (bound == EXACT_BOUND || key != tt_entry->key || depth + 4 + 2 * pv >= (i16)tt_entry->depth) {
         tt_entry->key = key;
         tt_entry->score = score;
         tt_entry->eval = eval;
         tt_entry->depth = depth;
-        tt_entry->genbound = tt->generation | bound;
+        tt_entry->genbound = tt->generation | ((u8)pv << 2) | bound;
     }
 }
 
