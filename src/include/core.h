@@ -110,6 +110,18 @@ INLINED u32 i32_abs(i32 value) {
     return value < 0 ? -value : value;
 }
 
+INLINED i32 i32_div_round(i32 value, i32 div) {
+    assert(div != 0);
+
+    const u32 v = i32_abs(value);
+    const u32 d = i32_abs(div);
+    const bool neg = (value < 0) ^ (div < 0);
+    const u32 half = (d + 1) / 2;
+    const u32 result = (v / d) + (v % d >= half);
+
+    return neg ? -(i32)result : (i32)result;
+}
+
 // i64 API
 
 INLINED i64 i64_min(i64 lhs, i64 rhs) {
