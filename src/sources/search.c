@@ -40,9 +40,10 @@ void search_init(void) {
 }
 
 static i16 lmr_base_value(i16 depth, i16 move_count, bool improving, bool is_quiet) {
-    return (-400 + Reductions[is_quiet][depth] * Reductions[is_quiet][move_count] + !improving * 504
-           )
-        / 1024;
+    return (i16)i32_div_round(
+        -800 + Reductions[is_quiet][depth] * Reductions[is_quiet][move_count] + !improving * 504,
+        1024
+    );
 }
 
 static i16 lmp_threshold(i16 depth, bool improving) {
