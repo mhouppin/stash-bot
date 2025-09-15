@@ -1285,11 +1285,11 @@ void update_continuation_histories(
     }
 
     if ((ss - 2)->piece_history != NULL) {
-        piece_hist_update((ss - 2)->piece_history, piece, to, bonus);
+        piece_hist_update((ss - 2)->piece_history, piece, to, bonus / 2);
     }
 
     if ((ss - 4)->piece_history != NULL) {
-        piece_hist_update((ss - 4)->piece_history, piece, to, bonus);
+        piece_hist_update((ss - 4)->piece_history, piece, to, bonus / 2);
     }
 }
 
