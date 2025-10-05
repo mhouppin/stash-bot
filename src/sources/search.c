@@ -233,11 +233,17 @@ static void print_currmove(const Board *board, i16 depth, Move currmove, i16 mov
     string_destroy(&info_str);
 }
 
-void searchstack_init(Searchstack *ss) {
+void searchstack_init(Worker *worker, Searchstack *ss) {
     memset(ss, 0, sizeof(Searchstack) * 256);
 
-    for (i16 i = 0; i < 256; ++i) {
-        (ss + i)->plies = i - 4;
+    for (u16 i = 0; i < 256; ++i) {
+        (ss + i)->plies = (i16)i - 4;
+    }
+
+    // Reserve some unused continuation history slots for root history.
+    for (u16 i = 0; i < 4; ++i) {
+        (ss + i)->piece_history =
+            &worker->continuation_hist->piece_history[NO_PIECE][i];
     }
 }
 
@@ -355,7 +361,7 @@ void worker_search(Worker *worker) {
     const u16 multi_pv = (u16)u64_min((u64)search_params->multi_pv, (u64)worker->root_move_count);
     Searchstack sstack[256];
 
-    searchstack_init(sstack);
+    searchstack_init(worker, sstack);
 
     for (worker->root_depth = 1; worker->root_depth <= search_params->depth; ++worker->root_depth) {
         for (worker->pv_line = 0; worker->pv_line < multi_pv; ++worker->pv_line) {
