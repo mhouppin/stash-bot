@@ -408,6 +408,48 @@ void worker_search(Worker *worker) {
     }
 }
 
+// Function to be used in scenarios where we fail to complete a single search at depth 1
+void use_emergency_scoring(Worker *worker, Searchstack *ss) {
+    Movepicker mp;
+    const Board *board = &worker->board;
+    bool found;
+    Move currmove;
+    Score score = NO_SCORE;
+    Move tt_move = NO_MOVE;
+    TranspositionEntry *tt_entry = tt_probe(&worker->pool->tt, board->stack->board_key, &found);
+
+    if (found) {
+        score = score_from_tt(tt_entry->score, 0);
+        tt_move = tt_entry->bestmove;
+
+        // Guard for scoreless entries from eval backups.
+        if (i16_abs(score) >= INF_SCORE) {
+            score = tt_entry->eval;
+        }
+    }
+
+    if (i16_abs(score) >= INF_SCORE) {
+        score = !board->stack->checkers ? evaluate(board) : 0;
+    }
+
+    movepicker_init(&mp, false, board, worker, tt_move, ss);
+
+    while ((currmove = movepicker_next_move(&mp, false, 0)) != NO_MOVE) {
+        RootMove *best_root_move = find_root_move(worker->root_moves, worker->root_move_count, currmove);
+
+        if (best_root_move != NULL) {
+            pv_line_init_move(&best_root_move->pv, currmove);
+            best_root_move->seldepth = 0;
+            best_root_move->score = score;
+
+            RootMove tmp = *best_root_move;
+            *best_root_move = worker->root_moves[0];
+            worker->root_moves[0] = tmp;
+            break;
+        }
+    }
+}
+
 bool worker_search_pv_line(Worker *worker, u16 depth, u16 multi_pv, Searchstack *ss) {
     Score alpha, beta, delta;
     Score pv_score = worker->root_moves[worker->pv_line].previous_score;
@@ -443,6 +485,15 @@ bool worker_search_pv_line(Worker *worker, u16 depth, u16 multi_pv, Searchstack 
 
         if (bound == EXACT_BOUND) {
             sort_root_moves(worker->root_moves, (usize)multi_pv);
+        }
+
+        // Hard time scramble: if we end up exiting depth 1 without even completing a single root
+        // move search, use a very fast move selection/scoring trick to avoid returning random bad
+        // moves. This is especially useful in SMP scenarios where the main thread would fail to
+        // start before getting past maximal time usage due to the time it needs to launch other
+        // worker threads.
+        if (depth == 1 && multi_pv == 1 && pv_score == -INF_SCORE) {
+            use_emergency_scoring(worker, ss + 4);
         }
 
         if (worker->thread_index == 0) {
