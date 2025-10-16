@@ -242,8 +242,7 @@ void searchstack_init(Worker *worker, Searchstack *ss) {
 
     // Reserve some unused continuation history slots for root history.
     for (u16 i = 0; i < 4; ++i) {
-        (ss + i)->piece_history =
-            &worker->continuation_hist->piece_history[NO_PIECE][i];
+        (ss + i)->piece_history = &worker->continuation_hist->piece_history[NO_PIECE][i];
     }
 }
 
@@ -441,7 +440,8 @@ void use_emergency_scoring(Worker *worker, Searchstack *ss) {
     movepicker_init(&mp, false, board, worker, tt_move, ss);
 
     while ((currmove = movepicker_next_move(&mp, false, 0)) != NO_MOVE) {
-        RootMove *best_root_move = find_root_move(worker->root_moves, worker->root_move_count, currmove);
+        RootMove *best_root_move =
+            find_root_move(worker->root_moves, worker->root_move_count, currmove);
 
         if (best_root_move != NULL) {
             pv_line_init_move(&best_root_move->pv, currmove);
@@ -1337,17 +1337,9 @@ void update_continuation_histories(
         bonus = -bonus;
     }
 
-    if ((ss - 1)->piece_history != NULL) {
-        piece_hist_update((ss - 1)->piece_history, piece, to, bonus);
-    }
-
-    if ((ss - 2)->piece_history != NULL) {
-        piece_hist_update((ss - 2)->piece_history, piece, to, bonus);
-    }
-
-    if ((ss - 4)->piece_history != NULL) {
-        piece_hist_update((ss - 4)->piece_history, piece, to, bonus);
-    }
+    piece_hist_update((ss - 1)->piece_history, piece, to, bonus);
+    piece_hist_update((ss - 2)->piece_history, piece, to, bonus);
+    piece_hist_update((ss - 4)->piece_history, piece, to, bonus);
 }
 
 void update_quiet_history(
