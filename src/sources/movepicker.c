@@ -92,17 +92,9 @@ static void movepicker_score_quiets(Movepicker *mp, ExtendedMove *begin, Extende
         const Piece moved_piece = board_piece_on(mp->board, move_from(move));
         const Square to = move_to(move);
 
-        // Start by using the butterfly history for ranking quiet moves.
         begin->score = butterfly_hist_score(mp->worker->butterfly_hist, moved_piece, move) / 2;
-
-        // Try using the countermove and followup histories if they exist.
-        if (mp->piece_history[0] != NULL) {
-            begin->score += piece_hist_score(mp->piece_history[0], moved_piece, to);
-        }
-
-        if (mp->piece_history[1] != NULL) {
-            begin->score += piece_hist_score(mp->piece_history[1], moved_piece, to);
-        }
+        begin->score += piece_hist_score(mp->piece_history[0], moved_piece, to);
+        begin->score += piece_hist_score(mp->piece_history[1], moved_piece, to);
 
         ++begin;
     }
@@ -120,17 +112,9 @@ static void movepicker_score_evasions(Movepicker *mp, ExtendedMove *begin, Exten
             // Place captures of the checking piece at the top of the list using MVV/LVA ordering.
             begin->score = 65536 + captured * 8 - piece_type(moved_piece);
         } else {
-            // Start by using the butterfly history for ranking quiet moves.
             begin->score = butterfly_hist_score(mp->worker->butterfly_hist, moved_piece, move) / 2;
-
-            // Try using the countermove and followup histories if they exist.
-            if (mp->piece_history[0] != NULL) {
-                begin->score += piece_hist_score(mp->piece_history[0], moved_piece, to);
-            }
-
-            if (mp->piece_history[1] != NULL) {
-                begin->score += piece_hist_score(mp->piece_history[1], moved_piece, to);
-            }
+            begin->score += piece_hist_score(mp->piece_history[0], moved_piece, to);
+            begin->score += piece_hist_score(mp->piece_history[1], moved_piece, to);
         }
 
         ++begin;

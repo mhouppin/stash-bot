@@ -35,7 +35,7 @@ typedef struct {
     PieceHistory *piece_history;
 } Searchstack;
 
-void searchstack_init(Searchstack *ss);
+void searchstack_init(Worker *worker, Searchstack *ss);
 
 void main_worker_search(Worker *worker);
 

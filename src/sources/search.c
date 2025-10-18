@@ -233,11 +233,16 @@ static void print_currmove(const Board *board, i16 depth, Move currmove, i16 mov
     string_destroy(&info_str);
 }
 
-void searchstack_init(Searchstack *ss) {
+void searchstack_init(Worker *worker, Searchstack *ss) {
     memset(ss, 0, sizeof(Searchstack) * 256);
 
-    for (i16 i = 0; i < 256; ++i) {
-        (ss + i)->plies = i - 4;
+    for (u16 i = 0; i < 256; ++i) {
+        (ss + i)->plies = (i16)i - 4;
+    }
+
+    // Reserve some unused continuation history slots for root history.
+    for (u16 i = 0; i < 4; ++i) {
+        (ss + i)->piece_history = &worker->continuation_hist->piece_history[NO_PIECE][i];
     }
 }
 
@@ -355,7 +360,7 @@ void worker_search(Worker *worker) {
     const u16 multi_pv = (u16)u64_min((u64)search_params->multi_pv, (u64)worker->root_move_count);
     Searchstack sstack[256];
 
-    searchstack_init(sstack);
+    searchstack_init(worker, sstack);
 
     for (worker->root_depth = 1; worker->root_depth <= search_params->depth; ++worker->root_depth) {
         for (worker->pv_line = 0; worker->pv_line < multi_pv; ++worker->pv_line) {
@@ -435,7 +440,8 @@ void use_emergency_scoring(Worker *worker, Searchstack *ss) {
     movepicker_init(&mp, false, board, worker, tt_move, ss);
 
     while ((currmove = movepicker_next_move(&mp, false, 0)) != NO_MOVE) {
-        RootMove *best_root_move = find_root_move(worker->root_moves, worker->root_move_count, currmove);
+        RootMove *best_root_move =
+            find_root_move(worker->root_moves, worker->root_move_count, currmove);
 
         if (best_root_move != NULL) {
             pv_line_init_move(&best_root_move->pv, currmove);
@@ -696,7 +702,7 @@ Score search(
         i16 r = (855 + 61 * depth) / 256 + i16_min((eval - beta) / 111, 5);
 
         ss->current_move = NULL_MOVE;
-        ss->piece_history = NULL;
+        ss->piece_history = (ss - 2)->piece_history;
 
         board_do_null_move(board, &stack);
         prefetch(tt_entry_at(&worker->pool->tt, board->stack->board_key));
@@ -1331,17 +1337,9 @@ void update_continuation_histories(
         bonus = -bonus;
     }
 
-    if ((ss - 1)->piece_history != NULL) {
-        piece_hist_update((ss - 1)->piece_history, piece, to, bonus);
-    }
-
-    if ((ss - 2)->piece_history != NULL) {
-        piece_hist_update((ss - 2)->piece_history, piece, to, bonus);
-    }
-
-    if ((ss - 4)->piece_history != NULL) {
-        piece_hist_update((ss - 4)->piece_history, piece, to, bonus);
-    }
+    piece_hist_update((ss - 1)->piece_history, piece, to, bonus);
+    piece_hist_update((ss - 2)->piece_history, piece, to, bonus);
+    piece_hist_update((ss - 4)->piece_history, piece, to, bonus);
 }
 
 void update_quiet_history(
