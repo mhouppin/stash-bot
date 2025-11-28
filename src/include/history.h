@@ -41,6 +41,11 @@ INLINED void update_hist_entry(i16 *entry, i16 bonus) {
     *entry += bonus - (i32)*entry * (i32)i32_abs(bonus) / HISTORY_MAX;
 }
 
+INLINED void update_piece_hist_entry(i16 *entry, i16 base, i16 bonus) {
+    *entry += bonus - (i32)base * (i32)i32_abs(bonus) / HISTORY_MAX;
+    *entry = i16_clamp(*entry, -HISTORY_MAX, HISTORY_MAX);
+}
+
 typedef struct {
     i16 data[COLOR_NB][SQUARE_NB * SQUARE_NB];
 } ButterflyHistory;
@@ -65,8 +70,8 @@ typedef struct {
     Move data[PIECE_NB][SQUARE_NB];
 } CountermoveHistory;
 
-INLINED void piece_hist_update(PieceHistory *hist, Piece piece, Square to, i16 bonus) {
-    update_hist_entry(&hist->data[piece][to], bonus);
+INLINED void piece_hist_update(PieceHistory *hist, Piece piece, Square to, i16 base, i16 bonus) {
+    update_piece_hist_entry(&hist->data[piece][to], base, bonus);
 }
 
 INLINED i16 piece_hist_score(const PieceHistory *hist, Piece piece, Square to) {

@@ -56,17 +56,9 @@ static i32 get_conthist_move_score(const Board *board, const Searchstack *ss, Mo
     const Square to = move_to(move);
     i32 history = 0;
 
-    if ((ss - 1)->piece_history != NULL) {
-        history += piece_hist_score((ss - 1)->piece_history, moved_piece, to);
-    }
-
-    if ((ss - 2)->piece_history != NULL) {
-        history += piece_hist_score((ss - 2)->piece_history, moved_piece, to);
-    }
-
-    if ((ss - 4)->piece_history != NULL) {
-        history += piece_hist_score((ss - 4)->piece_history, moved_piece, to);
-    }
+    history += piece_hist_score((ss - 1)->piece_history, moved_piece, to);
+    history += piece_hist_score((ss - 2)->piece_history, moved_piece, to);
+    history += piece_hist_score((ss - 4)->piece_history, moved_piece, to);
 
     return history;
 }
@@ -1332,14 +1324,20 @@ void update_continuation_histories(
     bool fail_high
 ) {
     i16 bonus = history_bonus(depth);
+    i32 conthist_score = 0;
 
     if (!fail_high) {
         bonus = -bonus;
     }
 
-    piece_hist_update((ss - 1)->piece_history, piece, to, bonus);
-    piece_hist_update((ss - 2)->piece_history, piece, to, bonus);
-    piece_hist_update((ss - 4)->piece_history, piece, to, bonus);
+    conthist_score += piece_hist_score((ss - 1)->piece_history, piece, to);
+    conthist_score += piece_hist_score((ss - 2)->piece_history, piece, to);
+    conthist_score += piece_hist_score((ss - 4)->piece_history, piece, to);
+    conthist_score /= 3;
+
+    piece_hist_update((ss - 1)->piece_history, piece, to, (i16)conthist_score, bonus);
+    piece_hist_update((ss - 2)->piece_history, piece, to, (i16)conthist_score, bonus);
+    piece_hist_update((ss - 4)->piece_history, piece, to, (i16)conthist_score, bonus);
 }
 
 void update_quiet_history(
