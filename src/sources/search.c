@@ -685,7 +685,7 @@ Score search(
     // still beats beta, we assume our position is so good that we cannot get under beta at this
     // point.
     if (!pv_node && depth >= 3 && ss->plies >= worker->nmp_verif_plies && !ss->excluded_move
-        && eval >= beta && eval >= ss->static_eval
+        && eval >= beta + 30 && eval >= ss->static_eval
         && board->stack->material[board->side_to_move] != 0) {
         Boardstack stack;
         Score score, verif_score;
