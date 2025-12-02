@@ -39,8 +39,7 @@ void movepicker_init(
     }
 
     mp->tt_move = tt_move;
-    mp->killer1 = ss->killers[0];
-    mp->killer2 = ss->killers[1];
+    mp->killer = ss->killer;
 
     // Set the countermove if possible.
     if ((ss - 1)->piece_history != NULL) {
@@ -162,26 +161,14 @@ top:
             ++mp->stage;
             // Fallthrough
 
-        case PICK_KILLER1:
+        case PICK_KILLER:
             ++mp->stage;
 
             // Don't play the same move twice.
-            if (mp->killer1 != NO_MOVE && mp->killer1 != mp->tt_move
-                && !board_move_is_noisy(mp->board, mp->killer1)
-                && board_move_is_pseudolegal(mp->board, mp->killer1)) {
-                return mp->killer1;
-            }
-
-            // Fallthrough
-
-        case PICK_KILLER2:
-            ++mp->stage;
-
-            // Don't play the same move twice.
-            if (mp->killer2 != NO_MOVE && mp->killer2 != mp->tt_move && mp->killer2 != mp->killer1
-                && !board_move_is_noisy(mp->board, mp->killer2)
-                && board_move_is_pseudolegal(mp->board, mp->killer2)) {
-                return mp->killer2;
+            if (mp->killer != NO_MOVE && mp->killer != mp->tt_move
+                && !board_move_is_noisy(mp->board, mp->killer)
+                && board_move_is_pseudolegal(mp->board, mp->killer)) {
+                return mp->killer;
             }
 
             // Fallthrough
@@ -190,8 +177,8 @@ top:
             ++mp->stage;
 
             // Don't play the same move twice.
-            if (mp->counter != NO_MOVE && mp->counter != mp->tt_move && mp->counter != mp->killer1
-                && mp->counter != mp->killer2 && !board_move_is_noisy(mp->board, mp->counter)
+            if (mp->counter != NO_MOVE && mp->counter != mp->tt_move && mp->counter != mp->killer
+                && !board_move_is_noisy(mp->board, mp->counter)
                 && board_move_is_pseudolegal(mp->board, mp->counter)) {
                 return mp->counter;
             }
@@ -219,8 +206,7 @@ top:
                     const Move move = (mp->current++)->move;
 
                     // Don't play the same move twice.
-                    if (move != mp->tt_move && move != mp->killer1 && move != mp->killer2
-                        && move != mp->counter) {
+                    if (move != mp->tt_move && move != mp->killer && move != mp->counter) {
                         return move;
                     }
                 }
