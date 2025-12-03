@@ -1333,7 +1333,7 @@ void update_continuation_histories(
     conthist_score += piece_hist_score((ss - 1)->piece_history, piece, to);
     conthist_score += piece_hist_score((ss - 2)->piece_history, piece, to);
     conthist_score += piece_hist_score((ss - 4)->piece_history, piece, to);
-    conthist_score /= 3;
+    conthist_score = i32_clamp(conthist_score, -HISTORY_MAX, HISTORY_MAX);
 
     piece_hist_update((ss - 1)->piece_history, piece, to, (i16)conthist_score, bonus);
     piece_hist_update((ss - 2)->piece_history, piece, to, (i16)conthist_score, bonus);
