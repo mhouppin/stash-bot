@@ -24,71 +24,62 @@
 #include "core.h"
 #include "hashkey.h"
 
-// Structure for holding moves along with their score
-typedef struct {
-    Move move;
-    i32 score;
-} ExtendedMove;
-
 // Structure for holding a list of moves
 typedef struct {
-    ExtendedMove moves[MAX_MOVES];
-    ExtendedMove *end;
+    Move moves[MAX_MOVES];
+    usize size;
 } Movelist;
 
 // Generates all legal moves for the given board and stores them in the given move list
-ExtendedMove *extmove_generate_legal(ExtendedMove *restrict movelist, const Board *restrict board);
+Move *extmove_generate_legal(Move *restrict movelist, const Board *restrict board);
 
 // Generates all pseudo-legal moves for the given board (only for not in-check positions) and stores
 // them in the given move list
-ExtendedMove *
-    extmove_generate_standard(ExtendedMove *restrict movelist, const Board *restrict board);
+Move *extmove_generate_standard(Move *restrict movelist, const Board *restrict board);
 
 // Generates all pseudo-legal moves for the given board (only for in-check positions) and stores
 // them in the given move list
-ExtendedMove *
-    extmove_generate_incheck(ExtendedMove *restrict movelist, const Board *restrict board);
+Move *extmove_generate_incheck(Move *restrict movelist, const Board *restrict board);
 
 // Generates all pseudo-legal captures/promotions for the given board (only for not in-check
 // positions) and stores them in the given move list
-ExtendedMove *extmove_generate_noisy(
-    ExtendedMove *restrict movelist,
-    const Board *restrict board,
-    bool in_qsearch
-);
+Move *extmove_generate_noisy(Move *restrict movelist, const Board *restrict board, bool in_qsearch);
 
 // Generates all pseudo-legal non-captures/non-promotions for the given board (only for not in-check
 // positions) and stores them in the given move list
-ExtendedMove *extmove_generate_quiet(ExtendedMove *restrict movelist, const Board *restrict board);
-
-// Places the move with the highest score in the first position of the move list
-void extmove_pick_best(ExtendedMove *begin, ExtendedMove *end);
+Move *extmove_generate_quiet(Move *restrict movelist, const Board *restrict board);
 
 // Generates all legal moves for the given board
 INLINED void movelist_generate_legal(Movelist *restrict movelist, const Board *restrict board) {
-    movelist->end = extmove_generate_legal(movelist->moves, board);
+    Move *end = extmove_generate_legal(movelist->moves, board);
+
+    movelist->size = (usize)(end - movelist->moves);
 }
 
 // Generates all pseudo-legal moves for the given board
 INLINED void movelist_generate_pseudo(Movelist *restrict movelist, const Board *restrict board) {
-    movelist->end = board->stack->checkers ? extmove_generate_incheck(movelist->moves, board)
-                                           : extmove_generate_standard(movelist->moves, board);
+    Move *end = board->stack->checkers ? extmove_generate_incheck(movelist->moves, board)
+                                       : extmove_generate_standard(movelist->moves, board);
+
+    movelist->size = (usize)(end - movelist->moves);
 }
 
 // Returns the size of the move list
 INLINED usize movelist_size(const Movelist *movelist) {
-    return (usize)(movelist->end - movelist->moves);
+    return movelist->size;
 }
 
 // Returns the start of the move list
-INLINED const ExtendedMove *movelist_begin(const Movelist *movelist) {
+INLINED const Move *movelist_begin(const Movelist *movelist) {
     return movelist->moves;
 }
 
 // Returns the end of the move list
-INLINED const ExtendedMove *movelist_end(const Movelist *movelist) {
-    return movelist->end;
+INLINED const Move *movelist_end(const Movelist *movelist) {
+    return movelist->moves + movelist->size;
 }
+
+void extmove_pick_best(Move *restrict movelist, i32 *restrict score_list, usize size);
 
 // Checks if the move list contains the given move
 bool movelist_contains(const Movelist *movelist, Move move);

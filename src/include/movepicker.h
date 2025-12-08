@@ -40,9 +40,9 @@ typedef enum {
 
 // Struct for the move picker
 typedef struct {
-    Movelist list;
-    ExtendedMove *current;
-    ExtendedMove *bad_captures;
+    usize move_count;
+    usize current_idx;
+    usize bad_captures_idx;
     bool in_qsearch;
     MovepickerStage stage;
     Move tt_move;
@@ -51,6 +51,8 @@ typedef struct {
     const Board *board;
     const Worker *worker;
     PieceHistory *piece_history[2];
+    Move move_list[MAX_MOVES];
+    i32 score_list[MAX_MOVES];
 } Movepicker;
 
 // Initializes the move picker

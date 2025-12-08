@@ -176,7 +176,7 @@ void worker_init_search_data(Worker *worker) {
     worker->root_move_count = movelist_size(searchmoves);
 
     for (usize i = 0; i < worker->root_move_count; ++i) {
-        root_move_init(&worker->root_moves[i], searchmoves->moves[i].move);
+        root_move_init(&worker->root_moves[i], searchmoves->moves[i]);
     }
 
     worker->pv_line = 0;
