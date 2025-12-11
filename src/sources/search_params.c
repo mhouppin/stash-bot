@@ -53,7 +53,7 @@ void search_params_init(
         .ponder = false,
     };
 
-    search_params->searchmoves.end = search_params->searchmoves.moves;
+    search_params->searchmoves.size = 0;
 }
 
 static bool
@@ -198,7 +198,7 @@ static bool try_set_searchmoves(
         Move move = board_uci_to_move(root_board, token);
 
         if (move != NO_MOVE && !movelist_contains(movelist, move)) {
-            (movelist->end++)->move = move;
+            movelist->moves[movelist->size++] = move;
         } else if (move == NO_MOVE) {
             info_debug(
                 "info string Warning: '%.*s' is not a valid/legal UCI move for the given position, "
@@ -353,6 +353,4 @@ void search_params_set_from_uci(
 
 void search_params_copy(SearchParams *restrict search_params, const SearchParams *restrict other) {
     *search_params = *other;
-    search_params->searchmoves.end =
-        &search_params->searchmoves.moves[movelist_size(&other->searchmoves)];
 }

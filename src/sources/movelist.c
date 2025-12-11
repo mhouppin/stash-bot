@@ -20,27 +20,25 @@
 
 #include "attacks.h"
 
-static ExtendedMove *
-    extmove_create_promotions(ExtendedMove *movelist, Square to, Direction direction) {
-    (movelist++)->move = create_promotion_move(to - direction, to, QUEEN);
-    (movelist++)->move = create_promotion_move(to - direction, to, ROOK);
-    (movelist++)->move = create_promotion_move(to - direction, to, BISHOP);
-    (movelist++)->move = create_promotion_move(to - direction, to, KNIGHT);
+static Move *extmove_create_promotions(Move *movelist, Square to, Direction direction) {
+    *(movelist++) = create_promotion_move(to - direction, to, QUEEN);
+    *(movelist++) = create_promotion_move(to - direction, to, ROOK);
+    *(movelist++) = create_promotion_move(to - direction, to, BISHOP);
+    *(movelist++) = create_promotion_move(to - direction, to, KNIGHT);
 
     return movelist;
 }
 
-static ExtendedMove *
-    extmove_create_underpromotions(ExtendedMove *movelist, Square to, Direction direction) {
-    (movelist++)->move = create_promotion_move(to - direction, to, ROOK);
-    (movelist++)->move = create_promotion_move(to - direction, to, BISHOP);
-    (movelist++)->move = create_promotion_move(to - direction, to, KNIGHT);
+static Move *extmove_create_underpromotions(Move *movelist, Square to, Direction direction) {
+    *(movelist++) = create_promotion_move(to - direction, to, ROOK);
+    *(movelist++) = create_promotion_move(to - direction, to, BISHOP);
+    *(movelist++) = create_promotion_move(to - direction, to, KNIGHT);
 
     return movelist;
 }
 
-static ExtendedMove *extmove_generate_piece_moves(
-    ExtendedMove *restrict movelist,
+static Move *extmove_generate_piece_moves(
+    Move *restrict movelist,
     const Board *restrict board,
     Color us,
     Piecetype piecetype,
@@ -56,15 +54,15 @@ static ExtendedMove *extmove_generate_piece_moves(
         Bitboard valid_moves = attacks_bb(piecetype, from, occupancy) & target;
 
         while (valid_moves) {
-            (movelist++)->move = create_move(from, bb_pop_first_square(&valid_moves));
+            *(movelist++) = create_move(from, bb_pop_first_square(&valid_moves));
         }
     }
 
     return movelist;
 }
 
-static ExtendedMove *extmove_generate_pawn_noisy(
-    ExtendedMove *restrict movelist,
+static Move *extmove_generate_pawn_noisy(
+    Move *restrict movelist,
     const Board *restrict board,
     Color us,
     Bitboard their_pieces,
@@ -82,7 +80,7 @@ static ExtendedMove *extmove_generate_pawn_noisy(
         for (Bitboard bb = promotion_mask & empty_squares; bb;) {
             const Square to = bb_pop_first_square(&bb);
 
-            (movelist++)->move = create_promotion_move(to - pawn_push, to, QUEEN);
+            *(movelist++) = create_promotion_move(to - pawn_push, to, QUEEN);
 
             if (!in_qsearch) {
                 movelist = extmove_create_underpromotions(movelist, to, pawn_push);
@@ -92,7 +90,7 @@ static ExtendedMove *extmove_generate_pawn_noisy(
         for (Bitboard bb = bb_shift_left(promotion_mask) & their_pieces; bb;) {
             const Square to = bb_pop_first_square(&bb);
 
-            (movelist++)->move = create_promotion_move(to - pawn_push - WEST, to, QUEEN);
+            *(movelist++) = create_promotion_move(to - pawn_push - WEST, to, QUEEN);
 
             if (!in_qsearch) {
                 movelist = extmove_create_underpromotions(movelist, to, pawn_push + WEST);
@@ -102,7 +100,7 @@ static ExtendedMove *extmove_generate_pawn_noisy(
         for (Bitboard bb = bb_shift_right(promotion_mask) & their_pieces; bb;) {
             const Square to = bb_pop_first_square(&bb);
 
-            (movelist++)->move = create_promotion_move(to - pawn_push - EAST, to, QUEEN);
+            *(movelist++) = create_promotion_move(to - pawn_push - EAST, to, QUEEN);
 
             if (!in_qsearch) {
                 movelist = extmove_create_underpromotions(movelist, to, pawn_push + EAST);
@@ -115,13 +113,13 @@ static ExtendedMove *extmove_generate_pawn_noisy(
     for (Bitboard bb = bb_shift_left(capture_mask) & their_pieces; bb;) {
         const Square to = bb_pop_first_square(&bb);
 
-        (movelist++)->move = create_move(to - pawn_push - WEST, to);
+        *(movelist++) = create_move(to - pawn_push - WEST, to);
     }
 
     for (Bitboard bb = bb_shift_right(capture_mask) & their_pieces; bb;) {
         const Square to = bb_pop_first_square(&bb);
 
-        (movelist++)->move = create_move(to - pawn_push - EAST, to);
+        *(movelist++) = create_move(to - pawn_push - EAST, to);
     }
 
     if (board->stack->ep_square != SQ_NONE) {
@@ -129,7 +127,7 @@ static ExtendedMove *extmove_generate_pawn_noisy(
             pawns_not_on_last_rank & pawn_attacks_bb(board->stack->ep_square, color_flip(us));
 
         while (ep_mask) {
-            (movelist++)->move =
+            *(movelist++) =
                 create_en_passant_move(bb_pop_first_square(&ep_mask), board->stack->ep_square);
         }
     }
@@ -137,8 +135,8 @@ static ExtendedMove *extmove_generate_pawn_noisy(
     return movelist;
 }
 
-static ExtendedMove *extmove_generate_pawn_quiet(
-    ExtendedMove *restrict movelist,
+static Move *extmove_generate_pawn_quiet(
+    Move *restrict movelist,
     const Board *restrict board,
     Color us,
     Bitboard empty_squares
@@ -153,23 +151,20 @@ static ExtendedMove *extmove_generate_pawn_quiet(
     while (push_mask) {
         const Square to = bb_pop_first_square(&push_mask);
 
-        (movelist++)->move = create_move(to - pawn_push, to);
+        *(movelist++) = create_move(to - pawn_push, to);
     }
 
     while (push2_mask) {
         const Square to = bb_pop_first_square(&push2_mask);
 
-        (movelist++)->move = create_move(to - pawn_push * 2, to);
+        *(movelist++) = create_move(to - pawn_push * 2, to);
     }
 
     return movelist;
 }
 
-static ExtendedMove *extmove_generate_pawn_standard(
-    ExtendedMove *restrict movelist,
-    const Board *restrict board,
-    Color us
-) {
+static Move *
+    extmove_generate_pawn_standard(Move *restrict movelist, const Board *restrict board, Color us) {
     const Direction pawn_push = pawn_direction(us);
     const Bitboard our_pawns = board_piece_bb(board, us, PAWN);
     const Bitboard pawns_on_last_rank = our_pawns & (us == WHITE ? RANK_7_BB : RANK_2_BB);
@@ -186,13 +181,13 @@ static ExtendedMove *extmove_generate_pawn_standard(
         while (push_mask) {
             const Square to = bb_pop_first_square(&push_mask);
 
-            (movelist++)->move = create_move(to - pawn_push, to);
+            *(movelist++) = create_move(to - pawn_push, to);
         }
 
         while (push2_mask) {
             const Square to = bb_pop_first_square(&push2_mask);
 
-            (movelist++)->move = create_move(to - pawn_push * 2, to);
+            *(movelist++) = create_move(to - pawn_push * 2, to);
         }
     }
 
@@ -223,13 +218,13 @@ static ExtendedMove *extmove_generate_pawn_standard(
     for (Bitboard bb = bb_shift_left(capture_mask) & their_pieces; bb;) {
         const Square to = bb_pop_first_square(&bb);
 
-        (movelist++)->move = create_move(to - pawn_push - WEST, to);
+        *(movelist++) = create_move(to - pawn_push - WEST, to);
     }
 
     for (Bitboard bb = bb_shift_right(capture_mask) & their_pieces; bb;) {
         const Square to = bb_pop_first_square(&bb);
 
-        (movelist++)->move = create_move(to - pawn_push - EAST, to);
+        *(movelist++) = create_move(to - pawn_push - EAST, to);
     }
 
     if (board->stack->ep_square != SQ_NONE) {
@@ -237,7 +232,7 @@ static ExtendedMove *extmove_generate_pawn_standard(
             pawns_not_on_last_rank & pawn_attacks_bb(board->stack->ep_square, color_flip(us));
 
         while (ep_mask) {
-            (movelist++)->move =
+            *(movelist++) =
                 create_en_passant_move(bb_pop_first_square(&ep_mask), board->stack->ep_square);
         }
     }
@@ -245,8 +240,8 @@ static ExtendedMove *extmove_generate_pawn_standard(
     return movelist;
 }
 
-static ExtendedMove *extmove_generate_pawn_incheck(
-    ExtendedMove *restrict movelist,
+static Move *extmove_generate_pawn_incheck(
+    Move *restrict movelist,
     const Board *restrict board,
     Bitboard block_squares,
     Color us
@@ -270,13 +265,13 @@ static ExtendedMove *extmove_generate_pawn_incheck(
         while (push_mask) {
             const Square to = bb_pop_first_square(&push_mask);
 
-            (movelist++)->move = create_move(to - pawn_push, to);
+            *(movelist++) = create_move(to - pawn_push, to);
         }
 
         while (push2_mask) {
             const Square to = bb_pop_first_square(&push2_mask);
 
-            (movelist++)->move = create_move(to - pawn_push * 2, to);
+            *(movelist++) = create_move(to - pawn_push * 2, to);
         }
     }
 
@@ -307,13 +302,13 @@ static ExtendedMove *extmove_generate_pawn_incheck(
     for (Bitboard bb = bb_shift_left(capture_mask) & their_pieces; bb;) {
         const Square to = bb_pop_first_square(&bb);
 
-        (movelist++)->move = create_move(to - pawn_push - WEST, to);
+        *(movelist++) = create_move(to - pawn_push - WEST, to);
     }
 
     for (Bitboard bb = bb_shift_right(capture_mask) & their_pieces; bb;) {
         const Square to = bb_pop_first_square(&bb);
 
-        (movelist++)->move = create_move(to - pawn_push - EAST, to);
+        *(movelist++) = create_move(to - pawn_push - EAST, to);
     }
 
     if (board->stack->ep_square != SQ_NONE
@@ -322,7 +317,7 @@ static ExtendedMove *extmove_generate_pawn_incheck(
             pawns_not_on_last_rank & pawn_attacks_bb(board->stack->ep_square, color_flip(us));
 
         while (ep_mask) {
-            (movelist++)->move =
+            *(movelist++) =
                 create_en_passant_move(bb_pop_first_square(&ep_mask), board->stack->ep_square);
         }
     }
@@ -330,19 +325,19 @@ static ExtendedMove *extmove_generate_pawn_incheck(
     return movelist;
 }
 
-ExtendedMove *extmove_generate_legal(ExtendedMove *restrict movelist, const Board *restrict board) {
+Move *extmove_generate_legal(Move *restrict movelist, const Board *restrict board) {
     const Color us = board->side_to_move;
     const Bitboard pinned = board->stack->king_blockers[us] & board_color_bb(board, us);
     const Square king_square = board_king_square(board, us);
-    ExtendedMove *it = movelist;
+    Move *it = movelist;
 
     movelist = board->stack->checkers ? extmove_generate_incheck(movelist, board)
                                       : extmove_generate_standard(movelist, board);
 
     while (it != movelist) {
-        if ((pinned || move_from(it->move) == king_square || move_type(it->move) == EN_PASSANT)
-            && !board_move_is_legal(board, it->move)) {
-            it->move = (--movelist)->move;
+        if ((pinned || move_from(*it) == king_square || move_type(*it) == EN_PASSANT)
+            && !board_move_is_legal(board, *it)) {
+            *it = *(--movelist);
         } else {
             ++it;
         }
@@ -351,8 +346,7 @@ ExtendedMove *extmove_generate_legal(ExtendedMove *restrict movelist, const Boar
     return movelist;
 }
 
-ExtendedMove *
-    extmove_generate_standard(ExtendedMove *restrict movelist, const Board *restrict board) {
+Move *extmove_generate_standard(Move *restrict movelist, const Board *restrict board) {
     const Color us = board->side_to_move;
     const Bitboard target_squares = ~board_color_bb(board, us);
     const Square our_king = board_king_square(board, us);
@@ -368,19 +362,18 @@ ExtendedMove *
 
     if ((board->stack->castlings & clright_to_clmask(kingside))
         && !board_castling_is_blocked(board, kingside)) {
-        (movelist++)->move = create_castling_move(our_king, board->castling_rook_square[kingside]);
+        *(movelist++) = create_castling_move(our_king, board->castling_rook_square[kingside]);
     }
 
     if ((board->stack->castlings & clright_to_clmask(queenside))
         && !board_castling_is_blocked(board, queenside)) {
-        (movelist++)->move = create_castling_move(our_king, board->castling_rook_square[queenside]);
+        *(movelist++) = create_castling_move(our_king, board->castling_rook_square[queenside]);
     }
 
     return movelist;
 }
 
-ExtendedMove *
-    extmove_generate_incheck(ExtendedMove *restrict movelist, const Board *restrict board) {
+Move *extmove_generate_incheck(Move *restrict movelist, const Board *restrict board) {
     const Color us = board->side_to_move;
     const Square king_square = board_king_square(board, us);
     Bitboard slider_attacks = 0;
@@ -393,7 +386,7 @@ ExtendedMove *
 
     for (Bitboard bb = king_attacks_bb(king_square) & ~board_color_bb(board, us) & ~slider_attacks;
          bb;) {
-        (movelist++)->move = create_move(king_square, bb_pop_first_square(&bb));
+        *(movelist++) = create_move(king_square, bb_pop_first_square(&bb));
     }
 
     // If in check in multiple times, we know only King moves can be legal.
@@ -413,11 +406,8 @@ ExtendedMove *
     return movelist;
 }
 
-ExtendedMove *extmove_generate_noisy(
-    ExtendedMove *restrict movelist,
-    const Board *restrict board,
-    bool in_qsearch
-) {
+Move *
+    extmove_generate_noisy(Move *restrict movelist, const Board *restrict board, bool in_qsearch) {
     const Color us = board->side_to_move;
     const Bitboard their_pieces = board_color_bb(board, color_flip(us));
 
@@ -430,7 +420,7 @@ ExtendedMove *extmove_generate_noisy(
     return movelist;
 }
 
-ExtendedMove *extmove_generate_quiet(ExtendedMove *restrict movelist, const Board *restrict board) {
+Move *extmove_generate_quiet(Move *restrict movelist, const Board *restrict board) {
     const Color us = board->side_to_move;
     const Bitboard empty_squares = ~board_occupancy_bb(board);
     const Square our_king = board_king_square(board, us);
@@ -446,35 +436,41 @@ ExtendedMove *extmove_generate_quiet(ExtendedMove *restrict movelist, const Boar
 
     if ((board->stack->castlings & clright_to_clmask(kingside))
         && !board_castling_is_blocked(board, kingside)) {
-        (movelist++)->move = create_castling_move(our_king, board->castling_rook_square[kingside]);
+        *(movelist++) = create_castling_move(our_king, board->castling_rook_square[kingside]);
     }
 
     if ((board->stack->castlings & clright_to_clmask(queenside))
         && !board_castling_is_blocked(board, queenside)) {
-        (movelist++)->move = create_castling_move(our_king, board->castling_rook_square[queenside]);
+        *(movelist++) = create_castling_move(our_king, board->castling_rook_square[queenside]);
     }
 
     return movelist;
 }
 
-void extmove_pick_best(ExtendedMove *begin, ExtendedMove *end) {
-    ExtendedMove tmp;
-    ExtendedMove *best = begin;
+void extmove_pick_best(Move *restrict movelist, i32 *restrict score_list, usize size) {
+    usize best = 0;
 
-    for (ExtendedMove *it = begin + 1; it != end; ++it) {
-        if (it->score > best->score) {
-            best = it;
+    for (usize i = 1; i < size; ++i) {
+        if (score_list[i] > score_list[best]) {
+            best = i;
         }
     }
 
-    tmp = *best;
-    *best = *begin;
-    *begin = tmp;
+    {
+        Move tmp = movelist[best];
+        movelist[best] = movelist[0];
+        movelist[0] = tmp;
+    }
+    {
+        i32 tmp = score_list[best];
+        score_list[best] = score_list[0];
+        score_list[0] = tmp;
+    }
 }
 
 bool movelist_contains(const Movelist *movelist, Move move) {
-    for (const ExtendedMove *it = movelist_begin(movelist); it != movelist_end(movelist); ++it) {
-        if (it->move == move) {
+    for (const Move *it = movelist_begin(movelist); it != movelist_end(movelist); ++it) {
+        if (*it == move) {
             return true;
         }
     }

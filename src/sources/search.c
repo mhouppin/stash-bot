@@ -112,11 +112,10 @@ static u64 perft(Board *board, u16 depth) {
 
     total = 0;
 
-    for (const ExtendedMove *extmove = movelist_begin(&list); extmove < movelist_end(&list);
-         ++extmove) {
-        board_do_move(board, extmove->move, &stack);
+    for (const Move *extmove = movelist_begin(&list); extmove < movelist_end(&list); ++extmove) {
+        board_do_move(board, *extmove, &stack);
         total += perft(board, depth - 1);
-        board_undo_move(board, extmove->move);
+        board_undo_move(board, *extmove);
     }
 
     return total;

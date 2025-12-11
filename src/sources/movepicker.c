@@ -57,51 +57,48 @@ void movepicker_init(
     mp->worker = worker;
 }
 
-static void movepicker_score_noisy(Movepicker *mp, ExtendedMove *begin, ExtendedMove *end) {
+static void movepicker_score_noisy(Movepicker *mp, Move *movelist, i32 *score_list, usize size) {
     static const i32 CapturedBonus[PIECETYPE_NB] = {0, 0, 1280, 1280, 2560, 5120, 0, 0};
 
-    while (begin < end) {
-        const Move move = begin->move;
+    for (usize i = 0; i < size; ++i) {
+        const Move move = movelist[i];
         const Square to = move_to(move);
         const Piece moved_piece = board_piece_on(mp->board, move_from(move));
         Piecetype captured = piece_type(board_piece_on(mp->board, to));
 
         // Give an additional bonus for promotions based on the promotion type.
         if (move_type(move) == PROMOTION) {
-            begin->score = CapturedBonus[move_promotion_type(move)];
+            score_list[i] = CapturedBonus[move_promotion_type(move)];
             captured = move_promotion_type(move);
         }
         // Special case for en-passant captures, since the arrival square is empty.
         else if (move_type(move) == EN_PASSANT) {
-            begin->score = CapturedBonus[PAWN];
+            score_list[i] = CapturedBonus[PAWN];
             captured = PAWN;
         } else {
-            begin->score = CapturedBonus[captured];
+            score_list[i] = CapturedBonus[captured];
         }
 
         // In addition to the MVV ordering, rank the captures based on their history.
-        begin->score += capture_hist_score(mp->worker->capture_hist, moved_piece, to, captured);
-        ++begin;
+        score_list[i] += capture_hist_score(mp->worker->capture_hist, moved_piece, to, captured);
     }
 }
 
-static void movepicker_score_quiets(Movepicker *mp, ExtendedMove *begin, ExtendedMove *end) {
-    while (begin < end) {
-        const Move move = begin->move;
+static void movepicker_score_quiets(Movepicker *mp, Move *movelist, i32 *score_list, usize size) {
+    for (usize i = 0; i < size; ++i) {
+        const Move move = movelist[i];
         const Piece moved_piece = board_piece_on(mp->board, move_from(move));
         const Square to = move_to(move);
 
-        begin->score = butterfly_hist_score(mp->worker->butterfly_hist, moved_piece, move) / 2;
-        begin->score += piece_hist_score(mp->piece_history[0], moved_piece, to);
-        begin->score += piece_hist_score(mp->piece_history[1], moved_piece, to);
-
-        ++begin;
+        score_list[i] = butterfly_hist_score(mp->worker->butterfly_hist, moved_piece, move) / 2
+            + piece_hist_score(mp->piece_history[0], moved_piece, to)
+            + piece_hist_score(mp->piece_history[1], moved_piece, to);
     }
 }
 
-static void movepicker_score_evasions(Movepicker *mp, ExtendedMove *begin, ExtendedMove *end) {
-    while (begin < end) {
-        const Move move = begin->move;
+static void movepicker_score_evasions(Movepicker *mp, Move *movelist, i32 *score_list, usize size) {
+    for (usize i = 0; i < size; ++i) {
+        const Move move = movelist[i];
         const Piece moved_piece = board_piece_on(mp->board, move_from(move));
         const Square to = move_to(move);
 
@@ -109,15 +106,28 @@ static void movepicker_score_evasions(Movepicker *mp, ExtendedMove *begin, Exten
             const Piecetype captured = piece_type(board_piece_on(mp->board, to));
 
             // Place captures of the checking piece at the top of the list using MVV/LVA ordering.
-            begin->score = 65536 + captured * 8 - piece_type(moved_piece);
+            score_list[i] = 65536 + captured * 8 - piece_type(moved_piece);
         } else {
-            begin->score = butterfly_hist_score(mp->worker->butterfly_hist, moved_piece, move) / 2;
-            begin->score += piece_hist_score(mp->piece_history[0], moved_piece, to);
-            begin->score += piece_hist_score(mp->piece_history[1], moved_piece, to);
+            score_list[i] = butterfly_hist_score(mp->worker->butterfly_hist, moved_piece, move) / 2
+                + piece_hist_score(mp->piece_history[0], moved_piece, to)
+                + piece_hist_score(mp->piece_history[1], moved_piece, to);
         }
-
-        ++begin;
     }
+}
+
+static inline Move mp_get_move(const Movepicker *mp) {
+    return mp->move_list[mp->current_idx];
+}
+
+static inline Move mp_yield_move(Movepicker *mp) {
+    return mp->move_list[mp->current_idx++];
+}
+
+static inline void mp_push_bad_capture(Movepicker *mp) {
+    mp->score_list[mp->bad_captures_idx] = mp->score_list[mp->current_idx];
+    mp->move_list[mp->bad_captures_idx] = mp->move_list[mp->current_idx];
+    ++mp->bad_captures_idx;
+    ++mp->current_idx;
 }
 
 Move movepicker_next_move(Movepicker *mp, bool skip_quiets, Score see_threshold) {
@@ -132,28 +142,34 @@ top:
         case GEN_NOISY:
             // Generate and score all noisy moves.
             ++mp->stage;
-            mp->list.end = extmove_generate_noisy(mp->list.moves, mp->board, mp->in_qsearch);
-            movepicker_score_noisy(mp, mp->list.moves, mp->list.end);
-            mp->current = mp->bad_captures = mp->list.moves;
+            mp->move_count =
+                (usize)(extmove_generate_noisy(mp->move_list, mp->board, mp->in_qsearch)
+                        - mp->move_list);
+            movepicker_score_noisy(mp, mp->move_list, mp->score_list, mp->move_count);
+            mp->current_idx = mp->bad_captures_idx = 0;
             // Fallthrough
 
         case PICK_GOOD_NOISY:
-            while (mp->current < mp->list.end) {
-                extmove_pick_best(mp->current, mp->list.end);
+            while (mp->current_idx < mp->move_count) {
+                extmove_pick_best(
+                    mp->move_list + mp->current_idx,
+                    mp->score_list + mp->current_idx,
+                    mp->move_count - mp->current_idx
+                );
 
                 // Only select moves with a SEE above the required threshold for this stage.
-                if (mp->current->move != mp->tt_move
-                    && board_see_above(mp->board, mp->current->move, see_threshold)) {
-                    return (mp->current++)->move;
+                if (mp_get_move(mp) != mp->tt_move
+                    && board_see_above(mp->board, mp_get_move(mp), see_threshold)) {
+                    return mp_yield_move(mp);
                 }
 
                 // Keep track of bad captures for later.
-                *(mp->bad_captures++) = *(mp->current++);
+                mp_push_bad_capture(mp);
             }
 
             // If we're in qsearch, we skip quiet move generation/selection when not in check.
             if (mp->in_qsearch) {
-                mp->current = mp->list.moves;
+                mp->current_idx = 0;
                 mp->stage = PICK_BAD_NOISY;
                 goto top;
             }
@@ -191,8 +207,15 @@ top:
             ++mp->stage;
 
             if (!skip_quiets) {
-                mp->list.end = extmove_generate_quiet(mp->current, mp->board);
-                movepicker_score_quiets(mp, mp->current, mp->list.end);
+                mp->move_count =
+                    (usize)(extmove_generate_quiet(mp->move_list + mp->current_idx, mp->board)
+                            - mp->move_list);
+                movepicker_score_quiets(
+                    mp,
+                    mp->move_list + mp->current_idx,
+                    mp->score_list + mp->current_idx,
+                    mp->move_count - mp->current_idx
+                );
             }
 
             // Fallthrough
@@ -200,10 +223,14 @@ top:
         case PICK_QUIETS:
             // Stop picking quiets if the search tells us to do so due to quiet move pruning.
             if (!skip_quiets) {
-                while (mp->current < mp->list.end) {
-                    extmove_pick_best(mp->current, mp->list.end);
+                while (mp->current_idx < mp->move_count) {
+                    extmove_pick_best(
+                        mp->move_list + mp->current_idx,
+                        mp->score_list + mp->current_idx,
+                        mp->move_count - mp->current_idx
+                    );
 
-                    const Move move = (mp->current++)->move;
+                    const Move move = mp_yield_move(mp);
 
                     // Don't play the same move twice.
                     if (move != mp->tt_move && move != mp->killer && move != mp->counter) {
@@ -213,14 +240,14 @@ top:
             }
 
             ++mp->stage;
-            mp->current = mp->list.moves;
+            mp->current_idx = 0;
             // Fallthrough
 
         case PICK_BAD_NOISY:
             // Select all remaining captures. Note that we have already ordered them in the
             // PICK_GOOD_NOISY stage.
-            while (mp->current < mp->bad_captures) {
-                const Move move = (mp->current++)->move;
+            while (mp->current_idx < mp->bad_captures_idx) {
+                const Move move = mp_yield_move(mp);
 
                 if (move != mp->tt_move) {
                     return move;
@@ -232,17 +259,22 @@ top:
         case CHECK_GEN_ALL:
             // Generate and score all evasions.
             ++mp->stage;
-            mp->list.end = extmove_generate_incheck(mp->list.moves, mp->board);
-            movepicker_score_evasions(mp, mp->list.moves, mp->list.end);
-            mp->current = mp->list.moves;
+            mp->move_count =
+                (usize)(extmove_generate_incheck(mp->move_list, mp->board) - mp->move_list);
+            movepicker_score_evasions(mp, mp->move_list, mp->score_list, mp->move_count);
+            mp->current_idx = 0;
             // Fallthrough
 
         case CHECK_PICK_ALL:
             // Select the next best evasion.
-            while (mp->current < mp->list.end) {
-                extmove_pick_best(mp->current, mp->list.end);
+            while (mp->current_idx < mp->move_count) {
+                extmove_pick_best(
+                    mp->move_list + mp->current_idx,
+                    mp->score_list + mp->current_idx,
+                    mp->move_count - mp->current_idx
+                );
 
-                const Move move = (mp->current++)->move;
+                const Move move = mp_yield_move(mp);
 
                 if (move != mp->tt_move) {
                     return move;
