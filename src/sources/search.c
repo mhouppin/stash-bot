@@ -33,7 +33,7 @@ static i16 Reductions[2][MAX_MOVES];
 void search_init(void) {
     Reductions[0][0] = Reductions[1][0] = 0;
 
-    for (usize i = 1; i < 256; ++i) {
+    for (usize i = 1; i < MAX_MOVES; ++i) {
         Reductions[0][i] = (i16)(log(i) * 10.60 + 4.10); // Noisy LMR formula
         Reductions[1][i] = (i16)(log(i) * 19.70 + 11.14); // Quiet LMR formula
     }
@@ -1240,11 +1240,13 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
 
             // Check if the move is unlikely to improve alpha.
             if (futility_value < alpha) {
+                best_score = i16_max(best_score, futility_value);
                 continue;
             }
 
             // If static eval is far below alpha, only search moves that win material.
             if (futility_base < alpha && !board_see_above(board, currmove, 1)) {
+                best_score = i16_max(best_score, futility_base);
                 continue;
             }
         }
