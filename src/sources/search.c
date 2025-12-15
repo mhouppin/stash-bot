@@ -928,7 +928,7 @@ main_loop:
                 }
             }
             // Check Extensions. Extend non-LMR searches by one ply for moves that give check.
-            else if (gives_check) {
+            else if (gives_check && (in_check || i16_abs(ss->static_eval) >= 50)) {
                 extension = 1;
             }
         }
