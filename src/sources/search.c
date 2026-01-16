@@ -968,11 +968,16 @@ main_loop:
             // Increase/decrease the reduction based on the move's history.
             r -= (i16)i32_clamp(hist_score / 11601, -3, 3);
 
+            // Adjust the reduction based on last ply reduction.
+            r -= (ss - 1)->reduction / 4;
+
             // Clamp the reduction so that we don't extend the move or drop
             // immediately into qsearch.
             r = i16_clamp(r, 0, new_depth - 1);
 
+            ss->reduction = r;
             score = -search(false, board, new_depth - r, -alpha - 1, -alpha, ss + 1, true);
+            ss->reduction = 0;
 
             // Perform another search at full depth if LMR failed high.
             if (r != 0 && score > alpha) {
