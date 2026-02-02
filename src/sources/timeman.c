@@ -38,6 +38,7 @@ void timeman_init(
     timeman->start = start;
     timeman->pondering = false;
     timeman->delay_check_nodes = 1000;
+    timeman->node_clock = false;
 
     if (search_params->nodes != 0) {
         timeman->delay_check_nodes = (u64)fmin(1000.0, sqrt(search_params->nodes) + 0.5);
