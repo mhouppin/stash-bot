@@ -317,7 +317,7 @@ static bool board_has_invalid_material(const Board *board, Color color) {
     const u8 pknights = u8_max(2, knights) - 2;
     const u8 pbishops = u8_max(2, bishops) - 2;
     const u8 prooks = u8_max(2, rooks) - 2;
-    const u8 pqueens = u8_max(2, queens) - 2;
+    const u8 pqueens = u8_max(1, queens) - 1;
     const u8 promoted = pknights + pbishops + prooks + pqueens;
 
     pawns += promoted;
