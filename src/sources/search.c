@@ -46,7 +46,7 @@ static i16 lmr_base_value(i16 depth, i16 move_count, bool improving, bool is_qui
 }
 
 static i16 lmp_threshold(i16 depth, bool improving) {
-    const i16 result = improving ? 70 + 7 * depth * depth : 13 + 4 * depth * depth;
+    const i16 result = improving ? 70 + 7 * depth * depth : 16 + 4 * depth * depth;
 
     return result / 16;
 }
