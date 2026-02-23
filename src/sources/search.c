@@ -1214,7 +1214,7 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
     Boardstack stack;
 
     // Check if Futility Pruning is possible in the moves loop.
-    const bool futility_ok = !in_check && board_total_piece_count(board) >= 5;
+    const bool futility_ok = !in_check;
     const Score futility_base = best_score + 98;
 
     while ((currmove = movepicker_next_move(&mp, false, 0)) != NO_MOVE) {
