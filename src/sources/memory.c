@@ -79,6 +79,8 @@ usize mem_segm_index(const u8 *data, usize size, const u8 *segm, usize segmsize)
             break;
         }
 
+        next += i;
+
         if (mem_equal(data + next, segm, segmsize)) {
             return next;
         }
