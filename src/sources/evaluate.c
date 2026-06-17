@@ -886,7 +886,7 @@ static Score eval_scale_endgame(const Board *board, const KingPawnEntry *kpe, Sc
     }
 
     trace_set_scalefactor(factor);
-    return (Score)((i32)eg * factor / SCALE_NORMAL);
+    return score_scaled(eg, factor);
 }
 
 Score evaluate(const Board *board) {
@@ -965,6 +965,14 @@ Score evaluate(const Board *board) {
         trace_set_phase(phase);
         score = mg * (phase - ENDGAME_COUNT) / (MIDGAME_COUNT - ENDGAME_COUNT);
         score += eg * (MIDGAME_COUNT - phase) / (MIDGAME_COUNT - ENDGAME_COUNT);
+    }
+
+    // Scale down the eval based on rule50 counter.
+    {
+        u16 rule50_rounded = board->stack->rule50 - board->stack->rule50 % 8;
+        Scalefactor rule50_factor = i16_max(SCALE_DRAW, SCALE_NORMAL - rule50_rounded);
+
+        score = score_scaled(score, rule50_factor);
     }
 
     // Return the score relative to the side to move.

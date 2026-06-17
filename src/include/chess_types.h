@@ -452,7 +452,7 @@ INLINED Score mated_in(u8 plies) {
 }
 
 INLINED Score score_scaled(Score score, Scalefactor scalefactor) {
-    return score * scalefactor / SCALE_NORMAL;
+    return (Score)((i32)score * scalefactor / SCALE_NORMAL);
 }
 
 INLINED Score scorepair_midgame(Scorepair scorepair) {
