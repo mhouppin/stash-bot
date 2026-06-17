@@ -24,6 +24,7 @@
 Key ZobristPsq[PIECE_NB][SQUARE_NB];
 Key ZobristEnPassant[FILE_NB];
 Key ZobristCastling[CASTLING_MASK_NB];
+Key Zobrist50MoveRule[101];
 Key ZobristSideToMove;
 
 void zobrist_init(void) {
@@ -48,6 +49,11 @@ void zobrist_init(void) {
             ZobristCastling[cr] ^= key ?: u64_random(&seed);
             b &= b - 1;
         }
+    }
+
+    // Keep the same zobrist key for 8 consecutive plies.
+    for (u8 ply = 0; ply <= 100; ++ply) {
+        Zobrist50MoveRule[ply] = (ply % 8 == 0) ? u64_random(&seed) : Zobrist50MoveRule[ply - ply % 8];
     }
 
     ZobristSideToMove = u64_random(&seed);

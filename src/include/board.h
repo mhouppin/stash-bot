@@ -234,6 +234,11 @@ INLINED bool board_move_is_noisy(const Board *board, Move move) {
                                           : move_type(move) != CASTLING;
 }
 
+// Helper function for getting the general board key
+INLINED Key board_general_key(const Board *board) {
+    return board->stack->board_key ^ Zobrist50MoveRule[u16_min(board->stack->rule50, 100)];
+}
+
 // Helper function for extracting a zobrist hash of the pawn structure
 INLINED Key board_pawn_key(const Board *board) {
     return board->stack->king_pawn_key ^ ZobristPsq[WHITE_KING][board_king_square(board, WHITE)]

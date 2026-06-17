@@ -310,7 +310,7 @@ void main_worker_search(Worker *worker) {
         bool found;
 
         board_do_move(board, worker->root_moves->move, &stack);
-        tt_entry = tt_probe(&worker->pool->tt, board->stack->board_key, &found);
+        tt_entry = tt_probe(&worker->pool->tt, board_general_key(board), &found);
         board_undo_move(board, worker->root_moves->move);
 
         if (found) {
@@ -412,7 +412,7 @@ void use_emergency_scoring(Worker *worker, Searchstack *ss) {
     Move currmove;
     Score score = NO_SCORE;
     Move tt_move = NO_MOVE;
-    TranspositionEntry *tt_entry = tt_probe(&worker->pool->tt, board->stack->board_key, &found);
+    TranspositionEntry *tt_entry = tt_probe(&worker->pool->tt, board_general_key(board), &found);
 
     if (found) {
         score = score_from_tt(tt_entry->score, 0);
@@ -601,7 +601,7 @@ Score search(
     Bound tt_bound = NO_BOUND;
     bool tt_noisy = false;
     bool tt_found;
-    Key key = board->stack->board_key ^ ((Key)ss->excluded_move << 16);
+    Key key = board_general_key(board) ^ ((Key)ss->excluded_move << 16);
     Score raw_eval;
     Score eval;
 
@@ -696,7 +696,7 @@ Score search(
         ss->piece_history = (ss - 2)->piece_history;
 
         board_do_null_move(board, &stack);
-        prefetch(tt_entry_at(&worker->pool->tt, board->stack->board_key));
+        prefetch(tt_entry_at(&worker->pool->tt, board_general_key(board)));
         worker_increment_nodes(worker);
 
         // Perform the reduced search.
@@ -764,7 +764,7 @@ Score search(
                      ->piece_history[board_piece_on(board, move_from(currmove))][move_to(currmove)];
 
             board_do_move(board, currmove, &stack);
-            prefetch(tt_entry_at(&worker->pool->tt, board->stack->board_key));
+            prefetch(tt_entry_at(&worker->pool->tt, board_general_key(board)));
             worker_increment_nodes(worker);
 
             Score probcut_score = -qsearch(false, board, -probcut_beta, -probcut_beta + 1, ss + 1);
@@ -940,7 +940,7 @@ main_loop:
             &worker->continuation_hist->piece_history[moved_piece][move_to(currmove)];
 
         board_do_move_gc(board, currmove, &stack, gives_check);
-        prefetch(tt_entry_at(&worker->pool->tt, board->stack->board_key));
+        prefetch(tt_entry_at(&worker->pool->tt, board_general_key(board)));
         worker_increment_nodes(worker);
 
         // Late Move Reductions. For nodes not too close to qsearch (since we can't reduce their
@@ -1141,7 +1141,7 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
     bool tt_found;
     TranspositionEntry *tt_entry;
 
-    tt_entry = tt_probe(&worker->pool->tt, board->stack->board_key, &tt_found);
+    tt_entry = tt_probe(&worker->pool->tt, board_general_key(board), &tt_found);
 
     // Probe the TT for information on the current position.
     if (tt_found) {
@@ -1193,7 +1193,7 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
                 tt_save(
                     &worker->pool->tt,
                     tt_entry,
-                    board->stack->board_key,
+                    board_general_key(board),
                     score_to_tt(best_score, ss->plies),
                     raw_eval,
                     0,
@@ -1263,7 +1263,7 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
         }
 
         board_do_move_gc(board, currmove, &stack, gives_check);
-        prefetch(tt_entry_at(&worker->pool->tt, board->stack->board_key));
+        prefetch(tt_entry_at(&worker->pool->tt, board_general_key(board)));
         worker_increment_nodes(worker);
 
         Score score = -qsearch(pv_node, board, -beta, -alpha, ss + 1);
@@ -1307,7 +1307,7 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
     tt_save(
         &worker->pool->tt,
         tt_entry,
-        board->stack->board_key,
+        board_general_key(board),
         score_to_tt(best_score, ss->plies),
         raw_eval,
         0,

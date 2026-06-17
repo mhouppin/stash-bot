@@ -51,6 +51,9 @@ extern Key ZobristEnPassant[FILE_NB];
 // Global table for Zobrist castling hashes
 extern Key ZobristCastling[CASTLING_MASK_NB];
 
+// Global table for Zobrist 50-move counter hashes
+extern Key Zobrist50MoveRule[101];
+
 // Global value for Zobrist STM hash
 extern Key ZobristSideToMove;
 
