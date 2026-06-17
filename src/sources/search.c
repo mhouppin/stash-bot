@@ -845,7 +845,7 @@ main_loop:
 
             // Futility Pruning. For low-depth nodes, stop searching quiets if the eval suggests
             // that only captures will save the day.
-            if (depth <= 5 && !in_check && is_quiet && eval + 186 + 66 * depth <= alpha) {
+            if (depth <= 5 && !in_check && eval + 186 + 66 * depth <= alpha) {
                 skip_quiets = true;
             }
 
