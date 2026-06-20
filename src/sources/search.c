@@ -924,7 +924,7 @@ main_loop:
                 // assume that searching the TT move at full depth is futile as we should get a
                 // fail-high deeper on this branch, and reduce its search depth.
                 else if (tt_score >= beta) {
-                    extension = -1;
+                    extension = -1 - pv_node;
                 }
             }
             // Check Extensions. Extend non-LMR searches by one ply for moves that give check.
