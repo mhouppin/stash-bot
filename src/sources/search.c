@@ -962,6 +962,9 @@ main_loop:
             // Decrease the reduction if the move is a killer or countermove.
             r -= (currmove == mp.killer || currmove == mp.counter);
 
+            // Decrease the reduction if the move gives check.
+            r -= gives_check;
+
             // Decrease the reduction if the move escapes a capture.
             r -= is_quiet && !board_see_above(board, move_reverse(currmove), 0);
 
