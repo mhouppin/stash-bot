@@ -953,8 +953,10 @@ main_loop:
             // Increase the reduction for non-PV nodes.
             r += !pv_node;
 
-            // Increase the reduction for cutNodes.
-            r += cut_node;
+            // Increase the reduction for expected cutnodes.
+            if (cut_node) {
+                r += 1 + !tt_move;
+            }
 
             // Increase the reduction if the TT move is non-quiet.
             r += tt_noisy;
