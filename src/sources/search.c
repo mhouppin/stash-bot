@@ -237,6 +237,177 @@ void searchstack_init(Worker *worker, Searchstack *ss) {
     }
 }
 
+static usize bestmove_vote_idx(const Move *restrict moves, usize size, Move bestmove) {
+    usize slot_idx = 0;
+
+    while (slot_idx < size) {
+        if (moves[slot_idx] == bestmove) {
+            break;
+        }
+
+        ++slot_idx;
+    }
+
+    return slot_idx;
+}
+
+static i32 worker_weighted_vote(const Worker *restrict worker, Score worst_pv_score) {
+    return (root_move_score(worker->root_moves) - worst_pv_score + 4) * worker->root_depth;
+}
+
+static void add_worker_weight(
+    const Worker *restrict worker,
+    Move *restrict moves,
+    i64 *restrict scores,
+    usize *restrict size,
+    Score worst_pv_score
+) {
+    Move bestmove = worker->root_moves->move;
+    usize slot_idx = bestmove_vote_idx(moves, *size, bestmove);
+
+    // If we found no entry matching our bestmove, initialize a new one.
+    if (slot_idx == *size) {
+        assert(*size != MAX_MOVES);
+        moves[*size] = bestmove;
+        scores[*size] = 0;
+        ++*size;
+    }
+
+    scores[slot_idx] += (i64)worker_weighted_vote(worker, worst_pv_score);
+}
+
+static bool is_worker_new_best(
+    const Worker *restrict worker,
+    const Worker *restrict best_worker,
+    Score best_score,
+    usize best_idx,
+    const Move *restrict moves,
+    const i64 *restrict scores,
+    usize size,
+    Score worst_pv_score
+) {
+    Score cur_score = root_move_score(worker->root_moves);
+    Move cur_bestmove = worker->root_moves->move;
+
+    if (cur_score == -INF_SCORE) {
+        return false;
+    }
+
+    if (best_score == -INF_SCORE) {
+        return true;
+    }
+
+    // If we have a mate score already, only take shorter ones.
+    if (best_score >= MATE_FOUND) {
+        return cur_score > best_score;
+    }
+
+    // Ditto if we're getting mated.
+    if (best_score <= -MATE_FOUND) {
+        return cur_score < best_score;
+    }
+
+    // Otherwise, we treat any incoming mate scores as the new best worker.
+    if (i16_abs(cur_score) >= MATE_FOUND) {
+        return true;
+    }
+
+    usize cur_idx = bestmove_vote_idx(moves, size, cur_bestmove);
+
+    // Update best worker if its bestmove has a higher weighted vote.
+    if (scores[cur_idx] > scores[best_idx]) {
+        return true;
+    }
+
+    i32 cur_weight = worker_weighted_vote(worker, worst_pv_score);
+    i32 best_weight = worker_weighted_vote(best_worker, worst_pv_score);
+
+    // For moves with identical weighted votes (or, more realistically, workers with identical
+    // bestmoves), take the one with the highest individual weight BUT avoid truncated PVs from
+    // fail-lows and fail-highs.
+    if (scores[cur_idx] == scores[best_idx]
+        && cur_weight * (worker->root_moves->pv.length > 2)
+            > best_weight * (best_worker->root_moves->pv.length > 2)) {
+        return true;
+    }
+
+    return false;
+}
+
+static Worker *select_best_worker(WorkerPool *wpool) {
+    // Implementation derived from Stormphrax, which is itself ported from Stockfish.
+    if (wpool->worker_count == 1) {
+        return wpool->worker_list[0];
+    }
+
+    Score worst_pv_score = INF_SCORE;
+
+    for (usize i = 0; i < wpool->worker_count; ++i) {
+        const Worker *cur_worker = wpool->worker_list[i];
+
+        // We exit the worker_search() function with the last PV score stored in the
+        // top root move's previous_score member, not the score member.
+        if (root_move_score(cur_worker->root_moves) != -INF_SCORE) {
+            worst_pv_score =
+                (Score)i16_min(worst_pv_score, root_move_score(cur_worker->root_moves));
+        }
+    }
+
+    Move moves[MAX_MOVES];
+    i64 scores[MAX_MOVES];
+    usize size = 0;
+
+    for (usize i = 0; i < wpool->worker_count; ++i) {
+        const Worker *cur_worker = wpool->worker_list[i];
+
+        if (root_move_score(cur_worker->root_moves) != -INF_SCORE) {
+            add_worker_weight(cur_worker, moves, scores, &size, worst_pv_score);
+        }
+    }
+
+    Worker *best_worker = wpool->worker_list[0];
+    Score best_score = root_move_score(best_worker->root_moves);
+    usize best_idx = bestmove_vote_idx(moves, size, best_worker->root_moves->move);
+
+    info_debug(
+        "info cur_top_worker #0 score %d weight %d total_move_weight " FORMAT_LARGE_INT "\n",
+        best_score,
+        worker_weighted_vote(best_worker, worst_pv_score),
+        (LargeInt)scores[best_idx]
+    );
+
+    for (usize worker_idx = 1; worker_idx < wpool->worker_count; ++worker_idx) {
+        Worker *cur_worker = wpool->worker_list[worker_idx];
+        bool new_best = is_worker_new_best(
+            cur_worker,
+            best_worker,
+            best_score,
+            best_idx,
+            moves,
+            scores,
+            size,
+            worst_pv_score
+        );
+
+        if (new_best) {
+            best_worker = cur_worker;
+            best_score = root_move_score(best_worker->root_moves);
+            best_idx = bestmove_vote_idx(moves, size, best_worker->root_moves->move);
+
+            info_debug(
+                "info cur_top_worker #%u score %d weight %d total_move_weight " FORMAT_LARGE_INT
+                "\n",
+                (u32)worker_idx,
+                best_score,
+                worker_weighted_vote(best_worker, worst_pv_score),
+                (LargeInt)scores[best_idx]
+            );
+        }
+    }
+
+    return best_worker;
+}
+
 void main_worker_search(Worker *worker) {
     Board *board = &worker->board;
     SearchParams *search_params = &worker->pool->search_params;
@@ -296,22 +467,47 @@ void main_worker_search(Worker *worker) {
 
     wpool_wait_aux_workers(worker->pool);
 
+    Worker *best_worker = select_best_worker(worker->pool);
+    Move bestmove = best_worker->root_moves->move;
+
+    // If we get a different worker than main to print the bestmove, display an extra PV block.
+    if (best_worker != worker) {
+        // Clamp MultiPV to the maximal number of available root moves.
+        const u16 multi_pv =
+            (u16)u64_min((u64)search_params->multi_pv, (u64)best_worker->root_move_count);
+        Duration elapsed = timepoint_diff(worker->pool->timeman.start, timepoint_now());
+
+        for (u16 i = 0; i < multi_pv; ++i) {
+            print_pv(
+                best_worker,
+                &best_worker->board,
+                &best_worker->root_moves[i],
+                i + 1,
+                best_worker->root_depth,
+                elapsed,
+                EXACT_BOUND
+            );
+        }
+
+        fflush(stdout);
+    }
+
     sync_lock_stdout();
     fwrite_strview(stdout, STATIC_STRVIEW("bestmove "));
-    fwrite_strview(stdout, board_move_to_uci(board, worker->root_moves->move));
+    fwrite_strview(stdout, board_move_to_uci(board, bestmove));
 
     Move ponder_move = NO_MOVE;
 
     // If we finished searching with a fail-high, try to see if we can get a ponder move from the
     // TT.
-    if (worker->root_moves->pv.length == 1) {
+    if (best_worker->root_moves->pv.length == 1) {
         Boardstack stack;
         TranspositionEntry *tt_entry;
         bool found;
 
-        board_do_move(board, worker->root_moves->move, &stack);
+        board_do_move(board, bestmove, &stack);
         tt_entry = tt_probe(&worker->pool->tt, board->stack->board_key, &found);
-        board_undo_move(board, worker->root_moves->move);
+        board_undo_move(board, bestmove);
 
         if (found) {
             ponder_move = tt_entry->bestmove;
@@ -323,7 +519,7 @@ void main_worker_search(Worker *worker) {
             }
         }
     } else {
-        ponder_move = worker->root_moves->pv.moves[1];
+        ponder_move = best_worker->root_moves->pv.moves[1];
     }
 
     if (ponder_move != NO_MOVE) {
@@ -354,16 +550,16 @@ void worker_search(Worker *worker) {
     searchstack_init(worker, sstack);
 
     for (worker->root_depth = 1; worker->root_depth <= search_params->depth; ++worker->root_depth) {
-        for (worker->pv_line = 0; worker->pv_line < multi_pv; ++worker->pv_line) {
-            if (!worker_search_pv_line(worker, worker->root_depth, multi_pv, sstack)) {
-                break;
-            }
-        }
-
         // Reset root moves' score for the next search.
         for (usize i = 0; i < worker->root_move_count; ++i) {
             worker->root_moves[i].previous_score = worker->root_moves[i].score;
             worker->root_moves[i].score = -INF_SCORE;
+        }
+
+        for (worker->pv_line = 0; worker->pv_line < multi_pv; ++worker->pv_line) {
+            if (!worker_search_pv_line(worker, worker->root_depth, multi_pv, sstack)) {
+                break;
+            }
         }
 
         if (wpool_is_stopped(worker->pool)) {
@@ -375,7 +571,7 @@ void worker_search(Worker *worker) {
                 &worker->pool->timeman,
                 &worker->board,
                 worker->root_moves->move,
-                worker->root_moves->previous_score
+                worker->root_moves->score
             );
 
             // If we went over optimal time usage, we just finished our iteration, so we can safely
@@ -387,7 +583,7 @@ void worker_search(Worker *worker) {
 
         // Stop the search if we found a mate equal or better than what was requested.
         if (search_params->mate != 0
-            && worker->root_moves->previous_score >= mate_in(search_params->mate * 2)) {
+            && worker->root_moves->score >= mate_in(search_params->mate * 2)) {
             break;
         }
 

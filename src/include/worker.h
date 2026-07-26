@@ -65,6 +65,10 @@ RootMove *find_root_move(RootMove *root_moves, usize root_count, Move move);
 // Sorts root moves based on their score
 void sort_root_moves(RootMove *root_moves, usize root_count);
 
+INLINED Score root_move_score(const RootMove *root_move) {
+    return root_move->score == -INF_SCORE ? root_move->previous_score : root_move->score;
+}
+
 // Struct for worker thread data
 typedef struct {
     Board board;
