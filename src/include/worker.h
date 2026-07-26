@@ -53,6 +53,7 @@ typedef struct {
     u16 seldepth;
     Score previous_score;
     Score score;
+    u64 nodes;
     PvLine pv;
 } RootMove;
 
@@ -107,9 +108,13 @@ INLINED void board_enable_worker(Board *board) {
     board->has_worker = true;
 }
 
+INLINED u64 worker_get_nodes(const Worker *worker) {
+    return atomic_load_explicit(&worker->nodes, memory_order_relaxed);
+}
+
 // Returns a pseudo-random draw score using the current node count
 INLINED Score worker_draw_score(const Worker *worker) {
-    return (Score)(atomic_load_explicit(&worker->nodes, memory_order_relaxed) & 2) - 1;
+    return (Score)(worker_get_nodes(worker) & 2) - 1;
 }
 
 INLINED void worker_increment_nodes(Worker *worker) {

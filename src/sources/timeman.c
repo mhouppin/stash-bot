@@ -131,6 +131,7 @@ void timeman_update(
 
     Movelist movelist;
     f64 scale = 1.0;
+    Worker *worker = board_get_worker(root_board);
 
     movelist_generate_legal(&movelist, root_board);
 
@@ -155,6 +156,17 @@ void timeman_update(
     // previous iteration (the higher it goes, the quicker we stop searching).
     if (timeman->previous_score != NO_SCORE) {
         scale *= timeman_scale_score_diff((i32)root_score - (i32)timeman->previous_score);
+    }
+
+    // Scale the time usage based on root move node repartition (the more nodes proportionally spent
+    // in the bestmove, the more we cut down time usage).
+    {
+        RootMove *root_move = find_root_move(worker->root_moves, worker->root_move_count, bestmove);
+        u64 bestmove_nodes = root_move->nodes;
+        u64 total_nodes = worker_get_nodes(worker);
+        f64 bestmove_rate = (f64)bestmove_nodes / (f64)total_nodes;
+
+        scale *= fmax(2.0 - bestmove_rate * 1.5, 0.6);
     }
 
     // Update score + optimal time usage.

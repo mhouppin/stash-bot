@@ -818,6 +818,8 @@ main_loop:
     bool skip_quiets = false;
 
     while ((currmove = movepicker_next_move(&mp, skip_quiets, 0)) != NO_MOVE) {
+        u64 current_nodes = 0;
+
         if (root_node) {
             // Exclude already searched PV lines for root nodes.
             if (find_root_move(
@@ -828,6 +830,8 @@ main_loop:
                 == NULL) {
                 continue;
             }
+
+            current_nodes = worker_get_nodes(worker);
         } else if (currmove == ss->excluded_move || !board_move_is_legal(board, currmove)) {
             continue;
         }
@@ -1020,6 +1024,9 @@ main_loop:
                 worker->root_move_count - worker->pv_line,
                 currmove
             );
+            u64 spent_nodes = worker_get_nodes(worker) - current_nodes;
+
+            cur_root_move->nodes += spent_nodes;
 
             // Update the PV in root nodes for the first move, and for all subsequent moves beating
             // alpha.

@@ -48,6 +48,7 @@ void root_move_init(RootMove *root_move, Move move) {
     root_move->seldepth = 0;
     root_move->previous_score = -INF_SCORE;
     root_move->score = -INF_SCORE;
+    root_move->nodes = 0;
     pv_line_init_move(&root_move->pv, move);
 }
 
@@ -369,7 +370,7 @@ u64 wpool_get_total_nodes(const WorkerPool *wpool) {
     u64 total = 0;
 
     for (usize i = 0; i < wpool->worker_count; ++i) {
-        total += atomic_load_explicit(&wpool->worker_list[i]->nodes, memory_order_relaxed);
+        total += worker_get_nodes(wpool->worker_list[i]);
     }
 
     return total;
