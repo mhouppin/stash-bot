@@ -835,6 +835,7 @@ main_loop:
         ++move_count;
 
         const bool is_quiet = !board_move_is_noisy(board, currmove);
+        i16 lmr_depth = i16_max(1, depth - lmr_base_value(depth, move_count, improving, is_quiet));
 
         if (!root_node && best_score > -MATE_FOUND) {
             // Late Move Pruning. For low-depth nodes, stop searching quiets after a certain
@@ -851,8 +852,8 @@ main_loop:
 
             // Continuation History Pruning. For low-depth nodes, prune quiet moves if they seem to
             // be bad continuations to the previous moves.
-            if (depth <= 4
-                && get_conthist_move_score(board, ss, currmove) < 783 - 4872 * (depth - 1)) {
+            if (lmr_depth <= 4
+                && get_conthist_move_score(board, ss, currmove) < 783 - 4872 * (lmr_depth - 1)) {
                 continue;
             }
 
