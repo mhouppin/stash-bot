@@ -669,8 +669,29 @@ Score search(
 
     // Razoring. If our static eval isn't good, and depth is low, it is likely that only a capture
     // will save us at this stage. Drop into qsearch.
-    if (!pv_node && depth == 1 && ss->static_eval + 144 <= alpha) {
-        return qsearch(false, board, alpha, beta, ss);
+    const Score razoring_margin = 120 * depth;
+
+    if (!pv_node && !ss->excluded_move && !in_check && ss->static_eval + razoring_margin <= alpha
+        && depth <= 3) {
+        const bool allow_full_razor =
+            depth == 1 || (depth <= 2 && ss->static_eval + razoring_margin <= alpha);
+
+        if (allow_full_razor) {
+            return qsearch(false, board, alpha, beta, ss);
+        }
+
+        const Score capped_alpha = i16_max(alpha - razoring_margin, -MATE);
+        const Score razor_alpha = capped_alpha;
+        Score razor_score = qsearch(false, board, razor_alpha, razor_alpha + 1, ss);
+
+        // We proved a fail-low, so we can return the score.
+        if (razor_score <= razor_alpha) {
+            return razor_score;
+        }
+
+        if (razor_score >= beta + 120 && depth <= 3) {
+            depth = i16_max(1, depth - 1);
+        }
     }
 
     // Futility Pruning. If our eval is quite good and depth is low, we just assume that we won't
