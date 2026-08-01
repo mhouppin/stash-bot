@@ -345,8 +345,6 @@ static Worker *select_best_worker(WorkerPool *wpool) {
     for (usize i = 0; i < wpool->worker_count; ++i) {
         const Worker *cur_worker = wpool->worker_list[i];
 
-        // We exit the worker_search() function with the last PV score stored in the
-        // top root move's previous_score member, not the score member.
         if (root_move_score(cur_worker->root_moves) != -INF_SCORE) {
             worst_pv_score =
                 (Score)i16_min(worst_pv_score, root_move_score(cur_worker->root_moves));
@@ -470,7 +468,7 @@ void main_worker_search(Worker *worker) {
     Worker *best_worker = select_best_worker(worker->pool);
     Move bestmove = best_worker->root_moves->move;
 
-    // If we get a different worker than main to print the bestmove, display an extra PV block.
+    // If we get a different worker than main for the bestmove, display an extra PV.
     if (best_worker != worker) {
         // Clamp MultiPV to the maximal number of available root moves.
         const u16 multi_pv =
