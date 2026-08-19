@@ -691,8 +691,10 @@ void board_get_fen(const Board *restrict board, String *restrict fen_str) {
             }
 
             if (file <= FILE_H) {
-                string_push_back(fen_str,
-                    PieceIndexes.data[board_piece_on(board, create_square(file, rank))]);
+                string_push_back(
+                    fen_str,
+                    PieceIndexes.data[board_piece_on(board, create_square(file, rank))]
+                );
             }
         }
 
@@ -706,23 +708,31 @@ void board_get_fen(const Board *restrict board, String *restrict fen_str) {
     string_push_back(fen_str, ' ');
 
     if (board->stack->castlings & WHITE_OO_MASK) {
-        string_push_back(fen_str,
-            board->chess960 ? 'A' + square_file(board->castling_rook_square[WHITE_OO]) : 'K');
+        string_push_back(
+            fen_str,
+            board->chess960 ? 'A' + square_file(board->castling_rook_square[WHITE_OO]) : 'K'
+        );
     }
 
     if (board->stack->castlings & WHITE_OOO_MASK) {
-        string_push_back(fen_str,
-            board->chess960 ? 'A' + square_file(board->castling_rook_square[WHITE_OOO]) : 'Q');
+        string_push_back(
+            fen_str,
+            board->chess960 ? 'A' + square_file(board->castling_rook_square[WHITE_OOO]) : 'Q'
+        );
     }
 
     if (board->stack->castlings & BLACK_OO_MASK) {
-        string_push_back(fen_str,
-            board->chess960 ? 'a' + square_file(board->castling_rook_square[BLACK_OO]) : 'k');
+        string_push_back(
+            fen_str,
+            board->chess960 ? 'a' + square_file(board->castling_rook_square[BLACK_OO]) : 'k'
+        );
     }
 
     if (board->stack->castlings & BLACK_OOO_MASK) {
-        string_push_back(fen_str,
-            board->chess960 ? 'a' + square_file(board->castling_rook_square[BLACK_OOO]) : 'q');
+        string_push_back(
+            fen_str,
+            board->chess960 ? 'a' + square_file(board->castling_rook_square[BLACK_OOO]) : 'q'
+        );
     }
 
     if (!board->stack->castlings) {

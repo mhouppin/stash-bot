@@ -17,8 +17,10 @@
 */
 
 #include "strmanip.h"
-#include "wmalloc.h"
+
 #include <stdlib.h>
+
+#include "wmalloc.h"
 
 static void string_add_nullbyte(String *string) {
     string_data(string)[string_size(string)] = 0;
@@ -196,17 +198,30 @@ void string_insert(String *string, usize index, u8 c) {
     string_sanitize(string);
     assert(index <= string_size(string));
     string_resize_if_needed(string, 1);
-    memmove(string_data(string) + index + 1, string_data(string) + index, string_size(string) - index);
+    memmove(
+        string_data(string) + index + 1,
+        string_data(string) + index,
+        string_size(string) - index
+    );
     string_data(string)[index] = c;
     string_increase_size(string, 1);
     string_add_nullbyte(string);
 }
 
-void string_insert_range(String *restrict string, usize index, const u8 *restrict data, usize size) {
+void string_insert_range(
+    String *restrict string,
+    usize index,
+    const u8 *restrict data,
+    usize size
+) {
     string_sanitize(string);
     assert(index <= string_size(string));
     string_resize_if_needed(string, size);
-    memmove(string_data(string) + index + size, string_data(string) + index, string_size(string) - index);
+    memmove(
+        string_data(string) + index + size,
+        string_data(string) + index,
+        string_size(string) - index
+    );
     memcpy(string_data(string) + index, data, size);
     string_increase_size(string, size);
     string_add_nullbyte(string);
@@ -269,7 +284,11 @@ void string_erase(String *restrict string, usize index) {
     string_sanitize(string);
     assert(index < string_size(string));
     string_decrease_size(string, 1);
-    memmove(string_data(string) + index, string_data(string) + index + 1, string_size(string) - index);
+    memmove(
+        string_data(string) + index,
+        string_data(string) + index + 1,
+        string_size(string) - index
+    );
     string_add_nullbyte(string);
 }
 

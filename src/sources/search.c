@@ -195,7 +195,6 @@ static void print_pv(
     string_push_back_i64(&info_str, elapsed);
     string_push_back_strview(&info_str, STATIC_STRVIEW(" pv"));
 
-
     String move_str;
 
     string_init(&move_str);

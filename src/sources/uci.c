@@ -320,10 +320,7 @@ void uci_position(Uci *uci, StringView args) {
 
     string_init(&new_fen);
     board_get_fen(&uci->root_board, &new_fen);
-    info_debug(
-        "info string Final position state: '%s'\n",
-        string_data(&new_fen)
-    );
+    info_debug("info string Final position state: '%s'\n", string_data(&new_fen));
     string_destroy(&new_fen);
 }
 

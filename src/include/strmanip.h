@@ -19,9 +19,10 @@
 #ifndef STRMANIP_H
 #define STRMANIP_H
 
+#include <string.h>
+
 #include "core.h"
 #include "strview.h"
-#include <string.h>
 
 typedef struct {
     u8 *data;

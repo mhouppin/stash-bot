@@ -70,21 +70,14 @@ void info_debug(const char *fmt, ...) {
 }
 
 usize string_getline(FILE *f, String *string) {
-    char *result;
-    char buffer[4096];
-    usize nullbyte_idx;
+    char buffer[16384];
 
     string_clear(string);
 
-    do {
-        result = fgets(buffer, sizeof(buffer), f);
+    if (fgets(buffer, sizeof(buffer), f) == NULL) {
+        return 0;
+    }
 
-        // Note that this doesn't work if we get nullbytes in the middle of the string, but we shouldn't
-        // be sent binary data over stdin anyway.
-        nullbyte_idx = mem_byte_index((u8 *)buffer, '\0', MAX_UCI_LINE_LENGTH);
-
-        string_push_back_range(string, (u8 *)buffer, nullbyte_idx);
-    } while (result == NULL);
-
+    string_push_back_range(string, (u8 *)buffer, cstr_length(buffer));
     return string_size(string);
 }
