@@ -70,8 +70,7 @@ void info_debug(const char *fmt, ...) {
 }
 
 usize string_getline(FILE *f, String *string) {
-#if defined(_WIN32) || defined(_WIN64)
-    char buffer[MAX_UCI_LINE_LENGTH] = {0};
+    char buffer[16384];
 
     string_clear(string);
 
@@ -79,30 +78,6 @@ usize string_getline(FILE *f, String *string) {
         return 0;
     }
 
-    if (string->capacity < (usize)MAX_UCI_LINE_LENGTH) {
-        string_reserve(string, (usize)MAX_UCI_LINE_LENGTH);
-    }
-
-    // Note that this doesn't work if we get nullbytes in the middle of the string, but we shouldn't
-    // be sent binary data over stdin anyway.
-    usize nullbyte = mem_byte_index((u8 *)buffer, '\0', MAX_UCI_LINE_LENGTH);
-
-    string_push_back_range(string, (u8 *)buffer, nullbyte);
-
-    return nullbyte;
-#else
-    char *ptr = (char *)string->data;
-    size_t size = (size_t)string->capacity;
-    isize result = getline(&ptr, &size, f);
-
-    if (result < 0) {
-        string->size = 0;
-        return 0;
-    }
-
-    string->data = (u8 *)ptr;
-    string->size = (usize)result;
-    string->capacity = (usize)size;
-    return (usize)result;
-#endif
+    string_push_back_range(string, (u8 *)buffer, cstr_length(buffer));
+    return string_size(string);
 }

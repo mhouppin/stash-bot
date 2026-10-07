@@ -23,6 +23,7 @@
 #include "chess_types.h"
 #include "core.h"
 #include "hashkey.h"
+#include "strmanip.h"
 #include "strview.h"
 
 // Struct representing the board stack data from past moves
@@ -87,7 +88,7 @@ bool board_try_init(Board *board, StringView fen, bool is_chess960, Boardstack *
 void board_clone(Board *restrict board, const Board *restrict other);
 
 // Returns the FEN representation of the board
-StringView board_get_fen(const Board *board);
+void board_get_fen(const Board *restrict board, String *restrict fen_str);
 
 // Checks if the given move is pseudo-legal
 bool board_move_is_pseudolegal(const Board *board, Move move);
@@ -131,7 +132,7 @@ bool board_game_contains_cycle(const Board *board, u16 ply);
 bool board_see_above(const Board *board, Move move, Score threshold);
 
 // Converts a move to its UCI string representation
-StringView board_move_to_uci(const Board *board, Move move);
+void board_move_to_uci(const Board *restrict board, Move move, String *restrict move_str);
 
 // Converts a UCI move representation to our internal move type, or NO_MOVE if no legal move matches
 // the given string

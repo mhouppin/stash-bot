@@ -580,7 +580,7 @@ void disp_scorepair_show(
     fwrite_strview(stdout, STATIC_STRVIEW("const Scorepair "));
     fwrite_string(stdout, &disp_scorepair->name);
 
-    for (usize i = disp_scorepair->name.size; i < disp_scorepair->name_alignment; ++i) {
+    for (usize i = string_size(&disp_scorepair->name); i < disp_scorepair->name_alignment; ++i) {
         putchar(' ');
     }
 

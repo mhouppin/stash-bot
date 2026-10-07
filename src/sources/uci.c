@@ -25,7 +25,7 @@
 #include "wdl.h"
 #include "wmalloc.h"
 
-#define UCI_VERSION "v37.26"
+#define UCI_VERSION "v37.27"
 
 static const Command UciCommands[] = {
     {STATIC_STRVIEW("bench"), uci_bench},
@@ -194,8 +194,16 @@ void uci_d(Uci *uci, __attribute__((unused)) StringView args) {
         eval = normalized_score(eval);
     }
 
-    fwrite_strview(stdout, STATIC_STRVIEW("\nFEN: "));
-    fwrite_strview(stdout, board_get_fen(&uci->root_board));
+    {
+        String fen;
+
+        string_init(&fen);
+        board_get_fen(&uci->root_board, &fen);
+        fwrite_strview(stdout, STATIC_STRVIEW("\nFEN: "));
+        fwrite_string(stdout, &fen);
+        string_destroy(&fen);
+    }
+
     fprintf(
         stdout,
         "\nKey: 0x%" PRIx64 "\nEval (from %s's POV): %+.2lf\n\n",
@@ -308,13 +316,12 @@ void uci_position(Uci *uci, StringView args) {
         board_do_move(&uci->root_board, move, stack);
     }
 
-    StringView new_fen = board_get_fen(&uci->root_board);
+    String new_fen;
 
-    info_debug(
-        "info string Final position state: '%.*s'\n",
-        (int)new_fen.size,
-        (const char *)new_fen.data
-    );
+    string_init(&new_fen);
+    board_get_fen(&uci->root_board, &new_fen);
+    info_debug("info string Final position state: '%s'\n", string_data(&new_fen));
+    string_destroy(&new_fen);
 }
 
 void uci_quit(Uci *uci, __attribute__((unused)) StringView args) {

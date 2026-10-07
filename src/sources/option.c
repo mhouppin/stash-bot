@@ -605,9 +605,8 @@ void optlist_set_option(OptionList *optlist, StringView name, StringView value) 
             }
 
             info_debug(
-                "info string Setting option '%.*s' to '%.*s'\n",
-                (int)cur_option->option_name.size,
-                (const char *)cur_option->option_name.data,
+                "info string Setting option '%s' to '%.*s'\n",
+                string_data(&cur_option->option_name),
                 (int)value.size,
                 (const char *)value.data
             );

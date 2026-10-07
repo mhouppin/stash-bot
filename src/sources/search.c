@@ -195,11 +195,18 @@ static void print_pv(
     string_push_back_i64(&info_str, elapsed);
     string_push_back_strview(&info_str, STATIC_STRVIEW(" pv"));
 
+    String move_str;
+
+    string_init(&move_str);
+
     for (usize i = 0; i < root_move->pv.length; ++i) {
+        board_move_to_uci(board, root_move->pv.moves[i], &move_str);
+
         string_push_back(&info_str, ' ');
-        string_push_back_strview(&info_str, board_move_to_uci(board, root_move->pv.moves[i]));
+        string_push_back_strview(&info_str, strview_from_string(&move_str));
     }
 
+    string_destroy(&move_str);
     string_push_back(&info_str, '\n');
     fwrite_string(stdout, &info_str);
     fflush(stdout);
@@ -207,14 +214,17 @@ static void print_pv(
 }
 
 static void print_currmove(const Board *board, i16 depth, Move currmove, i16 movenumber) {
+    String move_str;
     String info_str;
 
+    string_init(&move_str);
+    board_move_to_uci(board, currmove, &move_str);
+
     string_init(&info_str);
-    string_reserve(&info_str, 64);
     string_push_back_strview(&info_str, STATIC_STRVIEW("info depth "));
     string_push_back_i64(&info_str, depth);
     string_push_back_strview(&info_str, STATIC_STRVIEW(" currmove "));
-    string_push_back_strview(&info_str, board_move_to_uci(board, currmove));
+    string_push_back_strview(&info_str, strview_from_string(&move_str));
     string_push_back_strview(&info_str, STATIC_STRVIEW(" currmovenumber "));
     string_push_back_i64(&info_str, movenumber);
     string_push_back(&info_str, '\n');
@@ -222,6 +232,17 @@ static void print_currmove(const Board *board, i16 depth, Move currmove, i16 mov
     fwrite_string(stdout, &info_str);
     fflush(stdout);
     string_destroy(&info_str);
+    string_destroy(&move_str);
+}
+
+static void print_bestmove_nolock(const Board *board, Move bestmove) {
+    String move_str;
+
+    string_init(&move_str);
+    board_move_to_uci(board, bestmove, &move_str);
+    fwrite_strview(stdout, STATIC_STRVIEW("bestmove "));
+    fwrite_string(stdout, &move_str);
+    string_destroy(&move_str);
 }
 
 void searchstack_init(Worker *worker, Searchstack *ss) {
@@ -457,7 +478,8 @@ void main_worker_search(Worker *worker) {
     // them up.
     if (movelist_size(&search_params->searchmoves) == 0) {
         sync_lock_stdout();
-        puts("bestmove 0000");
+        print_bestmove_nolock(board, NULL_MOVE);
+        fputc('\n', stdout);
         fflush(stdout);
         sync_unlock_stdout();
         goto cleanup;
@@ -491,8 +513,7 @@ void main_worker_search(Worker *worker) {
     }
 
     sync_lock_stdout();
-    fwrite_strview(stdout, STATIC_STRVIEW("bestmove "));
-    fwrite_strview(stdout, board_move_to_uci(board, bestmove));
+    print_bestmove_nolock(board, bestmove);
 
     Move ponder_move = NO_MOVE;
 
@@ -521,8 +542,13 @@ void main_worker_search(Worker *worker) {
     }
 
     if (ponder_move != NO_MOVE) {
+        String move_str;
+
+        string_init(&move_str);
+        board_move_to_uci(board, ponder_move, &move_str);
         fwrite_strview(stdout, STATIC_STRVIEW(" ponder "));
-        fwrite_strview(stdout, board_move_to_uci(board, ponder_move));
+        fwrite_string(stdout, &move_str);
+        string_destroy(&move_str);
     }
 
     fputc('\n', stdout);

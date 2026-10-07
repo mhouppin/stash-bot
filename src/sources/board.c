@@ -674,28 +674,8 @@ void board_clone(Board *restrict board, const Board *restrict other) {
     board->stack = boardstack_clone(other->stack);
 }
 
-static void barray_append_uint(u8 *buffer, usize *size, u64 value) {
-    usize n = 0;
-
-    do {
-        buffer[*size + n] = (value % 10) + '0';
-        value /= 10;
-        ++n;
-    } while (value != 0);
-
-    for (usize i = 0; i < n / 2; ++i) {
-        u8 tmp = buffer[*size + i];
-
-        buffer[*size + i] = buffer[*size + n - i - 1];
-        buffer[*size + n - i - 1] = tmp;
-    }
-
-    *size += n;
-}
-
-StringView board_get_fen(const Board *board) {
-    static u8 fen_buffer[128];
-    usize size = 0;
+void board_get_fen(const Board *restrict board, String *restrict fen_str) {
+    string_clear(fen_str);
 
     for (Rank rank = RANK_8; rank_is_valid(rank); --rank) {
         for (File file = FILE_A; file <= FILE_H; ++file) {
@@ -707,64 +687,73 @@ StringView board_get_fen(const Board *board) {
             }
 
             if (empty_count != 0) {
-                fen_buffer[size++] = empty_count + '0';
+                string_push_back(fen_str, empty_count + '0');
             }
 
             if (file <= FILE_H) {
-                fen_buffer[size++] =
-                    PieceIndexes.data[board_piece_on(board, create_square(file, rank))];
+                string_push_back(
+                    fen_str,
+                    PieceIndexes.data[board_piece_on(board, create_square(file, rank))]
+                );
             }
         }
 
         if (rank != RANK_1) {
-            fen_buffer[size++] = '/';
+            string_push_back(fen_str, '/');
         }
     }
 
-    fen_buffer[size++] = ' ';
-    fen_buffer[size++] = (board->side_to_move == WHITE) ? 'w' : 'b';
-    fen_buffer[size++] = ' ';
+    string_push_back(fen_str, ' ');
+    string_push_back(fen_str, (board->side_to_move == WHITE) ? 'w' : 'b');
+    string_push_back(fen_str, ' ');
 
     if (board->stack->castlings & WHITE_OO_MASK) {
-        fen_buffer[size++] =
-            board->chess960 ? 'A' + square_file(board->castling_rook_square[WHITE_OO]) : 'K';
+        string_push_back(
+            fen_str,
+            board->chess960 ? 'A' + square_file(board->castling_rook_square[WHITE_OO]) : 'K'
+        );
     }
 
     if (board->stack->castlings & WHITE_OOO_MASK) {
-        fen_buffer[size++] =
-            board->chess960 ? 'A' + square_file(board->castling_rook_square[WHITE_OOO]) : 'Q';
+        string_push_back(
+            fen_str,
+            board->chess960 ? 'A' + square_file(board->castling_rook_square[WHITE_OOO]) : 'Q'
+        );
     }
 
     if (board->stack->castlings & BLACK_OO_MASK) {
-        fen_buffer[size++] =
-            board->chess960 ? 'a' + square_file(board->castling_rook_square[BLACK_OO]) : 'k';
+        string_push_back(
+            fen_str,
+            board->chess960 ? 'a' + square_file(board->castling_rook_square[BLACK_OO]) : 'k'
+        );
     }
 
     if (board->stack->castlings & BLACK_OOO_MASK) {
-        fen_buffer[size++] =
-            board->chess960 ? 'a' + square_file(board->castling_rook_square[BLACK_OOO]) : 'q';
+        string_push_back(
+            fen_str,
+            board->chess960 ? 'a' + square_file(board->castling_rook_square[BLACK_OOO]) : 'q'
+        );
     }
 
     if (!board->stack->castlings) {
-        fen_buffer[size++] = '-';
+        string_push_back(fen_str, '-');
     }
 
-    fen_buffer[size++] = ' ';
+    string_push_back(fen_str, ' ');
 
     if (board->stack->ep_square == SQ_NONE) {
-        fen_buffer[size++] = '-';
+        string_push_back(fen_str, '-');
     }
 
     else {
-        fen_buffer[size++] = 'a' + square_file(board->stack->ep_square);
-        fen_buffer[size++] = '1' + square_rank(board->stack->ep_square);
+        string_push_back(fen_str, 'a' + square_file(board->stack->ep_square));
+        string_push_back(fen_str, '1' + square_rank(board->stack->ep_square));
     }
 
-    fen_buffer[size++] = ' ';
-    barray_append_uint(fen_buffer, &size, board->stack->rule50);
-    fen_buffer[size++] = ' ';
-    barray_append_uint(fen_buffer, &size, 1 + (board->ply - (board->side_to_move == BLACK)) / 2);
-    return strview_from_raw_data(fen_buffer, size);
+    string_push_back(fen_str, ' ');
+    string_push_back_u64(fen_str, board->stack->rule50);
+    string_push_back(fen_str, ' ');
+    string_push_back_u64(fen_str, 1 + (board->ply - (board->side_to_move == BLACK)) / 2);
 }
 
 bool board_move_is_pseudolegal(const Board *board, Move move) {
@@ -1484,17 +1473,17 @@ bool board_see_above(const Board *board, Move move, Score threshold) {
     return result;
 }
 
-StringView board_move_to_uci(const Board *board, Move move) {
-    static u8 move_buffer[5];
+void board_move_to_uci(const Board *restrict board, Move move, String *restrict move_str) {
+    string_clear(move_str);
 
     if (move == NO_MOVE) {
-        memcpy(move_buffer, "none", 4);
-        return strview_from_raw_data(move_buffer, 4);
+        string_push_back_strview(move_str, STATIC_STRVIEW("none"));
+        return;
     }
 
     if (move == NULL_MOVE) {
-        memcpy(move_buffer, "0000", 4);
-        return strview_from_raw_data(move_buffer, 4);
+        string_push_back_strview(move_str, STATIC_STRVIEW("0000"));
+        return;
     }
 
     const Square from = move_from(move);
@@ -1504,17 +1493,14 @@ StringView board_move_to_uci(const Board *board, Move move) {
         to = create_square(to > from ? FILE_G : FILE_C, square_rank(from));
     }
 
-    move_buffer[0] = square_file(from) + 'a';
-    move_buffer[1] = square_rank(from) + '1';
-    move_buffer[2] = square_file(to) + 'a';
-    move_buffer[3] = square_rank(to) + '1';
+    string_push_back(move_str, square_file(from) + 'a');
+    string_push_back(move_str, square_rank(from) + '1');
+    string_push_back(move_str, square_file(to) + 'a');
+    string_push_back(move_str, square_rank(to) + '1');
 
     if (move_type(move) == PROMOTION) {
-        move_buffer[4] = " pnbrqk"[move_promotion_type(move)];
-        return strview_from_raw_data(move_buffer, 5);
+        string_push_back(move_str, " pnbrqk"[move_promotion_type(move)]);
     }
-
-    return strview_from_raw_data(move_buffer, 4);
 }
 
 static bool is_valid_file_ascii(u8 b) {
