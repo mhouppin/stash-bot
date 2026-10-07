@@ -529,7 +529,7 @@ void main_worker_search(Worker *worker) {
         board_undo_move(board, bestmove);
 
         if (found) {
-            ponder_move = tt_entry->bestmove;
+            ponder_move = tt_entry_bestmove(tt_entry);
 
             // Careful with data races !
             if (!board_move_is_pseudolegal(board, ponder_move)
@@ -635,12 +635,12 @@ void use_emergency_scoring(Worker *worker, Searchstack *ss) {
     TranspositionEntry *tt_entry = tt_probe(&worker->pool->tt, board->stack->board_key, &found);
 
     if (found) {
-        score = score_from_tt(tt_entry->score, 0);
-        tt_move = tt_entry->bestmove;
+        score = score_from_tt(tt_entry_score(tt_entry), 0);
+        tt_move = tt_entry_bestmove(tt_entry);
 
         // Guard for scoreless entries from eval backups.
         if (i16_abs(score) >= INF_SCORE) {
-            score = tt_entry->eval;
+            score = tt_entry_eval(tt_entry);
         }
     }
 
@@ -829,9 +829,9 @@ Score search(
     tt_entry = tt_probe(&worker->pool->tt, key, &tt_found);
 
     if (tt_found) {
-        tt_score = score_from_tt(tt_entry->score, ss->plies);
-        tt_move = tt_entry->bestmove;
-        tt_depth = tt_entry->depth;
+        tt_score = score_from_tt(tt_entry_score(tt_entry), ss->plies);
+        tt_move = tt_entry_bestmove(tt_entry);
+        tt_depth = tt_entry_depth(tt_entry);
         tt_bound = tt_entry_bound(tt_entry);
 
         // Check if we can directly return a score for non-PV nodes.
@@ -862,7 +862,7 @@ Score search(
     }
     // Use the TT stored information for getting an eval.
     else if (tt_found) {
-        raw_eval = tt_entry->eval;
+        raw_eval = tt_entry_eval(tt_entry);
         eval = ss->static_eval = raw_eval + get_corrhist_total_score(board, worker);
 
         // Try to use the TT score as a better evaluation of the position.
@@ -1386,9 +1386,9 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
 
     // Probe the TT for information on the current position.
     if (tt_found) {
-        tt_score = score_from_tt(tt_entry->score, ss->plies);
+        tt_score = score_from_tt(tt_entry_score(tt_entry), ss->plies);
         tt_bound = tt_entry_bound(tt_entry);
-        tt_move = tt_entry->bestmove;
+        tt_move = tt_entry_bestmove(tt_entry);
 
         // Check if we can directly return a score for non-PV nodes.
         if (!pv_node
@@ -1410,7 +1410,7 @@ Score qsearch(bool pv_node, Board *board, Score alpha, Score beta, Searchstack *
     } else {
         // Use the TT stored information for getting an eval.
         if (tt_found) {
-            raw_eval = tt_entry->eval;
+            raw_eval = tt_entry_eval(tt_entry);
             eval = best_score = raw_eval + get_corrhist_total_score(board, worker);
 
             // Try to use the TT score as a better evaluation of the position.

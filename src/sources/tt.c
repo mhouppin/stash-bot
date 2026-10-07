@@ -43,18 +43,17 @@ void tt_destroy(TranspositionTable *tt) {
 
 void *tt_reset_thread_entry_point(void *data) {
     ResetThreadData *reset_thread_data = (ResetThreadData *)data;
-    const TranspositionEntry empty_entry = {
-        .key = 0,
-        .score = NO_SCORE,
-        .eval = NO_SCORE,
-        .depth = 0,
-        .genbound = 0 | NO_BOUND,
-        .bestmove = NO_MOVE,
-    };
 
     for (usize i = reset_thread_data->cluster_begin; i < reset_thread_data->cluster_end; ++i) {
         for (usize j = 0; j < ENTRY_CLUSTER_SIZE; ++j) {
-            reset_thread_data->tt->table[i].cluster_entry[j] = empty_entry;
+            TranspositionEntry *entry = &reset_thread_data->tt->table[i].cluster_entry[j];
+
+            atomic_init(&entry->key32, 0);
+            atomic_init(&entry->score, NO_SCORE);
+            atomic_init(&entry->eval, NO_SCORE);
+            atomic_init(&entry->depth, 0);
+            atomic_init(&entry->genbound, 0 | NO_BOUND);
+            atomic_init(&entry->bestmove, NO_MOVE);
         }
     }
 
@@ -104,10 +103,13 @@ TranspositionEntry *tt_probe(TranspositionTable *tt, Key key, bool *found) {
     for (usize i = 0; i < ENTRY_CLUSTER_SIZE; ++i) {
         TranspositionEntry *cur_entry = &cluster_start[i];
 
-        if (!cur_entry->key || cur_entry->key == key) {
+        u32 key32 = tt_entry_key32(cur_entry);
+
+        if (!key32 || key32 == (u32)key) {
             // Refresh the generation counter to prevent it from being cleared.
-            cur_entry->genbound = (u8)(tt->generation | (cur_entry->genbound & ~GENERATION_MASK));
-            *found = (cur_entry->key == key);
+            atomic_fetch_and_explicit(&cur_entry->genbound, ~GENERATION_MASK, memory_order_relaxed);
+            atomic_fetch_or_explicit(&cur_entry->genbound, tt->generation, memory_order_relaxed);
+            *found = (key32 == (u32)key);
 
             return cur_entry;
         }
@@ -139,17 +141,19 @@ void tt_save(
     Bound bound,
     Move bestmove
 ) {
-    if (bestmove != NO_MOVE || key != tt_entry->key) {
-        tt_entry->bestmove = bestmove;
+    const bool different_keys = tt_entry_key32(tt_entry) != (u32)key;
+
+    if (bestmove != NO_MOVE || different_keys) {
+        atomic_store_explicit(&tt_entry->bestmove, bestmove, memory_order_relaxed);
     }
 
     // Do not erase entries with high depth for the same position.
-    if (bound == EXACT_BOUND || key != tt_entry->key || depth + 4 >= (i16)tt_entry->depth) {
-        tt_entry->key = key;
-        tt_entry->score = score;
-        tt_entry->eval = eval;
-        tt_entry->depth = depth;
-        tt_entry->genbound = tt->generation | bound;
+    if (bound == EXACT_BOUND || different_keys || depth + 4 >= (i16)tt_entry_depth(tt_entry)) {
+        atomic_store_explicit(&tt_entry->key32, key, memory_order_relaxed);
+        atomic_store_explicit(&tt_entry->score, score, memory_order_relaxed);
+        atomic_store_explicit(&tt_entry->eval, eval, memory_order_relaxed);
+        atomic_store_explicit(&tt_entry->depth, depth, memory_order_relaxed);
+        atomic_store_explicit(&tt_entry->genbound, tt->generation | bound, memory_order_relaxed);
     }
 }
 
@@ -158,7 +162,8 @@ u16 tt_hashfull(TranspositionTable *tt) {
 
     for (usize i = 0; i < 1000; ++i) {
         for (usize j = 0; j < ENTRY_CLUSTER_SIZE; ++j) {
-            count += (tt->table[i].cluster_entry[j].genbound & GENERATION_MASK) == tt->generation;
+            count += (tt_entry_genbound(&tt->table[i].cluster_entry[j]) & GENERATION_MASK)
+                == tt->generation;
         }
     }
 

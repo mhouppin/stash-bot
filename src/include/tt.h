@@ -19,11 +19,13 @@
 #ifndef TT_H
 #define TT_H
 
+#include <stdatomic.h>
+
 #include "chess_types.h"
 #include "hashkey.h"
 
 enum {
-    ENTRY_CLUSTER_SIZE = 4,
+    ENTRY_CLUSTER_SIZE = 5,
 
     GENERATION_SHIFT = 4,
     GENERATION_MASK = 256 - GENERATION_SHIFT,
@@ -31,25 +33,51 @@ enum {
 };
 
 typedef struct {
-    Key key;
-    Score score;
-    Score eval;
-    u8 depth;
-    u8 genbound;
-    Move bestmove;
+    _Atomic u32 key32;
+    _Atomic Score score;
+    _Atomic Score eval;
+    _Atomic u8 depth;
+    _Atomic u8 genbound;
+    _Atomic Move bestmove;
 } TranspositionEntry;
 
+INLINED u32 tt_entry_key32(const TranspositionEntry *tt_entry) {
+    return atomic_load_explicit(&tt_entry->key32, memory_order_relaxed);
+}
+
+INLINED Score tt_entry_score(const TranspositionEntry *tt_entry) {
+    return atomic_load_explicit(&tt_entry->score, memory_order_relaxed);
+}
+
+INLINED Score tt_entry_eval(const TranspositionEntry *tt_entry) {
+    return atomic_load_explicit(&tt_entry->eval, memory_order_relaxed);
+}
+
+INLINED u8 tt_entry_depth(const TranspositionEntry *tt_entry) {
+    return atomic_load_explicit(&tt_entry->depth, memory_order_relaxed);
+}
+
+INLINED u8 tt_entry_genbound(const TranspositionEntry *tt_entry) {
+    return atomic_load_explicit(&tt_entry->genbound, memory_order_relaxed);
+}
+
+INLINED Move tt_entry_bestmove(const TranspositionEntry *tt_entry) {
+    return atomic_load_explicit(&tt_entry->bestmove, memory_order_relaxed);
+}
+
 INLINED i16 tt_entry_replace_score(const TranspositionEntry *tt_entry, u8 generation) {
-    return (i16)tt_entry->depth
-        - (((i16)GENERATION_CYCLE + (i16)generation - (i16)tt_entry->genbound) & GENERATION_MASK);
+    return (i16)tt_entry_depth(tt_entry)
+        - (((i16)GENERATION_CYCLE + (i16)generation - (i16)tt_entry_genbound(tt_entry))
+           & GENERATION_MASK);
 }
 
 INLINED Bound tt_entry_bound(const TranspositionEntry *tt_entry) {
-    return (Bound)(tt_entry->genbound & ~GENERATION_MASK);
+    return (Bound)(tt_entry_genbound(tt_entry) & ~GENERATION_MASK);
 }
 
 typedef struct {
     TranspositionEntry cluster_entry[ENTRY_CLUSTER_SIZE];
+    u8 padding[4];
 } TranspositionCluster;
 
 // Required for correct prefetching and structure alignment
