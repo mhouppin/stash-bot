@@ -1113,7 +1113,6 @@ main_loop:
 
         Score score = -INF_SCORE;
         i16 extension = 0;
-        const i16 new_depth = depth - 1;
         const bool gives_check = board_move_gives_check(board, currmove);
         const i32 hist_score = is_quiet ? get_move_history_score(board, worker, ss, currmove) : 0;
         const Piece moved_piece = board_moved_piece(board, currmove);
@@ -1174,6 +1173,8 @@ main_loop:
             }
         }
 
+        const i16 new_depth = depth - 1 + extension;
+
         // Save the piece history for the current move so that sub-nodes can use it for ordering
         // moves.
         ss->current_move = currmove;
@@ -1189,7 +1190,7 @@ main_loop:
         // consider them less likely to produce cutoffs in standard searches.
         if (depth >= 3 && move_count > 1 + 3 * pv_node) {
             // Set the base depth reduction value based on depth and movecount.
-            i16 r = lmr_base_value(depth, move_count, improving, is_quiet);
+            i16 r = lmr_base_value(new_depth + 1, move_count, improving, is_quiet);
 
             // Increase the reduction for non-PV nodes.
             r += !pv_node;
@@ -1220,7 +1221,7 @@ main_loop:
                 score = -search(
                     false,
                     board,
-                    new_depth + extension,
+                    new_depth,
                     -alpha - 1,
                     -alpha,
                     ss + 1,
@@ -1238,14 +1239,14 @@ main_loop:
         // If LMR is not possible, do a search with no reductions.
         else if (!pv_node || move_count != 1) {
             score =
-                -search(false, board, new_depth + extension, -alpha - 1, -alpha, ss + 1, !cut_node);
+                -search(false, board, new_depth, -alpha - 1, -alpha, ss + 1, !cut_node);
         }
 
         // In PV nodes, perform an additional full-window search for the first move, or when all our
         // previous searches returned fail-highs.
         if (pv_node && (move_count == 1 || score > alpha)) {
             pv_line_init(&ss->pv);
-            score = -search(true, board, new_depth + extension, -beta, -alpha, ss + 1, false);
+            score = -search(true, board, new_depth, -beta, -alpha, ss + 1, false);
         }
 
         board_undo_move(board, currmove);
