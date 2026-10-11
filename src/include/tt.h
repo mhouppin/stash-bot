@@ -25,7 +25,7 @@
 enum {
     ENTRY_CLUSTER_SIZE = 4,
 
-    GENERATION_SHIFT = 4,
+    GENERATION_SHIFT = 8,
     GENERATION_MASK = 256 - GENERATION_SHIFT,
     GENERATION_CYCLE = 256 + GENERATION_SHIFT - 1,
 };
@@ -45,7 +45,11 @@ INLINED i16 tt_entry_replace_score(const TranspositionEntry *tt_entry, u8 genera
 }
 
 INLINED Bound tt_entry_bound(const TranspositionEntry *tt_entry) {
-    return (Bound)(tt_entry->genbound & ~GENERATION_MASK);
+    return (Bound)(tt_entry->genbound & 0x3u);
+}
+
+INLINED bool tt_entry_pv(const TranspositionEntry *tt_entry) {
+    return (bool)(tt_entry->genbound & 0x4u);
 }
 
 typedef struct {
@@ -103,6 +107,7 @@ void tt_save(
     Score score,
     Score eval,
     i16 depth,
+    bool pv,
     Bound bound,
     Move bestmove
 );
