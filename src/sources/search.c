@@ -1092,8 +1092,8 @@ main_loop:
 
             // Continuation History Pruning. For low-depth nodes, prune quiet moves if they seem to
             // be bad continuations to the previous moves.
-            if (depth <= 4
-                && get_conthist_move_score(board, ss, currmove) < 783 - 4872 * (depth - 1)) {
+            if (depth <= 5
+                && get_conthist_move_score(board, ss, currmove) < 783 - 1218 * (depth - 1) * (depth - 1)) {
                 continue;
             }
 
