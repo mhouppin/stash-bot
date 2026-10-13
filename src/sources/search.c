@@ -1118,8 +1118,7 @@ main_loop:
         const i32 hist_score = is_quiet ? get_move_history_score(board, worker, ss, currmove) : 0;
         const Piece moved_piece = board_moved_piece(board, currmove);
 
-        if (!root_node && ss->plies < 2 * (i16)worker->root_depth
-            && 2 * ss->double_extensions < (i16)worker->root_depth) {
+        if (!root_node && ss->plies < 2 * depth) {
             // Singular Extensions. For high-depth nodes, if the TT entry suggests that the TT move
             // is really good, we check if there are other moves which maintain the score close to
             // the TT score. If that's not the case, we consider the TT move to be singular, and we
