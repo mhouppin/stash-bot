@@ -1090,10 +1090,18 @@ main_loop:
                 skip_quiets = true;
             }
 
+            // Noisy Futility Pruning. Same as above, except that the threshold is higher, and
+            // that we prune bad captures this time.
+            if (depth <= 5 && !in_check && mp.stage == PICK_BAD_NOISY
+                && eval + 200 + 20 * depth * depth <= alpha) {
+                break;
+            }
+
             // Continuation History Pruning. For low-depth nodes, prune quiet moves if they seem to
             // be bad continuations to the previous moves.
             if (depth <= 5
-                && get_conthist_move_score(board, ss, currmove) < 783 - 1218 * (depth - 1) * (depth - 1)) {
+                && get_conthist_move_score(board, ss, currmove)
+                    < 783 - 1218 * (depth - 1) * (depth - 1)) {
                 continue;
             }
 
