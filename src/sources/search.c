@@ -63,7 +63,7 @@ static i32 get_conthist_move_score(const Board *board, const Searchstack *ss, Mo
     return history;
 }
 
-static i32 get_move_history_score(
+static i32 get_quiet_history_score(
     const Board *board,
     const Worker *worker,
     const Searchstack *ss,
@@ -73,6 +73,19 @@ static i32 get_move_history_score(
 
     return butterfly_hist_score(worker->butterfly_hist, moved_piece, move)
         + get_conthist_move_score(board, ss, move);
+}
+
+static i32 get_noisy_history_score(
+    const Board *board,
+    const Worker *worker,
+    Move move
+) {
+    const Piece moved_piece = board_piece_on(board, move_from(move));
+    const Square to = move_to(move);
+    const Piecetype captured = move_type(move) == PROMOTION ? move_promotion_type(move)
+        : move_type(move) == EN_PASSANT ? PAWN : piece_type(board_piece_on(board, to));
+
+    return capture_hist_score(worker->capture_hist, moved_piece, to, captured);
 }
 
 static i16 get_corrhist_total_score(const Board *board, const Worker *worker) {
@@ -1115,7 +1128,9 @@ main_loop:
         i16 extension = 0;
         const i16 new_depth = depth - 1;
         const bool gives_check = board_move_gives_check(board, currmove);
-        const i32 hist_score = is_quiet ? get_move_history_score(board, worker, ss, currmove) : 0;
+        const i32 hist_score = is_quiet
+            ? get_quiet_history_score(board, worker, ss, currmove)
+            : get_noisy_history_score(board, worker, currmove);
         const Piece moved_piece = board_moved_piece(board, currmove);
 
         if (!root_node && ss->plies < 2 * (i16)worker->root_depth
@@ -1207,7 +1222,7 @@ main_loop:
             r -= is_quiet && !board_see_above(board, move_reverse(currmove), 0);
 
             // Increase/decrease the reduction based on the move's history.
-            r -= (i16)i32_clamp(hist_score / 11601, -3, 3);
+            r -= is_quiet ? (i16)i32_clamp(hist_score / 11601, -3, 3) : (i16)i32_min(hist_score / 5000, 0);
 
             // Clamp the reduction so that we don't extend the move or drop
             // immediately into qsearch.
