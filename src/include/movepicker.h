@@ -50,7 +50,7 @@ typedef struct {
     Move counter;
     const Board *board;
     const Worker *worker;
-    PieceHistory *piece_history[2];
+    PieceHistory *piece_history[3];
     Move move_list[MAX_MOVES];
     i32 score_list[MAX_MOVES];
 } Movepicker;
