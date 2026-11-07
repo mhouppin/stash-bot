@@ -53,6 +53,7 @@ void movepicker_init(
 
     mp->piece_history[0] = (ss - 1)->piece_history;
     mp->piece_history[1] = (ss - 2)->piece_history;
+    mp->piece_history[2] = (ss - 4)->piece_history;
     mp->board = board;
     mp->worker = worker;
 }
@@ -92,7 +93,8 @@ static void movepicker_score_quiets(Movepicker *mp, Move *movelist, i32 *score_l
 
         score_list[i] = butterfly_hist_score(mp->worker->butterfly_hist, moved_piece, move) / 2
             + piece_hist_score(mp->piece_history[0], moved_piece, to)
-            + piece_hist_score(mp->piece_history[1], moved_piece, to);
+            + piece_hist_score(mp->piece_history[1], moved_piece, to)
+            + piece_hist_score(mp->piece_history[2], moved_piece, to) / 2;
     }
 }
 
