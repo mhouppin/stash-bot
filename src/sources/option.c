@@ -451,14 +451,14 @@ void option_default_dtor(__attribute__((unused)) OptionParams *params) {
 void option_string_dtor(OptionParams *params) {
     OptStringParams *string_params = &params->string;
 
-    // Note: we cannot destroy current_value here, as it don't have its exclusive ownership.
+    // Note: we cannot destroy current_value here, as we don not have its exclusive ownership.
     string_destroy(&string_params->default_value);
 }
 
 void option_combo_dtor(OptionParams *params) {
     OptComboParams *combo_params = &params->combo;
 
-    // Note: we cannot destroy current_value here, as it don't have its exclusive ownership.
+    // Note: we cannot destroy current_value here, as we do not have its exclusive ownership.
     string_destroy(&combo_params->default_value);
 
     for (usize i = 0; i < combo_params->allowed_count; ++i) {
@@ -469,6 +469,7 @@ void option_combo_dtor(OptionParams *params) {
 }
 
 // clang-format off
+// Global vtable-like list for all option types
 const OptionVtable OptionTypeVtables[OPTION_TYPE_COUNT] = {
     {
         option_button_show,
@@ -536,6 +537,7 @@ static void option_init_common(
     option->callback_data = callback_data;
 }
 
+// Helper function for reallocating the option list vector if needed
 static void optlist_maybe_extend_capacity(OptionList *optlist) {
     if (optlist->size < optlist->capacity) {
         return;

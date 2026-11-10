@@ -41,6 +41,7 @@ u8 SquareDistance[SQUARE_NB][SQUARE_NB];
 Bitboard HiddenRookAttackTable[0x19000];
 Bitboard HiddenBishopAttackTable[0x1480];
 
+// Helper function for indexing fancy magic bitboards
 u32 magic_index(const Magic *magic, Bitboard occupancy) {
 #ifdef USE_PEXT
     return _pext_u64(occupancy, magic->mask);
@@ -156,7 +157,7 @@ void magic_init(Bitboard *attack_table, Magic *magic_table, const Direction dire
     }
 }
 
-// Helper for Knight and King attack tables.
+// Helper for Knight and King attack tables
 void initialize_raw_attacks(Piecetype piecetype, const Direction directions[8]) {
     for (Square square = SQ_A1; square <= SQ_H8; ++square)
         for (u8 i = 0; i < 8; ++i) {
@@ -167,7 +168,7 @@ void initialize_raw_attacks(Piecetype piecetype, const Direction directions[8]) 
         }
 }
 
-// Helper for Bishop and Rook raw attack tables.
+// Helper for Bishop and Rook raw attack tables
 void initialize_raw_slider_attacks(Piecetype piecetype) {
     for (Square square = SQ_A1; square <= SQ_H8; ++square) {
         RawAttacks[piecetype][square] = attacks_bb(piecetype, square, 0);
@@ -188,12 +189,15 @@ void bitboard_init(void) {
     static const Direction bishop_directions[4] = {-9, -7, 7, 9};
     static const Direction rook_directions[4] = {-8, -1, 1, 8};
 
-    for (Square square1 = SQ_A1; square1 <= SQ_H8; ++square1)
+    for (Square square1 = SQ_A1; square1 <= SQ_H8; ++square1) {
         for (Square square2 = SQ_A1; square2 <= SQ_H8; ++square2) {
             u8 file_dist = square_file_distance(square1, square2);
             u8 rank_dist = square_rank_distance(square1, square2);
+
+            // Square distance is just the Chebyshev distance between the squares.
             SquareDistance[square1][square2] = u8_max(file_dist, rank_dist);
         }
+    }
 
     for (Square square = SQ_A1; square <= SQ_H8; ++square) {
         Bitboard bb = square_bb(square);
@@ -210,6 +214,7 @@ void bitboard_init(void) {
     initialize_raw_slider_attacks(BISHOP);
     initialize_raw_slider_attacks(ROOK);
 
-    for (Square square = SQ_A1; square <= SQ_H8; ++square)
+    for (Square square = SQ_A1; square <= SQ_H8; ++square) {
         RawAttacks[QUEEN][square] = RawAttacks[BISHOP][square] | RawAttacks[ROOK][square];
+    }
 }

@@ -56,6 +56,7 @@ INLINED u16 cyclic_index_hi(Key key) {
     return (key >> 13) & 0x1FFFu;
 }
 
+// Helper for storing the Zobrist hash of a reversible move in the cyclic table
 static void cyclic_init_move(Piece piece, Square from, Square to) {
     Move move = create_move(from, to);
     Key key = ZobristPsq[piece][from] ^ ZobristPsq[piece][to] ^ ZobristSideToMove;
@@ -95,6 +96,7 @@ void cyclic_init(void) {
     }
 }
 
+// Helper for initializing check-relative information (like pinned pieces and checking squares)
 static void boardstack_set_check_info(Boardstack *restrict stack, const Board *restrict board) {
     const Square their_king_square = board_king_square(board, color_flip(board->side_to_move));
 
@@ -147,9 +149,11 @@ void boardstack_init(Boardstack *restrict stack, const Board *restrict board) {
         } else {
             stack->material[piece_color(piece)] += PieceScores[MIDGAME][piece];
             stack->nonpawn_key[piece_color(piece)] ^= ZobristPsq[piece][square];
+
             if (piece_type(piece) == KNIGHT || piece_type(piece) == BISHOP) {
                 stack->minor_key ^= ZobristPsq[piece][square];
             }
+
             if (piece_type(piece) == ROOK || piece_type(piece) == QUEEN) {
                 stack->major_key ^= ZobristPsq[piece][square];
             }
@@ -258,6 +262,7 @@ static void board_remove_piece(Board *board, Square square) {
     board->psq_scorepair -= psq_table(piece, square);
 }
 
+// Helper function for getting all pieces attaching a given square, independently of their color
 static Bitboard board_attackers_list(const Board *board, Square square, Bitboard occupancy) {
     return (
         (pawn_attacks_bb(square, BLACK) & board_piece_bb(board, WHITE, PAWN))
@@ -306,6 +311,8 @@ static Bitboard board_slider_blockers(
     return blockers;
 }
 
+// Helper function for checking material distribution validity. We presently do not guarantee
+// that the engine will work with impossible material sets, so we explicitly guard against these.
 static bool board_has_invalid_material(const Board *board, Color color) {
     const u8 knights = board_piece_count(board, create_piece(color, KNIGHT));
     const u8 bishops = board_piece_count(board, create_piece(color, BISHOP));
@@ -325,6 +332,7 @@ static bool board_has_invalid_material(const Board *board, Color color) {
         || (rooks + pawns - prooks > 10) || (queens + pawns - pqueens > 9);
 }
 
+// Helper function for parsing the piece section of a FEN
 static bool board_parse_fen_pieces(Board *board, StringView piece_field) {
     usize piece_index;
     File file = FILE_A;
@@ -393,7 +401,7 @@ static bool board_parse_fen_pieces(Board *board, StringView piece_field) {
     }
 
     if (board_piecetype_bb(board, PAWN) & (RANK_1_BB | RANK_8_BB)) {
-        info_debug("info string Invalid FEN: pawns on first/lask ranks\n");
+        info_debug("info string Invalid FEN: pawns on first/last ranks\n");
         return false;
     }
 
@@ -405,6 +413,7 @@ static bool board_parse_fen_pieces(Board *board, StringView piece_field) {
     return true;
 }
 
+// Helper function for parsing the side to move in a FEN
 static bool board_parse_stm(Board *board, StringView stm_field) {
     if (stm_field.size > 1) {
         info_debug("info string Invalid FEN: the STM field cannot be more than one character\n");
@@ -427,16 +436,23 @@ static bool board_parse_stm(Board *board, StringView stm_field) {
     return true;
 }
 
+// Helper function for setting a castling right
 static bool board_set_castling(Board *board, Color color, Square rook_square) {
     const Square king_square = board_king_square(board, color);
     const CastlingRight castling = relative_clright(color, king_square > rook_square);
     const CastlingMask castling_mask = clright_to_clmask(castling);
+
+    if (board_piece_on(board, rook_square) != create_piece(color, ROOK)) {
+        info_debug("info string Invalid FEN: castling rights with no Rook on the target square\n");
+        return false;
+    }
 
     if (square_rank_relative(king_square, color) != RANK_1) {
         info_debug("info string Invalid FEN: castling rights with the King not on its back rank\n");
         return false;
     }
 
+    // We auto-detect Chess960 situations even when the UCI_Chess960 option is not set.
     if (square_file(king_square) != FILE_E
         || (square_file(rook_square) != FILE_A && square_file(rook_square) != FILE_H)) {
         board->chess960 = true;
@@ -450,6 +466,7 @@ static bool board_set_castling(Board *board, Color color, Square rook_square) {
     const Square king_after = square_relative((castling_mask & OO_MASK ? SQ_G1 : SQ_C1), color);
     const Square rook_after = square_relative((castling_mask & OO_MASK ? SQ_F1 : SQ_D1), color);
 
+    // Compute the mask of squares that need to be free to not block a castling move.
     board->castling_path[castling] =
         (between_squares_bb(rook_square, rook_after) | between_squares_bb(king_square, king_after)
          | square_bb(rook_after) | square_bb(king_after))
@@ -458,6 +475,7 @@ static bool board_set_castling(Board *board, Color color, Square rook_square) {
     return true;
 }
 
+// Helper function for parsing the castling rights in a FEN
 static bool board_parse_castling(Board *board, StringView castling_field) {
     for (usize i = 0; i < castling_field.size; ++i) {
         if (castling_field.data[i] == '-') {
@@ -478,6 +496,8 @@ static bool board_parse_castling(Board *board, StringView castling_field) {
         const u8 castling_char = toupper(castling_field.data[i]);
         Square rook_square;
 
+        // For the X-Shredder castling representation, we need to look for the outermost Rook
+        // on the castling side.
         if (castling_char == 'K') {
             for (rook_square = square_relative(SQ_H1, side); square_file(rook_square) != FILE_A;
                  --rook_square) {
@@ -511,6 +531,7 @@ static bool board_parse_castling(Board *board, StringView castling_field) {
     return true;
 }
 
+// Helper for parsing the en passant square in a FEN
 static bool board_parse_en_passant(Board *board, StringView ep_field) {
     board->stack->ep_square = SQ_NONE;
 
@@ -556,6 +577,7 @@ static bool board_parse_en_passant(Board *board, StringView ep_field) {
         return false;
     }
 
+    // Only set the EP square if we actually have a Pawn that could pseudo-legally capture it.
     if (pawn_attacks_bb(ep_square, them) & board_piece_bb(board, us, PAWN)) {
         board->stack->ep_square = ep_square;
     }
@@ -563,6 +585,7 @@ static bool board_parse_en_passant(Board *board, StringView ep_field) {
     return true;
 }
 
+// Helper function for parsing the fifty-move rule counter in a FEN
 static bool board_parse_rule50(Board *board, StringView rule50_field) {
     u64 value;
 
@@ -591,6 +614,7 @@ static bool board_parse_rule50(Board *board, StringView rule50_field) {
     return true;
 }
 
+// Helper function for parsing the fullmove number in a FEN
 static bool board_parse_movenumber(Board *board, StringView movenumber_field) {
     u64 value;
 
@@ -640,6 +664,8 @@ bool board_try_init(Board *board, StringView fen, bool is_chess960, Boardstack *
         return false;
     }
 
+    // While we do auto-detect Chess960 situations, still warn the user about the UCI option not
+    // being configured properly.
     if (!is_chess960 && board->chess960) {
         info_debug("info string Warning: FRC position emitted with the UCI_Chess960 flag unset\n");
     }
@@ -1128,9 +1154,11 @@ void board_do_move_gc(
         new_stack->king_pawn_key ^= ZobristPsq[piece][from] ^ ZobristPsq[piece][to];
     } else {
         new_stack->nonpawn_key[us] ^= ZobristPsq[piece][from] ^ ZobristPsq[piece][to];
+
         if (piece_type(piece) == KNIGHT || piece_type(piece) == BISHOP) {
             new_stack->minor_key ^= ZobristPsq[piece][from] ^ ZobristPsq[piece][to];
         }
+
         if (piece_type(piece) == ROOK || piece_type(piece) == QUEEN) {
             new_stack->major_key ^= ZobristPsq[piece][from] ^ ZobristPsq[piece][to];
         }

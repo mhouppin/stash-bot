@@ -271,6 +271,7 @@ void string_push_back_u64(String *string, u64 value) {
     u8 local_buf[20];
     usize i = 20;
 
+    // We convert the integer into a local buffer before pushing it as a range of bytes.
     do {
         --i;
         local_buf[i] = (value % 10) + '0';

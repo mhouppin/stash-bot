@@ -56,6 +56,7 @@ void search_params_init(
     search_params->searchmoves.size = 0;
 }
 
+// Helper for setting duration-typed search limits
 static bool
     try_set_duration(StringView token, StringView *command_args, Duration *field, StringView name) {
     if (!strview_equals_strview(token, name)) {
@@ -82,6 +83,7 @@ static bool
     return true;
 }
 
+// Helper for setting integer-typed search limits
 static bool try_set_u16(
     StringView token,
     StringView *command_args,
@@ -125,6 +127,7 @@ static bool try_set_u16(
     return true;
 }
 
+// Helper for setting large-intger-typed search limits
 static bool try_set_u64(
     StringView token,
     StringView *command_args,
@@ -334,7 +337,7 @@ void search_params_set_from_uci(
             continue;
         }
 
-        // "searchmoves" is always the last search parameter of the "go" command.
+        // "searchmoves" should always be the last search parameter of the "go" command.
         if (try_set_searchmoves(token, &command_args, &search_params->searchmoves, root_board)) {
             break;
         }
