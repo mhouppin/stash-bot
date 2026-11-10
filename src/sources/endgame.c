@@ -524,6 +524,7 @@ Scalefactor scale_kbpsk(const Board *board, Color strong_side) {
 
     const Bitboard strong_pawns = board_piece_bb(board, strong_side, PAWN);
 
+    // We cannot win the endgame if we have no pawns left.
     if (!strong_pawns) {
         return SCALE_DRAW;
     }

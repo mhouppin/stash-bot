@@ -74,6 +74,8 @@ usize string_getline(FILE *f, String *string) {
 
     string_clear(string);
 
+    // This is far from perfect, but the standard I/O library doesn't have any better function to
+    // read a line from a file without running into portability issues.
     if (fgets(buffer, sizeof(buffer), f) == NULL) {
         return 0;
     }

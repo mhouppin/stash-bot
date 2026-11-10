@@ -106,6 +106,7 @@ static u64 perft(Board *board, u16 depth) {
 
     movelist_generate_legal(&list, board);
 
+    // Bulk counting: we don't need to apply moves at depth 1.
     if (depth == 1) {
         return movelist_size(&list);
     }
@@ -258,6 +259,7 @@ void searchstack_init(Worker *worker, Searchstack *ss) {
     }
 }
 
+// Helper for getting the bestmove index in thread voting
 static usize bestmove_vote_idx(const Move *restrict moves, usize size, Move bestmove) {
     usize slot_idx = 0;
 
@@ -272,10 +274,12 @@ static usize bestmove_vote_idx(const Move *restrict moves, usize size, Move best
     return slot_idx;
 }
 
+// Helper that returns a root move's score in thread voting
 static i32 worker_weighted_vote(const Worker *restrict worker, Score worst_pv_score) {
     return (root_move_score(worker->root_moves) - worst_pv_score + 4) * worker->root_depth;
 }
 
+// Helper for adding a worker's bestmove to the score table
 static void add_worker_weight(
     const Worker *restrict worker,
     Move *restrict moves,
@@ -297,6 +301,7 @@ static void add_worker_weight(
     scores[slot_idx] += (i64)worker_weighted_vote(worker, worst_pv_score);
 }
 
+// Helper to see if a worker ranks higher than the current best worker
 static bool is_worker_new_best(
     const Worker *restrict worker,
     const Worker *restrict best_worker,
@@ -310,10 +315,12 @@ static bool is_worker_new_best(
     Score cur_score = root_move_score(worker->root_moves);
     Move cur_bestmove = worker->root_moves->move;
 
+    // Skip the worker if we don't have a score for it.
     if (cur_score == -INF_SCORE) {
         return false;
     }
 
+    // Reverse case, if we don't yet have a best score, just select the worker.
     if (best_score == -INF_SCORE) {
         return true;
     }
@@ -335,7 +342,7 @@ static bool is_worker_new_best(
 
     usize cur_idx = bestmove_vote_idx(moves, size, cur_bestmove);
 
-    // Update best worker if its bestmove has a higher weighted vote.
+    // Update the best worker if its bestmove has a higher weighted vote.
     if (scores[cur_idx] > scores[best_idx]) {
         return true;
     }
@@ -355,6 +362,7 @@ static bool is_worker_new_best(
     return false;
 }
 
+// Helper for selecting which worker has the most "valuable" bestmove
 static Worker *select_best_worker(WorkerPool *wpool) {
     // Implementation derived from Stormphrax, which is itself ported from Stockfish.
     if (wpool->worker_count == 1) {
@@ -363,6 +371,7 @@ static Worker *select_best_worker(WorkerPool *wpool) {
 
     Score worst_pv_score = INF_SCORE;
 
+    // Compute the lowest PV score in the worker list.
     for (usize i = 0; i < wpool->worker_count; ++i) {
         const Worker *cur_worker = wpool->worker_list[i];
 
@@ -376,6 +385,7 @@ static Worker *select_best_worker(WorkerPool *wpool) {
     i64 scores[MAX_MOVES];
     usize size = 0;
 
+    // Compute the bestmove/score tables.
     for (usize i = 0; i < wpool->worker_count; ++i) {
         const Worker *cur_worker = wpool->worker_list[i];
 
@@ -395,6 +405,7 @@ static Worker *select_best_worker(WorkerPool *wpool) {
         (LargeInt)scores[best_idx]
     );
 
+    // Try to see if a worker ranks higher than the main one.
     for (usize worker_idx = 1; worker_idx < wpool->worker_count; ++worker_idx) {
         Worker *cur_worker = wpool->worker_list[worker_idx];
         bool new_best = is_worker_new_best(
@@ -531,7 +542,7 @@ void main_worker_search(Worker *worker) {
         if (found) {
             ponder_move = tt_entry->bestmove;
 
-            // Careful with data races !
+            // Careful with data races!
             if (!board_move_is_pseudolegal(board, ponder_move)
                 || !board_move_is_legal(board, ponder_move)) {
                 ponder_move = NO_MOVE;
@@ -562,7 +573,7 @@ cleanup:
 void worker_search(Worker *worker) {
     const SearchParams *search_params = &worker->pool->search_params;
 
-    // Be careful to not initialize the main worker twice to avoid memory leaks
+    // Be careful to not initialize the main worker twice to avoid memory leaks.
     if (worker->thread_index != 0) {
         worker_init_search_data(worker);
     }
@@ -650,6 +661,7 @@ void use_emergency_scoring(Worker *worker, Searchstack *ss) {
 
     movepicker_init(&mp, false, board, worker, tt_move, ss);
 
+    // Select the first root move returned by the movepicker as our bestmove.
     while ((currmove = movepicker_next_move(&mp, false, 0)) != NO_MOVE) {
         RootMove *best_root_move =
             find_root_move(worker->root_moves, worker->root_move_count, currmove);
@@ -672,7 +684,9 @@ bool worker_search_pv_line(Worker *worker, u16 depth, u16 multi_pv, Searchstack 
     Score pv_score = worker->root_moves[worker->pv_line].previous_score;
     Bound bound = NO_BOUND;
 
+    // The selective depth is independent for each search iteration, for each PV line.
     worker->seldepth = 0;
+
     // Don't set aspiration window bounds for low depths, as the scores are very volatile.
     if (worker->root_depth <= 8) {
         delta = 0;
@@ -708,7 +722,7 @@ bool worker_search_pv_line(Worker *worker, u16 depth, u16 multi_pv, Searchstack 
         // move search, use a very fast move selection/scoring trick to avoid returning random bad
         // moves. This is especially useful in SMP scenarios where the main thread would fail to
         // start before getting past maximal time usage due to the time it needs to launch other
-        // worker threads.
+        // worker threads, or when we are playing with very, very low time/nodes per move.
         if (depth == 1 && multi_pv == 1 && pv_score == -INF_SCORE) {
             use_emergency_scoring(worker, ss + 4);
         }
@@ -719,8 +733,9 @@ bool worker_search_pv_line(Worker *worker, u16 depth, u16 multi_pv, Searchstack 
             const bool single_pv = multi_pv == 1;
             const bool iter_done = worker->pv_line + 1 == multi_pv;
 
-            // Don't update Multi-PV lines if they are not all analysed at current search depth and
-            // not enough time has passed to avoid flooding the standard output.
+            // Only refresh Multi-PV output if either all lines have been searched at current depth
+            // or if enough time has passed, to avoid flooding the standard output in the first
+            // search iterations.
             if ((late_info && single_pv) || (bound == EXACT_BOUND && (late_info || iter_done))) {
                 for (u16 i = 0; i < multi_pv; ++i) {
                     print_pv(
@@ -1010,6 +1025,7 @@ Score search(
 
             Score probcut_score = -qsearch(false, board, -probcut_beta, -probcut_beta + 1, ss + 1);
 
+            // Only do the reduced search if the preliminary qsearch failed high.
             if (probcut_score >= probcut_beta) {
                 probcut_score = -search(
                     false,
@@ -1093,7 +1109,8 @@ main_loop:
             // Continuation History Pruning. For low-depth nodes, prune quiet moves if they seem to
             // be bad continuations to the previous moves.
             if (depth <= 5
-                && get_conthist_move_score(board, ss, currmove) < 783 - 1218 * (depth - 1) * (depth - 1)) {
+                && get_conthist_move_score(board, ss, currmove)
+                    < 783 - 1218 * (depth - 1) * (depth - 1)) {
                 continue;
             }
 
