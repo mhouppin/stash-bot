@@ -28,7 +28,6 @@ int		main(int argc, char **argv)
 	psq_score_init();
 	zobrist_init();
 	tt_resize(16);
-	uci_position("startpos");
 
 	pthread_t	engine_pt;
 
@@ -37,6 +36,8 @@ int		main(int argc, char **argv)
 		perror("Failed to boot engine thread");
 		return (1);
 	}
+
+	uci_position("startpos");
 	uci_loop(argc, argv);
 
 	return (0);
