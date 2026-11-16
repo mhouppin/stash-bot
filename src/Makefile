@@ -39,72 +39,103 @@ own_LDFLAGS := -lpthread -lm
 # compiler allows us to do so.
 
 ifeq ($(ARCH),)
-	specs := $(shell echo | $(CC) -march=native -E -dM -)
-	ifneq ($(findstring __x86_64__,$(specs)),)
-		ifneq ($(findstring __BMI2__,$(specs)),)
-			# Avoid enabling BMI2 for old Ryzen CPUs who emulate the instruction in
-			# microcode.
-			ifeq ($(filter __znver1 __znver2,$(specs)),)
-				arch:=x86-64-bmi2
-			else
-				arch:=x86-64-popcnt
-			endif
-		else
-			ifneq ($(findstring __POPCNT__,$(specs)),)
-				arch:=x86-64-popcnt
-			else
-				ifneq ($(findstring __SSE__,$(specs)),)
-					arch:=x86-64
-				else
-					arch:=generic
-				endif
-			endif
-		endif
-	else
-		arch:=generic
-	endif
+    specs := $(shell echo | $(CC) -march=native -E -dM -)
+    ifneq ($(findstring __x86_64__,$(specs)),)
+        ifneq ($(findstring __BMI2__,$(specs)),)
+            # Avoid enabling BMI2 for old Ryzen CPUs who emulate the instruction in
+            # microcode.
+            ifeq ($(filter __znver1 __znver2,$(specs)),)
+                ifneq ($(findstring __AVX512F__,$(specs)),)
+                    arch:=x86-64-v4
+                else
+                    arch:=x86-64-v3
+                endif
+            else
+                arch:=x86-64-v3m
+            endif
+        else
+            ifneq ($(findstring __POPCNT__,$(specs)),)
+                arch:=x86-64-v2
+            else
+                ifneq ($(findstring __SSE__,$(specs)),)
+                    arch:=x86-64
+                else
+                    arch:=generic
+                endif
+            endif
+        endif
+    else
+        arch:=generic
+    endif
+
+    ifneq ($(arch),generic)
+        _ := $(info Autodetect: Using '$(arch)' as the target architecture)
+    endif
 else
-	maybe_arch:=$(filter x86-64-bmi2 x86-64-popcnt x86-64-modern x86-64 generic,$(firstword $(ARCH)))
+    maybe_arch:=$(filter x86-64-v4 x86-64-bmi2 x86-64-v3 x86-64-v3m x86-64-popcnt x86-64-modern x86-64-v2 x86-64 generic,$(firstword $(ARCH)))
 
-	ifneq ($(maybe_arch),)
-		arch:=$(maybe_arch)
+    ifneq ($(maybe_arch),)
+        arch:=$(maybe_arch)
 
-		ifeq ($(arch),x86-64-modern)
-			_ := $(error Using 'x86-64-modern' as an architecture has been removed since the v36 release. Use 'x86-64-popcnt' instead)
-		endif
-	else
-		arch:=generic
-		_ := $(warning Unknown specified architecture '$(ARCH)'. Defaulting to the generic build.)
-	endif
+        ifeq ($(arch),x86-64-bmi2)
+            _ := $(warning Using 'x86-64-bmi2' as an architecture is deprecated and will be removed in a future release. Use 'x86-64-v3' instead)
+            arch:=x86-64-v3
+        endif
+
+        ifeq ($(arch),x86-64-popcnt)
+            _ := $(warning Using 'x86-64-popcnt' as an architecture is deprecated and will be removed in a future release. Use 'x86-64-v2' instead)
+            arch:=x86-64-v2
+        endif
+
+        ifeq ($(arch),x86-64-modern)
+            _ := $(error Using 'x86-64-modern' as an architecture has been removed since the v36 release. Use 'x86-64-v2' instead)
+        endif
+    else
+        arch:=generic
+        _ := $(warning Unknown specified architecture '$(ARCH)'. Defaulting to the generic build.)
+    endif
 endif
 
 # Add .exe to the executable name if we are on Windows, and link the binary statically.
 
 ifeq ($(OS),Windows_NT)
-	EXE = stash.exe
-	own_LDFLAGS += -static
+    EXE = stash.exe
+    own_LDFLAGS += -static
 else
-	EXE = stash
+    EXE = stash
 endif
 
 # Enable use of PREFETCH instruction
 
 ifeq ($(arch),x86-64)
     ifneq ($(NATIVE),yes)
-        own_CFLAGS += -msse
+        own_CFLAGS += -march=x86-64
     endif
 endif
 
-ifeq ($(arch),x86-64-popcnt)
+ifeq ($(arch),x86-64-v2)
     ifneq ($(NATIVE),yes)
-        own_CFLAGS += -msse -msse3 -mpopcnt
+        own_CFLAGS += -march=x86-64-v2
     endif
 endif
 
-ifeq ($(arch),x86-64-bmi2)
+ifeq ($(arch),x86-64-v3m)
+    ifneq ($(NATIVE),yes)
+        own_CFLAGS += -march=x86-64-v3 -mno-bmi2
+    endif
+endif
+
+ifeq ($(arch),x86-64-v3)
     own_CFLAGS += -DUSE_PEXT
     ifneq ($(NATIVE),yes)
-        own_CFLAGS += -msse -msse3 -mpopcnt -msse4 -mbmi2
+        own_CFLAGS += -march=x86-64-v3
+    endif
+endif
+
+ifeq ($(arch),x86-64-v4)
+    own_CFLAGS += -DUSE_PEXT
+    ifneq ($(NATIVE),yes)
+        own_CFLAGS += -march=x86-64-v4
     endif
 endif
 
