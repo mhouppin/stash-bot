@@ -867,13 +867,10 @@ Score search(
     ss->double_extensions = (ss - 1)->double_extensions;
 
     const bool in_check = !!board->stack->checkers;
-    bool improving;
 
     // Don't perform early pruning or compute the eval while in check.
     if (in_check) {
         eval = ss->static_eval = raw_eval = NO_SCORE;
-        improving = false;
-        goto main_loop;
     }
     // Use the TT stored information for getting an eval.
     else if (tt_found) {
@@ -894,7 +891,7 @@ Score search(
         tt_save(&worker->pool->tt, tt_entry, key, NO_SCORE, raw_eval, 0, NO_BOUND, NO_MOVE);
     }
 
-    improving = ss->plies >= 2 && ss->static_eval > (ss - 2)->static_eval;
+    const bool improving = !in_check && ss->plies >= 2 && ss->static_eval > (ss - 2)->static_eval;
 
     // Replace the TT move by the nth best move from the previous search iteration in MultiPV
     // scenarios.
@@ -906,7 +903,7 @@ Score search(
     // will save us at this stage. Drop into qsearch.
     const Score razoring_margin = 120 * depth;
 
-    if (!pv_node && !ss->excluded_move && !in_check && ss->static_eval + razoring_margin <= alpha
+    if (!pv_node && !in_check && !ss->excluded_move && ss->static_eval + razoring_margin <= alpha
         && depth <= 3) {
         const bool allow_full_razor =
             depth == 1 || (depth <= 2 && ss->static_eval + razoring_margin <= alpha);
@@ -931,7 +928,8 @@ Score search(
 
     // Futility Pruning. If our eval is quite good and depth is low, we just assume that we won't
     // fall far behind in the next plies, and we return the eval.
-    if (!pv_node && depth <= 7 && eval - 86 * depth + 79 * improving >= beta && eval < VICTORY) {
+    if (!pv_node && !in_check && depth <= 7 && eval - 86 * depth + 79 * improving >= beta
+        && eval < VICTORY) {
         return eval;
     }
 
@@ -939,8 +937,8 @@ Score search(
     // the board, we try to see what happens if we skip our turn. If the resulting reduced search
     // still beats beta, we assume our position is so good that we cannot get under beta at this
     // point.
-    if (cut_node && depth >= 3 && ss->plies >= worker->nmp_verif_plies && !ss->excluded_move
-        && eval >= beta + 30 && eval >= ss->static_eval
+    if (cut_node && !in_check && depth >= 3 && ss->plies >= worker->nmp_verif_plies
+        && !ss->excluded_move && eval >= beta + 30 && eval >= ss->static_eval
         && board->stack->material[board->side_to_move] != 0) {
         Boardstack stack;
         Score score, verif_score;
@@ -990,7 +988,7 @@ Score search(
     // much above beta, we can (almost) safely prune the previous move.
     const Score probcut_beta = beta + 152;
 
-    if (!root_node && depth >= 6 && i16_abs(beta) < VICTORY
+    if (!root_node && !in_check && depth >= 6 && i16_abs(beta) < VICTORY
         && !(tt_found && tt_depth >= depth - 4 && tt_score < probcut_beta)) {
         const Score probcut_see = probcut_beta - ss->static_eval;
         Move currmove;
@@ -1061,7 +1059,6 @@ Score search(
         --depth;
     }
 
-main_loop:
     movepicker_init(&mp, false, board, worker, tt_move, ss);
 
     Boardstack stack;
