@@ -782,9 +782,9 @@ Score search(
     Worker *worker = board_get_worker(board);
 
     // Perform an early check for repetition detections.
-    if (!root_node && board->stack->rule50 >= 3 && alpha < 0
+    if (!root_node && board->stack->rule50 >= 3 && alpha < 3
         && board_game_contains_cycle(board, ss->plies)) {
-        alpha = worker_draw_score(worker);
+        alpha = i16_max(alpha, worker_draw_score(worker));
 
         if (alpha >= beta) {
             return alpha;

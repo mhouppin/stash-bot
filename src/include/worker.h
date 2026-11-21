@@ -113,7 +113,7 @@ INLINED void board_enable_worker(Board *board) {
 
 // Returns a pseudo-random draw score using the current node count
 INLINED Score worker_draw_score(const Worker *worker) {
-    return (Score)(atomic_load_explicit(&worker->nodes, memory_order_relaxed) & 2) - 1;
+    return (Score)(atomic_load_explicit(&worker->nodes, memory_order_relaxed) & 0b11) - 1;
 }
 
 INLINED void worker_increment_nodes(Worker *worker) {
